@@ -13,9 +13,25 @@ FetchContent_Declare(SFML
     SYSTEM)
 FetchContent_MakeAvailable(SFML)
 
+FetchContent_Declare(BOX2D
+    GIT_REPOSITORY https://github.com/erincatto/box2d.git
+    GIT_TAG v3.0.0
+    GIT_SHALLOW ON
+    EXCLUDE_FROM_ALL
+    SYSTEM)
+FetchContent_MakeAvailable(BOX2D)
+
+FetchContent_Declare(IMGUI
+    GIT_REPOSITORY https://github.com/ocornut/imgui.git
+    GIT_TAG v1.91.3
+    GIT_SHALLOW ON
+    EXCLUDE_FROM_ALL
+    SYSTEM)
+FetchContent_MakeAvailable(IMGUI)
+
 add_executable(main src/main.cpp)
 target_link_libraries(main PRIVATE
-    sfml-audio sfml-network sfml-graphics)
+    sfml-audio sfml-network sfml-graphics box2d ImGui)
 target_compile_features(main PRIVATE cxx_std_17)
 
 if(WIN32)
