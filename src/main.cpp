@@ -73,6 +73,24 @@ int main()
             {
                 window.close();
             }
+
+            if (event.type == sf::Event::KeyPressed)
+            {
+                switch (event.key.code)
+                {
+                    case sf::Keyboard::D:
+                        b2Body_ApplyForceToCenter(bodyId, (b2Vec2){10000000.0f, 0.0f}, true);
+                        break;
+                    case sf::Keyboard::A:
+                        b2Body_ApplyForceToCenter(bodyId, (b2Vec2){-10000000.0f, 0.0f}, true);
+                        break;
+                    case sf::Keyboard::W:
+                        b2Body_ApplyForceToCenter(bodyId, (b2Vec2){0.0f, -10000000.0f}, true);
+                        break;
+                    default:
+                        break;
+                }
+            }
         }
 
         if (!window.hasFocus())
@@ -86,22 +104,23 @@ int main()
             height = window.getSize().y;
             // std::cout << "Width: " << width << "px" << std::endl;
             // std::cout << "Height: " << height << "px"  << std::endl;
+            b2World_Step(worldId, timeStep, subStepCount);
+            b2Vec2 position = b2Body_GetPosition(bodyId);
+            b2Rot rotation = b2Body_GetRotation(bodyId);
+            std::cout << "Position: " << position.x << ", " << position.y << std::endl;
+            std::cout << "Rotation: " << b2Rot_GetAngle(rotation) << std::endl;
+            shape2.setPosition(position.x, position.y);
+            shape2.setRotation(b2Rot_GetAngle(rotation));
+
+            window.clear();
+            for (sf::Shape* shape : shapes)
+            {
+                window.draw(*shape);
+            }
+            window.display();
         }
 
-        b2World_Step(worldId, timeStep, subStepCount);
-        b2Vec2 position = b2Body_GetPosition(bodyId);
-        b2Rot rotation = b2Body_GetRotation(bodyId);
-        std::cout << "Position: " << position.x << ", " << position.y << std::endl;
-        std::cout << "Rotation: " << b2Rot_GetAngle(rotation) << std::endl;
-        shape2.setPosition(position.x, position.y);
-        shape2.setRotation(b2Rot_GetAngle(rotation));
 
-        window.clear();
-        for (sf::Shape* shape : shapes)
-        {
-            window.draw(*shape);
-        }
-        window.display();
     }
 
     b2DestroyWorld(worldId);
