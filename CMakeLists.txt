@@ -29,9 +29,20 @@ FetchContent_Declare(IMGUI
     SYSTEM)
 FetchContent_MakeAvailable(IMGUI)
 
+add_library(imgui
+    ${CMAKE_BINARY_DIR}/_deps/imgui-src/imgui.cpp
+    ${CMAKE_BINARY_DIR}/_deps/imgui-src/imgui_draw.cpp
+    ${CMAKE_BINARY_DIR}/_deps/imgui-src/imgui_demo.cpp
+    ${CMAKE_BINARY_DIR}/_deps/imgui-src/imgui_tables.cpp
+    ${CMAKE_BINARY_DIR}/_deps/imgui-src/imgui_widgets.cpp)
+
+target_include_directories(imgui PUBLIC
+    ${CMAKE_BINARY_DIR}/_deps/imgui-src
+    ${CMAKE_BINARY_DIR}/_deps/imgui-src/include)
+
 add_executable(main src/main.cpp)
 target_link_libraries(main PRIVATE
-    sfml-audio sfml-network sfml-graphics box2d ImGui)
+    sfml-audio sfml-network sfml-graphics box2d imgui)
 target_compile_features(main PRIVATE cxx_std_17)
 
 if(WIN32)

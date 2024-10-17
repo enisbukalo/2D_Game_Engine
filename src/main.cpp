@@ -1,6 +1,11 @@
 #include <iostream>
 
 #include <SFML/Graphics.hpp>
+#include <box2d/box2d.h>
+#include <box2d/types.h>
+// #include <imgui.h>
+// #include <backends/imgui_impl_glfw.h>
+// #include <backends/imgui_impl_opengl3.h>
 
 unsigned int width = 1920;
 unsigned int height = 1080;
@@ -11,6 +16,10 @@ bool paused = false;
 
 int main()
 {
+    b2WorldDef worldDef = b2DefaultWorldDef();
+    worldDef.gravity = (b2Vec2){0.0f, -9.81f};
+    b2WorldId worldId = b2CreateWorld(&worldDef);
+
     auto window = sf::RenderWindow({1920u, 1080u}, "2D Space Game");
     window.setFramerateLimit(144);
 
