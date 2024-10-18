@@ -3,7 +3,8 @@
 
 #include <SFML/Graphics.hpp>
 #include <box2d/box2d.h>
-#include <box2d/types.h>
+
+#include "EventManager.h"
 // #include <imgui.h>
 // #include <backends/imgui_impl_glfw.h>
 // #include <backends/imgui_impl_opengl3.h>
@@ -41,7 +42,7 @@ int main()
     b2Polygon dynamicBox = b2MakeBox(100.0f, 100.0f);
 
     b2ShapeDef shapeDef = b2DefaultShapeDef();
-    shapeDef.density = 1.0f;
+    shapeDef.density = 0.5f;
     shapeDef.friction = 0.3f;
 
     b2CreatePolygonShape(bodyId, &shapeDef, &dynamicBox);
@@ -64,33 +65,13 @@ int main()
     shapes.push_back(&shape2);
     shapes.push_back(&groundShape);
 
+    EventManager eventManager = EventManager(&window, {&bodyId});
+
     while (window.isOpen())
     {
         for (auto event = sf::Event(); window.pollEvent(event);)
         {
-            // Close Window Event
-            if (event.type == sf::Event::Closed)
-            {
-                window.close();
-            }
-
-            if (event.type == sf::Event::KeyPressed)
-            {
-                switch (event.key.code)
-                {
-                    case sf::Keyboard::D:
-                        b2Body_ApplyForceToCenter(bodyId, (b2Vec2){10000000.0f, 0.0f}, true);
-                        break;
-                    case sf::Keyboard::A:
-                        b2Body_ApplyForceToCenter(bodyId, (b2Vec2){-10000000.0f, 0.0f}, true);
-                        break;
-                    case sf::Keyboard::W:
-                        b2Body_ApplyForceToCenter(bodyId, (b2Vec2){0.0f, -10000000.0f}, true);
-                        break;
-                    default:
-                        break;
-                }
-            }
+            eventManager.handleEvent(event);
         }
 
         if (!window.hasFocus())

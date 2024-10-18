@@ -40,7 +40,13 @@ target_include_directories(imgui PUBLIC
     ${CMAKE_BINARY_DIR}/_deps/imgui-src
     ${CMAKE_BINARY_DIR}/_deps/imgui-src/include)
 
-add_executable(main src/main.cpp)
+file(GLOB_RECURSE SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+
+add_executable(main ${SOURCES})
+
+target_include_directories(main PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
 target_link_libraries(main PRIVATE
     sfml-audio sfml-network sfml-graphics box2d imgui)
 target_compile_features(main PRIVATE cxx_std_17)
