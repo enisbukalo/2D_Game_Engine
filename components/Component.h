@@ -2,6 +2,9 @@
 #define COMPONENT_H
 
 #include <box2d/box2d.h>
+#include <string>
+
+#include "Vec2.h"
 
 class Component {
 public:
@@ -9,18 +12,21 @@ public:
   ~Component();
 };
 
-struct TransformComponent : Component {
-  b2Vec2 position;
+struct CName : Component {
+  std::string name;
+};
+
+struct CTransform : Component {
+  Vec2 position;
   b2Rot rotation;
 };
 
-struct PhysicsComponent : Component {
-  b2Vec2 velocity;
-  float angularVelocity;
+struct CGravity : Component {
+  Vec2 acceleration;
 };
 
-struct InputComponent : Component {};
+struct CInput : Component {};
 
-struct SpriteComponent : Component {};
+struct CSprite : Component {};
 
 #endif // COMPONENT_H

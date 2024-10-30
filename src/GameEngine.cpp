@@ -1,6 +1,6 @@
-#include "Game.h"
+#include "GameEngine.h"
 
-Game::Game(sf::RenderWindow *window, b2Vec2 gravity, uint8_t subStepCount, float timeStep)
+GameEngine::GameEngine(sf::RenderWindow *window, b2Vec2 gravity, uint8_t subStepCount, float timeStep)
     : m_window(window), m_gravity(gravity), m_subStepCount(subStepCount), m_timeStep(timeStep)
 {
   m_window->setFramerateLimit(144);
@@ -12,9 +12,9 @@ Game::Game(sf::RenderWindow *window, b2Vec2 gravity, uint8_t subStepCount, float
   m_gameRunning = true;
 }
 
-Game::~Game() { b2DestroyWorld(m_worldId); }
+GameEngine::~GameEngine() { b2DestroyWorld(m_worldId); }
 
-void Game::readInputs()
+void GameEngine::readInputs()
 {
   for (auto event = sf::Event(); m_window->pollEvent(event);) {
     if (event.type == sf::Event::Closed) {
@@ -24,9 +24,9 @@ void Game::readInputs()
   }
 }
 
-void Game::update() { b2World_Step(m_worldId, m_timeStep, m_subStepCount); }
+void GameEngine::update() { b2World_Step(m_worldId, m_timeStep, m_subStepCount); }
 
-void Game::render()
+void GameEngine::render()
 {
   m_window->clear();
   //   for (sf::Shape *shape : shapes) {

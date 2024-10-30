@@ -1,13 +1,13 @@
-#ifndef GAME_H
-#define GAME_H
+#ifndef GAMEENGINE_H
+#define GAMEENGINE_H
 
 #include <SFML/Graphics.hpp>
 #include <box2d/box2d.h>
 
-class Game {
+class GameEngine {
 public:
-  Game(sf::RenderWindow *window, b2Vec2 gravity, uint8_t subStepCount, float timeStep);
-  ~Game();
+  GameEngine(sf::RenderWindow *window, b2Vec2 gravity, uint8_t subStepCount, float timeStep);
+  ~GameEngine();
 
   void readInputs();
   void update();
@@ -27,4 +27,4 @@ private:
   b2WorldId m_worldId;
 };
 
-#endif // GAME_H
+#endif // GAMEENGINE_H

@@ -5,7 +5,8 @@
 #include <box2d/box2d.h>
 
 #include "Entity.h"
-#include "Game.h"
+#include "GameEngine.h"
+#include "Vec2.h"
 
 #pragma region Variables
 
@@ -138,7 +139,13 @@ int main(int argc, char *argv[])
 {
   sf::VideoMode videoMode = sf::VideoMode(windowSize.x, windowSize.y);
   sf::RenderWindow window = sf::RenderWindow(videoMode, "2D Space Game");
-  Game game = Game(&window, gravity, subStepCount, timeStep);
+  GameEngine game = GameEngine(&window, gravity, subStepCount, timeStep);
+
+  Vec2 v1 = Vec2(150.0f, 200.0f);
+  Vec2 v2 = Vec2(25.0f, 15.0f);
+  Vec2 v3 = Vec2(50.0f, 50.0f);
+
+  std::cout << "Distance: V1 To V2: " << v1.distance(v2) << std::endl;
 
   while (game.is_running()) {
     game.readInputs();
