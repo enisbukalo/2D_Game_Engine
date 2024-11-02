@@ -8,14 +8,19 @@
 
 class Entity {
 public:
-  Entity(const std::string &tag, uint8_t id);
-  ~Entity() {};
+  friend class EntityManager;
+
+  void destroy() { m_alive = false; };
+  bool isAlive() { return m_alive; };
 
   std::shared_ptr<CName> cName;
   std::shared_ptr<CTransform> cTransform;
   std::shared_ptr<CGravity> cGravity;
 
 private:
+  Entity(const std::string &tag, uint8_t id);
+  ~Entity() {};
+
   const uint8_t m_id = 0;
   const std::string m_tag = "Default";
   bool m_alive = true;

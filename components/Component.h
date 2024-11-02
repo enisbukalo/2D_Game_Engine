@@ -18,7 +18,9 @@ struct CName : Component {
 
 struct CTransform : Component {
   Vec2 position;
-  b2Rot rotation;
+  Vec2 speed;
+  Vec2 scale;
+  float angle;
 };
 
 struct CGravity : Component {
