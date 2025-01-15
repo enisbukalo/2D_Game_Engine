@@ -19,12 +19,12 @@ jobs:
         shell: bash
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Cache Dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             deps_cache
@@ -40,7 +40,7 @@ jobs:
 
       - name: Upload Test Results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-results
           path: |
@@ -48,18 +48,18 @@ jobs:
             build/test_results.xml
           retention-days: 30
 
-      - name: Upload GameEngine DLL
-        uses: actions/upload-artifact@v3
+      - name: Upload GameEngine Library
+        uses: actions/upload-artifact@v4
         with:
-          name: game-engine-lib
+          name: game-engine-dll
           path: |
-            build/install/bin/GameEngine-d.lib
+            build/bin/Debug/GameEngine-d.dll
           retention-days: 30
 
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install clang-format
         run: sudo apt-get install -y clang-format
@@ -74,7 +74,7 @@ jobs:
   static-analysis:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install cppcheck
         run: sudo apt-get install -y cppcheck
