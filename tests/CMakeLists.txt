@@ -11,20 +11,44 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
+# Include GoogleTest for test discovery
+include(GoogleTest)
+
 # Add test executable
 set(TEST_FILES
     component_test.cpp
     entity_test.cpp
     entity_manager_test.cpp
+    component_factory_test.cpp
 )
 
 add_executable(unit_tests ${TEST_FILES})
+
+# Add library directories
+target_link_directories(unit_tests PRIVATE
+    "${CMAKE_BINARY_DIR}/lib/Debug"
+)
 
 # Link with the main library and Google Test
 target_link_libraries(unit_tests PRIVATE
     GameEngine
     GTest::gtest
     GTest::gtest_main
+    sfml-graphics-s-d
+    sfml-window-s-d
+    sfml-system-s-d
+    imgui_sfml_imported
+    opengl32
+    winmm
+    gdi32
+)
+
+# Add SFML_STATIC definition when linking statically
+target_compile_definitions(unit_tests PRIVATE
+    SFML_STATIC
+    IMGUI_SFML_STATIC
+    $<$<CONFIG:Debug>:_DEBUG>
+    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
 )
 
 # Include directories for tests
@@ -32,13 +56,47 @@ target_include_directories(unit_tests PRIVATE
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/components
     ${json_SOURCE_DIR}/include
+    ${sfml_SOURCE_DIR}/include
+    ${imgui_SOURCE_DIR}
+    ${IMGUI_SFML_SOURCE_DIR}
 )
-
-# Add compile definition for source directory
-target_compile_definitions(unit_tests PRIVATE SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
 # Copy test data to build directory
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_data DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
-# Add the test
-add_test(NAME unit_tests COMMAND unit_tests)
+# Configure CTest output
+set(CTEST_OUTPUT_ON_FAILURE ON)
+set(CTEST_CUSTOM_MAXIMUM_PASSED_TEST_OUTPUT_SIZE 0)
+set(CTEST_CUSTOM_MAXIMUM_FAILED_TEST_OUTPUT_SIZE 0)
+
+# Create Testing directory structure
+file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/Testing/Temporary")
+
+# Register tests with CTest
+gtest_discover_tests(unit_tests
+    WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>"
+    DISCOVERY_MODE PRE_TEST
+    PROPERTIES
+    LABELS "unit"
+    TIMEOUT 10
+    TEST_PREFIX "GameEngine::"
+    WILL_FAIL FALSE
+    ENVIRONMENT "GTEST_OUTPUT=xml:${CMAKE_BINARY_DIR}/test_results/"
+)
+
+# Add a custom target to run tests
+add_custom_target(run_tests ALL
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/test_results"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/Testing/Temporary"
+    COMMAND ${CMAKE_COMMAND} -E echo "Test started at: `date`" > "${CMAKE_BINARY_DIR}/Testing/Temporary/LastTest.log"
+    COMMAND ${CMAKE_CTEST_COMMAND}
+    --output-on-failure
+    --output-log "${CMAKE_BINARY_DIR}/Testing/Temporary/LastTest.log"
+    --output-junit "${CMAKE_BINARY_DIR}/test_results/results.xml"
+    --verbose
+    | tee -a "${CMAKE_BINARY_DIR}/Testing/Temporary/LastTest.log"
+    COMMAND ${CMAKE_COMMAND} -E echo "Test ended at: `date`" >> "${CMAKE_BINARY_DIR}/Testing/Temporary/LastTest.log"
+    DEPENDS unit_tests
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Running tests..."
+)

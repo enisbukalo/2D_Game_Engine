@@ -1,13 +1,12 @@
 #ifndef GAMEENGINE_H
 #define GAMEENGINE_H
 
-#include <box2d/box2d.h>
 #include <SFML/Graphics.hpp>
 
 class GameEngine
 {
 public:
-    GameEngine(sf::RenderWindow *window, b2Vec2 gravity, uint8_t subStepCount, float timeStep);
+    GameEngine(sf::RenderWindow *window, sf::Vector2f gravity, uint8_t subStepCount, float timeStep);
     ~GameEngine();
 
     void readInputs();
@@ -26,9 +25,7 @@ private:
     bool m_gameRunning = false;
 
     sf::RenderWindow *m_window;
-    b2Vec2            m_gravity;
-    b2WorldDef        m_worldDef;
-    b2WorldId         m_worldId;
+    sf::Vector2f      m_gravity;
 };
 
 #endif  // GAMEENGINE_H

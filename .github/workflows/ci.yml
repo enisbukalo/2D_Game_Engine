@@ -7,20 +7,24 @@ on:
     branches: ["main", "master"]
 
 env:
-  BUILD_TYPE: Release
+  BUILD_TYPE: Debug
 
 jobs:
   build:
     runs-on: windows-latest
     timeout-minutes: 30
 
+    defaults:
+      run:
+        shell: bash
+
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Cache Dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             deps_cache
@@ -29,25 +33,33 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-deps-
 
-      - name: Configure CMake
+      - name: Build and Test
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-        env:
-          CMAKE_BUILD_PARALLEL_LEVEL: 2
+          chmod +x build.sh
+          ./build.sh -c -s -i "./install"
 
-      - name: Build
-        run: cmake --build build --config ${{env.BUILD_TYPE}} --parallel 2
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            build/Testing/Temporary/LastTest.log
+            build/test_results.xml
+          retention-days: 30
 
-      - name: Test
-        working-directory: ${{github.workspace}}/build
-        run: |
-          cd bin/${{env.BUILD_TYPE}}
-          ./unit_tests.exe
+      - name: Upload GameEngine Library
+        uses: actions/upload-artifact@v4
+        with:
+          name: game-engine-dll
+          path: |
+            build/bin/Debug/GameEngine-d.dll
+          retention-days: 30
 
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install clang-format
         run: sudo apt-get install -y clang-format
@@ -62,7 +74,7 @@ jobs:
   static-analysis:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install cppcheck
         run: sudo apt-get install -y cppcheck

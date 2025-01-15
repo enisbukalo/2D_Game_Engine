@@ -10,6 +10,7 @@
 #include "../components/CName.h"
 #include "../components/CTransform.h"
 #include "Component.h"
+#include "ComponentFactory.h"
 
 using json = nlohmann::json;
 
@@ -109,20 +110,12 @@ public:
                 if (componentData.contains("type"))
                 {
                     std::string type = componentData["type"];
-                    if (type == "Transform")
+                    if (Component *component = ComponentFactory::instance().createComponent(type))
                     {
-                        auto component = addComponent<CTransform>();
+                        component->owner                                  = this;
+                        m_components[std::type_index(typeid(*component))] = std::unique_ptr<Component>(component);
                         component->deserialize(componentData);
-                    }
-                    else if (type == "Name")
-                    {
-                        auto component = addComponent<CName>();
-                        component->deserialize(componentData);
-                    }
-                    else if (type == "Gravity")
-                    {
-                        auto component = addComponent<CGravity>();
-                        component->deserialize(componentData);
+                        component->init();
                     }
                 }
             }
