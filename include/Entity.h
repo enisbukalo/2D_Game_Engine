@@ -2,10 +2,16 @@
 #define ENTITY_H
 
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <typeindex>
 #include <unordered_map>
+#include "../components/CGravity.h"
+#include "../components/CName.h"
+#include "../components/CTransform.h"
 #include "Component.h"
+
+using json = nlohmann::json;
 
 class Entity : public std::enable_shared_from_this<Entity>
 {
@@ -71,6 +77,54 @@ public:
             if (component && component->isActive())
             {
                 component->update(deltaTime);
+            }
+        }
+    }
+
+    json serialize() const
+    {
+        json j;
+        j["id"]    = m_id;
+        j["tag"]   = m_tag;
+        j["alive"] = m_alive;
+
+        json components = json::array();
+        for (const auto &[type, component] : m_components)
+        {
+            if (component)
+            {
+                components.push_back(component->serialize());
+            }
+        }
+        j["components"] = components;
+        return j;
+    }
+
+    void deserialize(const json &data)
+    {
+        if (data.contains("components"))
+        {
+            for (const auto &componentData : data["components"])
+            {
+                if (componentData.contains("type"))
+                {
+                    std::string type = componentData["type"];
+                    if (type == "Transform")
+                    {
+                        auto component = addComponent<CTransform>();
+                        component->deserialize(componentData);
+                    }
+                    else if (type == "Name")
+                    {
+                        auto component = addComponent<CName>();
+                        component->deserialize(componentData);
+                    }
+                    else if (type == "Gravity")
+                    {
+                        auto component = addComponent<CGravity>();
+                        component->deserialize(componentData);
+                    }
+                }
             }
         }
     }

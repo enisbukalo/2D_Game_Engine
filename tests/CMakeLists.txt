@@ -31,7 +31,14 @@ target_link_libraries(unit_tests PRIVATE
 target_include_directories(unit_tests PRIVATE
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/components
+    ${json_SOURCE_DIR}/include
 )
+
+# Add compile definition for source directory
+target_compile_definitions(unit_tests PRIVATE SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+
+# Copy test data to build directory
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_data DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
 # Add the test
 add_test(NAME unit_tests COMMAND unit_tests)

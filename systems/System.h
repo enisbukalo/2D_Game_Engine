@@ -1,10 +1,12 @@
 #ifndef SYSTEM_H
 #define SYSTEM_H
 
-#include <memory>
-#include <unordered_map>
-
+#include <vector>
+#include "../components/CGravity.h"
+#include "../components/CName.h"
+#include "../components/CTransform.h"
 #include "Component.h"
+#include "Entity.h"
 
 class System
 {
