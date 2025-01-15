@@ -78,20 +78,13 @@ FetchContent_Declare(json
 FetchContent_MakeAvailable(SFML BOX2D IMGUI_SFML json)
 
 # Create Game Engine library
-set(ENGINE_SOURCES
-    src/GameEngine.cpp
-    src/CGravity.cpp
-)
+file(GLOB ENGINE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+file(GLOB INCLUDE_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h")
+file(GLOB COMPONENT_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/components/*.h")
 
 set(ENGINE_HEADERS
-    include/Entity.h
-    include/EntityManager.h
-    include/GameEngine.h
-    include/Vec2.h
-    components/Component.h
-    components/CTransform.h
-    components/CName.h
-    components/CGravity.h
+    ${INCLUDE_HEADERS}
+    ${COMPONENT_HEADERS}
 )
 
 add_library(GameEngine STATIC
@@ -112,21 +105,5 @@ target_link_libraries(GameEngine PUBLIC
     nlohmann_json::nlohmann_json
 )
 
-# Create main executable
-add_executable(main
-    ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
-
-target_link_libraries(main PRIVATE
-    GameEngine
-)
-
 # Add tests subdirectory
 add_subdirectory(tests)
-
-if(WIN32)
-    add_custom_command(
-        TARGET main
-        COMMENT "Copy OpenAL DLL"
-        PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${SFML_SOURCE_DIR}/extlibs/bin/$<IF:$<EQUAL:${CMAKE_SIZEOF_VOID_P},8>,x64,x86>/openal32.dll $<TARGET_FILE_DIR:main>
-        VERBATIM)
-endif()

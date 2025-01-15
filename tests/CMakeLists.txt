@@ -16,6 +16,7 @@ set(TEST_FILES
     component_test.cpp
     entity_test.cpp
     entity_manager_test.cpp
+    component_factory_test.cpp
 )
 
 add_executable(unit_tests ${TEST_FILES})
