@@ -8,7 +8,6 @@ Release/
 
 # IDE specific files
 .vs/
-.vscode/
 *.swp
 *.swo
 .idea/

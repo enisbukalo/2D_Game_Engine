@@ -6,14 +6,15 @@
 
 #include "Component.h"
 
-class System {
+class System
+{
 public:
-  System();
-  ~System();
+    System();
+    ~System();
 
-  virtual void update() = 0;
+    virtual void update() = 0;
 
 private:
-  std::unordered_map<uint8_t, std::unique_ptr<Component>> m_components;
+    std::unordered_map<uint8_t, std::unique_ptr<Component>> m_components;
 };
-#endif // SYSTEM_H
+#endif  // SYSTEM_H

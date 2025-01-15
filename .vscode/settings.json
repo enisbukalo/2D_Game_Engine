@@ -1,0 +1,161 @@
+{
+    "editor.tokenColorCustomizations": {
+        "textMateRules": [
+            {
+                "scope": "variable.parameter.function-call.python",
+                "settings": {
+                    "foreground": "#ff0000"
+                }
+            },
+            {
+                "scope": [
+                    "variable.parameter.function.language.special.self.python",
+                    "keyword.control.flow.python",
+                    "keyword.control.import.python"
+                ],
+                "settings": {
+                    "foreground": "#fffb00"
+                }
+            },
+            {
+                "scope": [
+                    "entity.name.function",
+                    "punctuation.definition.decorator.python"
+                ],
+                "settings": {
+                    "foreground": "#ffae00"
+                }
+            },
+            {
+                "scope": "variable.other.constant",
+                "settings": {
+                    "foreground": "#4FC1FF",
+                    "fontStyle": "bold underline"
+                }
+            },
+            {
+                "scope": [
+                    "keyword.operator",
+                    "punctuation.definition",
+                    "punctuation.separator",
+                    "punctuation.section"
+                ],
+                "settings": {
+                    "foreground": "#ffffff",
+                    "fontStyle": "bold"
+                }
+            },
+            {
+                "scope": "keyword.operator.logical.python",
+                "settings": {
+                    "foreground": "#ff00bf",
+                    "fontStyle": "bold underline"
+                }
+            },
+            {
+                "scope": [
+                    "string",
+                    "punctuation.definition.comment.python",
+                    "punctuation.definition.string",
+                    "comment"
+                ],
+                "settings": {
+                    "foreground": "#2a9600"
+                }
+            },
+            {
+                "scope": "constant.numeric",
+                "settings": {
+                    "foreground": "#00ffff"
+                }
+            },
+            {
+                "scope": "constant.character.format.placeholder.other.python",
+                "settings": {
+                    "foreground": "#569CD6",
+                    "fontStyle": "bold"
+                }
+            }
+        ]
+    },
+    "files.associations": {
+        "*.sh": "shellscript",
+        "*.cpp": "cpp",
+        "*.yml": "yaml",
+        "array": "cpp",
+        "atomic": "cpp",
+        "bit": "cpp",
+        "*.tcc": "cpp",
+        "cctype": "cpp",
+        "charconv": "cpp",
+        "clocale": "cpp",
+        "cmath": "cpp",
+        "compare": "cpp",
+        "concepts": "cpp",
+        "cstddef": "cpp",
+        "cstdint": "cpp",
+        "cstdio": "cpp",
+        "cstdlib": "cpp",
+        "ctime": "cpp",
+        "cwchar": "cpp",
+        "cwctype": "cpp",
+        "deque": "cpp",
+        "map": "cpp",
+        "string": "cpp",
+        "unordered_map": "cpp",
+        "vector": "cpp",
+        "exception": "cpp",
+        "algorithm": "cpp",
+        "functional": "cpp",
+        "iterator": "cpp",
+        "memory": "cpp",
+        "memory_resource": "cpp",
+        "numeric": "cpp",
+        "optional": "cpp",
+        "random": "cpp",
+        "string_view": "cpp",
+        "system_error": "cpp",
+        "tuple": "cpp",
+        "type_traits": "cpp",
+        "utility": "cpp",
+        "format": "cpp",
+        "initializer_list": "cpp",
+        "iosfwd": "cpp",
+        "iostream": "cpp",
+        "istream": "cpp",
+        "limits": "cpp",
+        "new": "cpp",
+        "numbers": "cpp",
+        "ostream": "cpp",
+        "span": "cpp",
+        "stdexcept": "cpp",
+        "streambuf": "cpp",
+        "text_encoding": "cpp",
+        "typeinfo": "cpp",
+        "variant": "cpp",
+        "bitset": "cpp",
+        "cfenv": "cpp",
+        "cstdarg": "cpp",
+        "cstring": "cpp",
+        "set": "cpp",
+        "fstream": "cpp",
+        "iomanip": "cpp",
+        "sstream": "cpp",
+        "cinttypes": "cpp"
+    },
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": null,
+    "[cpp]": {
+        "editor.defaultFormatter": "xaver.clang-format",
+        "editor.formatOnSave": true
+    },
+    "[c]": {
+        "editor.defaultFormatter": "xaver.clang-format",
+        "editor.formatOnSave": true
+    },
+    "clang-format.executable": "C:\\msys64\\mingw64\\bin\\clang-format.exe",
+    "clang-format.style": "file",
+    "clang-format.fallbackStyle": "Google",
+    "clang-format.assumeFilename": "${file}",
+    "C_Cpp.formatting": "clangFormat"
+}

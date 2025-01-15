@@ -1,8 +1,8 @@
 #include <iostream>
 #include <vector>
 
-#include <SFML/Graphics.hpp>
 #include <box2d/box2d.h>
+#include <SFML/Graphics.hpp>
 
 #include "Entity.h"
 #include "GameEngine.h"
@@ -10,8 +10,8 @@
 
 #pragma region Variables
 
-unsigned int width = 1920;
-unsigned int height = 1080;
+unsigned int width      = 1920;
+unsigned int height     = 1080;
 sf::Vector2u windowSize = sf::Vector2u(width, height);
 
 // Gravity in m/s^2 {x, y}.
@@ -137,21 +137,22 @@ const int subStepCount = 4;
 
 int main(int argc, char *argv[])
 {
-  sf::VideoMode videoMode = sf::VideoMode(windowSize.x, windowSize.y);
-  sf::RenderWindow window = sf::RenderWindow(videoMode, "2D Space Game");
-  GameEngine game = GameEngine(&window, gravity, subStepCount, timeStep);
+    sf::VideoMode    videoMode = sf::VideoMode(windowSize.x, windowSize.y);
+    sf::RenderWindow window    = sf::RenderWindow(videoMode, "2D Space Game");
+    GameEngine       game      = GameEngine(&window, gravity, subStepCount, timeStep);
 
-  Vec2 v1 = Vec2(150.0f, 200.0f);
-  Vec2 v2 = Vec2(25.0f, 15.0f);
-  Vec2 v3 = Vec2(50.0f, 50.0f);
+    Vec2 v1 = Vec2(150.0f, 200.0f);
+    Vec2 v2 = Vec2(25.0f, 15.0f);
+    Vec2 v3 = Vec2(50.0f, 50.0f);
 
-  std::cout << "Distance: V1 To V2: " << v1.distance(v2) << std::endl;
+    std::cout << "Distance: V1 To V2: " << v1.distance(v2) << std::endl;
 
-  while (game.is_running()) {
-    game.readInputs();
-    game.update();
-    game.render();
-  }
+    while (game.is_running())
+    {
+        game.readInputs();
+        game.update();
+        game.render();
+    }
 
-  return 0;
+    return 0;
 }
