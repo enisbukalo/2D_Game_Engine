@@ -9,12 +9,45 @@ NC='\033[0m' # No Color
 # Full path to clang-format (Windows style)
 CLANG_FORMAT="C:\\msys64\\mingw64\\bin\\clang-format.exe"
 
-echo -e "${YELLOW}Formatting C++ files...${NC}"
+# Function to format files
+format_files() {
+    local check_only=$1
+    local format_command="$CLANG_FORMAT -style=file"
 
-# Find all .cpp and .h files and format them
-find . -type f \( -name "*.cpp" -o -name "*.h" \) -not -path "./build/*" -not -path "./deps_cache/*" | while read -r file; do
-    echo -e "Formatting ${file}..."
-    "$CLANG_FORMAT" -i -style=file "$file"
-done
+    if [ "$check_only" = true ]; then
+        format_command="$format_command --dry-run --Werror"
+        echo -e "${YELLOW}Checking formatting...${NC}"
+    else
+        format_command="$format_command -i"
+        echo -e "${YELLOW}Formatting files...${NC}"
+    fi
 
-echo -e "${GREEN}Formatting complete!${NC}" 
+    # Find and format files
+    find . -type f \( -name "*.cpp" -o -name "*.h" \) \
+        -not -path "./build/*" \
+        -not -path "./deps_cache/*" \
+        -exec $format_command {} +
+
+    local result=$?
+    if [ $result -eq 0 ]; then
+        if [ "$check_only" = true ]; then
+            echo -e "${GREEN}All files are properly formatted!${NC}"
+        else
+            echo -e "${GREEN}Formatting complete!${NC}"
+        fi
+    else
+        if [ "$check_only" = true ]; then
+            echo -e "${RED}Some files need formatting!${NC}"
+        else
+            echo -e "${RED}Formatting failed!${NC}"
+        fi
+        exit 1
+    fi
+}
+
+# Check for --check argument
+if [ "$1" = "--check" ]; then
+    format_files true
+else
+    format_files false
+fi

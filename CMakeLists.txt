@@ -48,11 +48,6 @@ FetchContent_Declare(BOX2D
     SYSTEM)
 
 # Only build what we need from ImGui-SFML
-FetchContent_Declare(IMGUI_SFML
-    GIT_REPOSITORY https://github.com/SFML/imgui-sfml.git
-    GIT_TAG 2.6.x
-    GIT_SHALLOW ON)
-
 FetchContent_Declare(IMGUI
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
     GIT_TAG v1.91.3
@@ -64,19 +59,15 @@ if(NOT imgui_POPULATED)
     FetchContent_Populate(IMGUI)
 endif()
 
+# Configure ImGui-SFML
+set(IMGUI_DIR ${imgui_SOURCE_DIR})
+FetchContent_Declare(IMGUI_SFML
+    GIT_REPOSITORY https://github.com/SFML/imgui-sfml.git
+    GIT_TAG 2.6.x
+    GIT_SHALLOW ON)
+
 set(IMGUI_SFML_FIND_SFML OFF)
 FetchContent_MakeAvailable(SFML BOX2D IMGUI_SFML)
-
-# Create ImGui library (minimal build)
-add_library(imgui STATIC
-    ${imgui_SOURCE_DIR}/imgui.cpp
-    ${imgui_SOURCE_DIR}/imgui_draw.cpp
-    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
-    ${imgui_SOURCE_DIR}/imgui_tables.cpp)
-
-target_include_directories(imgui PUBLIC
-    ${imgui_SOURCE_DIR}
-    ${SFML_SOURCE_DIR}/include)
 
 # Create Game Engine library
 set(ENGINE_SOURCES
