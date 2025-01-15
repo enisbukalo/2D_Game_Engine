@@ -64,6 +64,11 @@ target_include_directories(unit_tests PRIVATE
 # Copy test data to build directory
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_data DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
+# Configure CTest output
+set(CTEST_OUTPUT_ON_FAILURE ON)
+set(CTEST_CUSTOM_MAXIMUM_PASSED_TEST_OUTPUT_SIZE 0)
+set(CTEST_CUSTOM_MAXIMUM_FAILED_TEST_OUTPUT_SIZE 0)
+
 # Register tests with CTest
 gtest_discover_tests(unit_tests
     WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>"
@@ -72,8 +77,19 @@ gtest_discover_tests(unit_tests
     LABELS "unit"
     TIMEOUT 10
     TEST_PREFIX "GameEngine::"
-    TEST_LIST GAMEENGINE_TESTS
+    WILL_FAIL FALSE
+    ENVIRONMENT "GTEST_OUTPUT=xml:${CMAKE_BINARY_DIR}/test_results/"
 )
 
-# Add the test list to CTest
-set_property(DIRECTORY PROPERTY TEST_INCLUDE_FILES "${CMAKE_CURRENT_BINARY_DIR}/CTestTestfile.cmake")
+# Add a custom target to run tests
+add_custom_target(run_tests ALL
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/test_results"
+    COMMAND ${CMAKE_CTEST_COMMAND}
+    --output-on-failure
+    --output-log "${CMAKE_BINARY_DIR}/Testing/Temporary/LastTest.log"
+    --output-junit "${CMAKE_BINARY_DIR}/test_results/results.xml"
+    --verbose
+    DEPENDS unit_tests
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Running tests..."
+)
