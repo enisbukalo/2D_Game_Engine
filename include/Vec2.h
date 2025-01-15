@@ -3,6 +3,7 @@
 
 #include <math.h>
 
+// A 2D vector class
 class Vec2 {
 public:
   float x = 0.0;
@@ -11,8 +12,13 @@ public:
   Vec2() {};
   Vec2(float x, float y) : x(x), y(y) {};
 
-  float length() { return sqrt(x * x + y * y); };
+  // Calculate the length of the vector
+  float length()
+  {
+    return sqrt(x * x + y * y);
+  };
 
+  // Normalize the vector
   Vec2 &normalize()
   {
     float l = length();
@@ -20,18 +26,24 @@ public:
     y /= l;
     return *this;
   };
+
+  // Add two vectors
   Vec2 &add(const Vec2 &other)
   {
     x += other.x;
     y += other.y;
     return *this;
   };
+
+  // Scale the vector
   Vec2 &scale(float multiplier)
   {
     x *= multiplier;
     y *= multiplier;
     return *this;
   };
+
+  // Rotate the vector
   Vec2 &rotate(float angle)
   {
     float c = cos(angle);
@@ -42,25 +54,53 @@ public:
     y = newY;
     return *this;
   };
-  float distance(const Vec2 &other) { return sqrtf((other.x - x) * (other.x - x) + (other.y - y) * (other.y - y)); };
+
+  // Calculate the distance between two vectors
+  float distance(const Vec2 &other)
+  {
+    return sqrtf((other.x - x) * (other.x - x) + (other.y - y) * (other.y - y));
+  };
 
 #pragma region Operators
+  // Add two vectors
   Vec2 &operator+=(const Vec2 &other)
   {
     x += other.x;
     y += other.y;
     return *this;
   }
+
+  // Subtract two vectors
   Vec2 &operator-=(const Vec2 &other)
   {
     x -= other.x;
     y -= other.y;
     return *this;
   }
-  Vec2 operator+(const Vec2 &other) const { return Vec2(x + other.x, y + other.y); }
-  Vec2 operator-(const Vec2 &other) const { return Vec2(x - other.x, y - other.y); }
-  Vec2 operator*(const float &multiplier) const { return Vec2(x * multiplier, y * multiplier); }
-  Vec2 operator/(const float &divisor) const { return Vec2(x / divisor, y / divisor); }
+
+  // Add two vectors
+  Vec2 operator+(const Vec2 &other) const
+  {
+    return Vec2(x + other.x, y + other.y);
+  }
+
+  // Subtract two vectors
+  Vec2 operator-(const Vec2 &other) const
+  {
+    return Vec2(x - other.x, y - other.y);
+  }
+
+  // Multiply the vector by a scalar
+  Vec2 operator*(const float &multiplier) const
+  {
+    return Vec2(x * multiplier, y * multiplier);
+  }
+
+  // Divide the vector by a scalar
+  Vec2 operator/(const float &divisor) const
+  {
+    return Vec2(x / divisor, y / divisor);
+  }
 #pragma endregion
 };
 

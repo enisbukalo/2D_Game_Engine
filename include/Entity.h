@@ -1,26 +1,77 @@
 #ifndef ENTITY_H
 #define ENTITY_H
 
+#include "Component.h"
 #include <memory>
 #include <string>
+#include <typeindex>
+#include <unordered_map>
 
-#include "Component.h"
-
-class Entity {
+class Entity : public std::enable_shared_from_this<Entity> {
 public:
   friend class EntityManager;
 
-  void destroy() { m_alive = false; };
-  bool isAlive() { return m_alive; };
+  virtual ~Entity() = default;
 
-  std::shared_ptr<CName> cName;
-  std::shared_ptr<CTransform> cTransform;
-  std::shared_ptr<CGravity> cGravity;
+  template <typename T> T *getComponent()
+  {
+    auto it = m_components.find(std::type_index(typeid(T)));
+    return it != m_components.end() ? static_cast<T *>(it->second.get()) : nullptr;
+  }
+
+  template <typename T, typename... Args> T *addComponent(Args &&...args)
+  {
+    T *component = new T(std::forward<Args>(args)...);
+    component->owner = this;
+    m_components[std::type_index(typeid(T))] = std::unique_ptr<Component>(component);
+    component->init();
+    return component;
+  }
+
+  template <typename T> bool hasComponent()
+  {
+    return m_components.find(std::type_index(typeid(T))) != m_components.end();
+  }
+
+  template <typename T> void removeComponent()
+  {
+    auto it = m_components.find(std::type_index(typeid(T)));
+    if (it != m_components.end()) {
+      m_components.erase(it);
+    }
+  }
+
+  void destroy()
+  {
+    m_alive = false;
+  }
+  bool isAlive() const
+  {
+    return m_alive;
+  }
+  uint8_t getId() const
+  {
+    return m_id;
+  }
+  const std::string &getTag() const
+  {
+    return m_tag;
+  }
+
+  void update(float deltaTime)
+  {
+    for (auto &[type, component] : m_components) {
+      if (component && component->isActive()) {
+        component->update(deltaTime);
+      }
+    }
+  }
+
+protected:
+  Entity(const std::string &tag, uint8_t id) : m_tag(tag), m_id(id) {}
 
 private:
-  Entity(const std::string &tag, uint8_t id);
-  ~Entity() {};
-
+  std::unordered_map<std::type_index, std::unique_ptr<Component>> m_components;
   const uint8_t m_id = 0;
   const std::string m_tag = "Default";
   bool m_alive = true;

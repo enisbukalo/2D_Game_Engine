@@ -1,6 +1,37 @@
-build
-out
-.cache
-.idea
-.vs
-.vscode
+# Build directories
+build/
+deps_cache/
+out/
+CMakeFiles/
+Debug/
+Release/
+
+# IDE specific files
+.vs/
+.vscode/
+*.swp
+*.swo
+.idea/
+cmake-build-*/
+
+# Compiled files
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+*.lib
+*.a
+*.pdb
+
+# CMake generated files
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+CTestTestfile.cmake
+DartConfiguration.tcl
+
+# OS specific files
+.DS_Store
+Thumbs.db

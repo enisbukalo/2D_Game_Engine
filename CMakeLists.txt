@@ -4,14 +4,41 @@ project(CMakeSFMLProject LANGUAGES CXX)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 
+# Set C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Enable parallel compilation for MSVC
+if(MSVC)
+    add_compile_options(/MP)
+endif()
+
+# Cache directory for dependencies
+set(DEPS_CACHE_DIR "${CMAKE_SOURCE_DIR}/deps_cache" CACHE PATH "Directory for cached dependencies")
+
 include(FetchContent)
+
+# Configure dependency caching
+set(FETCHCONTENT_BASE_DIR ${DEPS_CACHE_DIR})
+
+# Only build what we need from SFML
+set(SFML_BUILD_AUDIO OFF)
+set(SFML_BUILD_NETWORK OFF)
+set(SFML_BUILD_EXAMPLES OFF)
+set(SFML_BUILD_DOC OFF)
+set(SFML_BUILD_TEST_SUITE OFF)
+
 FetchContent_Declare(SFML
     GIT_REPOSITORY https://github.com/SFML/SFML.git
     GIT_TAG 2.6.x
     GIT_SHALLOW ON
     EXCLUDE_FROM_ALL
     SYSTEM)
-FetchContent_MakeAvailable(SFML)
+
+# Only build what we need from Box2D
+set(BOX2D_BUILD_EXAMPLES OFF)
+set(BOX2D_BUILD_TESTBED OFF)
+set(BOX2D_BUILD_UNIT_TESTS OFF)
 
 FetchContent_Declare(BOX2D
     GIT_REPOSITORY https://github.com/erincatto/box2d.git
@@ -19,7 +46,9 @@ FetchContent_Declare(BOX2D
     GIT_SHALLOW ON
     EXCLUDE_FROM_ALL
     SYSTEM)
-FetchContent_MakeAvailable(BOX2D)
+
+# Only build what we need from ImGui
+set(IMGUI_BUILD_EXAMPLES OFF)
 
 FetchContent_Declare(IMGUI
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
@@ -27,33 +56,59 @@ FetchContent_Declare(IMGUI
     GIT_SHALLOW ON
     EXCLUDE_FROM_ALL
     SYSTEM)
-FetchContent_MakeAvailable(IMGUI)
 
-add_library(imgui
+FetchContent_MakeAvailable(SFML BOX2D IMGUI)
+
+# Create ImGui library (minimal build)
+add_library(imgui STATIC
     ${CMAKE_BINARY_DIR}/_deps/imgui-src/imgui.cpp
     ${CMAKE_BINARY_DIR}/_deps/imgui-src/imgui_draw.cpp
-    ${CMAKE_BINARY_DIR}/_deps/imgui-src/imgui_demo.cpp
-    ${CMAKE_BINARY_DIR}/_deps/imgui-src/imgui_tables.cpp
     ${CMAKE_BINARY_DIR}/_deps/imgui-src/imgui_widgets.cpp)
 
 target_include_directories(imgui PUBLIC
-    ${CMAKE_BINARY_DIR}/_deps/imgui-src
-    ${CMAKE_BINARY_DIR}/_deps/imgui-src/include)
+    ${CMAKE_BINARY_DIR}/_deps/imgui-src)
 
-file(GLOB_RECURSE SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+# Create Game Engine library
+set(ENGINE_SOURCES
+    src/Component.cpp
+    src/GameEngine.cpp
+)
 
-add_executable(main
-    ${SOURCES}
-    ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
+set(ENGINE_HEADERS
+    include/Entity.h
+    include/EntityManager.h
+    include/GameEngine.h
+    include/Vec2.h
+    components/Component.h
+)
 
-target_include_directories(main PUBLIC
+add_library(GameEngine STATIC
+    ${ENGINE_SOURCES}
+    ${ENGINE_HEADERS}
+)
+
+target_include_directories(GameEngine PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/components
-    ${CMAKE_CURRENT_SOURCE_DIR}/systems)
+    ${CMAKE_CURRENT_SOURCE_DIR}/systems
+)
+
+target_link_libraries(GameEngine PUBLIC
+    sfml-graphics
+    box2d
+    imgui
+)
+
+# Create main executable
+add_executable(main
+    ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
 
 target_link_libraries(main PRIVATE
-    sfml-audio sfml-network sfml-graphics box2d imgui)
-target_compile_features(main PRIVATE cxx_std_17)
+    GameEngine
+)
+
+# Add tests subdirectory
+add_subdirectory(tests)
 
 if(WIN32)
     add_custom_command(

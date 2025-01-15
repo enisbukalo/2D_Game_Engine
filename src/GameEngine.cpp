@@ -12,11 +12,14 @@ GameEngine::GameEngine(sf::RenderWindow *window, b2Vec2 gravity, uint8_t subStep
   m_gameRunning = true;
 }
 
-GameEngine::~GameEngine() { b2DestroyWorld(m_worldId); }
+GameEngine::~GameEngine()
+{
+  b2DestroyWorld(m_worldId);
+}
 
 void GameEngine::readInputs()
 {
-  for (auto event = sf::Event(); m_window->pollEvent(event);) {
+  for (sf::Event event = sf::Event(); m_window->pollEvent(event);) {
     if (event.type == sf::Event::Closed) {
       m_window->close();
       m_gameRunning = false;
@@ -24,7 +27,10 @@ void GameEngine::readInputs()
   }
 }
 
-void GameEngine::update() { b2World_Step(m_worldId, m_timeStep, m_subStepCount); }
+void GameEngine::update()
+{
+  b2World_Step(m_worldId, m_timeStep, m_subStepCount);
+}
 
 void GameEngine::render()
 {
