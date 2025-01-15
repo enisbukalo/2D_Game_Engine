@@ -7,7 +7,7 @@ on:
     branches: ["main", "master"]
 
 env:
-  BUILD_TYPE: Release
+  BUILD_TYPE: Debug
 
 jobs:
   build:
@@ -29,20 +29,32 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-deps-
 
-      - name: Configure CMake
-        run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-        env:
-          CMAKE_BUILD_PARALLEL_LEVEL: 2
+      - name: Setup Git Bash
+        uses: egor-tensin/setup-git-bash@v1
 
-      - name: Build
-        run: cmake --build build --config ${{env.BUILD_TYPE}} --parallel 2
-
-      - name: Test
-        working-directory: ${{github.workspace}}/build
+      - name: Build and Test
+        shell: bash
         run: |
-          cd bin/${{env.BUILD_TYPE}}
-          ./unit_tests.exe
+          chmod +x build.sh
+          ./build.sh -c -s -i "./install"
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: |
+            build/Testing/Temporary/LastTest.log
+            build/test_results.xml
+          retention-days: 30
+
+      - name: Upload GameEngine DLL
+        uses: actions/upload-artifact@v3
+        with:
+          name: game-engine-lib
+          path: |
+            build/install/bin/GameEngine-d.lib
+          retention-days: 30
 
   lint:
     runs-on: ubuntu-latest

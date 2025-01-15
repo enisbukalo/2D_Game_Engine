@@ -111,9 +111,13 @@ cmake --build . --config $BUILD_TYPE --target GameEngine || { echo -e "${RED}Bui
 if [ "$BUILD_TESTS" = "ON" ]; then
     echo -e "${YELLOW}Building tests...${NC}"
     cmake --build . --config $BUILD_TYPE --target unit_tests || { echo -e "${RED}Tests build failed!${NC}"; exit 1; }
-    
+
     echo -e "${YELLOW}Running tests...${NC}"
-    "./bin/${BUILD_TYPE}/unit_tests.exe" --gtest_output="xml:test_results.xml" || { echo -e "${RED}Tests failed!${NC}"; exit 1; }
+    # Create Testing directory structure
+    mkdir -p Testing/Temporary
+
+    # Run tests and capture output to both console and file
+    "./bin/${BUILD_TYPE}/unit_tests.exe" --gtest_output="xml:test_results.xml" 2>&1 | tee Testing/Temporary/LastTest.log || { echo -e "${RED}Tests failed!${NC}"; exit 1; }
 fi
 
 # Install if prefix is specified

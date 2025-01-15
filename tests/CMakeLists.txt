@@ -69,6 +69,9 @@ set(CTEST_OUTPUT_ON_FAILURE ON)
 set(CTEST_CUSTOM_MAXIMUM_PASSED_TEST_OUTPUT_SIZE 0)
 set(CTEST_CUSTOM_MAXIMUM_FAILED_TEST_OUTPUT_SIZE 0)
 
+# Create Testing directory structure
+file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/Testing/Temporary")
+
 # Register tests with CTest
 gtest_discover_tests(unit_tests
     WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>"
@@ -84,11 +87,15 @@ gtest_discover_tests(unit_tests
 # Add a custom target to run tests
 add_custom_target(run_tests ALL
     COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/test_results"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/Testing/Temporary"
+    COMMAND ${CMAKE_COMMAND} -E echo "Test started at: `date`" > "${CMAKE_BINARY_DIR}/Testing/Temporary/LastTest.log"
     COMMAND ${CMAKE_CTEST_COMMAND}
     --output-on-failure
     --output-log "${CMAKE_BINARY_DIR}/Testing/Temporary/LastTest.log"
     --output-junit "${CMAKE_BINARY_DIR}/test_results/results.xml"
     --verbose
+    | tee -a "${CMAKE_BINARY_DIR}/Testing/Temporary/LastTest.log"
+    COMMAND ${CMAKE_COMMAND} -E echo "Test ended at: `date`" >> "${CMAKE_BINARY_DIR}/Testing/Temporary/LastTest.log"
     DEPENDS unit_tests
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMENT "Running tests..."
