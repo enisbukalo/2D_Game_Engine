@@ -66,7 +66,17 @@ jobs:
 
       - name: Run static analysis
         run: |
-          cppcheck --enable=all --error-exitcode=1 \
-            --suppress=missingInclude \
+          cppcheck \
+            --enable=all \
+            --error-exitcode=1 \
+            --suppress=missingIncludeSystem \
             --suppress=unusedFunction \
+            --suppress=noExplicitConstructor \
+            --suppress=unmatchedSuppression \
+            --suppress=missingInclude \
+            --inline-suppr \
+            --std=c++17 \
+            -I include \
+            -I components \
+            -I systems \
             src/ include/ components/

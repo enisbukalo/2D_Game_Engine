@@ -1,5 +1,5 @@
-#include <gtest/gtest.h>
 #include "../components/Component.h"
+#include <gtest/gtest.h>
 #include "../include/Entity.h"
 
 // Test helper class
