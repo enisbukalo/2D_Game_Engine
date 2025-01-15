@@ -6,6 +6,9 @@
 #include <string>
 #include <typeindex>
 #include <unordered_map>
+#include "../components/CGravity.h"
+#include "../components/CName.h"
+#include "../components/CTransform.h"
 #include "Component.h"
 
 using json = nlohmann::json;

@@ -79,8 +79,8 @@ FetchContent_MakeAvailable(SFML BOX2D IMGUI_SFML json)
 
 # Create Game Engine library
 set(ENGINE_SOURCES
-    src/Component.cpp
     src/GameEngine.cpp
+    src/CGravity.cpp
 )
 
 set(ENGINE_HEADERS
@@ -89,6 +89,9 @@ set(ENGINE_HEADERS
     include/GameEngine.h
     include/Vec2.h
     components/Component.h
+    components/CTransform.h
+    components/CName.h
+    components/CGravity.h
 )
 
 add_library(GameEngine STATIC
