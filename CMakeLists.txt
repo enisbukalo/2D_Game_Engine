@@ -69,6 +69,14 @@ FetchContent_Declare(IMGUI_SFML
 set(IMGUI_SFML_FIND_SFML OFF)
 FetchContent_MakeAvailable(SFML BOX2D IMGUI_SFML)
 
+# Add JSON library
+FetchContent_Declare(json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG v3.11.3
+    GIT_SHALLOW ON)
+
+FetchContent_MakeAvailable(SFML BOX2D IMGUI_SFML json)
+
 # Create Game Engine library
 set(ENGINE_SOURCES
     src/Component.cpp
@@ -98,6 +106,7 @@ target_link_libraries(GameEngine PUBLIC
     sfml-graphics
     box2d
     ImGui-SFML
+    nlohmann_json::nlohmann_json
 )
 
 # Create main executable

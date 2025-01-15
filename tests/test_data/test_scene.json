@@ -1,0 +1,100 @@
+{
+    "totalEntities": 3,
+    "entities": [
+        {
+            "id": 0,
+            "tag": "player",
+            "alive": true,
+            "components": [
+                {
+                    "type": "Transform",
+                    "position": {
+                        "x": 100.0,
+                        "y": 200.0
+                    },
+                    "velocity": {
+                        "x": 5.0,
+                        "y": 0.0
+                    },
+                    "scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    },
+                    "rotation": 0.0
+                },
+                {
+                    "type": "Name",
+                    "name": "Player1"
+                },
+                {
+                    "type": "Gravity",
+                    "force": {
+                        "x": 0.0,
+                        "y": -9.81
+                    }
+                }
+            ]
+        },
+        {
+            "id": 1,
+            "tag": "platform",
+            "alive": true,
+            "components": [
+                {
+                    "type": "Transform",
+                    "position": {
+                        "x": 0.0,
+                        "y": -50.0
+                    },
+                    "velocity": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "scale": {
+                        "x": 10.0,
+                        "y": 1.0
+                    },
+                    "rotation": 0.0
+                },
+                {
+                    "type": "Name",
+                    "name": "Ground"
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "tag": "enemy",
+            "alive": true,
+            "components": [
+                {
+                    "type": "Transform",
+                    "position": {
+                        "x": 300.0,
+                        "y": 200.0
+                    },
+                    "velocity": {
+                        "x": -2.0,
+                        "y": 0.0
+                    },
+                    "scale": {
+                        "x": 1.0,
+                        "y": 1.0
+                    },
+                    "rotation": 180.0
+                },
+                {
+                    "type": "Name",
+                    "name": "Enemy1"
+                },
+                {
+                    "type": "Gravity",
+                    "force": {
+                        "x": 0.0,
+                        "y": -9.81
+                    }
+                }
+            ]
+        }
+    ]
+}
