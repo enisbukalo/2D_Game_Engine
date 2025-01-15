@@ -1,8 +1,24 @@
 cmake_minimum_required(VERSION 3.28)
-project(CMakeSFMLProject LANGUAGES CXX)
+
+# Set version information
+set(GAMEENGINE_VERSION_MAJOR 0)
+set(GAMEENGINE_VERSION_MINOR 1)
+set(GAMEENGINE_VERSION_PATCH 0)
+set(GAMEENGINE_VERSION ${GAMEENGINE_VERSION_MAJOR}.${GAMEENGINE_VERSION_MINOR}.${GAMEENGINE_VERSION_PATCH})
+
+project(GameEngine
+    VERSION ${GAMEENGINE_VERSION}
+    DESCRIPTION "A 2D Game Engine with Entity Component System"
+    LANGUAGES CXX)
+
+# Build options
+option(GAMEENGINE_BUILD_SHARED "Build GameEngine as shared library" OFF)
+option(GAMEENGINE_BUILD_TESTS "Build test programs" ON)
+option(GAMEENGINE_INSTALL "Generate installation target" ON)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -22,30 +38,30 @@ include(FetchContent)
 set(FETCHCONTENT_BASE_DIR ${DEPS_CACHE_DIR})
 
 # Only build what we need from SFML
-set(SFML_BUILD_AUDIO OFF)
-set(SFML_BUILD_NETWORK OFF)
-set(SFML_BUILD_EXAMPLES OFF)
-set(SFML_BUILD_DOC OFF)
-set(SFML_BUILD_TEST_SUITE OFF)
+set(SFML_BUILD_AUDIO OFF CACHE BOOL "")
+set(SFML_BUILD_NETWORK OFF CACHE BOOL "")
+set(SFML_BUILD_EXAMPLES OFF CACHE BOOL "")
+set(SFML_BUILD_DOC OFF CACHE BOOL "")
+set(SFML_BUILD_TEST_SUITE OFF CACHE BOOL "")
+set(SFML_INSTALL_PKGCONFIG_FILES OFF CACHE BOOL "")
+set(SFML_INSTALL OFF CACHE BOOL "") # Disable SFML installation
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "") # Build SFML as static libraries
+set(SFML_BUILD_MAIN OFF CACHE BOOL "") # Disable SFML main module
+set(SFML_BUILD_WINDOW ON CACHE BOOL "")
+set(SFML_BUILD_GRAPHICS ON CACHE BOOL "")
 
 FetchContent_Declare(SFML
     GIT_REPOSITORY https://github.com/SFML/SFML.git
     GIT_TAG 2.6.x
-    GIT_SHALLOW ON
-    EXCLUDE_FROM_ALL
-    SYSTEM)
+    GIT_SHALLOW ON)
 
-# Only build what we need from Box2D
-set(BOX2D_BUILD_EXAMPLES OFF)
-set(BOX2D_BUILD_TESTBED OFF)
-set(BOX2D_BUILD_UNIT_TESTS OFF)
+# Configure SFML before making it available
+FetchContent_GetProperties(SFML)
 
-FetchContent_Declare(BOX2D
-    GIT_REPOSITORY https://github.com/erincatto/box2d.git
-    GIT_TAG v3.0.0
-    GIT_SHALLOW ON
-    EXCLUDE_FROM_ALL
-    SYSTEM)
+if(NOT sfml_POPULATED)
+    FetchContent_Populate(SFML)
+    add_subdirectory(${sfml_SOURCE_DIR} ${sfml_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
 
 # Only build what we need from ImGui-SFML
 FetchContent_Declare(IMGUI
@@ -53,21 +69,17 @@ FetchContent_Declare(IMGUI
     GIT_TAG v1.91.3
     GIT_SHALLOW ON)
 
-FetchContent_GetProperties(IMGUI)
-
-if(NOT imgui_POPULATED)
-    FetchContent_Populate(IMGUI)
-endif()
+FetchContent_MakeAvailable(IMGUI)
 
 # Configure ImGui-SFML
 set(IMGUI_DIR ${imgui_SOURCE_DIR})
+set(IMGUI_SFML_FIND_SFML OFF)
+set(IMGUI_SFML_INSTALL ON)
+
 FetchContent_Declare(IMGUI_SFML
     GIT_REPOSITORY https://github.com/SFML/imgui-sfml.git
     GIT_TAG 2.6.x
     GIT_SHALLOW ON)
-
-set(IMGUI_SFML_FIND_SFML OFF)
-FetchContent_MakeAvailable(SFML BOX2D IMGUI_SFML)
 
 # Add JSON library
 FetchContent_Declare(json
@@ -75,7 +87,10 @@ FetchContent_Declare(json
     GIT_TAG v3.11.3
     GIT_SHALLOW ON)
 
-FetchContent_MakeAvailable(SFML BOX2D IMGUI_SFML json)
+set(JSON_Install ON)
+set(JSON_BuildTests OFF)
+
+FetchContent_MakeAvailable(SFML IMGUI_SFML json)
 
 # Create Game Engine library
 file(GLOB ENGINE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
@@ -87,23 +102,143 @@ set(ENGINE_HEADERS
     ${COMPONENT_HEADERS}
 )
 
-add_library(GameEngine STATIC
-    ${ENGINE_SOURCES}
-    ${ENGINE_HEADERS}
+# Create library target
+if(GAMEENGINE_BUILD_SHARED)
+    add_library(GameEngine SHARED ${ENGINE_SOURCES} ${ENGINE_HEADERS})
+    set_target_properties(GameEngine PROPERTIES
+        WINDOWS_EXPORT_ALL_SYMBOLS ON)
+else()
+    add_library(GameEngine STATIC ${ENGINE_SOURCES} ${ENGINE_HEADERS})
+endif()
+
+add_library(GameEngine::GameEngine ALIAS GameEngine)
+
+# Set library properties
+set_target_properties(GameEngine PROPERTIES
+    VERSION ${GAMEENGINE_VERSION}
+    SOVERSION ${GAMEENGINE_VERSION_MAJOR}
+    DEBUG_POSTFIX "-d"
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+    ARCHIVE_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/lib/Debug"
+    ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/lib/Release"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/Debug"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/Release"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+    LIBRARY_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/lib/Debug"
+    LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/lib/Release"
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN ON
+    POSITION_INDEPENDENT_CODE ON)
+
+target_include_directories(GameEngine
+    PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/components>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/systems>
+    $<BUILD_INTERFACE:${sfml_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${json_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include/GameEngine>
 )
 
-target_include_directories(GameEngine PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/components
-    ${CMAKE_CURRENT_SOURCE_DIR}/systems
-)
+# Create imported targets for dependencies
+add_library(imgui_sfml_imported STATIC IMPORTED)
 
-target_link_libraries(GameEngine PUBLIC
-    sfml-graphics
-    box2d
-    ImGui-SFML
+# Set imported locations
+set_target_properties(imgui_sfml_imported PROPERTIES
+    IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/lib/${CMAKE_BUILD_TYPE}/ImGui-SFML${CMAKE_STATIC_LIBRARY_SUFFIX}"
+    INTERFACE_INCLUDE_DIRECTORIES "${imgui_SOURCE_DIR};${IMGUI_SFML_SOURCE_DIR}")
+
+# Link against imported targets
+target_link_libraries(GameEngine
+    PRIVATE
+    sfml-graphics-s-d
+    sfml-window-s-d
+    sfml-system-s-d
+    imgui_sfml_imported
     nlohmann_json::nlohmann_json
+    opengl32
+    winmm
+    gdi32
 )
 
-# Add tests subdirectory
-add_subdirectory(tests)
+target_link_directories(GameEngine
+    PRIVATE
+    "${CMAKE_BINARY_DIR}/lib/Debug"
+)
+
+# Add SFML_STATIC definition when linking statically
+target_compile_definitions(GameEngine
+    PUBLIC
+    SFML_STATIC
+    IMGUI_SFML_STATIC
+    $<$<CONFIG:Debug>:_DEBUG>
+)
+
+# Installation configuration
+if(GAMEENGINE_INSTALL)
+    include(GNUInstallDirs)
+    include(CMakePackageConfigHelpers)
+
+    set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/GameEngine)
+
+    # Install library
+    install(TARGETS GameEngine
+        EXPORT GameEngineTargets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/GameEngine
+    )
+
+    # Install headers
+    install(DIRECTORY
+        include/
+        components/
+        systems/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/GameEngine
+        FILES_MATCHING PATTERN "*.h"
+    )
+
+    # Export targets
+    install(EXPORT GameEngineTargets
+        FILE GameEngineTargets.cmake
+        NAMESPACE GameEngine::
+        DESTINATION ${INSTALL_CONFIGDIR}
+    )
+
+    # Create version file
+    write_basic_package_version_file(
+        "${CMAKE_CURRENT_BINARY_DIR}/GameEngineConfigVersion.cmake"
+        VERSION ${GAMEENGINE_VERSION}
+        COMPATIBILITY SameMajorVersion
+    )
+
+    # Generate config file
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/GameEngineConfig.cmake"
+        "@PACKAGE_INIT@\n\n"
+        "include(CMakeFindDependencyMacro)\n\n"
+        "# Find dependencies\n"
+        "find_dependency(SFML COMPONENTS graphics)\n"
+        "find_dependency(ImGui-SFML)\n"
+        "find_dependency(nlohmann_json)\n\n"
+        "include(\"\${CMAKE_CURRENT_LIST_DIR}/GameEngineTargets.cmake\")\n"
+    )
+
+    # Install config files
+    install(FILES
+        "${CMAKE_CURRENT_BINARY_DIR}/GameEngineConfig.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/GameEngineConfigVersion.cmake"
+        DESTINATION ${INSTALL_CONFIGDIR}
+    )
+endif()
+
+# Add tests if enabled
+if(GAMEENGINE_BUILD_TESTS)
+    # Configure GTest
+    set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+    set(INSTALL_GMOCK OFF CACHE BOOL "" FORCE)
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+
+    add_subdirectory(tests)
+endif()
