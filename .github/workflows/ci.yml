@@ -14,6 +14,10 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 30
 
+    defaults:
+      run:
+        shell: bash
+
     steps:
       - uses: actions/checkout@v3
         with:
@@ -29,11 +33,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-deps-
 
-      - name: Setup Git Bash
-        uses: egor-tensin/setup-git-bash@v1
-
       - name: Build and Test
-        shell: bash
         run: |
           chmod +x build.sh
           ./build.sh -c -s -i "./install"
