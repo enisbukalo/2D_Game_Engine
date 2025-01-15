@@ -53,20 +53,29 @@ set(IMGUI_BUILD_EXAMPLES OFF)
 FetchContent_Declare(IMGUI
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
     GIT_TAG v1.91.3
-    GIT_SHALLOW ON
-    EXCLUDE_FROM_ALL
-    SYSTEM)
+    GIT_SHALLOW ON)
 
-FetchContent_MakeAvailable(SFML BOX2D IMGUI)
+FetchContent_GetProperties(IMGUI)
+
+if(NOT imgui_POPULATED)
+    FetchContent_Populate(IMGUI)
+endif()
+
+FetchContent_MakeAvailable(SFML BOX2D)
 
 # Create ImGui library (minimal build)
 add_library(imgui STATIC
-    ${CMAKE_BINARY_DIR}/_deps/imgui-src/imgui.cpp
-    ${CMAKE_BINARY_DIR}/_deps/imgui-src/imgui_draw.cpp
-    ${CMAKE_BINARY_DIR}/_deps/imgui-src/imgui_widgets.cpp)
+    ${imgui_SOURCE_DIR}/imgui.cpp
+    ${imgui_SOURCE_DIR}/imgui_draw.cpp
+    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_sfml.cpp)
 
 target_include_directories(imgui PUBLIC
-    ${CMAKE_BINARY_DIR}/_deps/imgui-src)
+    ${imgui_SOURCE_DIR}
+    ${imgui_SOURCE_DIR}/backends
+    ${SFML_SOURCE_DIR}/include)
 
 # Create Game Engine library
 set(ENGINE_SOURCES

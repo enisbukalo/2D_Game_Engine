@@ -12,16 +12,19 @@ env:
 jobs:
   build:
     runs-on: windows-latest
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Cache Dependencies
         uses: actions/cache@v3
         with:
           path: |
             deps_cache
-            build
+            build/_deps
           key: ${{ runner.os }}-deps-${{ hashFiles('**/CMakeLists.txt') }}
           restore-keys: |
             ${{ runner.os }}-deps-
@@ -29,9 +32,11 @@ jobs:
       - name: Configure CMake
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+        env:
+          CMAKE_BUILD_PARALLEL_LEVEL: 2
 
       - name: Build
-        run: cmake --build build --config ${{env.BUILD_TYPE}} --parallel
+        run: cmake --build build --config ${{env.BUILD_TYPE}} --parallel 2
 
       - name: Test
         working-directory: ${{github.workspace}}/build
