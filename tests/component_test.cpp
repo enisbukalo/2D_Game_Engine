@@ -1,8 +1,8 @@
+#include "../components/Component.h"
 #include <gtest/gtest.h>
 #include "../components/CGravity.h"
 #include "../components/CName.h"
 #include "../components/CTransform.h"
-#include "../components/Component.h"
 #include "../include/Entity.h"
 
 // Test helper classes

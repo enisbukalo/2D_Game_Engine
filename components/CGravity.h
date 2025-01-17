@@ -24,7 +24,7 @@ struct CGravity : public Component
      * @brief Applies gravity force to the entity's transform
      * @param deltaTime Time elapsed since last update
      */
-    void update(float deltaTime) override;
+    void update(float deltaTime);
 
     /**
      * @brief Gets the type identifier for this component
