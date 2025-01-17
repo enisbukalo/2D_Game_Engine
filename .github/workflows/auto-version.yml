@@ -2,13 +2,14 @@ name: Auto Version
 
 on:
   pull_request:
-    types: [closed]
+    types: [opened, synchronize, labeled, unlabeled, closed]
     branches: ["main", "master"]
 
 jobs:
   validate-labels:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == false
+    # Only validate on non-merge events
+    if: github.event.action != 'closed'
     permissions:
       pull-requests: read
       statuses: write
@@ -28,8 +29,8 @@ jobs:
 
   increment-version:
     runs-on: ubuntu-latest
+    # Only run on merge
     if: github.event.pull_request.merged == true
-    needs: [validate-labels]
     permissions:
       contents: write
       pull-requests: read
