@@ -20,23 +20,33 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Get Version from CI
+        id: version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get the workflow runs for this PR
+          RUN_ID=$(gh api /repos/${{ github.repository }}/actions/runs \
+            --jq '.workflow_runs[] | select(.head_sha == "${{ github.event.pull_request.head.sha }}" and .name == "CI") | .id' \
+            | head -n1)
+          echo "run_id=${RUN_ID}" >> $GITHUB_OUTPUT
+
+          # Get the artifacts for this run
+          ARTIFACTS=$(gh api /repos/${{ github.repository }}/actions/runs/${RUN_ID}/artifacts)
+
+          # Extract version from artifact name
+          VERSION=$(echo "$ARTIFACTS" | jq -r '.artifacts[].name' | grep -oP 'game-engine-v\K[0-9]+\.[0-9]+\.[0-9]+' || echo "")
+          echo "new_version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "$VERSION" > version.txt
+
       - name: Download Build Artifact
         id: download
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ github.event.pull_request.head.sha }}
-          pattern: game-engine-v*
+          run-id: ${{ steps.version.outputs.run_id }}
+          name: game-engine-v${{ steps.version.outputs.new_version }}
           path: release
-
-      - name: Get Version from Artifact
-        id: version
-        run: |
-          # Get version from the artifact directory name
-          ARTIFACT_NAME=$(ls release | grep 'game-engine-v')
-          NEW_VERSION=$(echo "$ARTIFACT_NAME" | grep -oP 'game-engine-v\K[0-9]+\.[0-9]+\.[0-9]+')
-          echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
-          echo "$NEW_VERSION" > version.txt
 
       - name: Create Release Package
         run: |
