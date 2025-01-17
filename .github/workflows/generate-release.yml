@@ -79,7 +79,7 @@ jobs:
             GameEngine Release v${{ steps.version.outputs.new_version }}
 
             ## Usage
-             - Download the release package
+             - Download the release package GameEngine-vX.X.X.zip
              - Extract the package
              - Add the GameEngine-d.dll to your project
              - Link the GameEngine-d.lib to your project
