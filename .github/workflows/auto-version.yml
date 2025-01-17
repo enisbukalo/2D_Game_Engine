@@ -11,7 +11,7 @@ jobs:
     # Only validate on non-merge events
     if: github.event.action != 'closed'
     permissions:
-      pull-requests: read
+      pull-requests: write # Need write to update PR description
       statuses: write
       checks: write
 
@@ -28,9 +28,12 @@ jobs:
           # Determine bump type
           if [[ "${{ contains(github.event.pull_request.labels.*.name, 'major') }}" == "true" ]]; then
             MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
             BUMP_TYPE="major"
           elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'minor') }}" == "true" ]]; then
             MINOR=$((MINOR + 1))
+            PATCH=0
             BUMP_TYPE="minor"
           elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'patch') }}" == "true" ]]; then
             PATCH=$((PATCH + 1))
@@ -51,6 +54,7 @@ jobs:
 
             if (versionLabels.length > 1) {
               core.setFailed('Multiple version indicators found. Please use only one major, minor, or patch label.');
+              return;
             }
 
             // Store the next version in the PR description
@@ -62,6 +66,7 @@ jobs:
                 pull_number: context.payload.pull_request.number,
                 body: `Next version: ${newVersion}\n\n${context.payload.pull_request.body || ''}`
               });
+            }
 
   generate-release:
     runs-on: ubuntu-latest
