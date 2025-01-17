@@ -5,6 +5,8 @@ out/
 CMakeFiles/
 Debug/
 Release/
+package/
+install/
 
 # IDE specific files
 .vs/
@@ -30,6 +32,15 @@ cmake_install.cmake
 compile_commands.json
 CTestTestfile.cmake
 DartConfiguration.tcl
+Testing/
+test_results/
+test_results.xml
+LastTest.log
+
+# Package files
+*.zip
+*.tar.gz
+*.7z
 
 # OS specific files
 .DS_Store
