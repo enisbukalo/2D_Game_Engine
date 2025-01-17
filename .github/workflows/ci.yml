@@ -1,9 +1,10 @@
 name: CI
 
 on:
-  push:
-    tags:
-      - "v*.*.*"
+  workflow_run:
+    workflows: ["Auto Version"]
+    types:
+      - completed
   pull_request:
     branches: ["main", "master"]
 
@@ -27,13 +28,18 @@ jobs:
       - name: Get Version
         run: |
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            # Extract version from PR description
+            # Extract next version from PR description
             BODY="${{ github.event.pull_request.body }}"
-            VERSION=$(echo "$BODY" | grep -oP 'Next version: \K[0-9]+\.[0-9]+\.[0-9]+' || cat version.txt)
+            if [[ "$BODY" =~ "Next version: "([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+              VERSION="${BASH_REMATCH[1]}"
+            else
+              VERSION=$(cat version.txt)
+            fi
           else
             VERSION=$(cat version.txt)
           fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Using version: $VERSION"
 
       - name: Cache Dependencies
         uses: actions/cache@v4
