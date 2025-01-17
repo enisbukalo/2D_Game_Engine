@@ -42,7 +42,6 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const { context } = require('@actions/github')
             const status = context.job.status
             const state = status === 'success' ? 'success' : 'failure'
             const description = status === 'success' ? 'Version indicators valid' : 'Multiple version indicators found'
