@@ -16,50 +16,16 @@ jobs:
       checks: write
 
     steps:
-      - name: Check Version Labels
-        id: check-labels
-        run: |
-          # Count version labels
-          VERSION_LABELS=0
-
-          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'major') }}" == "true" ]]; then
-            VERSION_LABELS=$((VERSION_LABELS + 1))
-          fi
-          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'minor') }}" == "true" ]]; then
-            VERSION_LABELS=$((VERSION_LABELS + 1))
-          fi
-          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'patch') }}" == "true" ]]; then
-            VERSION_LABELS=$((VERSION_LABELS + 1))
-          fi
-
-          TOTAL_VERSION_INDICATORS=$VERSION_LABELS
-
-          if [ $TOTAL_VERSION_INDICATORS -gt 1 ]; then
-            echo "Multiple version indicators found. Please use only one major, minor, or patch label."
-            exit 1
-          fi
-
-      - name: Update PR Status
-        if: always()
+      - name: Validate Version Labels
         uses: actions/github-script@v7
         with:
           script: |
-            const status = context.job.status
-            const conclusion = status === 'success' ? 'success' : 'failure'
-            const title = status === 'success' ? 'Version indicators valid' : 'Multiple version indicators found. Please use only one major, minor, or patch label.'
+            const labels = context.payload.pull_request.labels.map(l => l.name);
+            const versionLabels = ['major', 'minor', 'patch'].filter(l => labels.includes(l));
 
-            await github.rest.checks.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              head_sha: context.payload.pull_request.head.sha,
-              name: 'Version Labels Check',
-              status: 'completed',
-              conclusion,
-              output: {
-                title,
-                summary: title
-              }
-            })
+            if (versionLabels.length > 1) {
+              core.setFailed('Multiple version indicators found. Please use only one major, minor, or patch label.');
+            }
 
   increment-version:
     # Only run if PR was merged
