@@ -2,7 +2,7 @@ name: CI
 
 on:
   workflow_run:
-    workflows: ["1. Version Check"]
+    workflows: ["Auto Version"]
     types:
       - completed
   pull_request:
@@ -26,6 +26,7 @@ jobs:
           fetch-depth: 0
 
       - name: Bump Version
+        id: version
         run: |
           # Read current version
           CURRENT_VERSION=$(cat version.txt)
@@ -49,7 +50,7 @@ jobs:
           # Create new version string
           VERSION="${MAJOR}.${MINOR}.${PATCH}"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "Using version: $VERSION"
 
       - name: Cache Dependencies
