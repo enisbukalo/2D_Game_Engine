@@ -6,17 +6,13 @@
 class GameEngine
 {
 public:
-    GameEngine(sf::RenderWindow *window, sf::Vector2f gravity, uint8_t subStepCount, float timeStep);
+    GameEngine(sf::RenderWindow* window, sf::Vector2f gravity, uint8_t subStepCount, float timeStep);
     ~GameEngine();
 
     void readInputs();
     void update();
     void render();
-
-    bool is_running()
-    {
-        return m_gameRunning;
-    };
+    bool is_running() const;
 
 private:
     const uint8_t m_subStepCount;
@@ -24,7 +20,7 @@ private:
 
     bool m_gameRunning = false;
 
-    sf::RenderWindow *m_window;
+    sf::RenderWindow* m_window;
     sf::Vector2f      m_gravity;
 };
 

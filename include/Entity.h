@@ -18,7 +18,7 @@ class Entity : public std::enable_shared_from_this<Entity>
 {
 public:
     friend class EntityManager;
-
+    friend class TestEntity;
     virtual ~Entity() = default;
 
     template <typename T>
@@ -54,73 +54,13 @@ public:
         }
     }
 
-    void destroy()
-    {
-        m_alive = false;
-    }
-    bool isAlive() const
-    {
-        return m_alive;
-    }
-    uint8_t getId() const
-    {
-        return m_id;
-    }
-    const std::string &getTag() const
-    {
-        return m_tag;
-    }
-
-    void update(float deltaTime)
-    {
-        for (auto &[type, component] : m_components)
-        {
-            if (component && component->isActive())
-            {
-                component->update(deltaTime);
-            }
-        }
-    }
-
-    json serialize() const
-    {
-        json j;
-        j["id"]    = m_id;
-        j["tag"]   = m_tag;
-        j["alive"] = m_alive;
-
-        json components = json::array();
-        for (const auto &[type, component] : m_components)
-        {
-            if (component)
-            {
-                components.push_back(component->serialize());
-            }
-        }
-        j["components"] = components;
-        return j;
-    }
-
-    void deserialize(const json &data)
-    {
-        if (data.contains("components"))
-        {
-            for (const auto &componentData : data["components"])
-            {
-                if (componentData.contains("type"))
-                {
-                    std::string type = componentData["type"];
-                    if (Component *component = ComponentFactory::instance().createComponent(type))
-                    {
-                        component->owner                                  = this;
-                        m_components[std::type_index(typeid(*component))] = std::unique_ptr<Component>(component);
-                        component->deserialize(componentData);
-                        component->init();
-                    }
-                }
-            }
-        }
-    }
+    void               destroy();
+    bool               isAlive() const;
+    uint8_t            getId() const;
+    const std::string &getTag() const;
+    void               update(float deltaTime);
+    json               serialize() const;
+    void               deserialize(const json &data);
 
 protected:
     Entity(const std::string &tag, uint8_t id) : m_tag(tag), m_id(id) {}

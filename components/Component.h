@@ -14,12 +14,9 @@ public:
     Component()          = default;
     virtual ~Component() = default;
 
-    virtual void init() {}
-    virtual void update(float deltaTime) {}
-    virtual json serialize() const
-    {
-        return json{{"type", getType()}};
-    }
+    virtual void        init() {}
+    virtual void        update(float deltaTime) {}
+    virtual json        serialize() const;
     virtual void        deserialize(const json& data) {}
     virtual std::string getType() const = 0;
 
@@ -29,14 +26,8 @@ private:
     bool m_active = true;
 
 public:
-    bool isActive() const
-    {
-        return m_active;
-    }
-    void setActive(bool active)
-    {
-        m_active = active;
-    }
+    bool isActive() const;
+    void setActive(bool active);
 };
 
 #endif  // COMPONENT_H

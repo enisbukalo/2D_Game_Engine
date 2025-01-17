@@ -8,28 +8,10 @@ struct CGravity : public Component
 {
     Vec2 force = Vec2(0.0f, -9.81f);
 
-    void update(float deltaTime) override;
-
-    std::string getType() const override
-    {
-        return "Gravity";
-    }
-
-    json serialize() const override
-    {
-        json j     = Component::serialize();
-        j["force"] = {{"x", force.x}, {"y", force.y}};
-        return j;
-    }
-
-    void deserialize(const json& data) override
-    {
-        if (data.contains("force"))
-        {
-            force.x = data["force"]["x"];
-            force.y = data["force"]["y"];
-        }
-    }
+    void        update(float deltaTime) override;
+    std::string getType() const override;
+    json        serialize() const override;
+    void        deserialize(const json& data) override;
 };
 
 #endif  // CGRAVITY_H

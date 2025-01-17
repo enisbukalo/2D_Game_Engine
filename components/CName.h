@@ -9,25 +9,9 @@ struct CName : public Component
 
     explicit CName(const std::string& n = "") : name(n) {}
 
-    std::string getType() const override
-    {
-        return "Name";
-    }
-
-    json serialize() const override
-    {
-        json j    = Component::serialize();
-        j["name"] = name;
-        return j;
-    }
-
-    void deserialize(const json& data) override
-    {
-        if (data.contains("name"))
-        {
-            name = data["name"];
-        }
-    }
+    std::string getType() const override;
+    json        serialize() const override;
+    void        deserialize(const json& data) override;
 };
 
 #endif  // CNAME_H
