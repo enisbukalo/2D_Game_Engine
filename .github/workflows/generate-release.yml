@@ -1,73 +1,11 @@
-name: Auto Version
+name: Generate Release
 
 on:
   pull_request:
-    types: [opened, synchronize, labeled, unlabeled, closed]
+    types: [closed]
     branches: ["main", "master"]
 
 jobs:
-  validate-labels:
-    runs-on: ubuntu-latest
-    # Only validate on non-merge events
-    if: github.event.action != 'closed'
-    permissions:
-      pull-requests: write # Need write to update PR description
-      statuses: write
-      checks: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Calculate Next Version
-        id: version
-        run: |
-          # Read current version
-          CURRENT_VERSION=$(cat version.txt)
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
-
-          # Determine bump type
-          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'major') }}" == "true" ]]; then
-            MAJOR=$((MAJOR + 1))
-            MINOR=0
-            PATCH=0
-            BUMP_TYPE="major"
-          elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'minor') }}" == "true" ]]; then
-            MINOR=$((MINOR + 1))
-            PATCH=0
-            BUMP_TYPE="minor"
-          elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'patch') }}" == "true" ]]; then
-            PATCH=$((PATCH + 1))
-            BUMP_TYPE="patch"
-          fi
-
-          # Create new version string
-          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
-          echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
-          echo "bump_type=${BUMP_TYPE}" >> $GITHUB_OUTPUT
-
-      - name: Validate Version Labels
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const labels = context.payload.pull_request.labels.map(l => l.name);
-            const versionLabels = ['major', 'minor', 'patch'].filter(l => labels.includes(l));
-
-            if (versionLabels.length > 1) {
-              core.setFailed('Multiple version indicators found. Please use only one major, minor, or patch label.');
-              return;
-            }
-
-            // Store the next version in the PR description
-            if (versionLabels.length === 1) {
-              const newVersion = '${{ steps.version.outputs.new_version }}';
-              await github.rest.pulls.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: context.payload.pull_request.number,
-                body: `Next version: ${newVersion}\n\n${context.payload.pull_request.body || ''}`
-              });
-            }
-
   generate-release:
     runs-on: ubuntu-latest
     # Only run on merge
@@ -89,7 +27,6 @@ jobs:
           BODY="${{ github.event.pull_request.body }}"
           NEW_VERSION=$(echo "$BODY" | grep -oP 'Next version: \K[0-9]+\.[0-9]+\.[0-9]+')
           echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
-          echo "VERSION=${NEW_VERSION}" >> $GITHUB_ENV
           echo "$NEW_VERSION" > version.txt
 
       - name: Download Build Artifact
@@ -98,34 +35,10 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.pull_request.head.sha }}
           name: game-engine-v${{ steps.version.outputs.new_version }}
-          path: package
-
-      - name: Verify Package Contents
-        id: verify
-        run: |
-          if [ ! -f "package/bin/GameEngine-d.dll" ] || [ ! -f "package/lib/GameEngine-d.lib" ]; then
-            echo "Package is missing required files!"
-            exit 1
-          fi
-          echo "Package contents verified"
-
-      - name: Debug Artifact Info
-        run: |
-          echo "PR SHA: ${{ github.event.pull_request.head.sha }}"
-          echo "New Version: ${{ steps.version.outputs.new_version }}"
-          ls -la package/ || echo "Package directory not found"
+          path: release
 
       - name: Create Release Package
         run: |
-          # Create a clean release directory
-          mkdir -p release/{bin,lib,include}
-
-          # Copy only the necessary files
-          cp package/bin/GameEngine-d.dll release/bin/
-          cp package/lib/GameEngine-d.lib release/lib/
-          cp -r package/include/* release/include/
-
-          # Create the release zip from the clean directory
           cd release
           zip -r ../GameEngine-v${{ steps.version.outputs.new_version }}.zip *
 
