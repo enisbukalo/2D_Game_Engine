@@ -20,22 +20,23 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get Next Version
-        id: version
-        run: |
-          # Extract version from PR description
-          BODY="${{ github.event.pull_request.body }}"
-          NEW_VERSION=$(echo "$BODY" | grep -oP 'Next version: \K[0-9]+\.[0-9]+\.[0-9]+')
-          echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
-          echo "$NEW_VERSION" > version.txt
-
       - name: Download Build Artifact
+        id: download
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.pull_request.head.sha }}
-          name: game-engine-v${{ steps.version.outputs.new_version }}
+          pattern: game-engine-v*
           path: release
+
+      - name: Get Version from Artifact
+        id: version
+        run: |
+          # Get version from the artifact directory name
+          ARTIFACT_NAME=$(ls release | grep 'game-engine-v')
+          NEW_VERSION=$(echo "$ARTIFACT_NAME" | grep -oP 'game-engine-v\K[0-9]+\.[0-9]+\.[0-9]+')
+          echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          echo "$NEW_VERSION" > version.txt
 
       - name: Create Release Package
         run: |
