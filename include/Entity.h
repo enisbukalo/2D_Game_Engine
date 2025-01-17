@@ -21,6 +21,7 @@ public:
     friend class TestEntity;
     virtual ~Entity() = default;
 
+#pragma region Templates
     template <typename T>
     T *getComponent()
     {
@@ -53,7 +54,9 @@ public:
             m_components.erase(it);
         }
     }
+#pragma endregion
 
+#pragma region Methods
     void               destroy();
     bool               isAlive() const;
     uint8_t            getId() const;
@@ -61,15 +64,20 @@ public:
     void               update(float deltaTime);
     json               serialize() const;
     void               deserialize(const json &data);
+#pragma endregion
 
 protected:
+#pragma region Constructors
     Entity(const std::string &tag, uint8_t id) : m_tag(tag), m_id(id) {}
+#pragma endregion
 
 private:
+#pragma region Variables
     std::unordered_map<std::type_index, std::unique_ptr<Component>> m_components;
     const uint8_t                                                   m_id    = 0;
     const std::string                                               m_tag   = "Default";
     bool                                                            m_alive = true;
+#pragma endregion
 };
 
 #endif  // ENTITY_H

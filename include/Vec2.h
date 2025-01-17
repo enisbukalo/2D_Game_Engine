@@ -7,12 +7,17 @@
 class Vec2
 {
 public:
+#pragma region Variables
     float x = 0.0f;
     float y = 0.0f;
+#pragma endregion
 
+#pragma region Constructors
     Vec2() = default;
     Vec2(float x, float y) : x(x), y(y) {}
+#pragma endregion
 
+#pragma region Methods
     // Calculate the length of the vector
     float length();
 
@@ -30,14 +35,16 @@ public:
 
     // Calculate the distance between two vectors
     float distance(const Vec2& other);
+#pragma endregion
 
-    // Operators
+#pragma region Operators
     Vec2& operator+=(const Vec2& other);
     Vec2& operator-=(const Vec2& other);
     Vec2  operator+(const Vec2& other) const;
     Vec2  operator-(const Vec2& other) const;
     Vec2  operator*(const float& multiplier) const;
     Vec2  operator/(const float& divisor) const;
+#pragma endregion
 };
 
 #endif  // VEC2_H
