@@ -20,6 +20,7 @@ jobs:
         run: |
           # Count version labels
           VERSION_LABELS=0
+
           if [[ "${{ contains(github.event.pull_request.labels.*.name, 'major') }}" == "true" ]]; then
             VERSION_LABELS=$((VERSION_LABELS + 1))
           fi
@@ -30,10 +31,10 @@ jobs:
             VERSION_LABELS=$((VERSION_LABELS + 1))
           fi
 
-          TOTAL_VERSION_INDICATORS=$((VERSION_LABELS + TITLE_TAGS))
+          TOTAL_VERSION_INDICATORS=$VERSION_LABELS
 
           if [ $TOTAL_VERSION_INDICATORS -gt 1 ]; then
-            echo "Multiple version indicators found. Please use only one label or title tag."
+            echo "Multiple version indicators found. Please use only one major, minor, or patch label."
             exit 1
           fi
 
