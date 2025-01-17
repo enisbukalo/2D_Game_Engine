@@ -13,6 +13,7 @@ jobs:
     permissions:
       pull-requests: read
       statuses: write
+      checks: write
 
     steps:
       - name: Check Version Labels
@@ -44,19 +45,23 @@ jobs:
         with:
           script: |
             const status = context.job.status
-            const state = status === 'success' ? 'success' : 'failure'
-            const description = status === 'success' ? 'Version indicators valid' : 'Multiple version indicators found'
+            const conclusion = status === 'success' ? 'success' : 'failure'
+            const title = status === 'success' ? 'Version indicators valid' : 'Multiple version indicators found. Please use only one major, minor, or patch label.'
 
-            await github.rest.repos.createCommitStatus({
+            await github.rest.checks.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              sha: context.payload.pull_request.head.sha,
-              state,
-              description,
-              context: 'Version Labels Check'
+              head_sha: context.payload.pull_request.head.sha,
+              name: 'Version Labels Check',
+              status: 'completed',
+              conclusion,
+              output: {
+                title,
+                summary: title
+              }
             })
 
-  version:
+  increment-version:
     # Only run if PR was merged
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
