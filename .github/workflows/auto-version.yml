@@ -99,6 +99,13 @@ jobs:
           body: |
             GameEngine Release v${{ steps.bump.outputs.new_version }}
 
+            ## Usage
+             - Download the release package
+             - Extract the package
+             - Add the GameEngine-d.dll to your project
+             - Link the GameEngine-d.lib to your project
+             - Include the headers in your project
+
             ## Requirements
             - Windows
             - C++17 compatible compiler
