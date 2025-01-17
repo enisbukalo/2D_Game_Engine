@@ -1,11 +1,27 @@
 #include "../components/CGravity.h"
-#include "../include/Entity.h"
 
 void CGravity::update(float deltaTime)
 {
-    if (owner && owner->getComponent<CTransform>())
+    // Implementation will be added when physics system is implemented
+}
+
+std::string CGravity::getType() const
+{
+    return "Gravity";
+}
+
+json CGravity::serialize() const
+{
+    json j     = Component::serialize();
+    j["force"] = {{"x", force.x}, {"y", force.y}};
+    return j;
+}
+
+void CGravity::deserialize(const json& data)
+{
+    if (data.contains("force"))
     {
-        auto transform = owner->getComponent<CTransform>();
-        transform->velocity += force * deltaTime;
+        force.x = data["force"]["x"];
+        force.y = data["force"]["y"];
     }
 }

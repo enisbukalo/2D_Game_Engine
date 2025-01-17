@@ -1,17 +1,20 @@
-#include "GameEngine.h"
+#include "../include/GameEngine.h"
 
-GameEngine::GameEngine(sf::RenderWindow *window, sf::Vector2f gravity, uint8_t subStepCount, float timeStep)
+GameEngine::GameEngine(sf::RenderWindow* window, sf::Vector2f gravity, uint8_t subStepCount, float timeStep)
     : m_window(window), m_gravity(gravity), m_subStepCount(subStepCount), m_timeStep(timeStep)
 {
-    m_window->setFramerateLimit(144);
     m_gameRunning = true;
 }
 
-GameEngine::~GameEngine() {}
+GameEngine::~GameEngine()
+{
+    // Cleanup resources if needed
+}
 
 void GameEngine::readInputs()
 {
-    for (sf::Event event = sf::Event(); m_window->pollEvent(event);)
+    sf::Event event;
+    while (m_window->pollEvent(event))
     {
         if (event.type == sf::Event::Closed)
         {
@@ -23,12 +26,18 @@ void GameEngine::readInputs()
 
 void GameEngine::update()
 {
-    // Update game logic here
+    // Update game state
+    // This will be expanded as we add more systems
 }
 
 void GameEngine::render()
 {
     m_window->clear();
-    // Render game objects here
+    // Render game objects
     m_window->display();
+}
+
+bool GameEngine::is_running() const
+{
+    return m_gameRunning;
 }

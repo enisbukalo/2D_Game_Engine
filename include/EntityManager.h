@@ -1,8 +1,6 @@
 #ifndef ENTITYMANAGER_H
 #define ENTITYMANAGER_H
 
-#include <algorithm>
-#include <fstream>
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <string>
@@ -12,62 +10,72 @@
 
 using json = nlohmann::json;
 
+/**
+ * @brief Manager class for handling entities in the game engine
+ *
+ * @description
+ * EntityManager is responsible for creating, destroying, and managing all entities
+ * in the game. It provides functionality for entity lifecycle management, querying
+ * entities by tags or components, and serialization of the game state. The manager
+ * uses a deferred system for entity creation and destruction to prevent issues
+ * during iteration.
+ */
 class EntityManager
 {
 public:
-    EntityManager()  = default;
+#pragma region Constructors
+    /** @brief Default constructor */
+    EntityManager() = default;
+
+    /** @brief Default destructor */
     ~EntityManager() = default;
+#pragma endregion
 
-    void update(float deltaTime)
-    {
-        // Add any pending entities
-        for (auto &entity : m_entitiesToAdd)
-        {
-            m_entities.push_back(entity);
-            m_entityMap[entity->getTag()].push_back(entity);
-        }
-        m_entitiesToAdd.clear();
+#pragma region Methods
+    /**
+     * @brief Updates all active entities and processes pending operations
+     * @param deltaTime Time elapsed since last update
+     */
+    void update(float deltaTime);
 
-        // Update all entities
-        for (auto &entity : m_entities)
-        {
-            if (entity->isAlive())
-            {
-                entity->update(deltaTime);
-            }
-        }
+    /**
+     * @brief Creates a new entity with the specified tag
+     * @param tag The tag to assign to the entity
+     * @return Shared pointer to the newly created entity
+     */
+    std::shared_ptr<Entity> addEntity(const std::string& tag);
 
-        // Remove dead entities
-        removeDeadEntities();
-    }
+    /**
+     * @brief Marks an entity for removal
+     * @param entity The entity to remove
+     */
+    void removeEntity(std::shared_ptr<Entity> entity);
 
-    std::shared_ptr<Entity> addEntity(const std::string &tag)
-    {
-        auto entity = std::shared_ptr<Entity>(new Entity(tag, m_totalEntities++));
-        m_entitiesToAdd.push_back(entity);
-        return entity;
-    }
+    /**
+     * @brief Gets all active entities
+     * @return Const reference to the vector of entity pointers
+     */
+    const std::vector<std::shared_ptr<Entity>>& getEntities() const;
 
-    void removeEntity(std::shared_ptr<Entity> entity)
-    {
-        entity->destroy();
-    }
+    /**
+     * @brief Gets all entities with a specific tag
+     * @param tag The tag to search for
+     * @return Vector of entity pointers matching the tag
+     */
+    std::vector<std::shared_ptr<Entity>> getEntitiesByTag(const std::string& tag);
+#pragma endregion
 
-    const std::vector<std::shared_ptr<Entity>> &getEntities() const
-    {
-        return m_entities;
-    }
-
-    std::vector<std::shared_ptr<Entity>> getEntitiesByTag(const std::string &tag)
-    {
-        return m_entityMap[tag];
-    }
-
+#pragma region Templates
+    /**
+     * @brief Gets all entities that have a specific component type
+     * @tparam T The component type to search for
+     * @return Vector of pointers to entities with the specified component
+     */
     template <typename T>
-    std::vector<Entity *> getEntitiesWithComponent()
+    std::vector<Entity*> getEntitiesWithComponent()
     {
-        std::vector<Entity *> result;
-        for (auto &entity : m_entities)
+        std::vector<Entity*> result;
+        for (auto& entity : m_entities)
         {
             if (entity->isAlive() && entity->hasComponent<T>())
             {
@@ -76,83 +84,36 @@ public:
         }
         return result;
     }
+#pragma endregion
 
-    // Serialization methods
-    void saveToFile(const std::string &filename)
-    {
-        json j;
-        j["totalEntities"] = m_totalEntities;
+#pragma region Serialization
+    /**
+     * @brief Saves the current game state to a file
+     * @param filename Path to the file to save to
+     */
+    void saveToFile(const std::string& filename);
 
-        json entitiesArray = json::array();
-        for (const auto &entity : m_entities)
-        {
-            if (entity && entity->isAlive())
-            {
-                entitiesArray.push_back(entity->serialize());
-            }
-        }
-        j["entities"] = entitiesArray;
-
-        std::ofstream file(filename);
-        file << j.dump(4);  // Pretty print with 4-space indent
-    }
-
-    void loadFromFile(const std::string &filename)
-    {
-        std::ifstream file(filename);
-        if (!file.is_open())
-        {
-            throw std::runtime_error("Could not open file: " + filename);
-        }
-
-        json j;
-        file >> j;
-
-        // Clear existing entities
-        m_entities.clear();
-        m_entitiesToAdd.clear();
-        m_entityMap.clear();
-
-        if (j.contains("totalEntities"))
-        {
-            m_totalEntities = j["totalEntities"];
-        }
-
-        if (j.contains("entities"))
-        {
-            for (const auto &entityData : j["entities"])
-            {
-                std::string tag    = entityData["tag"];
-                auto        entity = addEntity(tag);
-                entity->deserialize(entityData);
-            }
-            update(0.0f);  // Process pending entities
-        }
-    }
+    /**
+     * @brief Loads game state from a file
+     * @param filename Path to the file to load from
+     */
+    void loadFromFile(const std::string& filename);
+#pragma endregion
 
 private:
-    void removeDeadEntities()
-    {
-        // Remove from main entity vector
-        m_entities.erase(::std::remove_if(m_entities.begin(),
-                                          m_entities.end(),
-                                          [](const auto &entity) { return !entity->isAlive(); }),
-                         m_entities.end());
+#pragma region Methods
+    /**
+     * @brief Removes entities that have been marked for destruction
+     */
+    void removeDeadEntities();
+#pragma endregion
 
-        // Remove from tag maps
-        for (auto &[tag, entities] : m_entityMap)
-        {
-            entities.erase(::std::remove_if(entities.begin(),
-                                            entities.end(),
-                                            [](const auto &entity) { return !entity->isAlive(); }),
-                           entities.end());
-        }
-    }
-
-    std::vector<std::shared_ptr<Entity>>                                  m_entities;
-    std::vector<std::shared_ptr<Entity>>                                  m_entitiesToAdd;
-    std::unordered_map<std::string, std::vector<std::shared_ptr<Entity>>> m_entityMap;
-    uint8_t                                                               m_totalEntities = 0;
+#pragma region Variables
+    std::vector<std::shared_ptr<Entity>> m_entities;       ///< List of all active entities
+    std::vector<std::shared_ptr<Entity>> m_entitiesToAdd;  ///< Queue of entities to be added
+    std::unordered_map<std::string, std::vector<std::shared_ptr<Entity>>> m_entityMap;  ///< Map of entities by tag
+    uint8_t m_totalEntities = 0;  ///< Counter for generating unique entity IDs
+#pragma endregion
 };
 
 #endif  // ENTITYMANAGER_H

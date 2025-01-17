@@ -142,9 +142,15 @@ if [ "$CREATE_PACKAGE" = true ] || [ -n "$INSTALL_PREFIX" ]; then
     cp -r components/* $PACKAGE_DIR/include/
     cp -r systems/* $PACKAGE_DIR/include/
 
-    # Copy libraries
-    cp "build/lib/${BUILD_TYPE}/GameEngine-d.lib" $PACKAGE_DIR/lib/
-    cp "build/bin/${BUILD_TYPE}/GameEngine-d.dll" $PACKAGE_DIR/bin/
+    # Copy libraries based on build type
+    if [ "$BUILD_SHARED" = "ON" ]; then
+        # Copy DLL and import library for shared build
+        cp "build/bin/${BUILD_TYPE}/GameEngine-d.dll" $PACKAGE_DIR/bin/ 2>/dev/null || :
+        cp "build/lib/${BUILD_TYPE}/GameEngine-d.lib" $PACKAGE_DIR/lib/ 2>/dev/null || :
+    else
+        # Copy static library
+        cp "build/lib/${BUILD_TYPE}/GameEngine-d.lib" $PACKAGE_DIR/lib/ 2>/dev/null || :
+    fi
 
     echo -e "${GREEN}Package created in $PACKAGE_DIR${NC}"
 fi

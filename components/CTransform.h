@@ -4,55 +4,49 @@
 #include "Component.h"
 #include "Vec2.h"
 
+/**
+ * @brief Component for handling entity position, movement, and transformation
+ *
+ * @description
+ * CTransform is a component that manages an entity's spatial properties including
+ * position, velocity, scale, and rotation. It provides the basic functionality
+ * for moving and transforming entities in the game world. The component is
+ * updated each frame to apply velocity-based movement.
+ */
 struct CTransform : public Component
 {
-    Vec2  position = Vec2(0.0f, 0.0f);
-    Vec2  velocity = Vec2(0.0f, 0.0f);
-    Vec2  scale    = Vec2(1.0f, 1.0f);
-    float rotation = 0.0f;
+#pragma region Variables
+    Vec2  position = Vec2(0.0f, 0.0f);  ///< Current position in world space
+    Vec2  velocity = Vec2(0.0f, 0.0f);  ///< Current velocity vector
+    Vec2  scale    = Vec2(1.0f, 1.0f);  ///< Scale factor for x and y dimensions
+    float rotation = 0.0f;              ///< Rotation angle in radians
+#pragma endregion
 
-    void update(float deltaTime) override
-    {
-        position += velocity * deltaTime;
-    }
+#pragma region Override Methods
+    /**
+     * @brief Updates the transform based on velocity
+     * @param deltaTime Time elapsed since last update
+     */
+    void update(float deltaTime) override;
 
-    std::string getType() const override
-    {
-        return "Transform";
-    }
+    /**
+     * @brief Gets the type identifier for this component
+     * @return String "Transform"
+     */
+    std::string getType() const override;
 
-    json serialize() const override
-    {
-        json j        = Component::serialize();
-        j["position"] = {{"x", position.x}, {"y", position.y}};
-        j["velocity"] = {{"x", velocity.x}, {"y", velocity.y}};
-        j["scale"]    = {{"x", scale.x}, {"y", scale.y}};
-        j["rotation"] = rotation;
-        return j;
-    }
+    /**
+     * @brief Serializes the transform data to JSON
+     * @return JSON object containing position, velocity, scale, and rotation
+     */
+    json serialize() const override;
 
-    void deserialize(const json& data) override
-    {
-        if (data.contains("position"))
-        {
-            position.x = data["position"]["x"];
-            position.y = data["position"]["y"];
-        }
-        if (data.contains("velocity"))
-        {
-            velocity.x = data["velocity"]["x"];
-            velocity.y = data["velocity"]["y"];
-        }
-        if (data.contains("scale"))
-        {
-            scale.x = data["scale"]["x"];
-            scale.y = data["scale"]["y"];
-        }
-        if (data.contains("rotation"))
-        {
-            rotation = data["rotation"];
-        }
-    }
+    /**
+     * @brief Deserializes transform data from JSON
+     * @param data JSON object containing transform data
+     */
+    void deserialize(const json& data) override;
+#pragma endregion
 };
 
 #endif  // CTRANSFORM_H

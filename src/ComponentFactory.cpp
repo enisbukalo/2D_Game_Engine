@@ -3,15 +3,15 @@
 #include "../components/CName.h"
 #include "../components/CTransform.h"
 
+ComponentFactory::ComponentFactory()
+{
+    registerBuiltInComponents();
+}
+
 ComponentFactory& ComponentFactory::instance()
 {
     static ComponentFactory instance;
     return instance;
-}
-
-ComponentFactory::ComponentFactory()
-{
-    registerBuiltInComponents();
 }
 
 Component* ComponentFactory::createComponent(const std::string& type)
@@ -27,6 +27,6 @@ Component* ComponentFactory::createComponent(const std::string& type)
 void ComponentFactory::registerBuiltInComponents()
 {
     registerComponent<CTransform>("Transform");
-    registerComponent<CName>("Name");
     registerComponent<CGravity>("Gravity");
+    registerComponent<CName>("Name");
 }

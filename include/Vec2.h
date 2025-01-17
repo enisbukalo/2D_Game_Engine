@@ -3,105 +3,117 @@
 
 #include <math.h>
 
-// A 2D vector class
+/**
+ * @brief A 2D vector class for handling positions, velocities, and other 2D quantities
+ *
+ * @description
+ * Vec2 provides basic 2D vector operations including arithmetic operations,
+ * normalization, rotation, and distance calculations. It's used throughout
+ * the engine for representing positions, velocities, scales, and forces.
+ */
 class Vec2
 {
 public:
-    float x = 0.0f;
-    float y = 0.0f;
+#pragma region Variables
+    float x = 0.0f;  ///< X component of the vector
+    float y = 0.0f;  ///< Y component of the vector
+#pragma endregion
 
+#pragma region Constructors
     Vec2() = default;
+
+    /**
+     * @brief Constructs a vector with given x and y components
+     * @param x The x component of the vector
+     * @param y The y component of the vector
+     */
     Vec2(float x, float y) : x(x), y(y) {}
+#pragma endregion
 
-    // Calculate the length of the vector
-    float length()
-    {
-        return sqrt(x * x + y * y);
-    }
+#pragma region Methods
+    /**
+     * @brief Calculates the length (magnitude) of the vector
+     * @return The length of the vector
+     */
+    float length();
 
-    // Normalize the vector
-    Vec2& normalize()
-    {
-        float l = length();
-        x /= l;
-        y /= l;
-        return *this;
-    }
+    /**
+     * @brief Normalizes the vector to unit length
+     * @return Reference to this vector after normalization
+     */
+    Vec2& normalize();
 
-    // Add two vectors
-    Vec2& add(const Vec2& other)
-    {
-        x += other.x;
-        y += other.y;
-        return *this;
-    }
+    /**
+     * @brief Adds another vector to this vector
+     * @param other The vector to add
+     * @return Reference to this vector after addition
+     */
+    Vec2& add(const Vec2& other);
 
-    // Scale the vector
-    Vec2& scale(float multiplier)
-    {
-        x *= multiplier;
-        y *= multiplier;
-        return *this;
-    }
+    /**
+     * @brief Scales the vector by a scalar value
+     * @param multiplier The scaling factor
+     * @return Reference to this vector after scaling
+     */
+    Vec2& scale(float multiplier);
 
-    // Rotate the vector
-    Vec2& rotate(float angle)
-    {
-        float c    = cos(angle);
-        float s    = sin(angle);
-        float newX = x * c - y * s;
-        float newY = x * s + y * c;
-        x          = newX;
-        y          = newY;
-        return *this;
-    }
+    /**
+     * @brief Rotates the vector by an angle
+     * @param angle The rotation angle in radians
+     * @return Reference to this vector after rotation
+     */
+    Vec2& rotate(float angle);
 
-    // Calculate the distance between two vectors
-    float distance(const Vec2& other)
-    {
-        return sqrtf((other.x - x) * (other.x - x) + (other.y - y) * (other.y - y));
-    }
+    /**
+     * @brief Calculates the Euclidean distance to another vector
+     * @param other The vector to calculate distance to
+     * @return The distance between the two vectors
+     */
+    float distance(const Vec2& other);
+#pragma endregion
 
 #pragma region Operators
-    // Add two vectors
-    Vec2& operator+=(const Vec2& other)
-    {
-        x += other.x;
-        y += other.y;
-        return *this;
-    }
+    /**
+     * @brief Adds another vector to this vector
+     * @param other The vector to add
+     * @return Reference to this vector after addition
+     */
+    Vec2& operator+=(const Vec2& other);
 
-    // Subtract two vectors
-    Vec2& operator-=(const Vec2& other)
-    {
-        x -= other.x;
-        y -= other.y;
-        return *this;
-    }
+    /**
+     * @brief Subtracts another vector from this vector
+     * @param other The vector to subtract
+     * @return Reference to this vector after subtraction
+     */
+    Vec2& operator-=(const Vec2& other);
 
-    // Add two vectors
-    Vec2 operator+(const Vec2& other) const
-    {
-        return Vec2(x + other.x, y + other.y);
-    }
+    /**
+     * @brief Creates a new vector that is the sum of this vector and another
+     * @param other The vector to add
+     * @return The resulting vector
+     */
+    Vec2 operator+(const Vec2& other) const;
 
-    // Subtract two vectors
-    Vec2 operator-(const Vec2& other) const
-    {
-        return Vec2(x - other.x, y - other.y);
-    }
+    /**
+     * @brief Creates a new vector that is the difference of this vector and another
+     * @param other The vector to subtract
+     * @return The resulting vector
+     */
+    Vec2 operator-(const Vec2& other) const;
 
-    // Multiply the vector by a scalar
-    Vec2 operator*(const float& multiplier) const
-    {
-        return Vec2(x * multiplier, y * multiplier);
-    }
+    /**
+     * @brief Creates a new vector that is this vector scaled by a factor
+     * @param multiplier The scaling factor
+     * @return The scaled vector
+     */
+    Vec2 operator*(const float& multiplier) const;
 
-    // Divide the vector by a scalar
-    Vec2 operator/(const float& divisor) const
-    {
-        return Vec2(x / divisor, y / divisor);
-    }
+    /**
+     * @brief Creates a new vector that is this vector divided by a factor
+     * @param divisor The division factor
+     * @return The divided vector
+     */
+    Vec2 operator/(const float& divisor) const;
 #pragma endregion
 };
 
