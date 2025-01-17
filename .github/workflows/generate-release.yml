@@ -1,0 +1,100 @@
+name: Generate Release
+
+on:
+  pull_request:
+    types: [closed]
+    branches: ["main", "master"]
+
+jobs:
+  generate-release:
+    runs-on: ubuntu-latest
+    # Only run on merge
+    if: github.event.pull_request.merged == true
+    permissions:
+      contents: write
+      pull-requests: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download Build Artifact
+        id: download
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.pull_request.head.sha }}
+          pattern: game-engine-v*
+          path: release
+
+      - name: Get Version from Artifact
+        id: version
+        run: |
+          # Get version from the artifact directory name
+          ARTIFACT_NAME=$(ls release | grep 'game-engine-v')
+          NEW_VERSION=$(echo "$ARTIFACT_NAME" | grep -oP 'game-engine-v\K[0-9]+\.[0-9]+\.[0-9]+')
+          echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          echo "$NEW_VERSION" > version.txt
+
+      - name: Create Release Package
+        run: |
+          cd release
+          zip -r ../GameEngine-v${{ steps.version.outputs.new_version }}.zip *
+
+      - name: Configure Git
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+      - name: Create Git Tag and Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git add version.txt
+          git commit -m "Bump version to ${{ steps.version.outputs.new_version }}"
+          git tag -a "v${{ steps.version.outputs.new_version }}" -m "Version ${{ steps.version.outputs.new_version }}"
+          git push origin HEAD:master
+          git push origin "v${{ steps.version.outputs.new_version }}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: GameEngine v${{ steps.version.outputs.new_version }}
+          tag_name: v${{ steps.version.outputs.new_version }}
+          files: GameEngine-v${{ steps.version.outputs.new_version }}.zip
+          generate_release_notes: true
+          body: |
+            GameEngine Release v${{ steps.version.outputs.new_version }}
+
+            ## Usage
+             - Download the release package
+             - Extract the package
+             - Add the GameEngine-d.dll to your project
+             - Link the GameEngine-d.lib to your project
+             - Include the headers in your project
+
+            ## Requirements
+            - Windows
+            - C++17 compatible compiler
+            - SFML 2.6.x
+            - Dear ImGui 1.91.x
+            - ImGui-SFML 2.6.x
+            - nlohmann_json 3.11.x
+
+            ## Dependencies
+            All dependencies are statically linked into the DLL, so you don't need to distribute them separately.
+            However, you'll need them installed for development:
+
+            ```cmake
+            # CMake example
+            find_package(SFML 2.6 COMPONENTS graphics window system REQUIRED)
+            find_package(ImGui-SFML 2.6 REQUIRED)
+            find_package(nlohmann_json 3.11 REQUIRED)
+            ```
+
+            ## Package Contents
+            - bin/GameEngine-d.dll - Runtime library
+            - lib/GameEngine-d.lib - Import library for linking
+            - include/ - Header files

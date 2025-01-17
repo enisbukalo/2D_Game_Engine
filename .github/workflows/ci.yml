@@ -25,20 +25,32 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get Version
+      - name: Bump Version
+        id: version
         run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            # Extract next version from PR description
-            BODY="${{ github.event.pull_request.body }}"
-            if [[ "$BODY" =~ "Next version: "([0-9]+\.[0-9]+\.[0-9]+) ]]; then
-              VERSION="${BASH_REMATCH[1]}"
-            else
-              VERSION=$(cat version.txt)
-            fi
-          else
-            VERSION=$(cat version.txt)
+          # Read current version
+          CURRENT_VERSION=$(cat version.txt)
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+
+          # Determine bump type
+          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'major') }}" == "true" ]]; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+            BUMP_TYPE="major"
+          elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'minor') }}" == "true" ]]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+            BUMP_TYPE="minor"
+          elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'patch') }}" == "true" ]]; then
+            PATCH=$((PATCH + 1))
+            BUMP_TYPE="patch"
           fi
+
+          # Create new version string
+          VERSION="${MAJOR}.${MINOR}.${PATCH}"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "Using version: $VERSION"
 
       - name: Cache Dependencies
@@ -69,7 +81,7 @@ jobs:
       - name: Upload GameEngine Package
         uses: actions/upload-artifact@v4
         with:
-          name: game-engine-v${{ env.VERSION }}
+          name: game-engine-v${{ steps.version.outputs.version }}
           path: package/
           retention-days: 30
 
