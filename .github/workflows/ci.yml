@@ -3,6 +3,8 @@ name: CI
 on:
   push:
     branches: ["main", "master"]
+    tags:
+      - "v*.*.*"
   pull_request:
     branches: ["main", "master"]
 
@@ -23,6 +25,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Get Version
+        run: echo "VERSION=$(cat version.txt)" >> $GITHUB_ENV
+
       - name: Cache Dependencies
         uses: actions/cache@v4
         with:
@@ -36,7 +41,7 @@ jobs:
       - name: Build and Test
         run: |
           chmod +x build.sh
-          ./build.sh -c -s -i "./install"
+          ./build.sh -c -s -i "./install" -p
 
       - name: Upload Test Results
         if: always()
@@ -48,13 +53,56 @@ jobs:
             build/test_results.xml
           retention-days: 30
 
-      - name: Upload GameEngine Library
+      - name: Upload GameEngine Package
         uses: actions/upload-artifact@v4
         with:
-          name: game-engine-dll
-          path: |
-            build/bin/Debug/GameEngine-d.dll
+          name: game-engine-v${{ env.VERSION }}
+          path: package/
           retention-days: 30
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          name: GameEngine v${{ env.VERSION }}
+          files: |
+            package/**/*
+          body: |
+            GameEngine Release v${{ env.VERSION }}
+
+            ## What's Changed
+            * See commit history for changes
+
+            ## Installation
+            1. Download the package
+            2. Include the headers in your project
+            3. Link against the library
+
+            ## Requirements
+            - Windows
+            - C++17 compatible compiler
+            - SFML 2.6.x
+            - Dear ImGui 1.91.x
+            - ImGui-SFML 2.6.x
+            - nlohmann_json 3.11.x
+
+            ## Dependencies
+            All dependencies are statically linked into the DLL, so you don't need to distribute them separately.
+            However, you'll need them installed for development:
+
+            ```cmake
+            # CMake example
+            find_package(SFML 2.6 COMPONENTS graphics window system REQUIRED)
+            find_package(ImGui-SFML 2.6 REQUIRED)
+            find_package(nlohmann_json 3.11 REQUIRED)
+            ```
+
+            ## Included Files
+            - bin/GameEngine-d.dll - Runtime library
+            - lib/GameEngine-d.lib - Import library for linking
+            - include/*.h - Header files
+          draft: false
+          prerelease: false
 
   lint:
     runs-on: ubuntu-latest
