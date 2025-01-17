@@ -80,5 +80,5 @@ jobs:
 
       - name: Push Changes
         run: |
-          git push
-          git push --tags
+          git push origin HEAD:${GITHUB_REF#refs/heads/}
+          git push origin "v${{ steps.bump.outputs.new_version }}"
