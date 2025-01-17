@@ -12,6 +12,7 @@ BUILD_SHARED=OFF
 BUILD_TESTS=ON
 CLEAN_BUILD=false
 INSTALL_PREFIX=""
+PACKAGE_DIR="package"
 
 # Usage function
 usage() {
@@ -23,6 +24,7 @@ usage() {
     echo "  --no-tests           Disable building tests"
     echo "  -c, --clean          Clean build directory before building"
     echo "  -i, --install PREFIX Install to specified prefix"
+    echo "  -p, --package        Create distributable package"
 }
 
 # Parse command line arguments
@@ -52,6 +54,10 @@ while [[ $# -gt 0 ]]; do
             INSTALL_PREFIX="$2"
             shift 2
             ;;
+        -p|--package)
+            CREATE_PACKAGE=true
+            shift
+            ;;
         *)
             echo "Unknown option: $1"
             usage
@@ -78,6 +84,7 @@ fi
 if [ "$CLEAN_BUILD" = true ]; then
     echo -e "${YELLOW}Cleaning build directory...${NC}"
     rm -rf build
+    rm -rf $PACKAGE_DIR
 fi
 
 # Create build directory if it doesn't exist
@@ -120,10 +127,32 @@ if [ "$BUILD_TESTS" = "ON" ]; then
     "./bin/${BUILD_TYPE}/unit_tests.exe" --gtest_output="xml:test_results.xml" 2>&1 | tee Testing/Temporary/LastTest.log || { echo -e "${RED}Tests failed!${NC}"; exit 1; }
 fi
 
+# Create package if requested
+cd ..
+if [ "$CREATE_PACKAGE" = true ] || [ -n "$INSTALL_PREFIX" ]; then
+    echo -e "${YELLOW}Creating package...${NC}"
+
+    # Create package directory structure
+    mkdir -p $PACKAGE_DIR/include
+    mkdir -p $PACKAGE_DIR/lib
+    mkdir -p $PACKAGE_DIR/bin
+
+    # Copy headers
+    cp -r include/* $PACKAGE_DIR/include/
+    cp -r components/* $PACKAGE_DIR/include/
+    cp -r systems/* $PACKAGE_DIR/include/
+
+    # Copy libraries
+    cp "build/lib/${BUILD_TYPE}/GameEngine-d.lib" $PACKAGE_DIR/lib/
+    cp "build/bin/${BUILD_TYPE}/GameEngine-d.dll" $PACKAGE_DIR/bin/
+
+    echo -e "${GREEN}Package created in $PACKAGE_DIR${NC}"
+fi
+
 # Install if prefix is specified
 if [ -n "$INSTALL_PREFIX" ]; then
     echo -e "${YELLOW}Installing to $INSTALL_PREFIX...${NC}"
-    cmake --install . --config $BUILD_TYPE || { echo -e "${RED}Installation failed!${NC}"; exit 1; }
+    cmake --install build --config $BUILD_TYPE || { echo -e "${RED}Installation failed!${NC}"; exit 1; }
 fi
 
 echo -e "${GREEN}Build completed successfully!${NC}"

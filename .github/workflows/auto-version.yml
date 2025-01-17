@@ -1,0 +1,84 @@
+name: Auto Version
+
+on:
+  pull_request:
+    types: [closed, opened, synchronize, labeled, unlabeled]
+    branches: ["main", "master"]
+
+jobs:
+  validate-labels:
+    runs-on: ubuntu-latest
+    # Run on all PR events to block merging if invalid
+    if: github.event.pull_request.merged != true
+    permissions:
+      pull-requests: read
+      statuses: write
+      checks: write
+
+    steps:
+      - name: Validate Version Labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = context.payload.pull_request.labels.map(l => l.name);
+            const versionLabels = ['major', 'minor', 'patch'].filter(l => labels.includes(l));
+
+            if (versionLabels.length > 1) {
+              core.setFailed('Multiple version indicators found. Please use only one major, minor, or patch label.');
+            }
+
+  increment-version:
+    # Only run if PR was merged
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set Git Config
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+      - name: Determine Version Bump
+        id: bump
+        run: |
+          # Read current version
+          CURRENT_VERSION=$(cat version.txt)
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+
+          # Determine bump type
+          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'major') }}" == "true" ]]; then
+            MAJOR=$((MAJOR + 1))
+            echo "bump=major" >> $GITHUB_OUTPUT
+          elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'minor') }}" == "true" ]]; then
+            MINOR=$((MINOR + 1))
+            echo "bump=minor" >> $GITHUB_OUTPUT
+          else
+            PATCH=$((PATCH + 1))
+            echo "bump=patch" >> $GITHUB_OUTPUT
+          fi
+
+          # Create new version string
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+
+          # Update version.txt
+          echo "$NEW_VERSION" > version.txt
+
+      - name: Create Git Tag
+        run: |
+          git add version.txt
+          git commit -m "Bump version to ${{ steps.bump.outputs.new_version }}"
+          git tag -a "v${{ steps.bump.outputs.new_version }}" -m "Version ${{ steps.bump.outputs.new_version }}"
+
+      - name: Push Changes
+        run: |
+          git push
+          git push --tags
