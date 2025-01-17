@@ -20,12 +20,23 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Find CI Run
+        id: find-run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get the workflow runs for this PR
+          RUN_ID=$(gh api /repos/${{ github.repository }}/actions/runs \
+            --jq '.workflow_runs[] | select(.head_sha == "${{ github.event.pull_request.head.sha }}" and .name == "CI") | .id' \
+            | head -n1)
+          echo "run_id=${RUN_ID}" >> $GITHUB_OUTPUT
+
       - name: Download Build Artifact
         id: download
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ github.event.pull_request.head.sha }}
+          run-id: ${{ steps.find-run.outputs.run_id }}
           pattern: game-engine-v*
           path: release
 
