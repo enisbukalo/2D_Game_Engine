@@ -2,14 +2,13 @@ name: Auto Version
 
 on:
   pull_request:
-    types: [closed, opened, synchronize, labeled, unlabeled]
+    types: [closed]
     branches: ["main", "master"]
 
 jobs:
   validate-labels:
     runs-on: ubuntu-latest
-    # Run on all PR events to block merging if invalid
-    if: github.event.pull_request.merged != true
+    if: github.event.pull_request.merged == false
     permissions:
       pull-requests: read
       statuses: write
@@ -28,9 +27,8 @@ jobs:
             }
 
   increment-version:
-    # Only run if PR was merged
-    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
     needs: [validate-labels]
     permissions:
       contents: write
@@ -71,8 +69,18 @@ jobs:
       - name: Download Build Artifact
         uses: actions/download-artifact@v4
         with:
-          name: game-engine-v${{ steps.bump.outputs.new_version }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.pull_request.head.sha }}
+          name: game-engine-v${{ env.VERSION }}
           path: package
+        continue-on-error: true
+
+      - name: Debug Artifact Info
+        run: |
+          echo "PR SHA: ${{ github.event.pull_request.head.sha }}"
+          echo "Current Version: ${{ env.VERSION }}"
+          echo "New Version: ${{ steps.bump.outputs.new_version }}"
+          ls -la package/ || echo "Package directory not found"
 
       - name: Create Release Package
         run: |
