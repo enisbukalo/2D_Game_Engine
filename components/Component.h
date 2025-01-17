@@ -38,6 +38,10 @@ public:
     /**
      * @brief Updates the component's state
      * @param deltaTime Time elapsed since last update
+     *
+     * This method has an empty default implementation since not all components
+     * need to update their state every frame. Components that do need per-frame
+     * updates (like Transform or Gravity) should override this method.
      */
     virtual void update(float deltaTime) {}
 

@@ -24,7 +24,9 @@ struct CGravity : public Component
      * @brief Applies gravity force to the entity's transform
      * @param deltaTime Time elapsed since last update
      */
-    void update(float deltaTime);
+    // cppcheck-suppress uselessOverride
+    // cppcheck-suppress missingOverride
+    void update(float deltaTime) override;
 
     /**
      * @brief Gets the type identifier for this component
