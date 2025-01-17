@@ -89,6 +89,7 @@ jobs:
           BODY="${{ github.event.pull_request.body }}"
           NEW_VERSION=$(echo "$BODY" | grep -oP 'Next version: \K[0-9]+\.[0-9]+\.[0-9]+')
           echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          echo "VERSION=${NEW_VERSION}" >> $GITHUB_ENV
           echo "$NEW_VERSION" > version.txt
 
       - name: Download Build Artifact
@@ -96,9 +97,17 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.pull_request.head.sha }}
-          name: game-engine-v${{ steps.version.outputs.new_version }}
+          name: game-engine-v${{ env.VERSION }}
           path: package
-        continue-on-error: true
+
+      - name: Verify Package Contents
+        id: verify
+        run: |
+          if [ ! -f "package/bin/GameEngine-d.dll" ] || [ ! -f "package/lib/GameEngine-d.lib" ]; then
+            echo "Package is missing required files!"
+            exit 1
+          fi
+          echo "Package contents verified"
 
       - name: Debug Artifact Info
         run: |
@@ -108,7 +117,16 @@ jobs:
 
       - name: Create Release Package
         run: |
-          cd package
+          # Create a clean release directory
+          mkdir -p release/{bin,lib,include}
+
+          # Copy only the necessary files
+          cp package/bin/GameEngine-d.dll release/bin/
+          cp package/lib/GameEngine-d.lib release/lib/
+          cp -r package/include/* release/include/
+
+          # Create the release zip from the clean directory
+          cd release
           zip -r ../GameEngine-v${{ steps.version.outputs.new_version }}.zip *
 
       - name: Configure Git
