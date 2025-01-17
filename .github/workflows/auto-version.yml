@@ -97,7 +97,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.pull_request.head.sha }}
-          name: game-engine-v${{ env.VERSION }}
+          name: game-engine-v${{ steps.version.outputs.new_version }}
           path: package
 
       - name: Verify Package Contents
