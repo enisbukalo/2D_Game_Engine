@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.21)
 
 # Set version information
 set(GAMEENGINE_VERSION_MAJOR 0)
