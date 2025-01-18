@@ -16,7 +16,7 @@ jobs:
 
   upload-release:
     needs: build
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     permissions:
       contents: write
       actions: read
@@ -24,7 +24,6 @@ jobs:
     steps:
       - name: Get Release Version
         id: version
-        shell: bash
         run: |
           VERSION=${GITHUB_REF#refs/tags/}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -37,7 +36,6 @@ jobs:
           path: release
 
       - name: Create Release Package
-        shell: bash
         run: |
           cd release
           zip -r ../GameEngine-${{ steps.version.outputs.version }}.zip *
