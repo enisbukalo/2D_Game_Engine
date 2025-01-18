@@ -9,6 +9,7 @@ jobs:
     uses: ./.github/workflows/build.yml
     with:
       build_command: ./build.sh -c -s -i "./install" -p
+      upload_package: false
 
   lint:
     runs-on: ubuntu-latest

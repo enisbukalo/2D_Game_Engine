@@ -7,6 +7,11 @@ on:
         description: "The build command to run"
         type: string
         required: true
+      upload_package:
+        description: "Whether to upload the package artifact"
+        type: boolean
+        required: false
+        default: false
 
 env:
   BUILD_TYPE: Debug
@@ -48,4 +53,12 @@ jobs:
           path: |
             build/Testing/Temporary/LastTest.log
             build/test_results.xml
+          retention-days: 30
+
+      - name: Upload GameEngine Package
+        if: inputs.upload_package
+        uses: actions/upload-artifact@v4
+        with:
+          name: GameEnginePackage
+          path: package/
           retention-days: 30

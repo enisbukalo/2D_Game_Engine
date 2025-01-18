@@ -12,6 +12,7 @@ jobs:
     uses: ./.github/workflows/build.yml
     with:
       build_command: ./build.sh -c -s -i "./install" -p --no-tests
+      upload_package: true
 
   upload-release:
     needs: build
@@ -23,10 +24,10 @@ jobs:
     steps:
       - name: Get Release Version
         id: version
-        shell: pwsh
+        shell: bash
         run: |
-          $VERSION = $env:GITHUB_REF -replace '^refs/tags/', ''
-          echo "version=$VERSION" >> $env:GITHUB_OUTPUT
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Using version: $VERSION"
 
       - name: Download Build Artifact
