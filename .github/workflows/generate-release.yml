@@ -3,7 +3,7 @@ name: Generate Release
 on:
   pull_request:
     types: [closed]
-    branches: ["main", "master"]
+    branches: ["master"]
 
 jobs:
   generate-release:
