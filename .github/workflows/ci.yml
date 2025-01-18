@@ -1,89 +1,15 @@
 name: CI
 
 on:
-  workflow_run:
-    workflows: ["Auto Version"]
-    types:
-      - completed
   pull_request:
-    branches: ["master", "dev"]
-
-env:
-  BUILD_TYPE: Debug
+    branches: ["master"]
 
 jobs:
   build:
-    runs-on: windows-latest
-    timeout-minutes: 30
-
-    defaults:
-      run:
-        shell: bash
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Bump Version
-        id: version
-        run: |
-          # Read current version
-          CURRENT_VERSION=$(cat version.txt)
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
-
-          # Determine bump type
-          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'major') }}" == "true" ]]; then
-            MAJOR=$((MAJOR + 1))
-            MINOR=0
-            PATCH=0
-            BUMP_TYPE="major"
-          elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'minor') }}" == "true" ]]; then
-            MINOR=$((MINOR + 1))
-            PATCH=0
-            BUMP_TYPE="minor"
-          elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'patch') }}" == "true" ]]; then
-            PATCH=$((PATCH + 1))
-            BUMP_TYPE="patch"
-          fi
-
-          # Create new version string
-          VERSION="${MAJOR}.${MINOR}.${PATCH}"
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "Using version: $VERSION"
-
-      - name: Cache Dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            deps_cache
-            build/_deps
-          key: ${{ runner.os }}-deps-${{ hashFiles('**/CMakeLists.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-deps-
-
-      - name: Build and Test
-        run: |
-          chmod +x build.sh
-          ./build.sh -c -s -i "./install" -p
-
-      - name: Upload Test Results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: |
-            build/Testing/Temporary/LastTest.log
-            build/test_results.xml
-          retention-days: 30
-
-      - name: Upload GameEngine Package
-        uses: actions/upload-artifact@v4
-        with:
-          name: game-engine-v${{ steps.version.outputs.version }}
-          path: package/
-          retention-days: 30
+    uses: ./.github/workflows/build.yml
+    with:
+      build_command: ./build.sh -c -s -i "./install" -p
+      upload_package: false
 
   lint:
     runs-on: ubuntu-latest

@@ -1,0 +1,46 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    permissions:
+      contents: write
+      actions: read
+    uses: ./.github/workflows/build.yml
+    with:
+      build_command: ./build.sh -c -s -i "./install" -p --no-tests
+      upload_package: true
+
+  upload-release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+
+    steps:
+      - name: Get Release Version
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Using version: $VERSION"
+
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: GameEnginePackage
+          path: release
+
+      - name: Create Release Package
+        run: |
+          cd release
+          zip -r ../GameEngine-${{ steps.version.outputs.version }}.zip *
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: GameEngine-${{ steps.version.outputs.version }}.zip
