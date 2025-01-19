@@ -74,25 +74,18 @@ FetchContent_Declare(IMGUI_SFML
     GIT_TAG 2.6.x
     GIT_SHALLOW ON)
 
-# Add JSON library
-FetchContent_Declare(json
-    GIT_REPOSITORY https://github.com/nlohmann/json.git
-    GIT_TAG v3.11.3
-    GIT_SHALLOW ON)
-
-set(JSON_Install ON)
-set(JSON_BuildTests OFF)
-
-FetchContent_MakeAvailable(SFML IMGUI_SFML json)
+FetchContent_MakeAvailable(SFML IMGUI_SFML)
 
 # Create Game Engine library
 file(GLOB ENGINE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 file(GLOB INCLUDE_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h")
-file(GLOB COMPONENT_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/components/*.h")
+file(GLOB COMPONENT_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/components/*.h")
+file(GLOB SYSTEM_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/systems/*.h")
 
 set(ENGINE_HEADERS
     ${INCLUDE_HEADERS}
     ${COMPONENT_HEADERS}
+    ${SYSTEM_HEADERS}
 )
 
 # Create library target
@@ -127,8 +120,8 @@ set_target_properties(GameEngine PROPERTIES
 target_include_directories(GameEngine
     PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/components>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/systems>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/components>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/systems>
     $<INSTALL_INTERFACE:include/GameEngine>
 )
 
@@ -139,7 +132,6 @@ target_link_libraries(GameEngine
     sfml-window
     sfml-system
     ImGui-SFML
-    nlohmann_json::nlohmann_json
     PRIVATE
     opengl32
     winmm
@@ -165,8 +157,8 @@ if(GAMEENGINE_INSTALL)
     # Install headers
     install(DIRECTORY
         include/
-        components/
-        systems/
+        include/components/
+        include/systems/
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/GameEngine
         FILES_MATCHING PATTERN "*.h"
     )
@@ -192,7 +184,6 @@ if(GAMEENGINE_INSTALL)
         "# Find dependencies\n"
         "find_dependency(SFML COMPONENTS graphics)\n"
         "find_dependency(ImGui-SFML)\n"
-        "find_dependency(nlohmann_json)\n\n"
         "include(\"\${CMAKE_CURRENT_LIST_DIR}/GameEngineTargets.cmake\")\n"
     )
 

@@ -1,10 +1,7 @@
 #ifndef COMPONENT_H
 #define COMPONENT_H
 
-#include <nlohmann/json.hpp>
 #include <string>
-
-using json = nlohmann::json;
 
 class Entity;  // Forward declaration
 
@@ -21,19 +18,16 @@ class Entity;  // Forward declaration
 class Component
 {
 public:
-#pragma region Constructors
     Component() = default;
 
     /** @brief Virtual destructor for proper cleanup of derived classes */
     virtual ~Component() = default;
-#pragma endregion
 
-#pragma region Virtual Methods
     /**
      * @brief Initializes the component
      * Called after the component is added to an entity
      */
-    virtual void init() {}
+    virtual void init() {};
 
     /**
      * @brief Updates the component's state
@@ -43,38 +37,24 @@ public:
      * need to update their state every frame. Components that do need per-frame
      * updates (like Transform or Gravity) should override this method.
      */
-    virtual void update(float deltaTime) {}
+    virtual void update(float deltaTime) {};
 
     /**
-     * @brief Serializes the component to JSON
-     * @return JSON object containing the component's data
+     * @brief Serializes the component to binary data
      */
-    virtual json serialize() const;
+    virtual void serialize() const = 0;
 
     /**
-     * @brief Deserializes the component from JSON
-     * @param data JSON object containing component data
+     * @brief Deserializes the component from binary data
      */
-    virtual void deserialize(const json& data) {}
+    virtual void deserialize() = 0;
 
     /**
      * @brief Gets the type identifier of the component
      * @return String identifying the component type
      */
     virtual std::string getType() const = 0;
-#pragma endregion
 
-#pragma region Variables
-    Entity* owner = nullptr;  ///< Pointer to the entity that owns this component
-#pragma endregion
-
-private:
-#pragma region Variables
-    bool m_active = true;  ///< Flag indicating if the component is active
-#pragma endregion
-
-public:
-#pragma region Methods
     /**
      * @brief Checks if the component is active
      * @return true if the component is active, false otherwise
@@ -82,11 +62,26 @@ public:
     bool isActive() const;
 
     /**
+     * @brief Gets the owner of the component
+     * @return Pointer to the owner entity
+     */
+    Entity* getOwner() const;
+
+    /**
+     * @brief Sets the owner of the component
+     * @param owner Pointer to the owner entity
+     */
+    void setOwner(Entity* owner);
+
+    /**
      * @brief Sets the active state of the component
      * @param active The new active state
      */
     void setActive(bool active);
-#pragma endregion
+
+private:
+    Entity* m_owner  = nullptr;  ///< Pointer to the entity that owns this component
+    bool    m_active = true;     ///< Flag indicating if the component is active
 };
 
 #endif  // COMPONENT_H

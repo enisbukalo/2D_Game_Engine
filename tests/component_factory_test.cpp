@@ -12,6 +12,16 @@ public:
     {
         return "Test";
     }
+
+    void serialize() const override
+    {
+        // Empty implementation for testing
+    }
+
+    void deserialize() override
+    {
+        // Empty implementation for testing
+    }
 };
 
 TEST(ComponentFactoryTest, CreateBuiltInComponents)

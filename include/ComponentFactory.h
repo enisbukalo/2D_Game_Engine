@@ -20,15 +20,12 @@
 class ComponentFactory
 {
 public:
-#pragma region Singleton
     /**
      * @brief Gets the singleton instance of the factory
      * @return Reference to the singleton instance
      */
     static ComponentFactory& instance();
-#pragma endregion
 
-#pragma region Templates
     /**
      * @brief Registers a component type with the factory
      * @tparam T The component type to register
@@ -38,20 +35,15 @@ public:
     void registerComponent(const std::string& type)
     {
         m_creators[type] = []() { return new T(); };
-    }
-#pragma endregion
-
-#pragma region Methods
+    };
     /**
      * @brief Creates a component instance by type string
      * @param type String identifier of the component type
      * @return Pointer to the newly created component, or nullptr if type not found
      */
     Component* createComponent(const std::string& type);
-#pragma endregion
 
 private:
-#pragma region Constructors
     /** @brief Private constructor for singleton pattern */
     ComponentFactory();
 
@@ -63,18 +55,11 @@ private:
 
     /** @brief Deleted assignment operator */
     ComponentFactory& operator=(const ComponentFactory&) = delete;
-#pragma endregion
 
-#pragma region Methods
-    /**
-     * @brief Registers all built-in component types
-     */
+    /** @brief Registers all built-in component types */
     void registerBuiltInComponents();
-#pragma endregion
 
-#pragma region Variables
     std::unordered_map<std::string, std::function<Component*()>> m_creators;  ///< Map of component creators by type string
-#pragma endregion
 };
 
 #endif  // COMPONENTFACTORY_H

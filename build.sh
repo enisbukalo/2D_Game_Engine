@@ -100,10 +100,8 @@ if [ "$CREATE_PACKAGE" = true ]; then
     mkdir -p package/lib
     mkdir -p package/bin
 
-    # Copy header files
-    cp -r include/* package/include/
-    cp -r components/* package/include/
-    cp -r systems/* package/include/
+    # Copy all header files directly into include directory
+    find include include/components include/systems -name "*.h" -exec cp {} package/include/ \;
 
     # Copy libraries based on build type
     if [ "$BUILD_SHARED" = "ON" ]; then
@@ -114,6 +112,10 @@ if [ "$CREATE_PACKAGE" = true ]; then
     fi
 
     echo -e "${GREEN}Package created in package directory${NC}"
+
+    # Copy package to example project
+    cp -r package example_project/GameEngine
+    echo -e "${GREEN}Package created in example_project/GameEngine directory${NC}"
 fi
 
 echo -e "${GREEN}Build completed successfully!${NC}"

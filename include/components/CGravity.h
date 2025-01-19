@@ -15,11 +15,7 @@
  */
 struct CGravity : public Component
 {
-#pragma region Variables
-    Vec2 force = Vec2(0.0f, -9.81f);  ///< Gravity force vector (default: Earth gravity)
-#pragma endregion
-
-#pragma region Override Methods
+public:
     /**
      * @brief Applies gravity force to the entity's transform
      * @param deltaTime Time elapsed since last update
@@ -35,17 +31,29 @@ struct CGravity : public Component
     std::string getType() const override;
 
     /**
-     * @brief Serializes the gravity data to JSON
-     * @return JSON object containing the force vector
+     * @brief Serializes the gravity data to binary data
      */
-    json serialize() const override;
+    void serialize() const override;
 
     /**
-     * @brief Deserializes gravity data from JSON
-     * @param data JSON object containing gravity data
+     * @brief Deserializes gravity data from binary data
      */
-    void deserialize(const json& data) override;
-#pragma endregion
+    void deserialize() override;
+
+    /**
+     * @brief Gets the force of the gravity
+     * @return Force as a Vec2
+     */
+    Vec2 getForce() const;
+
+    /**
+     * @brief Sets the force of the gravity
+     * @param force New force as a Vec2
+     */
+    void setForce(const Vec2& force);
+
+private:
+    Vec2 m_force = Vec2(0.0f, -9.81f);  ///< Gravity force vector (default: Earth gravity)
 };
 
 #endif  // CGRAVITY_H

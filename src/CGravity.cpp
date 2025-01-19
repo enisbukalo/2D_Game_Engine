@@ -10,18 +10,16 @@ std::string CGravity::getType() const
     return "Gravity";
 }
 
-json CGravity::serialize() const
+void CGravity::serialize() const {}
+
+void CGravity::deserialize() {}
+
+Vec2 CGravity::getForce() const
 {
-    json j     = Component::serialize();
-    j["force"] = {{"x", force.x}, {"y", force.y}};
-    return j;
+    return m_force;
 }
 
-void CGravity::deserialize(const json& data)
+void CGravity::setForce(const Vec2& force)
 {
-    if (data.contains("force"))
-    {
-        force.x = data["force"]["x"];
-        force.y = data["force"]["y"];
-    }
+    m_force = force;
 }

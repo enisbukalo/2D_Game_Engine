@@ -2,13 +2,10 @@
 #define ENTITYMANAGER_H
 
 #include <memory>
-#include <nlohmann/json.hpp>
 #include <string>
 #include <unordered_map>
 #include <vector>
 #include "Entity.h"
-
-using json = nlohmann::json;
 
 /**
  * @brief Manager class for handling entities in the game engine
@@ -23,15 +20,12 @@ using json = nlohmann::json;
 class EntityManager
 {
 public:
-#pragma region Constructors
     /** @brief Default constructor */
     EntityManager() = default;
 
     /** @brief Default destructor */
     ~EntityManager() = default;
-#pragma endregion
 
-#pragma region Methods
     /**
      * @brief Updates all active entities and processes pending operations
      * @param deltaTime Time elapsed since last update
@@ -63,9 +57,7 @@ public:
      * @return Vector of entity pointers matching the tag
      */
     std::vector<std::shared_ptr<Entity>> getEntitiesByTag(const std::string& tag);
-#pragma endregion
 
-#pragma region Templates
     /**
      * @brief Gets all entities that have a specific component type
      * @tparam T The component type to search for
@@ -83,10 +75,8 @@ public:
             }
         }
         return result;
-    }
-#pragma endregion
+    };
 
-#pragma region Serialization
     /**
      * @brief Saves the current game state to a file
      * @param filename Path to the file to save to
@@ -98,22 +88,17 @@ public:
      * @param filename Path to the file to load from
      */
     void loadFromFile(const std::string& filename);
-#pragma endregion
 
 private:
-#pragma region Methods
     /**
      * @brief Removes entities that have been marked for destruction
      */
     void removeDeadEntities();
-#pragma endregion
 
-#pragma region Variables
     std::vector<std::shared_ptr<Entity>> m_entities;       ///< List of all active entities
     std::vector<std::shared_ptr<Entity>> m_entitiesToAdd;  ///< Queue of entities to be added
     std::unordered_map<std::string, std::vector<std::shared_ptr<Entity>>> m_entityMap;  ///< Map of entities by tag
     uint8_t m_totalEntities = 0;  ///< Counter for generating unique entity IDs
-#pragma endregion
 };
 
 #endif  // ENTITYMANAGER_H

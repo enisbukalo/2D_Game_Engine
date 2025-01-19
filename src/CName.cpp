@@ -5,17 +5,16 @@ std::string CName::getType() const
     return "Name";
 }
 
-json CName::serialize() const
+void CName::serialize() const {}
+
+void CName::deserialize() {}
+
+std::string CName::getName() const
 {
-    json j    = Component::serialize();
-    j["name"] = name;
-    return j;
+    return m_name;
 }
 
-void CName::deserialize(const json& data)
+void CName::setName(const std::string& name)
 {
-    if (data.contains("name"))
-    {
-        name = data["name"];
-    }
+    m_name = name;
 }

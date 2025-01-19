@@ -26,6 +26,8 @@ format_files() {
     find . -type f \( -name "*.cpp" -o -name "*.h" \) \
         -not -path "./build/*" \
         -not -path "./deps_cache/*" \
+        -not -path "./package/*" \
+        -not -path "./example_project/*" \
         -exec $format_command {} +
 
     local result=$?
