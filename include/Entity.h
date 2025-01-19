@@ -130,7 +130,7 @@ protected:
      * @param tag The entity's tag for identification and grouping
      * @param id Unique identifier for the entity
      */
-    Entity(const std::string &tag, uint8_t id) : m_tag(tag), m_id(id) {};
+    Entity(const std::string &tag, uint8_t id) : m_tag(tag), m_id(id) {}
 
 private:
     std::unordered_map<std::type_index, std::unique_ptr<Component>> m_components;  ///< Map of components indexed by type

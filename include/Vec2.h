@@ -24,7 +24,7 @@ public:
      * @param x The x component of the vector
      * @param y The y component of the vector
      */
-    Vec2(float x, float y) : x(x), y(y) {};
+    Vec2(float x, float y) : x(x), y(y) {}
 
     /**
      * @brief Calculates the length (magnitude) of the vector

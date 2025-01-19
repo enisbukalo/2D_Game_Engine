@@ -19,7 +19,7 @@ public:
      * @brief Constructs a name component
      * @param n The name to assign (defaults to empty string)
      */
-    explicit CName(const std::string& n = "") : m_name(n) {};
+    explicit CName(const std::string& n = "") : m_name(n) {}
 
     /**
      * @brief Gets the type identifier for this component
