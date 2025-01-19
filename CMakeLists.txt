@@ -37,16 +37,15 @@ include(FetchContent)
 # Configure dependency caching
 set(FETCHCONTENT_BASE_DIR ${DEPS_CACHE_DIR})
 
-# Only build what we need from SFML
+# Configure SFML
 set(SFML_BUILD_AUDIO OFF CACHE BOOL "")
 set(SFML_BUILD_NETWORK OFF CACHE BOOL "")
 set(SFML_BUILD_EXAMPLES OFF CACHE BOOL "")
 set(SFML_BUILD_DOC OFF CACHE BOOL "")
 set(SFML_BUILD_TEST_SUITE OFF CACHE BOOL "")
 set(SFML_INSTALL_PKGCONFIG_FILES OFF CACHE BOOL "")
-set(SFML_INSTALL OFF CACHE BOOL "") # Disable SFML installation
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "") # Build SFML as static libraries
-set(SFML_BUILD_MAIN OFF CACHE BOOL "") # Disable SFML main module
+set(BUILD_SHARED_LIBS ON CACHE BOOL "") # Build dependencies as shared libraries
+set(SFML_BUILD_MAIN OFF CACHE BOOL "")
 set(SFML_BUILD_WINDOW ON CACHE BOOL "")
 set(SFML_BUILD_GRAPHICS ON CACHE BOOL "")
 
@@ -55,13 +54,7 @@ FetchContent_Declare(SFML
     GIT_TAG 2.6.x
     GIT_SHALLOW ON)
 
-# Configure SFML before making it available
-FetchContent_GetProperties(SFML)
-
-if(NOT sfml_POPULATED)
-    FetchContent_Populate(SFML)
-    add_subdirectory(${sfml_SOURCE_DIR} ${sfml_BINARY_DIR} EXCLUDE_FROM_ALL)
-endif()
+FetchContent_MakeAvailable(SFML)
 
 # Only build what we need from ImGui-SFML
 FetchContent_Declare(IMGUI
@@ -136,43 +129,21 @@ target_include_directories(GameEngine
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/components>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/systems>
-    $<BUILD_INTERFACE:${sfml_SOURCE_DIR}/include>
-    $<BUILD_INTERFACE:${json_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include/GameEngine>
 )
 
-# Create imported targets for dependencies
-add_library(imgui_sfml_imported STATIC IMPORTED)
-
-# Set imported locations
-set_target_properties(imgui_sfml_imported PROPERTIES
-    IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/lib/${CMAKE_BUILD_TYPE}/ImGui-SFML${CMAKE_STATIC_LIBRARY_SUFFIX}"
-    INTERFACE_INCLUDE_DIRECTORIES "${imgui_SOURCE_DIR};${IMGUI_SFML_SOURCE_DIR}")
-
-# Link against imported targets
+# Link against dependencies
 target_link_libraries(GameEngine
-    PRIVATE
-    sfml-graphics-s-d
-    sfml-window-s-d
-    sfml-system-s-d
-    imgui_sfml_imported
+    PUBLIC
+    sfml-graphics
+    sfml-window
+    sfml-system
+    ImGui-SFML
     nlohmann_json::nlohmann_json
+    PRIVATE
     opengl32
     winmm
     gdi32
-)
-
-target_link_directories(GameEngine
-    PRIVATE
-    "${CMAKE_BINARY_DIR}/lib/Debug"
-)
-
-# Add SFML_STATIC definition when linking statically
-target_compile_definitions(GameEngine
-    PUBLIC
-    SFML_STATIC
-    IMGUI_SFML_STATIC
-    $<$<CONFIG:Debug>:_DEBUG>
 )
 
 # Installation configuration

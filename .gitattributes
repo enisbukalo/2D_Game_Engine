@@ -1,0 +1,10 @@
+# Shell scripts should always use LF line endings
+*.sh text eol=lf
+
+# Explicitly declare text files you want to always be normalized and converted
+# to native line endings on checkout.
+*.txt text
+*.cpp text
+*.h text
+*.cmake text
+*.md text
