@@ -1,4 +1,4 @@
-# 2D Game Engine
+# GameEngine
 
 A modern C++ 2D game engine built with SFML, featuring an Entity Component System (ECS) architecture.
 
@@ -42,6 +42,8 @@ The codebase is organized using pragma regions for better readability:
 
 ## Dependencies
 - SFML 2.6.x: Graphics and window management
+- Dear ImGui 1.91.x: Immediate mode GUI
+- ImGui-SFML 2.6.x: SFML backend for Dear ImGui
 - nlohmann_json 3.11.x: JSON serialization
 - C++17 or later
 
@@ -55,12 +57,12 @@ The build script (`build.sh`) provides several options:
 
 - `-h, --help`: Show help message
 - `-t, --type TYPE`: Set build type (Debug/Release)
-- `-s, --shared`: Build shared library
+- `-s, --shared`: Build as shared library [default: ON]
 - `--no-tests`: Skip building and running tests
 - `-c, --clean`: Clean build directory
 - `-p, --package`: Create distributable package
 
-## Examples
+### Examples
 
 Clean build with shared library:
 ```bash
@@ -80,11 +82,12 @@ Build without running tests:
 ### Build Output
 
 The build script will:
-1. Configure the project with CMake
-2. Build all dependencies (SFML, ImGui, etc.)
-3. Build the main GameEngine library
-4. Run tests (if enabled)
-5. Create a package (if requested) with:
+1. Check for CMakeLists.txt and validate build directory
+2. Configure the project with CMake
+3. Build all dependencies (SFML, ImGui, etc.)
+4. Build the main GameEngine library
+5. Run tests (if enabled)
+6. Create a package (if requested) with:
    - Headers in `package/include/`
    - Library files in `package/lib/`
    - Binary files in `package/bin/`
@@ -96,7 +99,8 @@ The build script automatically handles the following dependencies:
 - ImGui-SFML
 - nlohmann_json
 
-All dependencies are statically linked into the final library unless the shared option is used.
+Dependencies are dynamically linked by default. The shared libraries will be included in the package's bin directory.
+You will be required to link the dependencies manually in your project.
 
 ## Usage Example
 ```cpp
@@ -139,4 +143,4 @@ while (engine.is_running()) {
 Contributions are welcome! Please feel free to submit pull requests.
 
 ## License
-[Your chosen license]
+MIT License
