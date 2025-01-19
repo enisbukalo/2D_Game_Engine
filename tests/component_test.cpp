@@ -1,8 +1,8 @@
-#include "Component.h"
 #include <gtest/gtest.h>
 #include "CGravity.h"
 #include "CName.h"
 #include "CTransform.h"
+#include "Component.h"
 #include "Entity.h"
 
 // Test helper classes
@@ -18,6 +18,16 @@ public:
     std::string getType() const override
     {
         return "Test";
+    }
+
+    void serialize() const override
+    {
+        // Empty implementation for testing
+    }
+
+    void deserialize() override
+    {
+        // Empty implementation for testing
     }
 };
 
