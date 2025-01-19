@@ -13,3 +13,13 @@ std::string CGravity::getType() const
 void CGravity::serialize() const {}
 
 void CGravity::deserialize() {}
+
+Vec2 CGravity::getForce() const
+{
+    return m_force;
+}
+
+void CGravity::setForce(const Vec2& force)
+{
+    m_force = force;
+}

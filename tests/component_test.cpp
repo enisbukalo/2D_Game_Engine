@@ -35,17 +35,17 @@ TEST(ComponentTest, TransformComponent)
     CTransform transform;
 
     // Test initial values
-    EXPECT_FLOAT_EQ(transform.position.x, 0.0f);
-    EXPECT_FLOAT_EQ(transform.position.y, 0.0f);
-    EXPECT_FLOAT_EQ(transform.scale.x, 1.0f);
-    EXPECT_FLOAT_EQ(transform.scale.y, 1.0f);
-    EXPECT_FLOAT_EQ(transform.rotation, 0.0f);
+    EXPECT_FLOAT_EQ(transform.getPosition().x, 0.0f);
+    EXPECT_FLOAT_EQ(transform.getPosition().y, 0.0f);
+    EXPECT_FLOAT_EQ(transform.getScale().x, 1.0f);
+    EXPECT_FLOAT_EQ(transform.getScale().y, 1.0f);
+    EXPECT_FLOAT_EQ(transform.getRotation(), 0.0f);
 
     // Test update with velocity
-    transform.velocity = Vec2(1.0f, 2.0f);
+    transform.setVelocity(Vec2(1.0f, 2.0f));
     transform.update(0.5f);
-    EXPECT_FLOAT_EQ(transform.position.x, 0.5f);
-    EXPECT_FLOAT_EQ(transform.position.y, 1.0f);
+    EXPECT_FLOAT_EQ(transform.getPosition().x, 0.5f);
+    EXPECT_FLOAT_EQ(transform.getPosition().y, 1.0f);
 }
 
 TEST(ComponentTest, GravityComponent)
@@ -55,8 +55,8 @@ TEST(ComponentTest, GravityComponent)
     auto       gravity   = entity.addComponent<CGravity>();
 
     const float EPSILON = 0.0001f;  // Small value for floating point comparison
-    EXPECT_NEAR(gravity->force.x, 0.0f, EPSILON);
-    EXPECT_NEAR(gravity->force.y, -9.81f, EPSILON);
+    EXPECT_NEAR(gravity->getForce().x, 0.0f, EPSILON);
+    EXPECT_NEAR(gravity->getForce().y, -9.81f, EPSILON);
 
     // Test gravity application
     float deltaTime = 1.0f;
@@ -66,8 +66,8 @@ TEST(ComponentTest, GravityComponent)
 TEST(ComponentTest, NameComponent)
 {
     CName nameComp("TestEntity");
-    EXPECT_EQ(nameComp.name, "TestEntity");
+    EXPECT_EQ(nameComp.getName(), "TestEntity");
 
     CName defaultName;
-    EXPECT_TRUE(defaultName.name.empty());
+    EXPECT_TRUE(defaultName.getName().empty());
 }

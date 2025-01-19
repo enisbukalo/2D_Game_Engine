@@ -14,12 +14,9 @@
 class Vec2
 {
 public:
-#pragma region Variables
     float x = 0.0f;  ///< X component of the vector
     float y = 0.0f;  ///< Y component of the vector
-#pragma endregion
 
-#pragma region Constructors
     Vec2() = default;
 
     /**
@@ -27,10 +24,8 @@ public:
      * @param x The x component of the vector
      * @param y The y component of the vector
      */
-    Vec2(float x, float y) : x(x), y(y) {}
-#pragma endregion
+    Vec2(float x, float y) : x(x), y(y) {};
 
-#pragma region Methods
     /**
      * @brief Calculates the length (magnitude) of the vector
      * @return The length of the vector
@@ -70,9 +65,7 @@ public:
      * @return The distance between the two vectors
      */
     float distance(const Vec2& other);
-#pragma endregion
 
-#pragma region Operators
     /**
      * @brief Adds another vector to this vector
      * @param other The vector to add
@@ -114,7 +107,6 @@ public:
      * @return The divided vector
      */
     Vec2 operator/(const float& divisor) const;
-#pragma endregion
 };
 
 #endif  // VEC2_H

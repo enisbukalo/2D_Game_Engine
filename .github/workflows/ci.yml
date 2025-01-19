@@ -24,6 +24,8 @@ jobs:
           find . -type f \( -name "*.cpp" -o -name "*.h" \) \
             -not -path "./build/*" \
             -not -path "./deps_cache/*" \
+            -not -path "./package/*" \
+            -not -path "./example_project/*" \
             -exec clang-format -style=file --dry-run --Werror {} +
 
   static-analysis:
@@ -47,6 +49,6 @@ jobs:
             --inline-suppr \
             --std=c++17 \
             -I include \
-            -I components \
-            -I systems \
-            src/ include/ components/
+            -I include/components \
+            -I include/systems \
+            src/ include/ include/components/ include/systems/

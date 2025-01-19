@@ -90,6 +90,16 @@ The build script will:
    - Headers in `package/include/`
    - Library files in `package/lib/`
    - Binary files in `package/bin/`
+   - Copy package to example project
+
+### Building Example Project
+
+There is a build script in the example project that will build the GameEngine package and copy it to the example project.
+``` bash
+cd example_project
+./build_example.sh
+```
+#### <u><b>NOTE!!!: YOU MUST RUN THE BUILD.SH SCRIPT IN THE ROOT DIRECTORY FIRST.</b></u  >
 
 ### Dependencies
 The build script automatically handles the following dependencies:

@@ -20,15 +20,12 @@
 class System
 {
 public:
-#pragma region Constructors
     /** @brief Default constructor */
     System();
 
     /** @brief Virtual destructor for proper cleanup of derived classes */
     ~System();
-#pragma endregion
 
-#pragma region Virtual Methods
     /**
      * @brief Updates the system's logic
      *
@@ -37,11 +34,9 @@ public:
      * this method to provide specific system behavior.
      */
     virtual void update() = 0;
-#pragma endregion
 
 private:
 #pragma region Variables
     std::unordered_map<uint8_t, std::unique_ptr<Component>> m_components;  ///< Map of components managed by this system
-#pragma endregion
 };
 #endif  // SYSTEM_H

@@ -26,14 +26,11 @@
 class Entity : public std::enable_shared_from_this<Entity>
 {
 public:
-#pragma region For Testing
     friend class EntityManager;
     friend class TestEntity;
-#pragma endregion
 
     virtual ~Entity() = default;
 
-#pragma region Templates
     /**
      * @brief Gets a component of the specified type
      * @tparam T The type of component to get
@@ -44,7 +41,7 @@ public:
     {
         auto it = m_components.find(std::type_index(typeid(T)));
         return it != m_components.end() ? static_cast<T *>(it->second.get()) : nullptr;
-    }
+    };
 
     /**
      * @brief Adds a component of the specified type with given arguments
@@ -56,12 +53,12 @@ public:
     template <typename T, typename... Args>
     T *addComponent(Args &&...args)
     {
-        T *component                             = new T(std::forward<Args>(args)...);
-        component->owner                         = this;
+        T *component = new T(std::forward<Args>(args)...);
+        component->setOwner(this);
         m_components[std::type_index(typeid(T))] = std::unique_ptr<Component>(component);
         component->init();
         return component;
-    }
+    };
 
     /**
      * @brief Checks if the entity has a component of the specified type
@@ -72,7 +69,7 @@ public:
     bool hasComponent()
     {
         return m_components.find(std::type_index(typeid(T))) != m_components.end();
-    }
+    };
 
     /**
      * @brief Removes a component of the specified type
@@ -86,10 +83,8 @@ public:
         {
             m_components.erase(it);
         }
-    }
-#pragma endregion
+    };
 
-#pragma region Methods
     /**
      * @brief Marks the entity for destruction
      */
@@ -128,25 +123,20 @@ public:
      * @brief Deserializes the entity from binary data
      */
     void deserialize();
-#pragma endregion
 
 protected:
-#pragma region Constructors
     /**
      * @brief Constructs an entity with a tag and ID
      * @param tag The entity's tag for identification and grouping
      * @param id Unique identifier for the entity
      */
-    Entity(const std::string &tag, uint8_t id) : m_tag(tag), m_id(id) {}
-#pragma endregion
+    Entity(const std::string &tag, uint8_t id) : m_tag(tag), m_id(id) {};
 
 private:
-#pragma region Variables
     std::unordered_map<std::type_index, std::unique_ptr<Component>> m_components;  ///< Map of components indexed by type
     const uint8_t     m_id    = 0;                                                 ///< Unique identifier
     const std::string m_tag   = "Default";                                         ///< Entity tag
     bool              m_alive = true;                                              ///< Entity state flag
-#pragma endregion
 };
 
 #endif  // ENTITY_H

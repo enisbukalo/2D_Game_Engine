@@ -15,7 +15,6 @@
 class GameEngine
 {
 public:
-#pragma region Constructors
     /**
      * @brief Constructs a game engine instance
      * @param window Pointer to the SFML render window
@@ -27,9 +26,7 @@ public:
 
     /** @brief Destructor */
     ~GameEngine();
-#pragma endregion
 
-#pragma region Methods
     /**
      * @brief Processes input events
      */
@@ -50,10 +47,8 @@ public:
      * @return true if the game is running, false otherwise
      */
     bool is_running() const;
-#pragma endregion
 
 private:
-#pragma region Variables
     const uint8_t m_subStepCount;  ///< Number of physics sub-steps per update
     const float   m_timeStep;      ///< Fixed time step for physics updates
 
@@ -61,7 +56,6 @@ private:
 
     sf::RenderWindow* m_window;   ///< Pointer to the SFML render window
     sf::Vector2f      m_gravity;  ///< Global gravity vector
-#pragma endregion
 };
 
 #endif  // GAMEENGINE_H

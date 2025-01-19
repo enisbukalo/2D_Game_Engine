@@ -50,7 +50,7 @@ TEST(EntityTest, MultipleComponents)
     EXPECT_TRUE(entity.hasComponent<CName>());
     EXPECT_TRUE(entity.hasComponent<CGravity>());
 
-    EXPECT_EQ(name->name, "TestEntity");
+    EXPECT_EQ(name->getName(), "TestEntity");
 }
 
 TEST(EntityTest, ComponentUpdate)
@@ -58,9 +58,9 @@ TEST(EntityTest, ComponentUpdate)
     TestEntity entity("test", 1);
 
     CTransform *transform = entity.addComponent<CTransform>();
-    transform->velocity   = Vec2(1.0f, 1.0f);
+    transform->setVelocity(Vec2(1.0f, 1.0f));
 
     entity.update(1.0f);
-    EXPECT_FLOAT_EQ(transform->position.x, 1.0f);
-    EXPECT_FLOAT_EQ(transform->position.y, 1.0f);
+    EXPECT_FLOAT_EQ(transform->getPosition().x, 1.0f);
+    EXPECT_FLOAT_EQ(transform->getPosition().y, 1.0f);
 }

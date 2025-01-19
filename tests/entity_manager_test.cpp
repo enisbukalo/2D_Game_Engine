@@ -76,8 +76,8 @@ TEST_F(EntityManagerTest, EntityUpdateSystem)
     auto gravity   = entity->addComponent<CGravity>();
 
     const float EPSILON = 0.0001f;  // Small value for floating point comparison
-    EXPECT_NEAR(gravity->force.x, 0.0f, EPSILON);
-    EXPECT_NEAR(gravity->force.y, -9.81f, EPSILON);
+    EXPECT_NEAR(gravity->getForce().x, 0.0f, EPSILON);
+    EXPECT_NEAR(gravity->getForce().y, -9.81f, EPSILON);
 
     // Test system update
     float deltaTime = 1.0f;

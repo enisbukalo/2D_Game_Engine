@@ -14,19 +14,13 @@
  */
 struct CName : public Component
 {
-#pragma region Variables
-    std::string name;  ///< The name string for the entity
-#pragma endregion
-
-#pragma region Constructors
+public:
     /**
      * @brief Constructs a name component
      * @param n The name to assign (defaults to empty string)
      */
-    explicit CName(const std::string& n = "") : name(n) {}
-#pragma endregion
+    explicit CName(const std::string& n = "") : m_name(n) {};
 
-#pragma region Override Methods
     /**
      * @brief Gets the type identifier for this component
      * @return String "Name"
@@ -42,7 +36,21 @@ struct CName : public Component
      * @brief Deserializes name data from binary data
      */
     void deserialize() override;
-#pragma endregion
+
+    /**
+     * @brief Gets the name of the entity
+     * @return The name string
+     */
+    std::string getName() const;
+
+    /**
+     * @brief Sets the name of the entity
+     * @param n The new name string
+     */
+    void setName(const std::string& n);
+
+private:
+    std::string m_name;  ///< The name string for the entity
 };
 
 #endif  // CNAME_H
