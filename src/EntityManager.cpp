@@ -1,6 +1,6 @@
-#include "../include/EntityManager.h"
 #include <algorithm>
 #include <fstream>
+#include "EntityManager.h"
 
 void EntityManager::update(float deltaTime)
 {

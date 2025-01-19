@@ -1,7 +1,7 @@
-#include "../include/ComponentFactory.h"
-#include "../components/CGravity.h"
-#include "../components/CName.h"
-#include "../components/CTransform.h"
+#include "CGravity.h"
+#include "CName.h"
+#include "CTransform.h"
+#include "ComponentFactory.h"
 
 ComponentFactory::ComponentFactory()
 {

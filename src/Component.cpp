@@ -1,4 +1,4 @@
-#include "../components/Component.h"
+#include "Component.h"
 
 json Component::serialize() const
 {

@@ -1,14 +1,16 @@
 #ifndef ENTITY_H
 #define ENTITY_H
 
+#include <map>
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <string>
 #include <typeindex>
 #include <unordered_map>
-#include "../components/CGravity.h"
-#include "../components/CName.h"
-#include "../components/CTransform.h"
+#include <vector>
+#include "CGravity.h"
+#include "CName.h"
+#include "CTransform.h"
 #include "Component.h"
 #include "ComponentFactory.h"
 

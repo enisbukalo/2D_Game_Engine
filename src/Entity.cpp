@@ -1,4 +1,4 @@
-#include "../include/Entity.h"
+#include "Entity.h"
 
 void Entity::destroy()
 {

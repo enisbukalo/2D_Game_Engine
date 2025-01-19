@@ -1,4 +1,4 @@
-#include "../include/Vec2.h"
+#include "Vec2.h"
 
 float Vec2::length()
 {
