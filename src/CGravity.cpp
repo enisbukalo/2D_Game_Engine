@@ -1,4 +1,4 @@
-#include "../components/CGravity.h"
+#include "CGravity.h"
 
 void CGravity::update(float deltaTime)
 {

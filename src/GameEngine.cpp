@@ -1,4 +1,4 @@
-#include "../include/GameEngine.h"
+#include "GameEngine.h"
 
 GameEngine::GameEngine(sf::RenderWindow* window, sf::Vector2f gravity, uint8_t subStepCount, float timeStep)
     : m_window(window), m_gravity(gravity), m_subStepCount(subStepCount), m_timeStep(timeStep)

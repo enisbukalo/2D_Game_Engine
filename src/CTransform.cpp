@@ -1,4 +1,4 @@
-#include "../components/CTransform.h"
+#include "CTransform.h"
 
 void CTransform::update(float deltaTime)
 {

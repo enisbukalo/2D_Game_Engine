@@ -1,4 +1,4 @@
-#include "../include/Entity.h"
+#include "Entity.h"
 #include <gtest/gtest.h>
 
 // Test helper class that exposes protected constructor

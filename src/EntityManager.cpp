@@ -1,4 +1,4 @@
-#include "../include/EntityManager.h"
+#include "EntityManager.h"
 #include <algorithm>
 #include <fstream>
 

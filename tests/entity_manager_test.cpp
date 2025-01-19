@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <filesystem>
 #include <fstream>
-#include "../include/EntityManager.h"
+#include "EntityManager.h"
 
 // Define the source directory path
 #ifndef SOURCE_DIR

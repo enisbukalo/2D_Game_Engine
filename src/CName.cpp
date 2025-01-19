@@ -1,4 +1,4 @@
-#include "../components/CName.h"
+#include "CName.h"
 
 std::string CName::getType() const
 {

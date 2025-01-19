@@ -1,9 +1,9 @@
-#include "../components/Component.h"
+#include "Component.h"
 #include <gtest/gtest.h>
-#include "../components/CGravity.h"
-#include "../components/CName.h"
-#include "../components/CTransform.h"
-#include "../include/Entity.h"
+#include "CGravity.h"
+#include "CName.h"
+#include "CTransform.h"
+#include "Entity.h"
 
 // Test helper classes
 class TestEntity : public Entity
