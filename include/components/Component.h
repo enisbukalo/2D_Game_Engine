@@ -42,12 +42,12 @@ public:
     /**
      * @brief Serializes the component to binary data
      */
-    virtual void serialize() const {};
+    virtual void serialize() const = 0;
 
     /**
      * @brief Deserializes the component from binary data
      */
-    virtual void deserialize() {};
+    virtual void deserialize() = 0;
 
     /**
      * @brief Gets the type identifier of the component
