@@ -34,31 +34,19 @@ target_link_libraries(unit_tests PRIVATE
     GameEngine
     GTest::gtest
     GTest::gtest_main
-    sfml-graphics-s-d
-    sfml-window-s-d
-    sfml-system-s-d
-    imgui_sfml_imported
+    sfml-graphics
+    sfml-window
+    sfml-system
+    ImGui-SFML
     opengl32
     winmm
     gdi32
-)
-
-# Add SFML_STATIC definition when linking statically
-target_compile_definitions(unit_tests PRIVATE
-    SFML_STATIC
-    IMGUI_SFML_STATIC
-    $<$<CONFIG:Debug>:_DEBUG>
-    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
 )
 
 # Include directories for tests
 target_include_directories(unit_tests PRIVATE
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/components
-    ${json_SOURCE_DIR}/include
-    ${sfml_SOURCE_DIR}/include
-    ${imgui_SOURCE_DIR}
-    ${IMGUI_SFML_SOURCE_DIR}
 )
 
 # Copy test data to build directory

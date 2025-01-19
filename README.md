@@ -49,41 +49,32 @@ The codebase is organized using pragma regions for better readability:
 
 The project includes a build script (`build.sh`) that handles the build process, including dependency management, testing, and packaging.
 
-### Build Script Usage
+### Build Options
 
-```bash
-./build.sh [options]
-```
+The build script (`build.sh`) provides several options:
 
-#### Options:
 - `-h, --help`: Show help message
-- `-t, --type TYPE`: Build type (Debug|Release) [default: Debug]
-- `-s, --shared`: Build as shared library [default: OFF]
-- `--no-tests`: Disable building tests
-- `-c, --clean`: Clean build directory before building
-- `-i, --install PREFIX`: Install to specified prefix
+- `-t, --type TYPE`: Set build type (Debug/Release)
+- `-s, --shared`: Build shared library
+- `--no-tests`: Skip building and running tests
+- `-c, --clean`: Clean build directory
 - `-p, --package`: Create distributable package
 
-### Examples
+## Examples
 
-1. Basic debug build:
+Clean build with shared library:
 ```bash
-./build.sh
+./build.sh -c -s
 ```
 
-2. Release build with shared library:
+Build package:
 ```bash
-./build.sh -t Release -s
+./build.sh -c -s -p
 ```
 
-3. Clean build with package creation:
+Build without running tests:
 ```bash
-./build.sh -c -p
-```
-
-4. Install to specific directory:
-```bash
-./build.sh -i "./install"
+./build.sh -c -s --no-tests
 ```
 
 ### Build Output

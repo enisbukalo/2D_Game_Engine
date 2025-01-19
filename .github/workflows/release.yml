@@ -11,7 +11,7 @@ jobs:
       actions: read
     uses: ./.github/workflows/build.yml
     with:
-      build_command: ./build.sh -c -s -i "./install" -p --no-tests
+      build_command: ./build.sh -c -s -p --no-tests
       upload_package: true
 
   upload-release:

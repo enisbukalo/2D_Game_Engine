@@ -6,24 +6,21 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Default configuration
+# Default values
 BUILD_TYPE="Debug"
-BUILD_SHARED=OFF
-BUILD_TESTS=ON
+BUILD_SHARED="ON"
+RUN_TESTS=true
+CREATE_PACKAGE=false
 CLEAN_BUILD=false
-INSTALL_PREFIX=""
-PACKAGE_DIR="package"
-
-# Usage function
+# Help message
 usage() {
     echo "Usage: $0 [options]"
     echo "Options:"
     echo "  -h, --help           Show this help message"
-    echo "  -t, --type TYPE      Build type (Debug|Release) [default: Debug]"
-    echo "  -s, --shared         Build as shared library [default: OFF]"
-    echo "  --no-tests           Disable building tests"
-    echo "  -c, --clean          Clean build directory before building"
-    echo "  -i, --install PREFIX Install to specified prefix"
+    echo "  -t, --type TYPE      Set build type (Debug/Release)"
+    echo "  -s, --shared         Build shared library"
+    echo "  -n, --no-tests       Skip building and running tests"
+    echo "  -c, --clean         Clean build directory"
     echo "  -p, --package        Create distributable package"
 }
 
@@ -36,42 +33,28 @@ while [[ $# -gt 0 ]]; do
             ;;
         -t|--type)
             BUILD_TYPE="$2"
-            shift 2
+            shift
             ;;
         -s|--shared)
-            BUILD_SHARED=ON
-            shift
+            BUILD_SHARED="ON"
             ;;
-        --no-tests)
-            BUILD_TESTS=OFF
-            shift
+        -n|--no-tests)
+            RUN_TESTS=false
             ;;
         -c|--clean)
             CLEAN_BUILD=true
-            shift
-            ;;
-        -i|--install)
-            INSTALL_PREFIX="$2"
-            shift 2
             ;;
         -p|--package)
             CREATE_PACKAGE=true
-            shift
             ;;
         *)
-            echo "Unknown option: $1"
+            echo -e "${RED}Unknown option: $1${NC}"
             usage
             exit 1
             ;;
     esac
+    shift
 done
-
-# Validate build type
-if [[ "$BUILD_TYPE" != "Debug" && "$BUILD_TYPE" != "Release" ]]; then
-    echo -e "${RED}Invalid build type: $BUILD_TYPE${NC}"
-    echo "Build type must be either Debug or Release"
-    exit 1
-fi
 
 # Check if CMakeLists.txt exists
 if [ ! -f "CMakeLists.txt" ]; then
@@ -84,81 +67,53 @@ fi
 if [ "$CLEAN_BUILD" = true ]; then
     echo -e "${YELLOW}Cleaning build directory...${NC}"
     rm -rf build
-    rm -rf $PACKAGE_DIR
 fi
 
 # Create build directory if it doesn't exist
-if [ ! -d "build" ]; then
-    echo -e "${YELLOW}Creating build directory...${NC}"
-    mkdir build
-fi
+mkdir -p build
 
-# Navigate to build directory
-cd build || exit 1
+# Configure project with CMake
+echo -e "${GREEN}Configuring project...${NC}"
+cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DGAMEENGINE_BUILD_SHARED=$BUILD_SHARED || { echo -e "${RED}Configuration failed!${NC}"; exit 1; }
 
-echo -e "${YELLOW}Configuring with CMake...${NC}"
-# Configure with CMake
-cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
-      -DGAMEENGINE_BUILD_SHARED=$BUILD_SHARED \
-      -DGAMEENGINE_BUILD_TESTS=$BUILD_TESTS \
-      -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-      ${INSTALL_PREFIX:+-DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX"} \
-      .. || { echo -e "${RED}CMake configuration failed!${NC}"; exit 1; }
+# Build project
+echo -e "${GREEN}Building project...${NC}"
+cmake --build build --config $BUILD_TYPE || { echo -e "${RED}Build failed!${NC}"; exit 1; }
 
-echo -e "${YELLOW}Building project...${NC}"
-# Build dependencies first
-echo -e "${YELLOW}Building dependencies...${NC}"
-cmake --build . --config $BUILD_TYPE --target sfml-system sfml-window sfml-graphics ImGui-SFML || { echo -e "${RED}Dependencies build failed!${NC}"; exit 1; }
-
-# Build the main project
-echo -e "${YELLOW}Building main project...${NC}"
-cmake --build . --config $BUILD_TYPE --target GameEngine || { echo -e "${RED}Build failed!${NC}"; exit 1; }
-
-# Build and run tests if enabled
-if [ "$BUILD_TESTS" = "ON" ]; then
-    echo -e "${YELLOW}Building tests...${NC}"
-    cmake --build . --config $BUILD_TYPE --target unit_tests || { echo -e "${RED}Tests build failed!${NC}"; exit 1; }
-
-    echo -e "${YELLOW}Running tests...${NC}"
+# Run tests if enabled
+if [ "$RUN_TESTS" = true ]; then
+    echo -e "${GREEN}Running tests...${NC}"
     # Create Testing directory structure
-    mkdir -p Testing/Temporary
+    mkdir -p build/Testing/Temporary
 
-    # Run tests and capture output to both console and file
-    "./bin/${BUILD_TYPE}/unit_tests.exe" --gtest_output="xml:test_results.xml" 2>&1 | tee Testing/Temporary/LastTest.log || { echo -e "${RED}Tests failed!${NC}"; exit 1; }
+    # Run tests and capture output
+    "./build/bin/${BUILD_TYPE}/unit_tests.exe" --gtest_output="xml:build/test_results.xml" 2>&1 | tee build/Testing/Temporary/LastTest.log || { echo -e "${RED}Tests failed!${NC}"; exit 1; }
 fi
 
 # Create package if requested
-cd ..
-if [ "$CREATE_PACKAGE" = true ] || [ -n "$INSTALL_PREFIX" ]; then
-    echo -e "${YELLOW}Creating package...${NC}"
+if [ "$CREATE_PACKAGE" = true ]; then
+    echo -e "${GREEN}Creating package...${NC}"
 
     # Create package directory structure
-    mkdir -p $PACKAGE_DIR/include
-    mkdir -p $PACKAGE_DIR/lib
-    mkdir -p $PACKAGE_DIR/bin
+    rm -rf package
+    mkdir -p package/include
+    mkdir -p package/lib
+    mkdir -p package/bin
 
-    # Copy headers
-    cp -r include/* $PACKAGE_DIR/include/
-    cp -r components/* $PACKAGE_DIR/include/
-    cp -r systems/* $PACKAGE_DIR/include/
+    # Copy header files
+    cp -r include/* package/include/
+    cp -r components/* package/include/
+    cp -r systems/* package/include/
 
     # Copy libraries based on build type
     if [ "$BUILD_SHARED" = "ON" ]; then
-        # Copy DLL and import library for shared build
-        cp "build/bin/${BUILD_TYPE}/GameEngine-d.dll" $PACKAGE_DIR/bin/ 2>/dev/null || :
-        cp "build/lib/${BUILD_TYPE}/GameEngine-d.lib" $PACKAGE_DIR/lib/ 2>/dev/null || :
+        cp build/bin/$BUILD_TYPE/GameEngine*.dll package/bin/
+        cp build/lib/$BUILD_TYPE/GameEngine*.lib package/lib/
     else
-        # Copy static library
-        cp "build/lib/${BUILD_TYPE}/GameEngine-d.lib" $PACKAGE_DIR/lib/ 2>/dev/null || :
+        cp build/lib/$BUILD_TYPE/GameEngine*.lib package/lib/
     fi
 
-    echo -e "${GREEN}Package created in $PACKAGE_DIR${NC}"
-fi
-
-# Install if prefix is specified
-if [ -n "$INSTALL_PREFIX" ]; then
-    echo -e "${YELLOW}Installing to $INSTALL_PREFIX...${NC}"
-    cmake --install build --config $BUILD_TYPE || { echo -e "${RED}Installation failed!${NC}"; exit 1; }
+    echo -e "${GREEN}Package created in package directory${NC}"
 fi
 
 echo -e "${GREEN}Build completed successfully!${NC}"
