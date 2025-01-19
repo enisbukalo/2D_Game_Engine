@@ -3,7 +3,6 @@
 
 #include <map>
 #include <memory>
-#include <nlohmann/json.hpp>
 #include <string>
 #include <typeindex>
 #include <unordered_map>
@@ -13,8 +12,6 @@
 #include "CTransform.h"
 #include "Component.h"
 #include "ComponentFactory.h"
-
-using json = nlohmann::json;
 
 /**
  * @brief Base class for all game entities in the engine
@@ -123,16 +120,14 @@ public:
     void update(float deltaTime);
 
     /**
-     * @brief Serializes the entity to JSON
-     * @return JSON object containing the entity's data
+     * @brief Serializes the entity to binary data
      */
-    json serialize() const;
+    void serialize() const;
 
     /**
-     * @brief Deserializes the entity from JSON
-     * @param data JSON object containing entity data
+     * @brief Deserializes the entity from binary data
      */
-    void deserialize(const json &data);
+    void deserialize();
 #pragma endregion
 
 protected:

@@ -44,7 +44,6 @@ The codebase is organized using pragma regions for better readability:
 - SFML 2.6.x: Graphics and window management
 - Dear ImGui 1.91.x: Immediate mode GUI
 - ImGui-SFML 2.6.x: SFML backend for Dear ImGui
-- nlohmann_json 3.11.x: JSON serialization
 - C++17 or later
 
 ## Building the Project
@@ -97,7 +96,6 @@ The build script automatically handles the following dependencies:
 - SFML (Graphics, Window, System)
 - Dear ImGui
 - ImGui-SFML
-- nlohmann_json
 
 Dependencies are dynamically linked by default. The shared libraries will be included in the package's bin directory.
 You will be required to link the dependencies manually in your project.

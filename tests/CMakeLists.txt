@@ -49,9 +49,6 @@ target_include_directories(unit_tests PRIVATE
     ${CMAKE_SOURCE_DIR}/components
 )
 
-# Copy test data to build directory
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_data DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-
 # Configure CTest output
 set(CTEST_OUTPUT_ON_FAILURE ON)
 set(CTEST_CUSTOM_MAXIMUM_PASSED_TEST_OUTPUT_SIZE 0)

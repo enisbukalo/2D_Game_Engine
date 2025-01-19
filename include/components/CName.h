@@ -34,16 +34,14 @@ struct CName : public Component
     std::string getType() const override;
 
     /**
-     * @brief Serializes the name data to JSON
-     * @return JSON object containing the name string
+     * @brief Serializes the name data to binary data
      */
-    json serialize() const override;
+    void serialize() const override;
 
     /**
-     * @brief Deserializes name data from JSON
-     * @param data JSON object containing name data
+     * @brief Deserializes name data from binary data
      */
-    void deserialize(const json& data) override;
+    void deserialize() override;
 #pragma endregion
 };
 

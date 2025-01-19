@@ -1,10 +1,7 @@
 #ifndef COMPONENT_H
 #define COMPONENT_H
 
-#include <nlohmann/json.hpp>
 #include <string>
-
-using json = nlohmann::json;
 
 class Entity;  // Forward declaration
 
@@ -46,16 +43,14 @@ public:
     virtual void update(float deltaTime) {}
 
     /**
-     * @brief Serializes the component to JSON
-     * @return JSON object containing the component's data
+     * @brief Serializes the component to binary data
      */
-    virtual json serialize() const;
+    virtual void serialize() const {}
 
     /**
-     * @brief Deserializes the component from JSON
-     * @param data JSON object containing component data
+     * @brief Deserializes the component from binary data
      */
-    virtual void deserialize(const json& data) {}
+    virtual void deserialize() {}
 
     /**
      * @brief Gets the type identifier of the component

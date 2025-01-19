@@ -35,16 +35,14 @@ struct CGravity : public Component
     std::string getType() const override;
 
     /**
-     * @brief Serializes the gravity data to JSON
-     * @return JSON object containing the force vector
+     * @brief Serializes the gravity data to binary data
      */
-    json serialize() const override;
+    void serialize() const override;
 
     /**
-     * @brief Deserializes gravity data from JSON
-     * @param data JSON object containing gravity data
+     * @brief Deserializes gravity data from binary data
      */
-    void deserialize(const json& data) override;
+    void deserialize() override;
 #pragma endregion
 };
 

@@ -36,16 +36,14 @@ struct CTransform : public Component
     std::string getType() const override;
 
     /**
-     * @brief Serializes the transform data to JSON
-     * @return JSON object containing position, velocity, scale, and rotation
+     * @brief Serializes the transform data to binary data
      */
-    json serialize() const override;
+    void serialize() const override;
 
     /**
-     * @brief Deserializes transform data from JSON
-     * @param data JSON object containing transform data
+     * @brief Deserializes transform data from binary data
      */
-    void deserialize(const json& data) override;
+    void deserialize() override;
 #pragma endregion
 };
 

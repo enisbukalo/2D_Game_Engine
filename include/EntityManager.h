@@ -2,13 +2,10 @@
 #define ENTITYMANAGER_H
 
 #include <memory>
-#include <nlohmann/json.hpp>
 #include <string>
 #include <unordered_map>
 #include <vector>
 #include "Entity.h"
-
-using json = nlohmann::json;
 
 /**
  * @brief Manager class for handling entities in the game engine
