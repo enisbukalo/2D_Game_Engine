@@ -39,9 +39,9 @@ public:
 
     /**
      * @brief Gets the name of the entity
-     * @return The name string
+     * @return A const reference to the name string
      */
-    std::string getName() const;
+    const std::string& getName() const;
 
     /**
      * @brief Sets the name of the entity

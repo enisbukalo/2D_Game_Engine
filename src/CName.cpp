@@ -9,7 +9,7 @@ void CName::serialize() const {}
 
 void CName::deserialize() {}
 
-std::string CName::getName() const
+const std::string& CName::getName() const
 {
     return m_name;
 }
