@@ -96,6 +96,9 @@ if [ "$CREATE_PACKAGE" = true ]; then
 
     # Create package directory structure
     rm -rf package
+    rm -rf example_project/GameEngine
+
+    # Create package directory structure
     mkdir -p package/include
     mkdir -p package/lib
     mkdir -p package/bin
