@@ -76,17 +76,18 @@ FetchContent_Declare(IMGUI_SFML
 
 FetchContent_MakeAvailable(SFML IMGUI_SFML)
 
-# Create Game Engine library
-file(GLOB ENGINE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
-file(GLOB INCLUDE_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h")
-file(GLOB COMPONENT_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/components/*.h")
-file(GLOB SYSTEM_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/systems/*.h")
+# Common Directories
+set(ENGINE_SOURCES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
+set(ENGINE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include")
+set(ENGINE_COMPONENT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/components")
+set(ENGINE_SYSTEM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/systems")
+set(ENGINE_UTILITY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/utility")
 
-set(ENGINE_HEADERS
-    ${INCLUDE_HEADERS}
-    ${COMPONENT_HEADERS}
-    ${SYSTEM_HEADERS}
-)
+# Create Game Engine library
+file(GLOB_RECURSE ENGINE_SOURCES "${ENGINE_SOURCES_DIR}/*.cpp")
+file(GLOB_RECURSE ENGINE_HEADERS "${ENGINE_INCLUDE_DIR}/*.h")
+
+set(ENGINE_HEADERS ${ENGINE_HEADERS})
 
 # Create library target
 if(GAMEENGINE_BUILD_SHARED)
@@ -119,9 +120,10 @@ set_target_properties(GameEngine PROPERTIES
 
 target_include_directories(GameEngine
     PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/components>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/systems>
+    $<BUILD_INTERFACE:${ENGINE_INCLUDE_DIR}>
+    $<BUILD_INTERFACE:${ENGINE_COMPONENT_DIR}>
+    $<BUILD_INTERFACE:${ENGINE_SYSTEM_DIR}>
+    $<BUILD_INTERFACE:${ENGINE_UTILITY_DIR}>
     $<INSTALL_INTERFACE:include/GameEngine>
 )
 
@@ -156,9 +158,10 @@ if(GAMEENGINE_INSTALL)
 
     # Install headers
     install(DIRECTORY
-        include/
-        include/components/
-        include/systems/
+        ${ENGINE_INCLUDE_DIR}
+        ${ENGINE_COMPONENT_DIR}
+        ${ENGINE_SYSTEM_DIR}
+        ${ENGINE_UTILITY_DIR}
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/GameEngine
         FILES_MATCHING PATTERN "*.h"
     )
