@@ -1,5 +1,5 @@
-#include "JsonParser.h"
 #include "JsonValue.h"
+#include "JsonParser.h"
 
 // Static null value for returning when key/index not found
 const JsonValue JsonValue::NULL_VALUE;

@@ -1,6 +1,6 @@
+#include "JsonParser.h"
 #include <cctype>
 #include <cmath>
-#include "JsonParser.h"
 
 bool JsonParser::hasNext() const
 {

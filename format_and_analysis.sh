@@ -14,7 +14,20 @@ CPP_CHECK="C:\\msys64\\mingw64\\bin\\cppcheck.exe"
 format_files() {
     echo -e "${YELLOW}Formatting files...${NC}"
 
-    # Find and format files
+    # First check which files need formatting
+    files_to_format=$(find . -type f \( -name "*.cpp" -o -name "*.h" \) \
+        -not -path "./build/*" \
+        -not -path "./deps_cache/*" \
+        -not -path "./package/*" \
+        -not -path "./example_project/*")
+
+    # Format each file that needs it
+    for file in $files_to_format; do
+        echo "Formatting $file..."
+        $CLANG_FORMAT -style=file -i "$file"
+    done
+
+    # Verify formatting
     find . -type f \( -name "*.cpp" -o -name "*.h" \) \
         -not -path "./build/*" \
         -not -path "./deps_cache/*" \
@@ -26,7 +39,7 @@ format_files() {
     if [ $result -eq 0 ]; then
         echo -e "${GREEN}Formatting complete!${NC}"
     else
-        echo -e "${RED}Formatting failed!${NC}"
+        echo -e "${RED}Formatting verification failed!${NC}"
         exit 1
     fi
 }
