@@ -10,9 +10,23 @@ std::string CGravity::getType() const
     return "Gravity";
 }
 
-void CGravity::serialize() const {}
+void CGravity::serialize(JsonBuilder& builder) const
+{
+    builder.beginObject();
+    builder.addKey("cGravity");
+    builder.beginObject();
+    builder.addKey("force");
+    builder.beginObject();
+    builder.addKey("x");
+    builder.addNumber(m_force.x);
+    builder.addKey("y");
+    builder.addNumber(m_force.y);
+    builder.endObject();
+    builder.endObject();
+    builder.endObject();
+}
 
-void CGravity::deserialize() {}
+void CGravity::deserialize(const JsonValue& value) {}
 
 Vec2 CGravity::getForce() const
 {

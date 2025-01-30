@@ -5,36 +5,7 @@
 #include "JsonBuilder.h"
 #include "JsonParser.h"
 #include "JsonValue.h"
-
-// Helper function to read file content
-std::string readFile(const std::string& path)
-{
-    std::ifstream file(path);
-    if (!file.is_open())
-    {
-        throw std::runtime_error("Could not open file: " + path);
-    }
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    return buffer.str();
-}
-
-// Helper function to write file content
-void writeFile(const std::string& path, const std::string& content)
-{
-    std::ofstream file(path);
-    if (!file.is_open())
-    {
-        throw std::runtime_error("Could not open file for writing: " + path);
-    }
-    file << content;
-}
-
-// Helper function for floating point comparison
-bool approxEqual(double a, double b, double epsilon = 0.0001)
-{
-    return std::fabs(a - b) < epsilon;
-}
+#include "test_utils.h"
 
 TEST(JsonTest, ParseEntityFile)
 {

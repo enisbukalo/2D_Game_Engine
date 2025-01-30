@@ -32,13 +32,15 @@ public:
 
     /**
      * @brief Serializes the gravity data to binary data
+     * @param builder The JSON builder to serialize to
      */
-    void serialize() const override;
+    void serialize(JsonBuilder& builder) const override;
 
     /**
      * @brief Deserializes gravity data from binary data
+     * @param value The JSON value to deserialize
      */
-    void deserialize() override;
+    void deserialize(const JsonValue& value) override;
 
     /**
      * @brief Gets the force of the gravity

@@ -42,12 +42,12 @@ public:
     /**
      * @brief Serializes the transform data to binary data
      */
-    void serialize() const override;
+    void serialize(JsonBuilder& builder) const override;
 
     /**
      * @brief Deserializes transform data from binary data
      */
-    void deserialize() override;
+    void deserialize(const JsonValue& value) override;
 
     /**
      * @brief Gets the position of the transform

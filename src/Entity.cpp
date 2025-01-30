@@ -31,6 +31,21 @@ void Entity::update(float deltaTime)
     }
 }
 
-void Entity::serialize() const {}
+void Entity::serialize(JsonBuilder& builder) const
+{
+    builder.beginObject();
+    builder.addKey("tag");
+    builder.addString(m_tag);
+    builder.addKey("id");
+    builder.addNumber(m_id);
+    builder.addKey("components");
+    builder.beginArray();
+    for (auto& [type, component] : m_components)
+    {
+        component->serialize(builder);
+    }
+    builder.endArray();
+    builder.endObject();
+}
 
-void Entity::deserialize() {}
+void Entity::deserialize(const JsonValue& value) {}

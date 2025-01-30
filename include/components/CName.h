@@ -30,12 +30,12 @@ public:
     /**
      * @brief Serializes the name data to binary data
      */
-    void serialize() const override;
+    void serialize(JsonBuilder& builder) const override;
 
     /**
      * @brief Deserializes name data from binary data
      */
-    void deserialize() override;
+    void deserialize(const JsonValue& value) override;
 
     /**
      * @brief Gets the name of the entity

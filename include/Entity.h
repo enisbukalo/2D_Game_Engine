@@ -7,9 +7,6 @@
 #include <typeindex>
 #include <unordered_map>
 #include <vector>
-#include "CGravity.h"
-#include "CName.h"
-#include "CTransform.h"
 #include "Component.h"
 #include "ComponentFactory.h"
 
@@ -117,12 +114,12 @@ public:
     /**
      * @brief Serializes the entity to binary data
      */
-    void serialize() const;
+    void serialize(JsonBuilder &builder) const;
 
     /**
      * @brief Deserializes the entity from binary data
      */
-    void deserialize();
+    void deserialize(const JsonValue &value);
 
 protected:
     /**

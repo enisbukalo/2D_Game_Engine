@@ -12,9 +12,39 @@ std::string CTransform::getType() const
     return "Transform";
 }
 
-void CTransform::serialize() const {}
+void CTransform::serialize(JsonBuilder& builder) const
+{
+    builder.beginObject();
+    builder.addKey("cTransform");
+    builder.beginObject();
+    builder.addKey("position");
+    builder.beginObject();
+    builder.addKey("x");
+    builder.addNumber(m_position.x);
+    builder.addKey("y");
+    builder.addNumber(m_position.y);
+    builder.endObject();
+    builder.addKey("velocity");
+    builder.beginObject();
+    builder.addKey("x");
+    builder.addNumber(m_velocity.x);
+    builder.addKey("y");
+    builder.addNumber(m_velocity.y);
+    builder.endObject();
+    builder.addKey("scale");
+    builder.beginObject();
+    builder.addKey("x");
+    builder.addNumber(m_scale.x);
+    builder.addKey("y");
+    builder.addNumber(m_scale.y);
+    builder.endObject();
+    builder.addKey("rotation");
+    builder.addNumber(m_rotation);
+    builder.endObject();
+    builder.endObject();
+}
 
-void CTransform::deserialize() {}
+void CTransform::deserialize(const JsonValue& value) {}
 
 Vec2 CTransform::getPosition() const
 {
