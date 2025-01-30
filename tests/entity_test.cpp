@@ -1,6 +1,6 @@
+#include "Entity.h"
 #include <gtest/gtest.h>
 #include "Component.h"
-#include "Entity.h"
 #include "Vec2.h"
 #include "components/CGravity.h"
 #include "components/CName.h"
