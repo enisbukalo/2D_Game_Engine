@@ -1,4 +1,5 @@
 #include "Entity.h"
+#include "ComponentFactory.h"
 
 void Entity::destroy()
 {
@@ -48,4 +49,33 @@ void Entity::serialize(JsonBuilder& builder) const
     builder.endObject();
 }
 
-void Entity::deserialize(const JsonValue& value) {}
+void Entity::deserialize(const JsonValue& value)
+{
+    m_id = value["id"].getNumber();
+
+    const auto& components = value["components"].getArray();
+    for (const auto& component : components)
+    {
+        // Determine component type from the component object's first key
+        std::string type;
+        const auto& obj = component.getObject();
+        if (!obj.empty())
+        {
+            type = obj.begin()->first;
+            if (type == "cTransform")
+                type = "Transform";
+            else if (type == "cGravity")
+                type = "Gravity";
+            else if (type == "cName")
+                type = "Name";
+        }
+
+        Component* comp = ComponentFactory::instance().createComponent(type);
+        if (comp)
+        {
+            std::unique_ptr<Component> newComponent(comp);
+            newComponent->deserialize(component);
+            m_components[std::type_index(typeid(*comp))] = std::move(newComponent);
+        }
+    }
+}

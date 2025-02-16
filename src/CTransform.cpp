@@ -44,7 +44,28 @@ void CTransform::serialize(JsonBuilder& builder) const
     builder.endObject();
 }
 
-void CTransform::deserialize(const JsonValue& value) {}
+void CTransform::deserialize(const JsonValue& value)
+{
+    const auto& transform = value["cTransform"];
+
+    // Deserialize position
+    const auto& pos = transform["position"];
+    m_position.x    = pos["x"].getNumber();
+    m_position.y    = pos["y"].getNumber();
+
+    // Deserialize velocity
+    const auto& vel = transform["velocity"];
+    m_velocity.x    = vel["x"].getNumber();
+    m_velocity.y    = vel["y"].getNumber();
+
+    // Deserialize scale
+    const auto& scale = transform["scale"];
+    m_scale.x         = scale["x"].getNumber();
+    m_scale.y         = scale["y"].getNumber();
+
+    // Deserialize rotation
+    m_rotation = transform["rotation"].getNumber();
+}
 
 Vec2 CTransform::getPosition() const
 {

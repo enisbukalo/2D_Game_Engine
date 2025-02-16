@@ -16,7 +16,11 @@ void CName::serialize(JsonBuilder& builder) const
     builder.endObject();
 }
 
-void CName::deserialize(const JsonValue& value) {}
+void CName::deserialize(const JsonValue& value)
+{
+    const auto& nameComp = value["cName"];
+    m_name               = nameComp["name"].getString();
+}
 
 const std::string& CName::getName() const
 {

@@ -1,6 +1,7 @@
 #include "EntityManager.h"
 #include <algorithm>
 #include <fstream>
+#include "FileUtilities.h"
 
 void EntityManager::update(float deltaTime)
 {
@@ -71,15 +72,27 @@ void EntityManager::saveToFile(const std::string& filename)
     builder.endObject();  // end root
 
     // Write to file
-    std::ofstream file(filename);
-    if (!file.is_open())
-    {
-        throw std::runtime_error("Could not open file for writing: " + filename);
-    }
-    file << builder.toString();
+    FileUtilities::writeFile(filename, builder.toString());
 }
 
-void EntityManager::loadFromFile(const std::string& filename) {}
+void EntityManager::loadFromFile(const std::string& filename)
+{
+    std::string json = FileUtilities::readFile(filename);
+    JsonParser  parser(json);
+    JsonValue   root = JsonValue::parse(parser);
+
+    if (!root.isObject())
+    {
+        throw std::runtime_error("Invalid file format: " + filename);
+    }
+
+    const auto& entities = root["entities"].getArray();
+    for (const auto& entity : entities)
+    {
+        std::shared_ptr<Entity> newEntity = addEntity(entity["tag"].getString());
+        newEntity->deserialize(entity);
+    }
+}
 
 void EntityManager::removeDeadEntities()
 {

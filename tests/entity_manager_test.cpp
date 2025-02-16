@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <filesystem>
 #include "Component.h"
 #include "Entity.h"
 #include "EntityManager.h"
@@ -191,4 +192,72 @@ TEST_F(EntityManagerTest, EntitySerialization)
     // Verify Name component
     const auto& name3Data = completeComponents[2]["cName"];
     EXPECT_EQ(name3Data["name"].getString(), "CompleteObject");
+}
+
+TEST_F(EntityManagerTest, SaveAndLoadEntities)
+{
+    // Create first entity with Transform and Gravity
+    auto entity1    = m_manager.addEntity("physics_object");
+    auto transform1 = entity1->addComponent<CTransform>();
+    transform1->setPosition(Vec2(100.0f, 200.0f));
+    transform1->setVelocity(Vec2(10.0f, -5.0f));
+    transform1->setScale(Vec2(2.0f, 2.0f));
+    transform1->setRotation(45.0f);
+    auto gravity1 = entity1->addComponent<CGravity>();
+    gravity1->setForce(Vec2(0.0f, -15.0f));
+
+    // Create second entity with Transform and Name
+    auto entity2    = m_manager.addEntity("named_object");
+    auto transform2 = entity2->addComponent<CTransform>();
+    transform2->setPosition(Vec2(-50.0f, 75.0f));
+    auto name2 = entity2->addComponent<CName>();
+    name2->setName("TestObject");
+
+    // Process pending entities
+    m_manager.update(0.0f);
+
+    // Save to file
+    std::string testFile = "tests/test_data/test_entities.json";
+    m_manager.saveToFile(testFile);
+
+    // Create a new manager and load the file
+    EntityManager newManager;
+    newManager.loadFromFile(testFile);
+    newManager.update(0.0f);  // Process loaded entities
+
+    // Verify loaded entities
+    const auto& loadedEntities = newManager.getEntities();
+    ASSERT_EQ(loadedEntities.size(), 2);
+
+    // Find and verify physics_object
+    auto physicsObjects = newManager.getEntitiesByTag("physics_object");
+    ASSERT_EQ(physicsObjects.size(), 1);
+    auto loadedPhysics = physicsObjects[0];
+
+    auto loadedTransform1 = loadedPhysics->getComponent<CTransform>();
+    ASSERT_NE(loadedTransform1, nullptr);
+    EXPECT_EQ(loadedTransform1->getPosition(), Vec2(100.0f, 200.0f));
+    EXPECT_EQ(loadedTransform1->getVelocity(), Vec2(10.0f, -5.0f));
+    EXPECT_EQ(loadedTransform1->getScale(), Vec2(2.0f, 2.0f));
+    EXPECT_FLOAT_EQ(loadedTransform1->getRotation(), 45.0f);
+
+    auto loadedGravity1 = loadedPhysics->getComponent<CGravity>();
+    ASSERT_NE(loadedGravity1, nullptr);
+    EXPECT_EQ(loadedGravity1->getForce(), Vec2(0.0f, -15.0f));
+
+    // Find and verify named_object
+    auto namedObjects = newManager.getEntitiesByTag("named_object");
+    ASSERT_EQ(namedObjects.size(), 1);
+    auto loadedNamed = namedObjects[0];
+
+    auto loadedTransform2 = loadedNamed->getComponent<CTransform>();
+    ASSERT_NE(loadedTransform2, nullptr);
+    EXPECT_EQ(loadedTransform2->getPosition(), Vec2(-50.0f, 75.0f));
+
+    auto loadedName2 = loadedNamed->getComponent<CName>();
+    ASSERT_NE(loadedName2, nullptr);
+    EXPECT_EQ(loadedName2->getName(), "TestObject");
+
+    // Clean up
+    std::filesystem::remove(testFile);
 }

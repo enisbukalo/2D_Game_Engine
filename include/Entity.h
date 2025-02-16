@@ -8,7 +8,6 @@
 #include <unordered_map>
 #include <vector>
 #include "Component.h"
-#include "ComponentFactory.h"
 
 /**
  * @brief Base class for all game entities in the engine
@@ -131,7 +130,7 @@ protected:
 
 private:
     std::unordered_map<std::type_index, std::unique_ptr<Component>> m_components;  ///< Map of components indexed by type
-    const uint8_t     m_id    = 0;                                                 ///< Unique identifier
+    uint8_t           m_id    = 0;                                                 ///< Unique identifier
     const std::string m_tag   = "Default";                                         ///< Entity tag
     bool              m_alive = true;                                              ///< Entity state flag
 };

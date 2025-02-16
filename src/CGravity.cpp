@@ -26,7 +26,13 @@ void CGravity::serialize(JsonBuilder& builder) const
     builder.endObject();
 }
 
-void CGravity::deserialize(const JsonValue& value) {}
+void CGravity::deserialize(const JsonValue& value)
+{
+    const auto& gravity = value["cGravity"];
+    const auto& force   = gravity["force"];
+    m_force.x           = force["x"].getNumber();
+    m_force.y           = force["y"].getNumber();
+}
 
 Vec2 CGravity::getForce() const
 {
