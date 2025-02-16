@@ -11,7 +11,7 @@
  * @brief Manager class for handling entities in the game engine
  *
  * @description
- * EntityManager is responsible for creating, destroying, and managing all entities
+ * EntityManager is a singleton class responsible for creating, destroying, and managing all entities
  * in the game. It provides functionality for entity lifecycle management, querying
  * entities by tags or components, and serialization of the game state. The manager
  * uses a deferred system for entity creation and destruction to prevent issues
@@ -20,11 +20,15 @@
 class EntityManager
 {
 public:
-    /** @brief Default constructor */
-    EntityManager() = default;
+    /**
+     * @brief Gets the singleton instance of the EntityManager
+     * @return Reference to the EntityManager instance
+     */
+    static EntityManager& instance();
 
-    /** @brief Default destructor */
-    ~EntityManager() = default;
+    // Delete copy constructor and assignment operator
+    EntityManager(const EntityManager&)            = delete;
+    EntityManager& operator=(const EntityManager&) = delete;
 
     /**
      * @brief Updates all active entities and processes pending operations
@@ -89,7 +93,17 @@ public:
      */
     void loadFromFile(const std::string& filename);
 
+    /**
+     * @brief Clears all entities and resets the manager state
+     */
+    void clear();
+
 private:
+    // Private constructor to prevent direct instantiation
+    EntityManager() = default;
+    // Private destructor to prevent deletion through pointers
+    ~EntityManager() = default;
+
     /**
      * @brief Removes entities that have been marked for destruction
      */

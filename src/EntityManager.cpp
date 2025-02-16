@@ -3,6 +3,12 @@
 #include <fstream>
 #include "FileUtilities.h"
 
+EntityManager& EntityManager::instance()
+{
+    static EntityManager instance;
+    return instance;
+}
+
 void EntityManager::update(float deltaTime)
 {
     // Add any pending entities
@@ -92,6 +98,14 @@ void EntityManager::loadFromFile(const std::string& filename)
         std::shared_ptr<Entity> newEntity = addEntity(entity["tag"].getString());
         newEntity->deserialize(entity);
     }
+}
+
+void EntityManager::clear()
+{
+    m_entities.clear();
+    m_entitiesToAdd.clear();
+    m_entityMap.clear();
+    m_totalEntities = 0;
 }
 
 void EntityManager::removeDeadEntities()

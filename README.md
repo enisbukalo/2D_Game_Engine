@@ -2,6 +2,28 @@
 
 A modern C++ 2D game engine built with SFML, featuring an Entity Component System (ECS) architecture.
 
+## Table of Contents
+- [GameEngine](#gameengine)
+  - [Table of Contents](#table-of-contents)
+  - [Features](#features)
+    - [Entity Component System (ECS)](#entity-component-system-ecs)
+    - [Serialization System](#serialization-system)
+    - [Code Organization](#code-organization)
+    - [Core Systems](#core-systems)
+    - [Math Utilities](#math-utilities)
+  - [Dependencies](#dependencies)
+  - [Building the Project](#building-the-project)
+    - [Build Options](#build-options)
+    - [Examples](#examples)
+    - [Build Output](#build-output)
+    - [Building Example Project](#building-example-project)
+      - [NOTE!!!: YOU MUST RUN THE BUILD.SH SCRIPT IN THE ROOT DIRECTORY FIRST.](#note-you-must-run-the-buildsh-script-in-the-root-directory-first)
+    - [Dependencies](#dependencies-1)
+  - [Usage Example](#usage-example)
+  - [Project Structure](#project-structure)
+  - [Contributing](#contributing)
+  - [License](#license)
+
 ## Features
 
 ### Entity Component System (ECS)
@@ -40,6 +62,11 @@ The codebase is organized using pragma regions for better readability:
 
 ### Core Systems
 - **Entity Manager**: Handles entity lifecycle, querying, and component management
+- **Scene Manager**: Manages game scenes and scene transitions
+  - Load/save scenes from/to files
+  - Handle scene transitions
+  - Error handling for scene operations
+  - Scene state management
 - **Component Factory**: Provides a factory pattern for component creation
 - **JSON System**:
   - `JsonBuilder`: Constructs JSON data structures
@@ -126,23 +153,30 @@ You will be required to link the dependencies manually in your project.
 
 ## Usage Example
 ```cpp
-// Create an entity manager
-EntityManager manager;
+// Get the scene manager instance
+auto& sceneManager = SceneManager::instance();
 
-// Create an entity with components
-auto entity = manager.addEntity("player");
-auto transform = entity->addComponent<CTransform>();
-auto gravity = entity->addComponent<CGravity>();
+// Create a new scene
+auto& entityManager = EntityManager::instance();
+auto player = entityManager.addEntity("player");
+auto transform = player->addComponent<CTransform>();
+auto gravity = player->addComponent<CGravity>();
 
 // Configure components
 transform->setPosition(Vec2(100.0f, 200.0f));
 gravity->setForce(Vec2(0.0f, -9.81f));
 
-// Save game state
-manager.saveToFile("game_state.json");
+// Save the scene
+sceneManager.saveScene("level1.json");
 
-// Load game state
-manager.loadFromFile("game_state.json");
+// Later, load the scene
+sceneManager.loadScene("level1.json");
+
+// Save changes to current scene
+sceneManager.saveCurrentScene();
+
+// Clear the scene when done
+sceneManager.clearScene();
 ```
 
 ## Project Structure

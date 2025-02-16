@@ -18,15 +18,19 @@
 class EntityManagerTest : public ::testing::Test
 {
 protected:
-    void SetUp() override {}
-    void TearDown() override {}
+    void SetUp() override
+    {
+        // Clear the EntityManager before each test
+        EntityManager::instance().clear();
+    }
 
-    EntityManager m_manager;
+    void TearDown() override {}
 };
 
 TEST_F(EntityManagerTest, EntityCreation)
 {
-    std::shared_ptr<Entity> entity = m_manager.addEntity("test");
+    auto&                   manager = EntityManager::instance();
+    std::shared_ptr<Entity> entity  = manager.addEntity("test");
     EXPECT_NE(entity, nullptr);
     EXPECT_EQ(entity->getTag(), "test");
     EXPECT_TRUE(entity->isAlive());
@@ -34,26 +38,28 @@ TEST_F(EntityManagerTest, EntityCreation)
 
 TEST_F(EntityManagerTest, EntityRemoval)
 {
-    std::shared_ptr<Entity> entity = m_manager.addEntity("test");
+    auto&                   manager = EntityManager::instance();
+    std::shared_ptr<Entity> entity  = manager.addEntity("test");
 
-    m_manager.update(0.0f);  // Process pending entities
-    EXPECT_EQ(m_manager.getEntities().size(), 1);
+    manager.update(0.0f);  // Process pending entities
+    EXPECT_EQ(manager.getEntities().size(), 1);
 
-    m_manager.removeEntity(entity);
-    m_manager.update(0.0f);  // Process removals
-    EXPECT_EQ(m_manager.getEntities().size(), 0);
+    manager.removeEntity(entity);
+    manager.update(0.0f);  // Process removals
+    EXPECT_EQ(manager.getEntities().size(), 0);
 }
 
 TEST_F(EntityManagerTest, EntityTagging)
 {
-    m_manager.addEntity("typeA");
-    m_manager.addEntity("typeA");
-    m_manager.addEntity("typeB");
+    auto& manager = EntityManager::instance();
+    manager.addEntity("typeA");
+    manager.addEntity("typeA");
+    manager.addEntity("typeB");
 
-    m_manager.update(0.0f);  // Process pending entities
+    manager.update(0.0f);  // Process pending entities
 
-    std::vector<std::shared_ptr<Entity>> typeAEntities = m_manager.getEntitiesByTag("typeA");
-    std::vector<std::shared_ptr<Entity>> typeBEntities = m_manager.getEntitiesByTag("typeB");
+    std::vector<std::shared_ptr<Entity>> typeAEntities = manager.getEntitiesByTag("typeA");
+    std::vector<std::shared_ptr<Entity>> typeBEntities = manager.getEntitiesByTag("typeB");
 
     EXPECT_EQ(typeAEntities.size(), 2);
     EXPECT_EQ(typeBEntities.size(), 1);
@@ -61,17 +67,18 @@ TEST_F(EntityManagerTest, EntityTagging)
 
 TEST_F(EntityManagerTest, EntityComponentQuery)
 {
-    std::shared_ptr<Entity> entity1 = m_manager.addEntity("test1");
+    auto&                   manager = EntityManager::instance();
+    std::shared_ptr<Entity> entity1 = manager.addEntity("test1");
     entity1->addComponent<CTransform>();
 
-    std::shared_ptr<Entity> entity2 = m_manager.addEntity("test2");
+    std::shared_ptr<Entity> entity2 = manager.addEntity("test2");
     entity2->addComponent<CTransform>();
     entity2->addComponent<CGravity>();
 
-    m_manager.update(0.0f);  // Process pending entities
+    manager.update(0.0f);  // Process pending entities
 
-    auto entitiesWithTransform = m_manager.getEntitiesWithComponent<CTransform>();
-    auto entitiesWithGravity   = m_manager.getEntitiesWithComponent<CGravity>();
+    auto entitiesWithTransform = manager.getEntitiesWithComponent<CTransform>();
+    auto entitiesWithGravity   = manager.getEntitiesWithComponent<CGravity>();
 
     EXPECT_EQ(entitiesWithTransform.size(), 2);
     EXPECT_EQ(entitiesWithGravity.size(), 1);
@@ -79,9 +86,10 @@ TEST_F(EntityManagerTest, EntityComponentQuery)
 
 TEST_F(EntityManagerTest, EntityUpdateSystem)
 {
-    auto entity    = m_manager.addEntity("test");
-    auto transform = entity->addComponent<CTransform>();
-    auto gravity   = entity->addComponent<CGravity>();
+    auto& manager   = EntityManager::instance();
+    auto  entity    = manager.addEntity("test");
+    auto  transform = entity->addComponent<CTransform>();
+    auto  gravity   = entity->addComponent<CGravity>();
 
     const float EPSILON = 0.0001f;  // Small value for floating point comparison
     EXPECT_NEAR(gravity->getForce().x, 0.0f, EPSILON);
@@ -89,13 +97,15 @@ TEST_F(EntityManagerTest, EntityUpdateSystem)
 
     // Test system update
     float deltaTime = 1.0f;
-    m_manager.update(deltaTime);
+    manager.update(deltaTime);
 }
 
 TEST_F(EntityManagerTest, EntitySerialization)
 {
+    auto& manager = EntityManager::instance();
+
     // Create first entity with Transform and Gravity
-    auto entity1    = m_manager.addEntity("physics_object");
+    auto entity1    = manager.addEntity("physics_object");
     auto transform1 = entity1->addComponent<CTransform>();
     transform1->setPosition(Vec2(100.0f, 200.0f));
     transform1->setScale(Vec2(2.0f, 2.0f));
@@ -104,14 +114,14 @@ TEST_F(EntityManagerTest, EntitySerialization)
     gravity1->setForce(Vec2(0.0f, -15.0f));
 
     // Create second entity with Transform and Name
-    auto entity2    = m_manager.addEntity("named_object");
+    auto entity2    = manager.addEntity("named_object");
     auto transform2 = entity2->addComponent<CTransform>();
     transform2->setPosition(Vec2(-50.0f, 75.0f));
     auto name2 = entity2->addComponent<CName>();
     name2->setName("TestObject");
 
     // Create third entity with all components
-    auto entity3    = m_manager.addEntity("complete_object");
+    auto entity3    = manager.addEntity("complete_object");
     auto transform3 = entity3->addComponent<CTransform>();
     transform3->setPosition(Vec2(300.0f, -200.0f));
     transform3->setRotation(90.0f);
@@ -121,11 +131,11 @@ TEST_F(EntityManagerTest, EntitySerialization)
     name3->setName("CompleteObject");
 
     // Process pending entities
-    m_manager.update(0.0f);
+    manager.update(0.0f);
 
     // Save to file
     std::string testFile = std::string(SOURCE_DIR) + "/test_entities.json";
-    m_manager.saveToFile(testFile);
+    manager.saveToFile(testFile);
 
     // Read and parse the saved JSON file
     std::string json = readFile(testFile);
@@ -196,8 +206,10 @@ TEST_F(EntityManagerTest, EntitySerialization)
 
 TEST_F(EntityManagerTest, SaveAndLoadEntities)
 {
+    auto& manager = EntityManager::instance();
+
     // Create first entity with Transform and Gravity
-    auto entity1    = m_manager.addEntity("physics_object");
+    auto entity1    = manager.addEntity("physics_object");
     auto transform1 = entity1->addComponent<CTransform>();
     transform1->setPosition(Vec2(100.0f, 200.0f));
     transform1->setVelocity(Vec2(10.0f, -5.0f));
@@ -207,30 +219,30 @@ TEST_F(EntityManagerTest, SaveAndLoadEntities)
     gravity1->setForce(Vec2(0.0f, -15.0f));
 
     // Create second entity with Transform and Name
-    auto entity2    = m_manager.addEntity("named_object");
+    auto entity2    = manager.addEntity("named_object");
     auto transform2 = entity2->addComponent<CTransform>();
     transform2->setPosition(Vec2(-50.0f, 75.0f));
     auto name2 = entity2->addComponent<CName>();
     name2->setName("TestObject");
 
     // Process pending entities
-    m_manager.update(0.0f);
+    manager.update(0.0f);
 
     // Save to file
     std::string testFile = "tests/test_data/test_entities.json";
-    m_manager.saveToFile(testFile);
+    manager.saveToFile(testFile);
 
     // Create a new manager and load the file
-    EntityManager newManager;
-    newManager.loadFromFile(testFile);
-    newManager.update(0.0f);  // Process loaded entities
+    EntityManager::instance().clear();  // Clear current state
+    manager.loadFromFile(testFile);
+    manager.update(0.0f);  // Process loaded entities
 
     // Verify loaded entities
-    const auto& loadedEntities = newManager.getEntities();
+    const auto& loadedEntities = manager.getEntities();
     ASSERT_EQ(loadedEntities.size(), 2);
 
     // Find and verify physics_object
-    auto physicsObjects = newManager.getEntitiesByTag("physics_object");
+    auto physicsObjects = manager.getEntitiesByTag("physics_object");
     ASSERT_EQ(physicsObjects.size(), 1);
     auto loadedPhysics = physicsObjects[0];
 
@@ -246,7 +258,7 @@ TEST_F(EntityManagerTest, SaveAndLoadEntities)
     EXPECT_EQ(loadedGravity1->getForce(), Vec2(0.0f, -15.0f));
 
     // Find and verify named_object
-    auto namedObjects = newManager.getEntitiesByTag("named_object");
+    auto namedObjects = manager.getEntitiesByTag("named_object");
     ASSERT_EQ(namedObjects.size(), 1);
     auto loadedNamed = namedObjects[0];
 
