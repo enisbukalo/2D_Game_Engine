@@ -1,4 +1,6 @@
 #include "CTransform.h"
+#include "JsonBuilder.h"
+#include "JsonParser.h"
 
 void CTransform::update(float deltaTime)
 {
@@ -10,9 +12,60 @@ std::string CTransform::getType() const
     return "Transform";
 }
 
-void CTransform::serialize() const {}
+void CTransform::serialize(JsonBuilder& builder) const
+{
+    builder.beginObject();
+    builder.addKey("cTransform");
+    builder.beginObject();
+    builder.addKey("position");
+    builder.beginObject();
+    builder.addKey("x");
+    builder.addNumber(m_position.x);
+    builder.addKey("y");
+    builder.addNumber(m_position.y);
+    builder.endObject();
+    builder.addKey("velocity");
+    builder.beginObject();
+    builder.addKey("x");
+    builder.addNumber(m_velocity.x);
+    builder.addKey("y");
+    builder.addNumber(m_velocity.y);
+    builder.endObject();
+    builder.addKey("scale");
+    builder.beginObject();
+    builder.addKey("x");
+    builder.addNumber(m_scale.x);
+    builder.addKey("y");
+    builder.addNumber(m_scale.y);
+    builder.endObject();
+    builder.addKey("rotation");
+    builder.addNumber(m_rotation);
+    builder.endObject();
+    builder.endObject();
+}
 
-void CTransform::deserialize() {}
+void CTransform::deserialize(const JsonValue& value)
+{
+    const auto& transform = value["cTransform"];
+
+    // Deserialize position
+    const auto& pos = transform["position"];
+    m_position.x    = pos["x"].getNumber();
+    m_position.y    = pos["y"].getNumber();
+
+    // Deserialize velocity
+    const auto& vel = transform["velocity"];
+    m_velocity.x    = vel["x"].getNumber();
+    m_velocity.y    = vel["y"].getNumber();
+
+    // Deserialize scale
+    const auto& scale = transform["scale"];
+    m_scale.x         = scale["x"].getNumber();
+    m_scale.y         = scale["y"].getNumber();
+
+    // Deserialize rotation
+    m_rotation = transform["rotation"].getNumber();
+}
 
 Vec2 CTransform::getPosition() const
 {

@@ -1,6 +1,8 @@
 #ifndef COMPONENT_H
 #define COMPONENT_H
 
+#include <JsonBuilder.h>
+#include <JsonValue.h>
 #include <string>
 
 class Entity;  // Forward declaration
@@ -41,13 +43,15 @@ public:
 
     /**
      * @brief Serializes the component to binary data
+     * @param builder The JSON builder to serialize to
      */
-    virtual void serialize() const = 0;
+    virtual void serialize(JsonBuilder& builder) const = 0;
 
     /**
      * @brief Deserializes the component from binary data
+     * @param value The JSON value to deserialize
      */
-    virtual void deserialize() = 0;
+    virtual void deserialize(const JsonValue& value) = 0;
 
     /**
      * @brief Gets the type identifier of the component

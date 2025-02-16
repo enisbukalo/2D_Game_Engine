@@ -7,11 +7,7 @@
 #include <typeindex>
 #include <unordered_map>
 #include <vector>
-#include "CGravity.h"
-#include "CName.h"
-#include "CTransform.h"
 #include "Component.h"
-#include "ComponentFactory.h"
 
 /**
  * @brief Base class for all game entities in the engine
@@ -117,12 +113,12 @@ public:
     /**
      * @brief Serializes the entity to binary data
      */
-    void serialize() const;
+    void serialize(JsonBuilder &builder) const;
 
     /**
      * @brief Deserializes the entity from binary data
      */
-    void deserialize();
+    void deserialize(const JsonValue &value);
 
 protected:
     /**
@@ -134,7 +130,7 @@ protected:
 
 private:
     std::unordered_map<std::type_index, std::unique_ptr<Component>> m_components;  ///< Map of components indexed by type
-    const uint8_t     m_id    = 0;                                                 ///< Unique identifier
+    uint8_t           m_id    = 0;                                                 ///< Unique identifier
     const std::string m_tag   = "Default";                                         ///< Entity tag
     bool              m_alive = true;                                              ///< Entity state flag
 };

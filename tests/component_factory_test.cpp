@@ -13,12 +13,12 @@ public:
         return "Test";
     }
 
-    void serialize() const override
+    void serialize(JsonBuilder& builder) const override
     {
         // Empty implementation for testing
     }
 
-    void deserialize() override
+    void deserialize(const JsonValue& value) override
     {
         // Empty implementation for testing
     }

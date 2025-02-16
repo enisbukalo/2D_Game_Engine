@@ -11,13 +11,19 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
+# Common Directories
+set(TEST_SOURCES_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+set(INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../include")
+set(COMPONENT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../components")
+set(SYSTEM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../systems")
+set(UTILITY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../utility")
+
+# Copy test data to build directory
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_data DESTINATION ${CMAKE_BINARY_DIR}/bin/Debug)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_data DESTINATION ${CMAKE_BINARY_DIR}/bin/Release)
+
 # Add test executable
-set(TEST_FILES
-    component_test.cpp
-    entity_test.cpp
-    entity_manager_test.cpp
-    component_factory_test.cpp
-)
+file(GLOB_RECURSE TEST_FILES "${TEST_SOURCES_DIR}/*.cpp")
 
 add_executable(unit_tests ${TEST_FILES})
 
@@ -42,6 +48,8 @@ target_link_libraries(unit_tests PRIVATE
 
 # Include directories for tests
 target_include_directories(unit_tests PRIVATE
-    ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/components
+    ${INCLUDE_DIR}
+    ${COMPONENT_DIR}
+    ${SYSTEM_DIR}
+    ${UTILITY_DIR}
 )

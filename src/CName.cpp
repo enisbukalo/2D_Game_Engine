@@ -5,9 +5,22 @@ std::string CName::getType() const
     return "Name";
 }
 
-void CName::serialize() const {}
+void CName::serialize(JsonBuilder& builder) const
+{
+    builder.beginObject();
+    builder.addKey("cName");
+    builder.beginObject();
+    builder.addKey("name");
+    builder.addString(m_name);
+    builder.endObject();
+    builder.endObject();
+}
 
-void CName::deserialize() {}
+void CName::deserialize(const JsonValue& value)
+{
+    const auto& nameComp = value["cName"];
+    m_name               = nameComp["name"].getString();
+}
 
 const std::string& CName::getName() const
 {

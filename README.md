@@ -12,6 +12,16 @@ A modern C++ 2D game engine built with SFML, featuring an Entity Component Syste
   - `CGravity`: Implements basic gravity physics
   - `CName`: Provides naming functionality for entities
 
+### Serialization System
+- **JSON-based Serialization**: Full support for saving and loading game states
+- **Component Serialization**: Each component implements serialize/deserialize methods
+- **File Utilities**: Robust file I/O operations with error handling
+- **Supported Operations**:
+  - Save/Load individual entities
+  - Save/Load entire game scenes
+  - Component state persistence
+  - Error handling for file operations
+
 ### Code Organization
 The codebase is organized using pragma regions for better readability:
 ```cpp
@@ -31,7 +41,11 @@ The codebase is organized using pragma regions for better readability:
 ### Core Systems
 - **Entity Manager**: Handles entity lifecycle, querying, and component management
 - **Component Factory**: Provides a factory pattern for component creation
-- **Serialization**: JSON-based serialization for game state persistence
+- **JSON System**:
+  - `JsonBuilder`: Constructs JSON data structures
+  - `JsonParser`: Parses JSON strings
+  - `JsonValue`: Represents JSON data types
+- **File System**: Handles file I/O with error checking
 
 ### Math Utilities
 - **Vec2**: A 2D vector class with common operations:
@@ -99,7 +113,7 @@ There is a build script in the example project that will build the GameEngine pa
 cd example_project
 ./build_example.sh
 ```
-#### <u><b>NOTE!!!: YOU MUST RUN THE BUILD.SH SCRIPT IN THE ROOT DIRECTORY FIRST.</b></u  >
+#### <u><b>NOTE!!!: YOU MUST RUN THE BUILD.SH SCRIPT IN THE ROOT DIRECTORY FIRST.</b></u>
 
 ### Dependencies
 The build script automatically handles the following dependencies:
@@ -112,22 +126,23 @@ You will be required to link the dependencies manually in your project.
 
 ## Usage Example
 ```cpp
-// Create a game engine instance
-GameEngine engine(window, Vec2(0, -9.81f), 1, 1.0f/60.0f);
+// Create an entity manager
+EntityManager manager;
 
-// Create an entity
-auto entity = entityManager.addEntity("player");
-
-// Add components
+// Create an entity with components
+auto entity = manager.addEntity("player");
 auto transform = entity->addComponent<CTransform>();
 auto gravity = entity->addComponent<CGravity>();
 
-// Update game loop
-while (engine.is_running()) {
-    engine.readInputs();
-    engine.update();
-    engine.render();
-}
+// Configure components
+transform->setPosition(Vec2(100.0f, 200.0f));
+gravity->setForce(Vec2(0.0f, -9.81f));
+
+// Save game state
+manager.saveToFile("game_state.json");
+
+// Load game state
+manager.loadFromFile("game_state.json");
 ```
 
 ## Project Structure
@@ -137,7 +152,11 @@ while (engine.is_running()) {
 │   ├── Entity.h
 │   ├── EntityManager.h
 │   ├── ComponentFactory.h
-│   └── GameEngine.h
+│   └── utility/
+│       ├── FileUtilities.h
+│       ├── JsonBuilder.h
+│       ├── JsonParser.h
+│       └── JsonValue.h
 ├── components/       # Component implementations
 │   ├── CTransform.h
 │   ├── CGravity.h

@@ -107,6 +107,20 @@ public:
      * @return The divided vector
      */
     Vec2 operator/(const float& divisor) const;
+
+    /**
+     * @brief Checks if two vectors are equal
+     * @param other The vector to compare with
+     * @return True if vectors are equal, false otherwise
+     */
+    bool operator==(const Vec2& other) const;
+
+    /**
+     * @brief Checks if two vectors are not equal
+     * @param other The vector to compare with
+     * @return True if vectors are not equal, false otherwise
+     */
+    bool operator!=(const Vec2& other) const;
 };
 
 #endif  // VEC2_H

@@ -1,6 +1,7 @@
 #include "EntityManager.h"
 #include <algorithm>
 #include <fstream>
+#include "FileUtilities.h"
 
 void EntityManager::update(float deltaTime)
 {
@@ -47,9 +48,51 @@ std::vector<std::shared_ptr<Entity>> EntityManager::getEntitiesByTag(const std::
     return m_entityMap[tag];
 }
 
-void EntityManager::saveToFile(const std::string& filename) {}
+void EntityManager::saveToFile(const std::string& filename)
+{
+    JsonBuilder builder;
 
-void EntityManager::loadFromFile(const std::string& filename) {}
+    // Start the root object
+    builder.beginObject();
+
+    // Add entities array
+    builder.addKey("entities");
+    builder.beginArray();
+
+    // Serialize each entity
+    for (const auto& entity : m_entities)
+    {
+        if (entity->isAlive())
+        {
+            entity->serialize(builder);
+        }
+    }
+
+    builder.endArray();   // end entities
+    builder.endObject();  // end root
+
+    // Write to file
+    FileUtilities::writeFile(filename, builder.toString());
+}
+
+void EntityManager::loadFromFile(const std::string& filename)
+{
+    std::string json = FileUtilities::readFile(filename);
+    JsonParser  parser(json);
+    JsonValue   root = JsonValue::parse(parser);
+
+    if (!root.isObject())
+    {
+        throw std::runtime_error("Invalid file format: " + filename);
+    }
+
+    const auto& entities = root["entities"].getArray();
+    for (const auto& entity : entities)
+    {
+        std::shared_ptr<Entity> newEntity = addEntity(entity["tag"].getString());
+        newEntity->deserialize(entity);
+    }
+}
 
 void EntityManager::removeDeadEntities()
 {

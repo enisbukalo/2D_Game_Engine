@@ -76,3 +76,14 @@ Vec2 Vec2::operator/(const float& divisor) const
 {
     return Vec2(x / divisor, y / divisor);
 }
+
+bool Vec2::operator==(const Vec2& other) const
+{
+    const float EPSILON = 0.0001f;  // Small value for floating point comparison
+    return (fabs(x - other.x) < EPSILON && fabs(y - other.y) < EPSILON);
+}
+
+bool Vec2::operator!=(const Vec2& other) const
+{
+    return !(*this == other);
+}
