@@ -8,6 +8,7 @@ A modern C++ 2D game engine built with SFML, featuring an Entity Component Syste
   - [Notes](#notes)
   - [Features](#features)
     - [Entity Component System (ECS)](#entity-component-system-ecs)
+    - [Physics System](#physics-system)
     - [Serialization System](#serialization-system)
     - [Code Organization](#code-organization)
     - [Core Systems](#core-systems)
@@ -34,9 +35,19 @@ A modern C++ 2D game engine built with SFML, featuring an Entity Component Syste
 - **Entity Management**: Flexible entity creation and lifecycle management
 - **Component-Based Architecture**: Modular component system for easy extension
 - **Built-in Components**:
-  - `CTransform`: Handles position, velocity, scale, and rotation
-  - `CGravity`: Implements basic gravity physics
+  - `CTransform`: Handles position, velocity, scale, and rotation data storage
+  - `CGravity`: Implements basic gravity physics configuration
   - `CName`: Provides naming functionality for entities
+
+### Physics System
+- **S2DPhysics**: Centralized physics system that handles all physics calculations
+  - Authoritative source for position and velocity updates
+  - Implements standard physics equations:
+    - Velocity: v = v0 + at
+    - Position: p = p0 + v0t + (1/2)at²
+  - Handles gravity effects on entities
+  - Clear separation between data (`CTransform`, `CGravity`) and behavior (`S2DPhysics`)
+  - Efficient batch processing of physics entities
 
 ### Serialization System
 - **JSON-based Serialization**: Full support for saving and loading game states
@@ -71,6 +82,11 @@ The codebase is organized using pragma regions for better readability:
   - Handle scene transitions
   - Error handling for scene operations
   - Scene state management
+- **2D Physics System**: Manages physics simulation and calculations
+  - Centralized physics processing
+  - Gravity and force application
+  - Velocity and position updates
+  - Component-based physics integration
 - **Component Factory**: Provides a factory pattern for component creation
 - **JSON System**:
   - `JsonBuilder`: Constructs JSON data structures
@@ -160,15 +176,23 @@ You will be required to link the dependencies manually in your project.
 // Get the scene manager instance
 auto& sceneManager = SceneManager::instance();
 
-// Create a new scene
+// Create a new scene with a physics-enabled entity
 auto& entityManager = EntityManager::instance();
+auto& physics = S2DPhysics::instance();
+
 auto player = entityManager.addEntity("player");
 auto transform = player->addComponent<CTransform>();
 auto gravity = player->addComponent<CGravity>();
 
-// Configure components
+// Configure initial conditions
 transform->setPosition(Vec2(100.0f, 200.0f));
-gravity->setForce(Vec2(0.0f, -9.81f));
+transform->setVelocity(Vec2(5.0f, 0.0f));  // Initial horizontal velocity
+gravity->setForce(Vec2(0.0f, -9.81f));     // Standard gravity
+
+// Game loop
+float deltaTime = 1.0f / 60.0f;  // 60 FPS
+physics.update(deltaTime);        // Physics system updates positions and velocities
+entityManager.update(deltaTime);  // Entity system processes updates
 
 // Save the scene
 sceneManager.saveScene("level1.json");
@@ -200,7 +224,8 @@ sceneManager.clearScene();
 │   ├── CGravity.h
 │   └── CName.h
 ├── systems/         # System implementations
-│   └── System.h
+│   ├── System.h
+│   └── S2DPhysics.h
 └── src/            # Source files
 ```
 
