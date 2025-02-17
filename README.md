@@ -5,6 +5,7 @@ A modern C++ 2D game engine built with SFML, featuring an Entity Component Syste
 ## Table of Contents
 - [GameEngine](#gameengine)
   - [Table of Contents](#table-of-contents)
+  - [Notes](#notes)
   - [Features](#features)
     - [Entity Component System (ECS)](#entity-component-system-ecs)
     - [Serialization System](#serialization-system)
@@ -23,6 +24,9 @@ A modern C++ 2D game engine built with SFML, featuring an Entity Component Syste
   - [Project Structure](#project-structure)
   - [Contributing](#contributing)
   - [License](#license)
+
+## Notes
+
 
 ## Features
 

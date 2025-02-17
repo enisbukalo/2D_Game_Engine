@@ -5,7 +5,7 @@
 #include "components/CGravity.h"
 #include "components/CName.h"
 #include "components/CTransform.h"
-#include "test_utils.h"
+#include "testUtils.h"
 
 // Test fixture for scene manager tests
 class SceneManagerTest : public ::testing::Test

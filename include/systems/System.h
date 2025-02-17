@@ -24,19 +24,22 @@ public:
     System();
 
     /** @brief Virtual destructor for proper cleanup of derived classes */
-    ~System();
+    virtual ~System();
 
     /**
      * @brief Updates the system's logic
+     * @param deltaTime Time elapsed since last update in seconds
      *
      * This method is called each frame to update the system's state and
      * process its associated components. Derived classes must implement
      * this method to provide specific system behavior.
      */
-    virtual void update() = 0;
+    virtual void update(float deltaTime) = 0;
 
 private:
 #pragma region Variables
     std::unordered_map<uint8_t, std::unique_ptr<Component>> m_components;  ///< Map of components managed by this system
+#pragma endregion
 };
+
 #endif  // SYSTEM_H

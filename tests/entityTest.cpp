@@ -1,6 +1,6 @@
-#include "Entity.h"
 #include <gtest/gtest.h>
 #include "Component.h"
+#include "Entity.h"
 #include "Vec2.h"
 #include "components/CGravity.h"
 #include "components/CName.h"
@@ -63,9 +63,13 @@ TEST(EntityTest, ComponentUpdate)
     TestEntity entity("test", 1);
 
     CTransform *transform = entity.addComponent<CTransform>();
-    transform->setVelocity(Vec2(1.0f, 1.0f));
+    Vec2        initialPos(1.0f, 1.0f);
+    Vec2        initialVel(2.0f, 2.0f);
+    transform->setPosition(initialPos);
+    transform->setVelocity(initialVel);
 
+    // Update should not change position since physics system handles that now
     entity.update(1.0f);
-    EXPECT_FLOAT_EQ(transform->getPosition().x, 1.0f);
-    EXPECT_FLOAT_EQ(transform->getPosition().y, 1.0f);
+    EXPECT_EQ(transform->getPosition(), initialPos);
+    EXPECT_EQ(transform->getVelocity(), initialVel);
 }

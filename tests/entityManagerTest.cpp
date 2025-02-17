@@ -7,7 +7,7 @@
 #include "components/CGravity.h"
 #include "components/CName.h"
 #include "components/CTransform.h"
-#include "test_utils.h"
+#include "testUtils.h"
 
 // Define the source directory path
 #ifndef SOURCE_DIR

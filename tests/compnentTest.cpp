@@ -1,8 +1,8 @@
-#include "Component.h"
 #include <gtest/gtest.h>
 #include "CGravity.h"
 #include "CName.h"
 #include "CTransform.h"
+#include "Component.h"
 #include "Entity.h"
 
 // Test helper classes
@@ -51,11 +51,14 @@ TEST(ComponentTest, TransformComponent)
     EXPECT_FLOAT_EQ(transform.getScale().y, 1.0f);
     EXPECT_FLOAT_EQ(transform.getRotation(), 0.0f);
 
-    // Test update with velocity
-    transform.setVelocity(Vec2(1.0f, 2.0f));
-    transform.update(0.5f);
-    EXPECT_FLOAT_EQ(transform.getPosition().x, 0.5f);
-    EXPECT_FLOAT_EQ(transform.getPosition().y, 1.0f);
+    // Test that position and velocity can be set but aren't automatically updated
+    Vec2 testPos(1.0f, 2.0f);
+    Vec2 testVel(3.0f, 4.0f);
+    transform.setPosition(testPos);
+    transform.setVelocity(testVel);
+    transform.update(0.5f);  // Update should not change position
+    EXPECT_EQ(transform.getPosition(), testPos);
+    EXPECT_EQ(transform.getVelocity(), testVel);
 }
 
 TEST(ComponentTest, GravityComponent)
