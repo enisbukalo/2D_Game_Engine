@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
+#include "CTransform.h"
 #include "Entity.h"
 #include "EntityManager.h"
-#include "algorithm"
-#include "CTransform.h"
 #include "Quadtree.h"
+#include "algorithm"
 
 class QuadtreeTest : public ::testing::Test
 {

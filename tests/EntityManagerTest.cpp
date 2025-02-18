@@ -1,13 +1,14 @@
 #include <gtest/gtest.h>
 #include <filesystem>
+#include "CCircleCollider.h"
+#include "CGravity.h"
+#include "CName.h"
+#include "CTransform.h"
 #include "Component.h"
 #include "Entity.h"
 #include "EntityManager.h"
 #include "TestUtils.h"
 #include "Vec2.h"
-#include "CGravity.h"
-#include "CName.h"
-#include "CTransform.h"
 
 // Define the source directory path
 #ifndef SOURCE_DIR
@@ -67,21 +68,26 @@ TEST_F(EntityManagerTest, EntityTagging)
 
 TEST_F(EntityManagerTest, EntityComponentQuery)
 {
-    auto&                   manager = EntityManager::instance();
+    auto& manager = EntityManager::instance();
+
     std::shared_ptr<Entity> entity1 = manager.addEntity("test1");
     entity1->addComponent<CTransform>();
+    entity1->addComponent<CCircleCollider>(2.0f);
 
     std::shared_ptr<Entity> entity2 = manager.addEntity("test2");
     entity2->addComponent<CTransform>();
     entity2->addComponent<CGravity>();
+    entity2->addComponent<CCircleCollider>(3.0f);
 
     manager.update(0.0f);  // Process pending entities
 
     auto entitiesWithTransform = manager.getEntitiesWithComponent<CTransform>();
     auto entitiesWithGravity   = manager.getEntitiesWithComponent<CGravity>();
+    auto entitiesWithCollider  = manager.getEntitiesWithComponent<CCircleCollider>();
 
     EXPECT_EQ(entitiesWithTransform.size(), 2);
     EXPECT_EQ(entitiesWithGravity.size(), 1);
+    EXPECT_EQ(entitiesWithCollider.size(), 2);
 }
 
 TEST_F(EntityManagerTest, EntityUpdateSystem)
@@ -104,7 +110,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
 {
     auto& manager = EntityManager::instance();
 
-    // Create first entity with Transform and Gravity
+    // Create first entity with Transform, Gravity and CircleCollider
     auto entity1    = manager.addEntity("physics_object");
     auto transform1 = entity1->addComponent<CTransform>();
     transform1->setPosition(Vec2(100.0f, 200.0f));
@@ -112,6 +118,8 @@ TEST_F(EntityManagerTest, EntitySerialization)
     transform1->setRotation(45.0f);
     auto gravity1 = entity1->addComponent<CGravity>();
     gravity1->setForce(Vec2(0.0f, -15.0f));
+    auto collider1 = entity1->addComponent<CCircleCollider>(3.0f);
+    collider1->setTrigger(true);
 
     // Create second entity with Transform and Name
     auto entity2    = manager.addEntity("named_object");
@@ -129,6 +137,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
     gravity3->setForce(Vec2(5.0f, -9.81f));
     auto name3 = entity3->addComponent<CName>();
     name3->setName("CompleteObject");
+    auto collider3 = entity3->addComponent<CCircleCollider>(5.0f);
 
     // Process pending entities
     manager.update(0.0f);
@@ -145,7 +154,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
     const auto& entities = root["entities"].getArray();
     ASSERT_EQ(entities.size(), 3);
 
-    // Find physics_object entity
+    // Find physics_object entity and verify its components
     const auto& physics = entities[0];
     EXPECT_EQ(physics["tag"].getString(), "physics_object");
     const auto& physicsComponents = physics["components"].getArray();
@@ -166,6 +175,11 @@ TEST_F(EntityManagerTest, EntitySerialization)
     EXPECT_TRUE(approxEqual(force["x"].getNumber(), 0.0));
     EXPECT_TRUE(approxEqual(force["y"].getNumber(), -15.0));
 
+    // Verify CircleCollider component
+    const auto& collider = physicsComponents[2]["cCircleCollider"];
+    EXPECT_TRUE(approxEqual(collider["radius"].getNumber(), 3.0f));
+    EXPECT_TRUE(collider["trigger"].getBool());
+
     // Find named_object entity
     const auto& named = entities[1];
     EXPECT_EQ(named["tag"].getString(), "named_object");
@@ -181,7 +195,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
     const auto& name = namedComponents[1]["cName"];
     EXPECT_EQ(name["name"].getString(), "TestObject");
 
-    // Find complete_object entity
+    // Find complete_object entity and verify its components
     const auto& complete = entities[2];
     EXPECT_EQ(complete["tag"].getString(), "complete_object");
     const auto& completeComponents = complete["components"].getArray();
@@ -202,6 +216,11 @@ TEST_F(EntityManagerTest, EntitySerialization)
     // Verify Name component
     const auto& name3Data = completeComponents[2]["cName"];
     EXPECT_EQ(name3Data["name"].getString(), "CompleteObject");
+
+    // Verify CircleCollider component
+    const auto& collider3Data = completeComponents[3]["cCircleCollider"];
+    EXPECT_TRUE(approxEqual(collider3Data["radius"].getNumber(), 5.0f));
+    EXPECT_FALSE(collider3Data["trigger"].getBool());
 
     // Clean up
     std::filesystem::remove(testFile);
