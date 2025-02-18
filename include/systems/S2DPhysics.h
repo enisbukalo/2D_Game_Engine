@@ -2,6 +2,7 @@
 #define S2D_PHYSICS_H
 
 #include "System.h"
+#include "physics/Quadtree.h"
 
 /**
  * @brief 2D Physics system for handling physics simulations
@@ -33,11 +34,32 @@ public:
      */
     void update(float deltaTime) override;
 
+    /**
+     * @brief Sets the world bounds for physics calculations
+     * @param center Center point of the world
+     * @param size Size of the world (width and height)
+     */
+    void setWorldBounds(const Vec2& center, const Vec2& size);
+
 private:
     // Private constructor to prevent direct instantiation
-    S2DPhysics() = default;
+    S2DPhysics();
     // Private destructor to prevent deletion through pointers
     ~S2DPhysics() override = default;
+
+    std::unique_ptr<Quadtree> m_quadtree;  ///< Spatial partitioning structure
+    AABB m_worldBounds;                    ///< World boundaries
+
+    /**
+     * @brief Updates the quadtree with current entity positions
+     */
+    void updateQuadtree();
+
+    /**
+     * @brief Handles gravity for all entities
+     * @param deltaTime Time elapsed since last update in seconds
+     */
+    void handleGravity(float deltaTime);
 };
 
 #endif  // S2D_PHYSICS_H

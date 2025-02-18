@@ -17,6 +17,7 @@ set(INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../include")
 set(COMPONENT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../components")
 set(SYSTEM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../systems")
 set(UTILITY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../utility")
+set(PHYSICS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../physics")
 
 # Copy test data to build directory
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_data DESTINATION ${CMAKE_BINARY_DIR}/bin/Debug)

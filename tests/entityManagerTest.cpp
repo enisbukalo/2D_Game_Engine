@@ -202,6 +202,9 @@ TEST_F(EntityManagerTest, EntitySerialization)
     // Verify Name component
     const auto& name3Data = completeComponents[2]["cName"];
     EXPECT_EQ(name3Data["name"].getString(), "CompleteObject");
+
+    // Clean up
+    std::filesystem::remove(testFile);
 }
 
 TEST_F(EntityManagerTest, SaveAndLoadEntities)
