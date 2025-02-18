@@ -31,7 +31,7 @@ void S2DPhysics::setWorldBounds(const Vec2& center, const Vec2& size)
 
 void S2DPhysics::updateQuadtree()
 {
-    // TODO: Implement Way For Reference To Move With Camera.
+    // TODO: Implement Way For Reference To Move With Camera. (Options)
     //      - Move Grid (Spatial Hashing).
     //      - Multiple Grids (Chunking).
     //      - Infinite Grid (Relative Coordinates).
@@ -53,12 +53,11 @@ void S2DPhysics::updateQuadtree()
         }
         else
         {
-            // TODO: Handle out-of-bounds entities (optional)
-            // You could:
-            // 1. Wrap around to the other side
-            // 2. Bounce off the boundaries
-            // 3. Destroy the entity
-            // 4. Teleport to nearest valid position
+            // TODO: Implement Out Of Bounds Handling. (Options)
+            //      - Wrap around to the other side
+            //      - Bounce off the boundaries
+            //      - Destroy the entity
+            //      - Teleport to nearest valid position
 
             Vec2 newPos = pos;
             newPos.x    = std::clamp(pos.x,
