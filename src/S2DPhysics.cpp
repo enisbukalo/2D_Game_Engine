@@ -22,6 +22,11 @@ void S2DPhysics::setWorldBounds(const Vec2& center, const Vec2& size)
 
 void S2DPhysics::updateQuadtree()
 {
+    // TODO: Implement Way For Reference To Move With Camera.
+    //      - Move Grid (Spatial Hashing).
+    //      - Multiple Grids (Chunking).
+    //      - Infinite Grid (Relative Coordinates).
+
     m_quadtree->clear();
 
     auto& entityManager = EntityManager::instance();
