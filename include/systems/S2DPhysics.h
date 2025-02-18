@@ -67,8 +67,20 @@ private:
      */
     void handleGravity(float deltaTime);
 
-    // Add these new declarations
+    /**
+     * @brief Handles collisions between entities
+     * @param a First entity involved in collision
+     * @param b Second entity involved in collision
+     */
     void handleCollision(Entity* a, Entity* b);
+
+    /**
+     * @brief Resolves collisions between entities
+     * @param a First entity involved in collision
+     * @param b Second entity involved in collision
+     * @param colliderA Collider of first entity
+     * @param colliderB Collider of second entity
+     */
     void resolveCollision(const Entity* a, const Entity* b, const CCollider* colliderA, const CCollider* colliderB);
 };
 

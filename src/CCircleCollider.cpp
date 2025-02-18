@@ -63,3 +63,8 @@ void CCircleCollider::deserialize(const JsonValue& value)
     m_radius               = circleComp["radius"].getNumber();
     m_isTrigger            = circleComp["trigger"].getBool();
 }
+
+std::string CCircleCollider::getType() const
+{
+    return "CircleCollider";
+}

@@ -21,3 +21,8 @@ void CCollider::deserialize(const JsonValue& value)
     // Base collider doesn't need to deserialize anything since it's abstract
     // Derived classes will handle their own deserialization
 }
+
+std::string CCollider::getType() const
+{
+    return "Collider";
+}
