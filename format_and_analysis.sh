@@ -47,7 +47,7 @@ format_files() {
 static_analysis() {
     echo -e "${YELLOW}Running static analysis...${NC}"
 
-    $CPP_CHECK --enable=all --error-exitcode=1 --suppress=missingIncludeSystem --suppress=unusedFunction --suppress=noExplicitConstructor --suppress=unmatchedSuppression --suppress=missingInclude --inline-suppr --std=c++17 -I include -I include/components -I include/systems src/ include/ include/components/ include/systems/
+    $CPP_CHECK --enable=all --error-exitcode=1 --check-level=exhaustive --suppress=missingIncludeSystem --suppress=unusedFunction --suppress=noExplicitConstructor --suppress=unmatchedSuppression --suppress=missingInclude --inline-suppr --std=c++17 -I include -I include/components -I include/systems src/ include/ include/components/ include/systems/
 
     local result=$?
     if [ $result -eq 0 ]; then

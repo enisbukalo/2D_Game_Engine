@@ -7,7 +7,7 @@ Debug/
 Release/
 package/
 install/
-example_project/GameEngine/
+example_project/*
 
 # IDE specific files
 .vs/
