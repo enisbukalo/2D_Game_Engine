@@ -1,43 +1,47 @@
 #include <gtest/gtest.h>
-#include "physics/Quadtree.h"
 #include "Entity.h"
-#include "components/CTransform.h"
 #include "EntityManager.h"
 #include "algorithm"
+#include "components/CTransform.h"
+#include "physics/Quadtree.h"
 
-class QuadtreeTest : public ::testing::Test {
+class QuadtreeTest : public ::testing::Test
+{
 protected:
-    QuadtreeTest()
-        : bounds(Vec2(0, 0), Vec2(50, 50))  // Initialize bounds in constructor
+    QuadtreeTest() : bounds(Vec2(0, 0), Vec2(50, 50))  // Initialize bounds in constructor
     {
     }
 
-    void SetUp() override {
+    void SetUp() override
+    {
         // Create a quadtree with bounds initialized in constructor
         tree = std::make_unique<Quadtree>(0, bounds);
     }
 
     // Helper function to create an entity at a specific position
-    Entity* createEntityAtPosition(const Vec2& pos) {
+    Entity* createEntityAtPosition(const Vec2& pos)
+    {
         auto& entityManager = EntityManager::instance();
-        auto entity = entityManager.addEntity("test");  // Use EntityManager to create entity
-        auto transform = entity->addComponent<CTransform>();
+        auto  entity        = entityManager.addEntity("test");  // Use EntityManager to create entity
+        auto  transform     = entity->addComponent<CTransform>();
         transform->setPosition(pos);
         return entity.get();  // Return raw pointer from shared_ptr
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         // No need to manually delete entities - EntityManager will handle cleanup
         EntityManager::instance().clear();
         createdEntities.clear();
     }
 
-    AABB bounds;
+    AABB                      bounds;
     std::unique_ptr<Quadtree> tree;
-    std::vector<Entity*> createdEntities;
+    std::vector<Entity*>      createdEntities;
 };
 
-TEST_F(QuadtreeTest, InsertSingleEntity) {
+TEST_F(QuadtreeTest, InsertSingleEntity)
+{
     auto* entity = createEntityAtPosition(Vec2(0, 0));
     createdEntities.push_back(entity);
 
@@ -50,23 +54,26 @@ TEST_F(QuadtreeTest, InsertSingleEntity) {
     EXPECT_EQ(results[0]->getComponent<CTransform>()->getPosition(), Vec2(0, 0));
 }
 
-TEST_F(QuadtreeTest, QueryEmptyArea) {
+TEST_F(QuadtreeTest, QueryEmptyArea)
+{
     // Query an area where no entities exist
     AABB emptyArea(Vec2(100, 100), Vec2(10, 10));
     auto results = tree->query(emptyArea);
     EXPECT_TRUE(results.empty());
 }
 
-TEST_F(QuadtreeTest, InsertMultipleEntities) {
+TEST_F(QuadtreeTest, InsertMultipleEntities)
+{
     // Create entities in different quadrants
     std::vector<Vec2> positions = {
-        Vec2(-25, 25),  // Top-left
-        Vec2(25, 25),   // Top-right
-        Vec2(-25, -25), // Bottom-left
-        Vec2(25, -25)   // Bottom-right
+        Vec2(-25, 25),   // Top-left
+        Vec2(25, 25),    // Top-right
+        Vec2(-25, -25),  // Bottom-left
+        Vec2(25, -25)    // Bottom-right
     };
 
-    for (const auto& pos : positions) {
+    for (const auto& pos : positions)
+    {
         auto* entity = createEntityAtPosition(pos);
         createdEntities.push_back(entity);
         tree->insert(entity);
@@ -81,16 +88,18 @@ TEST_F(QuadtreeTest, InsertMultipleEntities) {
     EXPECT_EQ(results[3]->getComponent<CTransform>()->getPosition(), Vec2(25, -25));
 }
 
-TEST_F(QuadtreeTest, QuerySpecificQuadrant) {
+TEST_F(QuadtreeTest, QuerySpecificQuadrant)
+{
     // Insert entities in all quadrants
     std::vector<Vec2> positions = {
-        Vec2(-25, 25),  // Top-left
-        Vec2(25, 25),   // Top-right
-        Vec2(-25, -25), // Bottom-left
-        Vec2(25, -25)   // Bottom-right
+        Vec2(-25, 25),   // Top-left
+        Vec2(25, 25),    // Top-right
+        Vec2(-25, -25),  // Bottom-left
+        Vec2(25, -25)    // Bottom-right
     };
 
-    for (const auto& pos : positions) {
+    for (const auto& pos : positions)
+    {
         auto* entity = createEntityAtPosition(pos);
         createdEntities.push_back(entity);
         tree->insert(entity);
@@ -103,11 +112,13 @@ TEST_F(QuadtreeTest, QuerySpecificQuadrant) {
     EXPECT_EQ(results[0]->getComponent<CTransform>()->getPosition(), Vec2(-25, 25));
 }
 
-TEST_F(QuadtreeTest, SubdivisionTest) {
+TEST_F(QuadtreeTest, SubdivisionTest)
+{
     // Insert more entities than MAX_OBJECTS in the same area to force subdivision
     Vec2 basePos(-5, -5);
-    for (int i = 0; i < Quadtree::MAX_OBJECTS + 2; ++i) {
-        Vec2 pos = basePos + Vec2(i * 1.0f, i * 1.0f);
+    for (int i = 0; i < Quadtree::MAX_OBJECTS + 2; ++i)
+    {
+        Vec2  pos    = basePos + Vec2(i * 1.0f, i * 1.0f);
         auto* entity = createEntityAtPosition(pos);
         createdEntities.push_back(entity);
         tree->insert(entity);
@@ -119,9 +130,11 @@ TEST_F(QuadtreeTest, SubdivisionTest) {
     EXPECT_LT(results.size(), Quadtree::MAX_OBJECTS);
 }
 
-TEST_F(QuadtreeTest, ClearTest) {
+TEST_F(QuadtreeTest, ClearTest)
+{
     // Insert some entities
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 5; ++i)
+    {
         auto* entity = createEntityAtPosition(Vec2(i * 10.0f, 0));
         createdEntities.push_back(entity);
         tree->insert(entity);
@@ -135,18 +148,20 @@ TEST_F(QuadtreeTest, ClearTest) {
     EXPECT_TRUE(results.empty());
 }
 
-TEST_F(QuadtreeTest, BoundaryConditions) {
+TEST_F(QuadtreeTest, BoundaryConditions)
+{
     // Test entities exactly on boundaries
     // Expectation: All entities should be in the tree
     std::vector<Vec2> positions = {
-        Vec2(-50, 0),   // Left edge
-        Vec2(50, 0),    // Right edge
-        Vec2(0, 50),    // Top edge
-        Vec2(0, -50),   // Bottom edge
-        Vec2(0, 0)      // Center
+        Vec2(-50, 0),  // Left edge
+        Vec2(50, 0),   // Right edge
+        Vec2(0, 50),   // Top edge
+        Vec2(0, -50),  // Bottom edge
+        Vec2(0, 0)     // Center
     };
 
-    for (const auto& pos : positions) {
+    for (const auto& pos : positions)
+    {
         auto* entity = createEntityAtPosition(pos);
         createdEntities.push_back(entity);
         tree->insert(entity);
@@ -161,10 +176,13 @@ TEST_F(QuadtreeTest, BoundaryConditions) {
     EXPECT_EQ(results[4]->getComponent<CTransform>()->getPosition(), Vec2(0, 0));
 }
 
-TEST_F(QuadtreeTest, QueryPartialOverlap) {
+TEST_F(QuadtreeTest, QueryPartialOverlap)
+{
     // Insert entities in a grid pattern
-    for (float x = -40; x <= 40; x += 20) {
-        for (float y = -40; y <= 40; y += 20) {
+    for (float x = -40; x <= 40; x += 20)
+    {
+        for (float y = -40; y <= 40; y += 20)
+        {
             auto* entity = createEntityAtPosition(Vec2(x, y));
             createdEntities.push_back(entity);
             tree->insert(entity);
@@ -178,18 +196,20 @@ TEST_F(QuadtreeTest, QueryPartialOverlap) {
     // Count how many entities should be in this area
     // Expectation: All entities should be in the tree
     int expectedCount = 0;
-    for (auto* entity : createdEntities) {
+    for (auto* entity : createdEntities)
+    {
         auto transform = entity->getComponent<CTransform>();
-        if (queryArea.contains(transform->getPosition())) {
+        if (queryArea.contains(transform->getPosition()))
+        {
             expectedCount++;
         }
     }
 
     EXPECT_EQ(results.size(), expectedCount);
-
 }
 
-TEST_F(QuadtreeTest, SmoothMovement) {
+TEST_F(QuadtreeTest, SmoothMovement)
+{
     // Create an entity
     auto* entity = createEntityAtPosition(Vec2(-1.23f, 4.56f));
     createdEntities.push_back(entity);

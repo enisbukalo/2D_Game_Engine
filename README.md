@@ -105,7 +105,9 @@ The codebase is organized using pragma regions for better readability:
 - SFML 2.6.x: Graphics and window management
 - Dear ImGui 1.91.x: Immediate mode GUI
 - ImGui-SFML 2.6.x: SFML backend for Dear ImGui
-- C++17 or later
+- C++17 or late
+- cppcheck
+- clang
 
 ## Building the Project
 

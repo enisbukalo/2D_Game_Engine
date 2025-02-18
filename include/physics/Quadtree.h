@@ -13,7 +13,8 @@
  * of quadtree nodes and for spatial queries. The AABB is defined by
  * its center position and half-size dimensions.
  */
-struct AABB {
+struct AABB
+{
     Vec2 position;  // Center position
     Vec2 halfSize;  // Half-width and half-height
 
@@ -47,10 +48,11 @@ struct AABB {
  * and the tree can grow up to MAX_LEVELS deep. This implementation is used
  * for efficient collision detection and spatial queries in the physics system.
  */
-class Quadtree {
+class Quadtree
+{
 public:
-    static const int MAX_OBJECTS = 8;   ///< Maximum objects before subdivision
-    static const int MAX_LEVELS = 5;    ///< Maximum depth of the tree
+    static const int MAX_OBJECTS = 8;  ///< Maximum objects before subdivision
+    static const int MAX_LEVELS  = 5;  ///< Maximum depth of the tree
 
     /**
      * @brief Constructs a quadtree node
@@ -82,10 +84,10 @@ public:
     std::vector<Entity*> query(const AABB& area);
 
 private:
-    int m_level;                            ///< Current depth level
-    std::vector<Entity*> m_objects;         ///< Entities at this node
-    AABB m_bounds;                          ///< Spatial bounds of this node
-    std::unique_ptr<Quadtree> m_children[4];///< Child nodes (null if leaf)
+    int                       m_level;        ///< Current depth level
+    std::vector<Entity*>      m_objects;      ///< Entities at this node
+    AABB                      m_bounds;       ///< Spatial bounds of this node
+    std::unique_ptr<Quadtree> m_children[4];  ///< Child nodes (null if leaf)
 
     /**
      * @brief Subdivides this node into four children
@@ -100,4 +102,4 @@ private:
     int getQuadrant(const Vec2& position) const;
 };
 
-#endif // QUADTREE_H
+#endif  // QUADTREE_H

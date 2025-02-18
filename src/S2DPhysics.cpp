@@ -1,6 +1,6 @@
 #include "S2DPhysics.h"
-#include "EntityManager.h"
 #include <algorithm>  // Add at top of file
+#include "EntityManager.h"
 
 S2DPhysics& S2DPhysics::instance()
 {
@@ -8,8 +8,7 @@ S2DPhysics& S2DPhysics::instance()
     return instance;
 }
 
-S2DPhysics::S2DPhysics()
-    : m_worldBounds(Vec2(0, 0), Vec2(1000, 1000))  // Default world size
+S2DPhysics::S2DPhysics() : m_worldBounds(Vec2(0, 0), Vec2(1000, 1000))  // Default world size
 {
     m_quadtree = std::make_unique<Quadtree>(0, m_worldBounds);
 }
@@ -17,7 +16,7 @@ S2DPhysics::S2DPhysics()
 void S2DPhysics::setWorldBounds(const Vec2& center, const Vec2& size)
 {
     m_worldBounds = AABB(center, size * 0.5f);
-    m_quadtree = std::make_unique<Quadtree>(0, m_worldBounds);
+    m_quadtree    = std::make_unique<Quadtree>(0, m_worldBounds);
 }
 
 void S2DPhysics::updateQuadtree()
@@ -30,12 +29,12 @@ void S2DPhysics::updateQuadtree()
     m_quadtree->clear();
 
     auto& entityManager = EntityManager::instance();
-    auto entities = entityManager.getEntitiesWithComponent<CTransform>();
+    auto  entities      = entityManager.getEntitiesWithComponent<CTransform>();
 
     for (auto* entity : entities)
     {
         auto transform = entity->getComponent<CTransform>();
-        Vec2 pos = transform->getPosition();
+        Vec2 pos       = transform->getPosition();
 
         // Only insert entities that are within world bounds
         if (m_worldBounds.contains(pos))
@@ -52,12 +51,12 @@ void S2DPhysics::updateQuadtree()
             // 4. Teleport to nearest valid position
 
             Vec2 newPos = pos;
-            newPos.x = std::clamp(pos.x,
-                m_worldBounds.position.x - m_worldBounds.halfSize.x,
-                m_worldBounds.position.x + m_worldBounds.halfSize.x);
-            newPos.y = std::clamp(pos.y,
-                m_worldBounds.position.y - m_worldBounds.halfSize.y,
-                m_worldBounds.position.y + m_worldBounds.halfSize.y);
+            newPos.x    = std::clamp(pos.x,
+                                  m_worldBounds.position.x - m_worldBounds.halfSize.x,
+                                  m_worldBounds.position.x + m_worldBounds.halfSize.x);
+            newPos.y    = std::clamp(pos.y,
+                                  m_worldBounds.position.y - m_worldBounds.halfSize.y,
+                                  m_worldBounds.position.y + m_worldBounds.halfSize.y);
 
             transform->setPosition(newPos);
             m_quadtree->insert(entity);
@@ -88,14 +87,14 @@ void S2DPhysics::handleGravity(float deltaTime)
     for (auto* entity : entities)
     {
         auto transform = entity->getComponent<CTransform>();
-        auto gravity = entity->getComponent<CGravity>();
+        auto gravity   = entity->getComponent<CGravity>();
 
         if (transform && gravity && gravity->isActive())
         {
             // Update physics as before...
             Vec2 initialVelocity = transform->getVelocity();
-            Vec2 position = transform->getPosition();
-            Vec2 force = gravity->getForce();
+            Vec2 position        = transform->getPosition();
+            Vec2 force           = gravity->getForce();
 
             Vec2 newVelocity = initialVelocity + (force * deltaTime);
             transform->setVelocity(newVelocity);
