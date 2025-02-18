@@ -1,11 +1,21 @@
-#include "S2DPhysics.h"
-#include <algorithm>  // Add at top of file
+#include "systems/S2DPhysics.h"
+#include <algorithm>
 #include "EntityManager.h"
+#include "components/CCollider.h"
+#include "components/CGravity.h"
+#include "components/CTransform.h"
 
 S2DPhysics& S2DPhysics::instance()
 {
     static S2DPhysics instance;
     return instance;
+}
+
+void S2DPhysics::update(float deltaTime)
+{
+    handleGravity(deltaTime);
+    updateQuadtree();
+    checkCollisions();
 }
 
 S2DPhysics::S2DPhysics() : m_worldBounds(Vec2(0, 0), Vec2(1000, 1000))  // Default world size
@@ -64,20 +74,6 @@ void S2DPhysics::updateQuadtree()
     }
 }
 
-void S2DPhysics::update(float deltaTime)
-{
-    handleGravity(deltaTime);
-
-    // Then update the quadtree with new positions
-    updateQuadtree();
-
-    // Now you can use m_quadtree->query() for collision detection
-    // For each entity that needs collision checking:
-    // 1. Create an AABB around it
-    // 2. Query the quadtree for potential collisions
-    // 3. Do detailed collision checks only with returned entities
-}
-
 void S2DPhysics::handleGravity(float deltaTime)
 {
     auto& entityManager = EntityManager::instance();
@@ -103,4 +99,69 @@ void S2DPhysics::handleGravity(float deltaTime)
             transform->setPosition(position);
         }
     }
+}
+
+void S2DPhysics::checkCollisions()
+{
+    auto& entityManager = EntityManager::instance();
+    auto  entities      = entityManager.getEntitiesWithComponent<CCollider>();
+
+    // Broad phase: Use quadtree to get potential collisions
+    for (auto* entity : entities)
+    {
+        if (!entity || !entity->isAlive())
+            continue;
+
+        auto collider = entity->getComponent<CCollider>();
+        if (!collider)
+            continue;
+
+        auto bounds = collider->getBounds();
+
+        // Query quadtree for potential collisions
+        std::vector<Entity*> potentialCollisions = m_quadtree->query(bounds);
+
+        // Narrow phase: Detailed collision checks
+        for (auto* other : potentialCollisions)
+        {
+            if (!other || !other->isAlive() || entity == other)
+                continue;
+
+            auto otherCollider = other->getComponent<CCollider>();
+            if (!otherCollider)
+                continue;
+
+            // Detailed collision check
+            if (collider->intersects(otherCollider))
+            {
+                handleCollision(entity, other);
+            }
+        }
+    }
+}
+
+void S2DPhysics::handleCollision(Entity* a, Entity* b)
+{
+    auto colliderA = a->getComponent<CCollider>();
+    auto colliderB = b->getComponent<CCollider>();
+
+    // If either is a trigger, just notify
+    if (colliderA->isTrigger() || colliderB->isTrigger())
+    {
+        // TODO: Emit collision event
+        return;
+    }
+
+    // Otherwise, resolve the collision physically
+    resolveCollision(a, b, colliderA, colliderB);
+}
+
+void S2DPhysics::resolveCollision(const Entity* a, const Entity* b, const CCollider* colliderA, const CCollider* colliderB)
+{
+    // TODO: Implement collision resolution
+    // This will involve:
+    // 1. Calculate collision normal
+    // 2. Calculate relative velocity
+    // 3. Apply impulse forces
+    // 4. Update positions to prevent overlap
 }

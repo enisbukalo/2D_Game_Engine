@@ -106,3 +106,10 @@ float Vec2::dot(const Vec2& other) const
 {
     return x * other.x + y * other.y;
 }
+
+float Vec2::distanceSquared(const Vec2& other) const
+{
+    float dx = x - other.x;
+    float dy = y - other.y;
+    return dx * dx + dy * dy;
+}

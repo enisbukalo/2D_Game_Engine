@@ -142,6 +142,13 @@ public:
      * @return The dot product of the two vectors
      */
     float dot(const Vec2& other) const;
+
+    /**
+     * @brief Calculates the squared distance to another vector
+     * @param other The vector to calculate distance to
+     * @return The squared distance between the two vectors
+     */
+    float distanceSquared(const Vec2& other) const;
 };
 
 #endif  // VEC2_H

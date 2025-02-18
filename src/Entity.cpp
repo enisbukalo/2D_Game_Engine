@@ -68,6 +68,8 @@ void Entity::deserialize(const JsonValue& value)
                 type = "Gravity";
             else if (type == "cName")
                 type = "Name";
+            else if (type == "cCircleCollider")
+                type = "CircleCollider";
         }
 
         Component* comp = ComponentFactory::instance().createComponent(type);

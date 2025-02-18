@@ -2,6 +2,7 @@
 #define S2D_PHYSICS_H
 
 #include "System.h"
+#include "components/CCollider.h"
 #include "physics/Quadtree.h"
 
 /**
@@ -51,6 +52,11 @@ private:
     AABB                      m_worldBounds;  ///< World boundaries
 
     /**
+     * @brief Checks for collisions between entities
+     */
+    void checkCollisions();
+
+    /**
      * @brief Updates the quadtree with current entity positions
      */
     void updateQuadtree();
@@ -60,6 +66,10 @@ private:
      * @param deltaTime Time elapsed since last update in seconds
      */
     void handleGravity(float deltaTime);
+
+    // Add these new declarations
+    void handleCollision(Entity* a, Entity* b);
+    void resolveCollision(const Entity* a, const Entity* b, const CCollider* colliderA, const CCollider* colliderB);
 };
 
 #endif  // S2D_PHYSICS_H
