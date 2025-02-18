@@ -9,7 +9,7 @@ class PhysicsSystemTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        // Clear the EntityManager before each test
+        // Clear the EntityManager before each test.
         EntityManager::instance().clear();
     }
 

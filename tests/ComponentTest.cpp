@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include "CCircleCollider.h"
 #include "CGravity.h"
 #include "CName.h"
 #include "CTransform.h"
@@ -195,4 +196,42 @@ TEST(ComponentTest, ComponentSerializationRoundTrip)
     EXPECT_FLOAT_EQ(transform2.getRotation(), transform->getRotation());
     EXPECT_EQ(gravity2.getForce(), gravity->getForce());
     EXPECT_EQ(name2.getName(), name->getName());
+}
+
+TEST(ComponentTest, CircleColliderSerialization)
+{
+    // Create and set up original component
+    CCircleCollider collider1(5.0f);
+    collider1.setTrigger(true);
+
+    // Serialize
+    JsonBuilder builder;
+    collider1.serialize(builder);
+    JsonValue json(builder.toString());
+
+    // Create new component and deserialize
+    CCircleCollider collider2;
+    collider2.deserialize(json);
+
+    // Verify all values match
+    EXPECT_FLOAT_EQ(collider2.getRadius(), collider1.getRadius());
+    EXPECT_EQ(collider2.isTrigger(), collider1.isTrigger());
+}
+
+TEST(ComponentTest, CircleCollider)
+{
+    // Test construction and default values
+    CCircleCollider defaultCollider;
+    EXPECT_FLOAT_EQ(defaultCollider.getRadius(), 1.0f);
+    EXPECT_FALSE(defaultCollider.isTrigger());
+
+    // Test explicit construction and setters
+    CCircleCollider collider(5.0f);
+    EXPECT_FLOAT_EQ(collider.getRadius(), 5.0f);
+
+    collider.setRadius(3.0f);
+    EXPECT_FLOAT_EQ(collider.getRadius(), 3.0f);
+
+    collider.setTrigger(true);
+    EXPECT_TRUE(collider.isTrigger());
 }

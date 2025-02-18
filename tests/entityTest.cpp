@@ -6,7 +6,7 @@
 #include "components/CName.h"
 #include "components/CTransform.h"
 
-// Test helper class that exposes protected constructor
+// Test helper class that exposes protected constructor.
 class TestEntity : public Entity
 {
 public:

@@ -5,7 +5,7 @@
 #include "JsonBuilder.h"
 #include "JsonParser.h"
 #include "JsonValue.h"
-#include "testUtils.h"
+#include "TestUtils.h"
 
 TEST(JsonTest, ParseEntityFile)
 {

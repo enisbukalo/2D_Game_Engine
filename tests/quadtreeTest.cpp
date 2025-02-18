@@ -8,7 +8,7 @@
 class QuadtreeTest : public ::testing::Test
 {
 protected:
-    QuadtreeTest() : bounds(Vec2(0, 0), Vec2(50, 50))  // Initialize bounds in constructor
+    QuadtreeTest() : bounds(Vec2(0, 0), Vec2(50, 50))  // Initialize bounds in constructor.
     {
     }
 

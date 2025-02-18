@@ -2,10 +2,10 @@
 #include <filesystem>
 #include "EntityManager.h"
 #include "SceneManager.h"
+#include "TestUtils.h"
 #include "components/CGravity.h"
 #include "components/CName.h"
 #include "components/CTransform.h"
-#include "testUtils.h"
 
 // Test fixture for scene manager tests
 class SceneManagerTest : public ::testing::Test
@@ -13,7 +13,6 @@ class SceneManagerTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        // Clear both managers before each test
         EntityManager::instance().clear();
 
         // Create test directory if it doesn't exist

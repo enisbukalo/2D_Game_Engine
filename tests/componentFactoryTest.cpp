@@ -4,7 +4,7 @@
 #include "../components/CTransform.h"
 #include "../include/ComponentFactory.h"
 
-// Test helper component
+// Test helper component.
 class TestComponent : public Component
 {
 public:
