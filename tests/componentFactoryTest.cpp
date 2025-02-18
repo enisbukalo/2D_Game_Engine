@@ -1,8 +1,9 @@
 #include <gtest/gtest.h>
-#include "../components/CGravity.h"
-#include "../components/CName.h"
-#include "../components/CTransform.h"
-#include "../include/ComponentFactory.h"
+#include "CCircleCollider.h"
+#include "CGravity.h"
+#include "CName.h"
+#include "CTransform.h"
+#include "ComponentFactory.h"
 
 // Test helper component.
 class TestComponent : public Component
@@ -24,27 +25,56 @@ public:
     }
 };
 
-TEST(ComponentFactoryTest, CreateBuiltInComponents)
+TEST(ComponentFactoryTest, CreateComponents)
 {
     auto& factory = ComponentFactory::instance();
 
-    // Test creating Transform component
+    // Test creating each component type
     auto transform = factory.createComponent("Transform");
     ASSERT_NE(transform, nullptr);
     EXPECT_EQ(transform->getType(), "Transform");
-    delete transform;
 
-    // Test creating Name component
-    auto name = factory.createComponent("Name");
-    ASSERT_NE(name, nullptr);
-    EXPECT_EQ(name->getType(), "Name");
-    delete name;
-
-    // Test creating Gravity component
     auto gravity = factory.createComponent("Gravity");
     ASSERT_NE(gravity, nullptr);
     EXPECT_EQ(gravity->getType(), "Gravity");
+
+    auto name = factory.createComponent("Name");
+    ASSERT_NE(name, nullptr);
+    EXPECT_EQ(name->getType(), "Name");
+
+    auto circleCollider = factory.createComponent("CircleCollider");
+    ASSERT_NE(circleCollider, nullptr);
+    EXPECT_EQ(circleCollider->getType(), "CircleCollider");
+
+    // Test invalid component type
+    auto invalid = factory.createComponent("InvalidType");
+    EXPECT_EQ(invalid, nullptr);
+
+    // Clean up
+    delete transform;
     delete gravity;
+    delete name;
+    delete circleCollider;
+}
+
+TEST(ComponentFactoryTest, RegisterCustomComponent)
+{
+    auto& factory = ComponentFactory::instance();
+
+    // Register a custom component creator
+    factory.registerComponent<CCircleCollider>("CircleCollider");
+
+    // Create the component and verify its properties
+    auto component = factory.createComponent("CircleCollider");
+    ASSERT_NE(component, nullptr);
+    EXPECT_EQ(component->getType(), "CircleCollider");
+
+    auto circleCollider = dynamic_cast<CCircleCollider*>(component);
+    ASSERT_NE(circleCollider, nullptr);
+    EXPECT_FLOAT_EQ(circleCollider->getRadius(), 1.0f);
+    EXPECT_FALSE(circleCollider->isTrigger());
+
+    delete component;
 }
 
 TEST(ComponentFactoryTest, CreateNonExistentComponent)

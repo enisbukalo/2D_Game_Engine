@@ -3,9 +3,9 @@
 #include "EntityManager.h"
 #include "SceneManager.h"
 #include "TestUtils.h"
-#include "components/CGravity.h"
-#include "components/CName.h"
-#include "components/CTransform.h"
+#include "CGravity.h"
+#include "CName.h"
+#include "CTransform.h"
 
 // Test fixture for scene manager tests
 class SceneManagerTest : public ::testing::Test

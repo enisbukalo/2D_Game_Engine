@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 #include "EntityManager.h"
 #include "S2DPhysics.h"
-#include "components/CGravity.h"
-#include "components/CTransform.h"
+#include "CGravity.h"
+#include "CTransform.h"
 
 class PhysicsSystemTest : public ::testing::Test
 {

@@ -2,9 +2,9 @@
 #include "Component.h"
 #include "Entity.h"
 #include "Vec2.h"
-#include "components/CGravity.h"
-#include "components/CName.h"
-#include "components/CTransform.h"
+#include "CGravity.h"
+#include "CName.h"
+#include "CTransform.h"
 
 // Test helper class that exposes protected constructor.
 class TestEntity : public Entity

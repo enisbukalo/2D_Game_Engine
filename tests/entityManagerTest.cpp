@@ -5,9 +5,9 @@
 #include "EntityManager.h"
 #include "TestUtils.h"
 #include "Vec2.h"
-#include "components/CGravity.h"
-#include "components/CName.h"
-#include "components/CTransform.h"
+#include "CGravity.h"
+#include "CName.h"
+#include "CTransform.h"
 
 // Define the source directory path
 #ifndef SOURCE_DIR

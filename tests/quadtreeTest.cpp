@@ -2,8 +2,8 @@
 #include "Entity.h"
 #include "EntityManager.h"
 #include "algorithm"
-#include "components/CTransform.h"
-#include "physics/Quadtree.h"
+#include "CTransform.h"
+#include "Quadtree.h"
 
 class QuadtreeTest : public ::testing::Test
 {
