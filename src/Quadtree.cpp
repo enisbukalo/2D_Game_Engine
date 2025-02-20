@@ -1,8 +1,8 @@
+#include "Quadtree.h"
 #include <unordered_set>
 #include "CCircleCollider.h"
 #include "CCollider.h"
 #include "CTransform.h"
-#include "Quadtree.h"
 
 Quadtree::Quadtree(int level, const AABB& bounds) : m_level(level), m_bounds(bounds) {}
 
