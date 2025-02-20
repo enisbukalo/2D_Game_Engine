@@ -28,12 +28,6 @@ public:
     CTransform(const Vec2& pos, const Vec2& scl, float rot) : m_position(pos), m_scale(scl), m_rotation(rot) {}
 
     /**
-     * @brief Updates the transform based on velocity
-     * @param deltaTime Time elapsed since last update
-     */
-    void update(float deltaTime) override;
-
-    /**
      * @brief Gets the type identifier for this component
      * @return String "Transform"
      */

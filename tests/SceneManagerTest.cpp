@@ -1,11 +1,12 @@
 #include <gtest/gtest.h>
 #include <filesystem>
+#include "CCircleCollider.h"
+#include "CGravity.h"
+#include "CName.h"
+#include "CTransform.h"
 #include "EntityManager.h"
 #include "SceneManager.h"
-#include "components/CGravity.h"
-#include "components/CName.h"
-#include "components/CTransform.h"
-#include "test_utils.h"
+#include "TestUtils.h"
 
 // Test fixture for scene manager tests
 class SceneManagerTest : public ::testing::Test
@@ -13,7 +14,6 @@ class SceneManagerTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        // Clear both managers before each test
         EntityManager::instance().clear();
 
         // Create test directory if it doesn't exist
@@ -38,13 +38,14 @@ protected:
     {
         auto& manager = EntityManager::instance();
 
-        // Create an entity with Transform and Gravity
+        // Create an entity with Transform, Gravity and CircleCollider
         auto entity1    = manager.addEntity("physics_object");
         auto transform1 = entity1->addComponent<CTransform>();
         transform1->setPosition(Vec2(100.0f, 200.0f));
         transform1->setScale(Vec2(2.0f, 2.0f));
         auto gravity1 = entity1->addComponent<CGravity>();
         gravity1->setForce(Vec2(0.0f, -15.0f));
+        auto collider1 = entity1->addComponent<CCircleCollider>(3.0f);
 
         // Create another entity with Transform and Name
         auto entity2    = manager.addEntity("named_object");
@@ -95,6 +96,11 @@ TEST_F(SceneManagerTest, SaveAndLoadScene)
     auto gravity1 = physicsEntity->getComponent<CGravity>();
     ASSERT_NE(gravity1, nullptr);
     EXPECT_EQ(gravity1->getForce(), Vec2(0.0f, -15.0f));
+
+    auto collider1 = physicsEntity->getComponent<CCircleCollider>();
+    ASSERT_NE(collider1, nullptr);
+    EXPECT_FLOAT_EQ(collider1->getRadius(), 3.0f);
+    EXPECT_FALSE(collider1->isTrigger());
 
     // Verify named_object
     auto namedObjects = EntityManager::instance().getEntitiesByTag("named_object");

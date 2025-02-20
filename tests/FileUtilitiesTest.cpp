@@ -7,7 +7,7 @@ class FileUtilitiesTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        // Create test directory if it doesn't exist
+        // Create test directory if it doesn't exist.
         if (!std::filesystem::exists("tests/test_data"))
         {
             std::filesystem::create_directory("tests/test_data");

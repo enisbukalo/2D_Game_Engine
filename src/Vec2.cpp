@@ -57,6 +57,20 @@ Vec2& Vec2::operator-=(const Vec2& other)
     return *this;
 }
 
+Vec2& Vec2::operator*=(float scalar)
+{
+    x *= scalar;
+    y *= scalar;
+    return *this;
+}
+
+Vec2& Vec2::operator/=(float scalar)
+{
+    x /= scalar;
+    y /= scalar;
+    return *this;
+}
+
 Vec2 Vec2::operator+(const Vec2& other) const
 {
     return Vec2(x + other.x, y + other.y);
@@ -86,4 +100,16 @@ bool Vec2::operator==(const Vec2& other) const
 bool Vec2::operator!=(const Vec2& other) const
 {
     return !(*this == other);
+}
+
+float Vec2::dot(const Vec2& other) const
+{
+    return x * other.x + y * other.y;
+}
+
+float Vec2::distanceSquared(const Vec2& other) const
+{
+    float dx = x - other.x;
+    float dy = y - other.y;
+    return dx * dx + dy * dy;
 }

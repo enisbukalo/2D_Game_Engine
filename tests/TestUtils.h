@@ -6,7 +6,7 @@
 #include <sstream>
 #include <string>
 
-// Helper function to read file content
+// Helper function to read file content.
 inline std::string readFile(const std::string& path)
 {
     std::ifstream file(path);
