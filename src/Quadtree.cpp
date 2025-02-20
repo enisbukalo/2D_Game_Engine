@@ -1,5 +1,8 @@
-#include "physics/Quadtree.h"
-#include "components/CTransform.h"
+#include <unordered_set>
+#include "CCircleCollider.h"
+#include "CCollider.h"
+#include "CTransform.h"
+#include "Quadtree.h"
 
 Quadtree::Quadtree(int level, const AABB& bounds) : m_level(level), m_bounds(bounds) {}
 
@@ -27,42 +30,80 @@ void Quadtree::split()
     m_children[3] = std::make_unique<Quadtree>(m_level + 1, AABB(m_bounds.position + Vec2(quarterSize.x, -quarterSize.y), childSize));
 }
 
-int Quadtree::getQuadrant(const Vec2& position) const
+std::vector<int> Quadtree::getOverlappingQuadrants(const AABB& bounds) const
 {
-    if (position.y > m_bounds.position.y)
+    std::vector<int> quadrants;
+
+    // Check each quadrant
+    Vec2 topLeft     = bounds.position - bounds.halfSize;
+    Vec2 bottomRight = bounds.position + bounds.halfSize;
+
+    // Check top quadrants (y > center)
+    if (bottomRight.y > m_bounds.position.y)
     {
-        if (position.x < m_bounds.position.x)
-            return 0;
-        return 1;
+        if (topLeft.x < m_bounds.position.x)
+            quadrants.push_back(0);  // Top-left
+        if (bottomRight.x > m_bounds.position.x)
+            quadrants.push_back(1);  // Top-right
     }
-    if (position.x < m_bounds.position.x)
-        return 2;
-    return 3;
+
+    // Check bottom quadrants (y < center)
+    if (topLeft.y < m_bounds.position.y)
+    {
+        if (topLeft.x < m_bounds.position.x)
+            quadrants.push_back(2);  // Bottom-left
+        if (bottomRight.x > m_bounds.position.x)
+            quadrants.push_back(3);  // Bottom-right
+    }
+
+    return quadrants;
 }
 
 void Quadtree::insert(Entity* entity)
 {
     if (!entity)
+    {
         return;
+    }
 
     auto transform = entity->getComponent<CTransform>();
-    if (!transform)
+    auto collider  = entity->getComponent<CCircleCollider>();
+    if (!transform || !collider)
+    {
         return;
+    }
 
-    Vec2 position = transform->getPosition();
+    // Get entity's AABB
+    AABB entityBounds = collider->getBounds();
 
-    // If we have children, insert into them
+    // First check if the entity is within our bounds
+    if (!m_bounds.intersects(entityBounds))
+    {
+        return;
+    }
+
+    // If we have children
     if (m_children[0])
     {
-        int quadrant = getQuadrant(position);
-        if (m_bounds.contains(position))
+        // Get all quadrants this entity overlaps
+        auto overlappingQuadrants = getOverlappingQuadrants(entityBounds);
+
+        // If the entity fits within child quadrants
+        if (!overlappingQuadrants.empty())
         {
-            m_children[quadrant]->insert(entity);
+            // Insert into all overlapping quadrants
+            for (int quadrant : overlappingQuadrants)
+            {
+                m_children[quadrant]->insert(entity);
+            }
             return;
         }
     }
 
-    // Add object to this node
+    // If we reach here, either:
+    // 1. We have no children
+    // 2. The entity is too large for children
+    // 3. The entity spans multiple quadrants at the root level
     m_objects.push_back(entity);
 
     // Split if needed
@@ -73,19 +114,24 @@ void Quadtree::insert(Entity* entity)
             split();
         }
 
-        // Redistribute existing objects
+        // Try to redistribute existing objects
         auto it = m_objects.begin();
         while (it != m_objects.end())
         {
-            Entity* obj          = *it;
-            auto    objTransform = obj->getComponent<CTransform>();
-            if (objTransform)
+            Entity* obj         = *it;
+            auto    objCollider = obj->getComponent<CCircleCollider>();
+            if (objCollider)
             {
-                Vec2 objPos = objTransform->getPosition();
-                if (m_bounds.contains(objPos))
+                AABB objBounds    = objCollider->getBounds();
+                auto objQuadrants = getOverlappingQuadrants(objBounds);
+
+                // Only move down if the object fits entirely within child quadrants
+                if (!objQuadrants.empty())
                 {
-                    int quadrant = getQuadrant(objPos);
-                    m_children[quadrant]->insert(obj);
+                    for (int quadrant : objQuadrants)
+                    {
+                        m_children[quadrant]->insert(obj);
+                    }
                     it = m_objects.erase(it);
                     continue;
                 }
@@ -97,7 +143,8 @@ void Quadtree::insert(Entity* entity)
 
 std::vector<Entity*> Quadtree::query(const AABB& area)
 {
-    std::vector<Entity*> found;
+    std::vector<Entity*>        found;
+    std::unordered_set<Entity*> uniqueEntities;  // Track unique entities
 
     if (!m_bounds.intersects(area))
     {
@@ -107,11 +154,11 @@ std::vector<Entity*> Quadtree::query(const AABB& area)
     // Add objects at this level
     for (auto* obj : m_objects)
     {
-        auto transform = obj->getComponent<CTransform>();
-        if (transform)
+        auto collider = obj->getComponent<CCircleCollider>();
+        if (collider)
         {
-            Vec2 pos = transform->getPosition();
-            if (area.contains(pos))
+            AABB objBounds = collider->getBounds();
+            if (area.intersects(objBounds) && uniqueEntities.insert(obj).second)
             {
                 found.push_back(obj);
             }
@@ -124,7 +171,13 @@ std::vector<Entity*> Quadtree::query(const AABB& area)
         for (int i = 0; i < 4; i++)
         {
             auto childResults = m_children[i]->query(area);
-            found.insert(found.end(), childResults.begin(), childResults.end());
+            for (auto* result : childResults)
+            {
+                if (uniqueEntities.insert(result).second)
+                {
+                    found.push_back(result);
+                }
+            }
         }
     }
 

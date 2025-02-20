@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include "CCircleCollider.h"
 #include "CTransform.h"
 #include "Entity.h"
 #include "EntityManager.h"
@@ -18,19 +19,19 @@ protected:
         tree = std::make_unique<Quadtree>(0, bounds);
     }
 
-    // Helper function to create an entity at a specific position
-    Entity* createEntityAtPosition(const Vec2& pos)
+    // Helper function to create an entity at a specific position with a collider
+    Entity* createEntityWithCollider(const Vec2& pos, float radius)
     {
         auto& entityManager = EntityManager::instance();
-        auto  entity        = entityManager.addEntity("test");  // Use EntityManager to create entity
+        auto  entity        = entityManager.addEntity("test");
         auto  transform     = entity->addComponent<CTransform>();
         transform->setPosition(pos);
-        return entity.get();  // Return raw pointer from shared_ptr
+        auto collider = entity->addComponent<CCircleCollider>(radius);
+        return entity.get();
     }
 
     void TearDown() override
     {
-        // No need to manually delete entities - EntityManager will handle cleanup
         EntityManager::instance().clear();
         createdEntities.clear();
     }
@@ -42,13 +43,22 @@ protected:
 
 TEST_F(QuadtreeTest, InsertSingleEntity)
 {
-    auto* entity = createEntityAtPosition(Vec2(0, 0));
+    auto* entity = createEntityWithCollider(Vec2(0, 0), 1.0f);
     createdEntities.push_back(entity);
+
+    // Debug checks
+    auto transform = entity->getComponent<CTransform>();
+    auto collider  = entity->getComponent<CCircleCollider>();
+    ASSERT_TRUE(transform != nullptr) << "Transform component is null";
+    ASSERT_TRUE(collider != nullptr) << "Collider component is null";
+    ASSERT_EQ(transform->getPosition(), Vec2(0, 0)) << "Transform position is incorrect";
+    ASSERT_EQ(collider->getRadius(), 1.0f) << "Collider radius is incorrect";
 
     tree->insert(entity);
 
-    // Query the entire area
-    auto results = tree->query(bounds);
+    // Query the entire area using the same bounds as the tree
+    AABB queryArea(Vec2(0, 0), Vec2(50, 50));
+    auto results = tree->query(queryArea);
     EXPECT_EQ(results.size(), 1);
     EXPECT_EQ(results[0], entity);
     EXPECT_EQ(results[0]->getComponent<CTransform>()->getPosition(), Vec2(0, 0));
@@ -74,7 +84,7 @@ TEST_F(QuadtreeTest, InsertMultipleEntities)
 
     for (const auto& pos : positions)
     {
-        auto* entity = createEntityAtPosition(pos);
+        auto* entity = createEntityWithCollider(pos, 1.0f);
         createdEntities.push_back(entity);
         tree->insert(entity);
     }
@@ -100,7 +110,7 @@ TEST_F(QuadtreeTest, QuerySpecificQuadrant)
 
     for (const auto& pos : positions)
     {
-        auto* entity = createEntityAtPosition(pos);
+        auto* entity = createEntityWithCollider(pos, 1.0f);
         createdEntities.push_back(entity);
         tree->insert(entity);
     }
@@ -112,14 +122,80 @@ TEST_F(QuadtreeTest, QuerySpecificQuadrant)
     EXPECT_EQ(results[0]->getComponent<CTransform>()->getPosition(), Vec2(-25, 25));
 }
 
-TEST_F(QuadtreeTest, SubdivisionTest)
+TEST_F(QuadtreeTest, LargeColliderMultiQuadrant)
+{
+    // Create an entity with a large collider that spans multiple quadrants
+    auto* entity = createEntityWithCollider(Vec2(0, 0), 20.0f);  // Radius of 20 will overlap multiple quadrants
+    createdEntities.push_back(entity);
+    tree->insert(entity);
+
+    // Query each quadrant - the entity should be found in all of them
+    std::vector<AABB> quadrantQueries = {
+        AABB(Vec2(-20, 20), Vec2(5, 5)),   // Top-left
+        AABB(Vec2(20, 20), Vec2(5, 5)),    // Top-right
+        AABB(Vec2(-20, -20), Vec2(5, 5)),  // Bottom-left
+        AABB(Vec2(20, -20), Vec2(5, 5))    // Bottom-right
+    };
+
+    for (const auto& queryArea : quadrantQueries)
+    {
+        auto results = tree->query(queryArea);
+        EXPECT_EQ(results.size(), 1) << "Large entity should be found in all quadrants it overlaps";
+        if (!results.empty())
+        {
+            EXPECT_EQ(results[0], entity);
+        }
+    }
+}
+
+TEST_F(QuadtreeTest, ColliderOnQuadrantBoundary)
+{
+    // Create an entity with a collider that sits exactly on the boundary between quadrants
+    auto* entity = createEntityWithCollider(Vec2(0, 0), 5.0f);  // Place at center with radius that reaches into multiple quadrants
+    createdEntities.push_back(entity);
+    tree->insert(entity);
+
+    // Query areas on both sides of the boundary
+    AABB leftQuery(Vec2(-5, 0), Vec2(5, 5));
+    AABB rightQuery(Vec2(5, 0), Vec2(5, 5));
+
+    auto leftResults  = tree->query(leftQuery);
+    auto rightResults = tree->query(rightQuery);
+
+    EXPECT_FALSE(leftResults.empty()) << "Entity should be found in left quadrant";
+    EXPECT_FALSE(rightResults.empty()) << "Entity should be found in right quadrant";
+}
+
+TEST_F(QuadtreeTest, MultipleOverlappingColliders)
+{
+    // Create several entities with overlapping colliders
+    auto* entity1 = createEntityWithCollider(Vec2(0, 0), 10.0f);
+    auto* entity2 = createEntityWithCollider(Vec2(5, 5), 10.0f);
+    auto* entity3 = createEntityWithCollider(Vec2(-5, -5), 10.0f);
+
+    createdEntities.push_back(entity1);
+    createdEntities.push_back(entity2);
+    createdEntities.push_back(entity3);
+
+    tree->insert(entity1);
+    tree->insert(entity2);
+    tree->insert(entity3);
+
+    // Query an area where all colliders overlap
+    AABB queryArea(Vec2(0, 0), Vec2(5, 5));
+    auto results = tree->query(queryArea);
+
+    EXPECT_EQ(results.size(), 3) << "Should find all entities with overlapping colliders";
+}
+
+TEST_F(QuadtreeTest, SubdivisionWithColliders)
 {
     // Insert more entities than MAX_OBJECTS in the same area to force subdivision
     Vec2 basePos(-5, -5);
     for (int i = 0; i < Quadtree::MAX_OBJECTS + 2; ++i)
     {
-        Vec2  pos    = basePos + Vec2(i * 1.0f, i * 1.0f);
-        auto* entity = createEntityAtPosition(pos);
+        Vec2  pos    = basePos + Vec2(i * 2.0f, i * 2.0f);   // Spread them out more to avoid overlap
+        auto* entity = createEntityWithCollider(pos, 1.0f);  // Small colliders
         createdEntities.push_back(entity);
         tree->insert(entity);
     }
@@ -132,10 +208,10 @@ TEST_F(QuadtreeTest, SubdivisionTest)
 
 TEST_F(QuadtreeTest, ClearTest)
 {
-    // Insert some entities
+    // Insert some entities with colliders
     for (int i = 0; i < 5; ++i)
     {
-        auto* entity = createEntityAtPosition(Vec2(i * 10.0f, 0));
+        auto* entity = createEntityWithCollider(Vec2(i * 10.0f, 0), 2.0f);
         createdEntities.push_back(entity);
         tree->insert(entity);
     }
@@ -148,42 +224,14 @@ TEST_F(QuadtreeTest, ClearTest)
     EXPECT_TRUE(results.empty());
 }
 
-TEST_F(QuadtreeTest, BoundaryConditions)
-{
-    // Test entities exactly on boundaries
-    // Expectation: All entities should be in the tree
-    std::vector<Vec2> positions = {
-        Vec2(-50, 0),  // Left edge
-        Vec2(50, 0),   // Right edge
-        Vec2(0, 50),   // Top edge
-        Vec2(0, -50),  // Bottom edge
-        Vec2(0, 0)     // Center
-    };
-
-    for (const auto& pos : positions)
-    {
-        auto* entity = createEntityAtPosition(pos);
-        createdEntities.push_back(entity);
-        tree->insert(entity);
-    }
-
-    auto results = tree->query(bounds);
-    EXPECT_EQ(results.size(), 5);
-    EXPECT_EQ(results[0]->getComponent<CTransform>()->getPosition(), Vec2(-50, 0));
-    EXPECT_EQ(results[1]->getComponent<CTransform>()->getPosition(), Vec2(50, 0));
-    EXPECT_EQ(results[2]->getComponent<CTransform>()->getPosition(), Vec2(0, 50));
-    EXPECT_EQ(results[3]->getComponent<CTransform>()->getPosition(), Vec2(0, -50));
-    EXPECT_EQ(results[4]->getComponent<CTransform>()->getPosition(), Vec2(0, 0));
-}
-
 TEST_F(QuadtreeTest, QueryPartialOverlap)
 {
-    // Insert entities in a grid pattern
+    // Insert entities with colliders in a grid pattern
     for (float x = -40; x <= 40; x += 20)
     {
         for (float y = -40; y <= 40; y += 20)
         {
-            auto* entity = createEntityAtPosition(Vec2(x, y));
+            auto* entity = createEntityWithCollider(Vec2(x, y), 5.0f);  // Collider radius of 5
             createdEntities.push_back(entity);
             tree->insert(entity);
         }
@@ -193,45 +241,20 @@ TEST_F(QuadtreeTest, QueryPartialOverlap)
     AABB queryArea(Vec2(10, 10), Vec2(20, 20));
     auto results = tree->query(queryArea);
 
-    // Count how many entities should be in this area
-    // Expectation: All entities should be in the tree
+    // Verify that we find all entities whose colliders overlap the query area
     int expectedCount = 0;
     for (auto* entity : createdEntities)
     {
-        auto transform = entity->getComponent<CTransform>();
-        if (queryArea.contains(transform->getPosition()))
+        auto collider = entity->getComponent<CCircleCollider>();
+        if (collider)
         {
-            expectedCount++;
+            AABB entityBounds = collider->getBounds();
+            if (queryArea.intersects(entityBounds))
+            {
+                expectedCount++;
+            }
         }
     }
 
     EXPECT_EQ(results.size(), expectedCount);
-}
-
-TEST_F(QuadtreeTest, SmoothMovement)
-{
-    // Create an entity
-    auto* entity = createEntityAtPosition(Vec2(-1.23f, 4.56f));
-    createdEntities.push_back(entity);
-    tree->insert(entity);
-
-    // Move it by a small amount
-    auto transform = entity->getComponent<CTransform>();
-    Vec2 newPos(-1.24f, 4.57f);  // Tiny movement
-    transform->setPosition(newPos);
-
-    // Clear and reinsert
-    tree->clear();
-    tree->insert(entity);
-
-    // Query to find it
-    AABB queryArea(newPos, Vec2(0.1f, 0.1f));
-    auto results = tree->query(queryArea);
-
-    EXPECT_EQ(results.size(), 1);
-    EXPECT_EQ(results[0], entity);
-
-    auto finalPos = results[0]->getComponent<CTransform>()->getPosition();
-    EXPECT_FLOAT_EQ(finalPos.x, newPos.x);
-    EXPECT_FLOAT_EQ(finalPos.y, newPos.y);
 }

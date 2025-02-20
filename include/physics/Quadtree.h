@@ -71,8 +71,8 @@ public:
      * @brief Inserts an entity into the quadtree
      * @param entity Pointer to the entity to insert
      *
-     * The entity must have a CTransform component. It will be inserted
-     * into the appropriate quadrant based on its position.
+     * The entity must have a CTransform and CCollider components. It will be inserted
+     * into all quadrants that its AABB overlaps with.
      */
     void insert(Entity* entity);
 
@@ -82,6 +82,15 @@ public:
      * @return Vector of entity pointers within the area
      */
     std::vector<Entity*> query(const AABB& area);
+
+    /**
+     * @brief Gets the bounds of this quadtree node
+     * @return The AABB representing this node's bounds
+     */
+    const AABB& getBounds() const
+    {
+        return m_bounds;
+    }
 
 private:
     int                       m_level;        ///< Current depth level
@@ -95,11 +104,11 @@ private:
     void split();
 
     /**
-     * @brief Determines which quadrant a position belongs to
-     * @param position The position to check
-     * @return Index (0-3) of the appropriate quadrant
+     * @brief Gets all quadrants that an AABB overlaps with
+     * @param bounds The AABB to check
+     * @return Vector of quadrant indices (0-3) that the AABB overlaps
      */
-    int getQuadrant(const Vec2& position) const;
+    std::vector<int> getOverlappingQuadrants(const AABB& bounds) const;
 };
 
 #endif  // QUADTREE_H
