@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "CCircleCollider.h"
+#include "CBoxCollider.h"
 #include "CGravity.h"
 #include "CName.h"
 #include "CTransform.h"
@@ -218,6 +219,27 @@ TEST(ComponentTest, CircleColliderSerialization)
     EXPECT_EQ(collider2.isTrigger(), collider1.isTrigger());
 }
 
+TEST(ComponentTest, BoxColliderSerialization)
+{
+    // Create and set up original component
+    CBoxCollider collider1(10.0f, 20.0f);
+    collider1.setTrigger(true);
+
+    // Serialize
+    JsonBuilder builder;
+    collider1.serialize(builder);
+    JsonValue json(builder.toString());
+
+    // Create new component and deserialize
+    CBoxCollider collider2;
+    collider2.deserialize(json);
+
+    // Verify all values match
+    EXPECT_FLOAT_EQ(collider2.getWidth(), collider1.getWidth());
+    EXPECT_FLOAT_EQ(collider2.getHeight(), collider1.getHeight());
+    EXPECT_EQ(collider2.isTrigger(), collider1.isTrigger());
+}
+
 TEST(ComponentTest, CircleCollider)
 {
     // Test construction and default values
@@ -234,4 +256,35 @@ TEST(ComponentTest, CircleCollider)
 
     collider.setTrigger(true);
     EXPECT_TRUE(collider.isTrigger());
+}
+
+TEST(ComponentTest, BoxCollider)
+{
+    // Test construction and default values
+    CBoxCollider defaultCollider;
+    EXPECT_FLOAT_EQ(defaultCollider.getWidth(), 1.0f);
+    EXPECT_FLOAT_EQ(defaultCollider.getHeight(), 1.0f);
+    EXPECT_FALSE(defaultCollider.isTrigger());
+
+    // Test explicit construction and setters
+    CBoxCollider collider(10.0f, 20.0f);
+    EXPECT_FLOAT_EQ(collider.getWidth(), 10.0f);
+    EXPECT_FLOAT_EQ(collider.getHeight(), 20.0f);
+
+    collider.setSize(15.0f, 25.0f);
+    EXPECT_FLOAT_EQ(collider.getWidth(), 15.0f);
+    EXPECT_FLOAT_EQ(collider.getHeight(), 25.0f);
+
+    collider.setTrigger(true);
+    EXPECT_TRUE(collider.isTrigger());
+
+    // Test Vec2 constructor and setter
+    CBoxCollider collider2(Vec2(30.0f, 40.0f));
+    EXPECT_FLOAT_EQ(collider2.getWidth(), 30.0f);
+    EXPECT_FLOAT_EQ(collider2.getHeight(), 40.0f);
+
+    collider2.setSize(Vec2(50.0f, 60.0f));
+    Vec2 size = collider2.getSize();
+    EXPECT_FLOAT_EQ(size.x, 50.0f);
+    EXPECT_FLOAT_EQ(size.y, 60.0f);
 }

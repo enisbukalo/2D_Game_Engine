@@ -67,7 +67,7 @@ void Quadtree::insert(Entity* entity)
     }
 
     auto transform = entity->getComponent<CTransform>();
-    auto collider  = entity->getComponent<CCircleCollider>();
+    auto collider  = entity->getComponentDerived<CCollider>();  // Use polymorphic getter
     if (!transform || !collider)
     {
         return;
@@ -119,7 +119,7 @@ void Quadtree::insert(Entity* entity)
         while (it != m_objects.end())
         {
             Entity* obj         = *it;
-            auto    objCollider = obj->getComponent<CCircleCollider>();
+            auto    objCollider = obj->getComponentDerived<CCollider>();  // Use polymorphic getter
             if (objCollider)
             {
                 AABB objBounds    = objCollider->getBounds();
@@ -154,7 +154,7 @@ std::vector<Entity*> Quadtree::query(const AABB& area)
     // Add objects at this level
     for (auto* obj : m_objects)
     {
-        auto collider = obj->getComponent<CCircleCollider>();
+        auto collider = obj->getComponentDerived<CCollider>();  // Use polymorphic getter
         if (collider)
         {
             AABB objBounds = collider->getBounds();

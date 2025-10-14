@@ -10,6 +10,16 @@ void CCollider::setTrigger(bool trigger)
     m_isTrigger = trigger;
 }
 
+bool CCollider::isStatic() const
+{
+    return m_isStatic;
+}
+
+void CCollider::setStatic(bool isStatic)
+{
+    m_isStatic = isStatic;
+}
+
 void CCollider::serialize(JsonBuilder& builder) const
 {
     // Base collider doesn't need to serialize anything since it's abstract

@@ -1,5 +1,6 @@
 #include "components/CCircleCollider.h"
 #include "components/CTransform.h"
+#include "physics/CollisionDetector.h"
 
 CCircleCollider::CCircleCollider(float radius) : m_radius(radius)
 {
@@ -14,12 +15,8 @@ AABB CCircleCollider::getBounds() const
 
 bool CCircleCollider::intersects(const CCollider* other) const
 {
-    // For now, only handle circle-circle collisions
-    if (auto* circle = dynamic_cast<const CCircleCollider*>(other))
-    {
-        return circleVsCircle(circle);
-    }
-    return false;
+    // Delegate to centralized collision detector
+    return CollisionDetector::intersects(this, other);
 }
 
 float CCircleCollider::getRadius() const
@@ -30,18 +27,6 @@ float CCircleCollider::getRadius() const
 void CCircleCollider::setRadius(float radius)
 {
     m_radius = radius;
-}
-
-// Private helper methods for collision detection
-bool CCircleCollider::circleVsCircle(const CCircleCollider* other) const
-{
-    Vec2 pos1 = getOwner()->getComponent<CTransform>()->getPosition();
-    Vec2 pos2 = other->getOwner()->getComponent<CTransform>()->getPosition();
-
-    float radiusSum = m_radius + other->getRadius();
-    float distSq    = pos1.distanceSquared(pos2);
-
-    return distSq <= (radiusSum * radiusSum);
 }
 
 void CCircleCollider::serialize(JsonBuilder& builder) const

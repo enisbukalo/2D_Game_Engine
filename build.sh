@@ -104,8 +104,8 @@ if [ "$CREATE_PACKAGE" = true ]; then
     mkdir -p package/bin
     mkdir -p example_project/GameEngine
 
-    # Copy all header files directly into include directory
-    find include include/components include/systems -name "*.h" -exec cp {} package/include/ \;
+    # Copy header files preserving directory structure
+    cp -r include/* package/include/
 
     # Copy libraries based on build type
     if [ "$BUILD_SHARED" = "ON" ]; then

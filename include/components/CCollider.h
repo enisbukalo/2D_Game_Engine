@@ -46,6 +46,20 @@ public:
     void setTrigger(bool trigger);
 
     /**
+     * @brief Checks if this collider is static (immovable)
+     * @return true if static, false if dynamic
+     *
+     * Static colliders cannot be moved by collisions (like walls/ground)
+     */
+    bool isStatic() const;
+
+    /**
+     * @brief Sets the static state of this collider
+     * @param isStatic New static state
+     */
+    void setStatic(bool isStatic);
+
+    /**
      * @brief Gets the type identifier for this component
      * @return String "Collider"
      */
@@ -57,6 +71,7 @@ public:
 
 protected:
     bool m_isTrigger = false;  // If true, detect but don't resolve collisions
+    bool m_isStatic = false;   // If true, object cannot be moved by collisions
 };
 
 #endif

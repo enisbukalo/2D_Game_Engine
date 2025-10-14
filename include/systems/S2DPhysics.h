@@ -81,7 +81,7 @@ private:
      * @param colliderA Collider of first entity
      * @param colliderB Collider of second entity
      */
-    void resolveCollision(const Entity* a, const Entity* b, const CCollider* colliderA, const CCollider* colliderB);
+    void resolveCollision(Entity* a, Entity* b, const CCollider* colliderA, const CCollider* colliderB);
 };
 
 #endif  // S2D_PHYSICS_H

@@ -65,13 +65,6 @@ public:
 
 private:
     float m_radius;  ///< Radius of the circle in world units
-
-    /**
-     * @brief Helper method for circle vs circle collision detection
-     * @param other The other circle collider to check against
-     * @return true if circles overlap, false otherwise
-     */
-    bool circleVsCircle(const CCircleCollider* other) const;
 };
 
 #endif

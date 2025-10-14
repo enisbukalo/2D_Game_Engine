@@ -1,5 +1,6 @@
 #include "ComponentFactory.h"
 #include "CCircleCollider.h"
+#include "CBoxCollider.h"
 #include "CGravity.h"
 #include "CName.h"
 #include "CTransform.h"
@@ -31,4 +32,5 @@ void ComponentFactory::registerBuiltInComponents()
     registerComponent<CGravity>("Gravity");
     registerComponent<CName>("Name");
     registerComponent<CCircleCollider>("CircleCollider");
+    registerComponent<CBoxCollider>("BoxCollider");
 }

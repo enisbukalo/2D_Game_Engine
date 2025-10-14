@@ -40,6 +40,28 @@ public:
     };
 
     /**
+     * @brief Gets a component of the specified type or derived from it
+     * @tparam T The base type of component to get
+     * @return Pointer to the component if found (may be a derived type), nullptr otherwise
+     *
+     * This method uses dynamic_cast to check all components, so it's slower than getComponent
+     * but works with inheritance hierarchies.
+     */
+    template <typename T>
+    T *getComponentDerived()
+    {
+        for (const auto& pair : m_components)
+        {
+            T* component = dynamic_cast<T*>(pair.second.get());
+            if (component != nullptr)
+            {
+                return component;
+            }
+        }
+        return nullptr;
+    };
+
+    /**
      * @brief Adds a component of the specified type with given arguments
      * @tparam T The type of component to add
      * @tparam Args Types of arguments to forward to the component constructor
@@ -65,6 +87,27 @@ public:
     bool hasComponent()
     {
         return m_components.find(std::type_index(typeid(T))) != m_components.end();
+    };
+
+    /**
+     * @brief Checks if the entity has a component of the specified type or derived from it
+     * @tparam T The base type of component to check for
+     * @return true if a component of type T or derived from T exists, false otherwise
+     *
+     * This method uses dynamic_cast to check all components, so it's slower than hasComponent
+     * but works with inheritance hierarchies.
+     */
+    template <typename T>
+    bool hasComponentDerived()
+    {
+        for (const auto& pair : m_components)
+        {
+            if (dynamic_cast<T*>(pair.second.get()) != nullptr)
+            {
+                return true;
+            }
+        }
+        return false;
     };
 
     /**
