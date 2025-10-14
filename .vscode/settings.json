@@ -177,7 +177,8 @@
         "syncstream": "cpp",
         "thread": "cpp",
         "typeindex": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "cassert": "cpp"
     },
     "editor.formatOnSave": true,
     "editor.defaultFormatter": null,

@@ -51,7 +51,7 @@ set(SFML_BUILD_GRAPHICS ON CACHE BOOL "")
 
 FetchContent_Declare(SFML
     GIT_REPOSITORY https://github.com/SFML/SFML.git
-    GIT_TAG 2.6.x
+    GIT_TAG 3.0.2
     GIT_SHALLOW ON)
 
 FetchContent_MakeAvailable(SFML)
@@ -59,7 +59,7 @@ FetchContent_MakeAvailable(SFML)
 # Only build what we need from ImGui-SFML
 FetchContent_Declare(IMGUI
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
-    GIT_TAG v1.91.3
+    GIT_TAG v1.91.5
     GIT_SHALLOW ON)
 
 FetchContent_MakeAvailable(IMGUI)
@@ -71,7 +71,7 @@ set(IMGUI_SFML_INSTALL ON)
 
 FetchContent_Declare(IMGUI_SFML
     GIT_REPOSITORY https://github.com/SFML/imgui-sfml.git
-    GIT_TAG 2.6.x
+    GIT_TAG v3.0
     GIT_SHALLOW ON)
 
 FetchContent_MakeAvailable(SFML IMGUI_SFML)
@@ -203,10 +203,17 @@ endif()
 
 # Add tests if enabled
 if(GAMEENGINE_BUILD_TESTS)
-    # Configure GTest
+    # Configure GTest - build as static libraries to avoid DLL issues
     set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
     set(INSTALL_GMOCK OFF CACHE BOOL "" FORCE)
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
+    # Temporarily disable shared library building for Google Test
+    set(BUILD_SHARED_LIBS_BACKUP ${BUILD_SHARED_LIBS})
+    set(BUILD_SHARED_LIBS OFF)
+
     add_subdirectory(tests)
+
+    # Restore BUILD_SHARED_LIBS setting
+    set(BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS_BACKUP})
 endif()

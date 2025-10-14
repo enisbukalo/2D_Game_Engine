@@ -54,3 +54,25 @@ target_include_directories(unit_tests PRIVATE
     ${SYSTEM_DIR}
     ${UTILITY_DIR}
 )
+
+# Copy required DLLs to the test executable directory on Windows
+if(WIN32)
+    add_custom_command(TARGET unit_tests POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:GameEngine>
+            $<TARGET_FILE_DIR:unit_tests>
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:sfml-system>
+            $<TARGET_FILE_DIR:unit_tests>
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:sfml-window>
+            $<TARGET_FILE_DIR:unit_tests>
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:sfml-graphics>
+            $<TARGET_FILE_DIR:unit_tests>
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:ImGui-SFML>
+            $<TARGET_FILE_DIR:unit_tests>
+        COMMENT "Copying DLLs to test executable directory"
+    )
+endif()

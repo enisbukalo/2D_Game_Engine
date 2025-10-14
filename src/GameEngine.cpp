@@ -13,10 +13,9 @@ GameEngine::~GameEngine()
 
 void GameEngine::readInputs()
 {
-    sf::Event event;
-    while (m_window->pollEvent(event))
+    while (const std::optional<sf::Event> event = m_window->pollEvent())
     {
-        if (event.type == sf::Event::Closed)
+        if (event->is<sf::Event::Closed>())
         {
             m_window->close();
             m_gameRunning = false;
