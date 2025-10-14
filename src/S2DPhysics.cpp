@@ -231,107 +231,174 @@ void S2DPhysics::resolveCollision(Entity* a, Entity* b, const CCollider* collide
     if (!transformA || !transformB)
         return;
 
+    // Check if objects are static (immovable) based on their collider flag
+    bool aIsStatic = colliderA->isStatic();
+    bool bIsStatic = colliderB->isStatic();
+
+    // Cast to specific collider types
+    auto* circleA = dynamic_cast<const CCircleCollider*>(colliderA);
+    auto* circleB = dynamic_cast<const CCircleCollider*>(colliderB);
+    auto* boxA = dynamic_cast<const CBoxCollider*>(colliderA);
+    auto* boxB = dynamic_cast<const CBoxCollider*>(colliderB);
+
+    // Dispatch to appropriate collision resolver
+    if (circleA && circleB)
+    {
+        resolveCircleVsCircle(transformA, transformB, circleA, circleB, aIsStatic, bIsStatic);
+    }
+    else if ((circleA && boxB) || (boxA && circleB))
+    {
+        resolveCircleVsBox(transformA, transformB, circleA, boxA, circleB, boxB, aIsStatic, bIsStatic);
+    }
+    else if (boxA && boxB)
+    {
+        resolveBoxVsBox(transformA, transformB, boxA, boxB, aIsStatic, bIsStatic);
+    }
+}
+
+void S2DPhysics::resolveCircleVsCircle(CTransform* transformA, CTransform* transformB,
+                                       const CCircleCollider* circleA, const CCircleCollider* circleB,
+                                       bool aIsStatic, bool bIsStatic)
+{
     // Get positions and velocities
     Vec2 posA = transformA->getPosition();
     Vec2 posB = transformB->getPosition();
     Vec2 velA = transformA->getVelocity();
     Vec2 velB = transformB->getVelocity();
 
-    // Calculate collision normal and penetration depth based on collider types
+    // Calculate collision normal and penetration
+    Vec2 delta = posB - posA;
+    float distance = delta.length();
+
+    if (distance < 0.0001f)
+        return;
+
+    // Normal points from A to B
+    Vec2 normal = delta / distance;
+    float penetration = (circleA->getRadius() + circleB->getRadius()) - distance;
+
+    if (penetration <= 0.0f)
+        return;
+
+    // Calculate relative velocity
+    Vec2 relativeVel = velA - velB;
+    float velAlongNormal = relativeVel.dot(normal);
+
+    std::cout << "[DEBUG] Circle vs Circle: normal=(" << normal.x << "," << normal.y << ")" << std::endl;
+    std::cout << "[DEBUG] Circle vs Circle: velAlongNormal=" << velAlongNormal << std::endl;
+
+    // Only apply velocity changes if objects are approaching
+    if (velAlongNormal > 0)
+    {
+        float restitution = 0.8f;
+        float impulseMagnitude = -(1.0f + restitution) * velAlongNormal;
+
+        // Apply impulse based on static/dynamic state
+        if (bIsStatic && !aIsStatic)
+        {
+            Vec2 impulse = normal * impulseMagnitude;
+            transformA->setVelocity(velA + impulse);
+        }
+        else if (aIsStatic && !bIsStatic)
+        {
+            Vec2 impulse = normal * impulseMagnitude;
+            transformB->setVelocity(velB - impulse);
+        }
+        else if (!aIsStatic && !bIsStatic)
+        {
+            Vec2 impulse = normal * (impulseMagnitude / 2.0f);
+            transformA->setVelocity(velA + impulse);
+            transformB->setVelocity(velB - impulse);
+        }
+    }
+
+    // Positional correction
+    if (penetration > 0.0f)
+    {
+        float correctionPercent = 0.8f;
+        Vec2 correction = normal * (penetration * correctionPercent);
+
+        if (bIsStatic && !aIsStatic)
+        {
+            transformA->setPosition(posA - correction);
+        }
+        else if (aIsStatic && !bIsStatic)
+        {
+            transformB->setPosition(posB + correction);
+        }
+        else if (!aIsStatic && !bIsStatic)
+        {
+            transformA->setPosition(posA - correction * 0.5f);
+            transformB->setPosition(posB + correction * 0.5f);
+        }
+    }
+}
+
+void S2DPhysics::resolveCircleVsBox(CTransform* transformA, CTransform* transformB,
+                                    const CCircleCollider* circleA, const CBoxCollider* boxA,
+                                    const CCircleCollider* circleB, const CBoxCollider* boxB,
+                                    bool aIsStatic, bool bIsStatic)
+{
+    // Determine which is circle and which is box
+    const CCircleCollider* circle = circleA ? circleA : circleB;
+    const CBoxCollider* box = boxA ? boxA : boxB;
+
+    // Get positions and velocities
+    Vec2 posA = transformA->getPosition();
+    Vec2 posB = transformB->getPosition();
+    Vec2 velA = transformA->getVelocity();
+    Vec2 velB = transformB->getVelocity();
+
+    // Determine circle and box positions based on which is which
+    Vec2 circlePos = circleA ? posA : posB;
+    Vec2 boxPos = circleA ? posB : posA;
+
+    Vec2 boxSize = box->getSize();
+    Vec2 halfSize = boxSize * 0.5f;
+
+    // Find closest point on box to circle
+    float closestX = std::max(boxPos.x - halfSize.x, std::min(circlePos.x, boxPos.x + halfSize.x));
+    float closestY = std::max(boxPos.y - halfSize.y, std::min(circlePos.y, boxPos.y + halfSize.y));
+    Vec2 closest(closestX, closestY);
+
+    Vec2 delta = circlePos - closest;
+    float distance = delta.length();
+
     Vec2 normal;
-    float penetration = 0.0f;
+    float penetration;
 
-    auto* circleA = dynamic_cast<const CCircleCollider*>(colliderA);
-    auto* circleB = dynamic_cast<const CCircleCollider*>(colliderB);
-    auto* boxA = dynamic_cast<const CBoxCollider*>(colliderA);
-    auto* boxB = dynamic_cast<const CBoxCollider*>(colliderB);
-
-    // Circle vs Circle
-    if (circleA && circleB)
+    if (distance < 0.0001f)
     {
-        Vec2 delta = posB - posA;
-        float distance = delta.length();
+        // Circle center is inside box - push out along shortest axis
+        float overlapX = halfSize.x - std::abs(circlePos.x - boxPos.x);
+        float overlapY = halfSize.y - std::abs(circlePos.y - boxPos.y);
 
-        if (distance < 0.0001f)
-            return;
-
-        normal = delta / distance;
-        penetration = (circleA->getRadius() + circleB->getRadius()) - distance;
-    }
-    // Circle vs Box or Box vs Circle
-    else if ((circleA && boxB) || (boxA && circleB))
-    {
-        // Ensure circle is A and box is B for consistent calculations
-        const CCircleCollider* circle = circleA ? circleA : circleB;
-        const CBoxCollider* box = boxA ? boxA : boxB;
-        Vec2 circlePos = circleA ? posA : posB;
-        Vec2 boxPos = circleA ? posB : posA;
-
-        Vec2 boxSize = box->getSize();
-        Vec2 halfSize = boxSize * 0.5f;
-
-        // Find closest point on box to circle
-        float closestX = std::max(boxPos.x - halfSize.x, std::min(circlePos.x, boxPos.x + halfSize.x));
-        float closestY = std::max(boxPos.y - halfSize.y, std::min(circlePos.y, boxPos.y + halfSize.y));
-        Vec2 closest(closestX, closestY);
-
-        Vec2 delta = circlePos - closest;
-        float distance = delta.length();
-
-        if (distance < 0.0001f)
-        {
-            // Circle center is inside box - push out along shortest axis
-            float overlapX = halfSize.x - std::abs(circlePos.x - boxPos.x);
-            float overlapY = halfSize.y - std::abs(circlePos.y - boxPos.y);
-
-            if (overlapX < overlapY)
-            {
-                normal = Vec2((circlePos.x > boxPos.x) ? 1.0f : -1.0f, 0.0f);
-                penetration = overlapX + circle->getRadius();
-            }
-            else
-            {
-                normal = Vec2(0.0f, (circlePos.y > boxPos.y) ? 1.0f : -1.0f);
-                penetration = overlapY + circle->getRadius();
-            }
-        }
-        else
-        {
-            normal = delta / distance;
-            penetration = circle->getRadius() - distance;
-        }
-
-        // If box was A, flip the normal
-        if (boxA)
-            normal = normal * -1.0f;
-    }
-    // Box vs Box
-    else if (boxA && boxB)
-    {
-        Vec2 delta = posB - posA;
-        Vec2 halfSizeA = boxA->getSize() * 0.5f;
-        Vec2 halfSizeB = boxB->getSize() * 0.5f;
-
-        // Calculate overlap on each axis
-        float overlapX = (halfSizeA.x + halfSizeB.x) - std::abs(delta.x);
-        float overlapY = (halfSizeA.y + halfSizeB.y) - std::abs(delta.y);
-
-        // Separate along axis of least penetration
         if (overlapX < overlapY)
         {
-            normal = Vec2((delta.x > 0) ? 1.0f : -1.0f, 0.0f);
-            penetration = overlapX;
+            // Normal points from box to circle (away from box center)
+            normal = Vec2((circlePos.x > boxPos.x) ? 1.0f : -1.0f, 0.0f);
+            penetration = overlapX + circle->getRadius();
         }
         else
         {
-            normal = Vec2(0.0f, (delta.y > 0) ? 1.0f : -1.0f);
-            penetration = overlapY;
+            normal = Vec2(0.0f, (circlePos.y > boxPos.y) ? 1.0f : -1.0f);
+            penetration = overlapY + circle->getRadius();
         }
     }
     else
     {
-        // Unsupported collision type
-        return;
+        // Normal points from closest point on box to circle center
+        normal = delta / distance;
+        penetration = circle->getRadius() - distance;
+    }
+
+    // At this point, normal points from box to circle
+    // We need normal to point from A to B
+    // If A is circle and B is box: normal should point from circle to box (flip it)
+    // If A is box and B is circle: normal should point from box to circle (keep it)
+    if (circleA)
+    {
+        normal = normal * -1.0f;
     }
 
     if (penetration <= 0.0f)
@@ -339,85 +406,149 @@ void S2DPhysics::resolveCollision(Entity* a, Entity* b, const CCollider* collide
 
     // Calculate relative velocity
     Vec2 relativeVel = velA - velB;
-
-    // Calculate relative velocity along the normal
     float velAlongNormal = relativeVel.dot(normal);
 
-    // Check if objects are static (immovable) based on their collider flag
-    bool aIsStatic = colliderA->isStatic();
-    bool bIsStatic = colliderB->isStatic();
+    std::cout << "[DEBUG] Circle vs Box: normal=(" << normal.x << "," << normal.y << ")" << std::endl;
+    std::cout << "[DEBUG] Circle vs Box: velA=(" << velA.x << "," << velA.y << ") velB=(" << velB.x << "," << velB.y << ")" << std::endl;
+    std::cout << "[DEBUG] Circle vs Box: velAlongNormal=" << velAlongNormal << std::endl;
+    std::cout << "[DEBUG] Circle vs Box: penetration=" << penetration << std::endl;
 
-    std::cout << "[DEBUG] resolveCollision: normal=(" << normal.x << "," << normal.y << ")" << std::endl;
-    std::cout << "[DEBUG] resolveCollision: velA=(" << velA.x << "," << velA.y << ") velB=(" << velB.x << "," << velB.y << ")" << std::endl;
-    std::cout << "[DEBUG] resolveCollision: relativeVel=(" << relativeVel.x << "," << relativeVel.y << ")" << std::endl;
-    std::cout << "[DEBUG] resolveCollision: velAlongNormal=" << velAlongNormal << std::endl;
-    std::cout << "[DEBUG] resolveCollision: penetration=" << penetration << std::endl;
-    std::cout << "[DEBUG] resolveCollision: aIsStatic=" << aIsStatic << " bIsStatic=" << bIsStatic << std::endl;
-
-    // Only apply velocity changes if objects are approaching (not separating)
-    // The normal points from A to B
-    // If velAlongNormal > 0, A is moving toward B relative to B (approaching - resolve)
-    // If velAlongNormal <= 0, A is moving away from B relative to B (separating - skip)
+    // Only apply velocity changes if objects are approaching
     if (velAlongNormal > 0)
     {
-        // Calculate restitution (bounciness) - using 0.8 for nice bouncy collisions
         float restitution = 0.8f;
-
-        // Calculate impulse scalar
         float impulseMagnitude = -(1.0f + restitution) * velAlongNormal;
 
         // Apply impulse based on static/dynamic state
         if (bIsStatic && !aIsStatic)
         {
-            // B is static, only apply impulse to A
             Vec2 impulse = normal * impulseMagnitude;
             transformA->setVelocity(velA + impulse);
         }
         else if (aIsStatic && !bIsStatic)
         {
-            // A is static, only apply impulse to B
             Vec2 impulse = normal * impulseMagnitude;
             transformB->setVelocity(velB - impulse);
         }
         else if (!aIsStatic && !bIsStatic)
         {
-            // Both dynamic, split the impulse
             Vec2 impulse = normal * (impulseMagnitude / 2.0f);
-            std::cout << "[DEBUG] Both dynamic: impulseMagnitude=" << impulseMagnitude << " impulse=(" << impulse.x << "," << impulse.y << ")" << std::endl;
-            std::cout << "[DEBUG] Before: velA=(" << velA.x << "," << velA.y << ") velB=(" << velB.x << "," << velB.y << ")" << std::endl;
-            Vec2 newVelA = velA + impulse;
-            Vec2 newVelB = velB - impulse;
-            std::cout << "[DEBUG] After:  newVelA=(" << newVelA.x << "," << newVelA.y << ") newVelB=(" << newVelB.x << "," << newVelB.y << ")" << std::endl;
-            transformA->setVelocity(newVelA);
-            transformB->setVelocity(newVelB);
+            transformA->setVelocity(velA + impulse);
+            transformB->setVelocity(velB - impulse);
         }
-        // If both static, no velocity change
     }
 
-    // Positional correction to prevent overlap (separate the objects)
+    // Positional correction
     if (penetration > 0.0f)
     {
-        // Correction percentage (typically 0.2 to 0.8) - using 0.8 for strong separation
         float correctionPercent = 0.8f;
         Vec2 correction = normal * (penetration * correctionPercent);
 
-        // Apply positional correction based on static/dynamic state
         if (bIsStatic && !aIsStatic)
         {
-            // B is static, only move A
             transformA->setPosition(posA - correction);
         }
         else if (aIsStatic && !bIsStatic)
         {
-            // A is static, only move B
             transformB->setPosition(posB + correction);
         }
         else if (!aIsStatic && !bIsStatic)
         {
-            // Both dynamic, separate them equally
             transformA->setPosition(posA - correction * 0.5f);
             transformB->setPosition(posB + correction * 0.5f);
         }
-        // If both static, no positional correction
+    }
+}
+
+void S2DPhysics::resolveBoxVsBox(CTransform* transformA, CTransform* transformB,
+                                 const CBoxCollider* boxA, const CBoxCollider* boxB,
+                                 bool aIsStatic, bool bIsStatic)
+{
+    // Get positions and velocities
+    Vec2 posA = transformA->getPosition();
+    Vec2 posB = transformB->getPosition();
+    Vec2 velA = transformA->getVelocity();
+    Vec2 velB = transformB->getVelocity();
+
+    // Calculate collision normal and penetration
+    Vec2 delta = posB - posA;
+    Vec2 halfSizeA = boxA->getSize() * 0.5f;
+    Vec2 halfSizeB = boxB->getSize() * 0.5f;
+
+    // Calculate overlap on each axis
+    float overlapX = (halfSizeA.x + halfSizeB.x) - std::abs(delta.x);
+    float overlapY = (halfSizeA.y + halfSizeB.y) - std::abs(delta.y);
+
+    Vec2 normal;
+    float penetration;
+
+    // Separate along axis of least penetration
+    if (overlapX < overlapY)
+    {
+        // Normal points from A to B along X axis
+        normal = Vec2((delta.x > 0) ? 1.0f : -1.0f, 0.0f);
+        penetration = overlapX;
+    }
+    else
+    {
+        // Normal points from A to B along Y axis
+        normal = Vec2(0.0f, (delta.y > 0) ? 1.0f : -1.0f);
+        penetration = overlapY;
+    }
+
+    if (penetration <= 0.0f)
+        return;
+
+    // Calculate relative velocity
+    Vec2 relativeVel = velA - velB;
+    float velAlongNormal = relativeVel.dot(normal);
+
+    std::cout << "[DEBUG] Box vs Box: normal=(" << normal.x << "," << normal.y << ")" << std::endl;
+    std::cout << "[DEBUG] Box vs Box: velAlongNormal=" << velAlongNormal << std::endl;
+
+    // Only apply velocity changes if objects are approaching
+    if (velAlongNormal > 0)
+    {
+        float restitution = 0.8f;
+        float impulseMagnitude = -(1.0f + restitution) * velAlongNormal;
+
+        // Apply impulse based on static/dynamic state
+        if (bIsStatic && !aIsStatic)
+        {
+            Vec2 impulse = normal * impulseMagnitude;
+            transformA->setVelocity(velA + impulse);
+        }
+        else if (aIsStatic && !bIsStatic)
+        {
+            Vec2 impulse = normal * impulseMagnitude;
+            transformB->setVelocity(velB - impulse);
+        }
+        else if (!aIsStatic && !bIsStatic)
+        {
+            Vec2 impulse = normal * (impulseMagnitude / 2.0f);
+            transformA->setVelocity(velA + impulse);
+            transformB->setVelocity(velB - impulse);
+        }
+    }
+
+    // Positional correction
+    if (penetration > 0.0f)
+    {
+        float correctionPercent = 0.8f;
+        Vec2 correction = normal * (penetration * correctionPercent);
+
+        if (bIsStatic && !aIsStatic)
+        {
+            transformA->setPosition(posA - correction);
+        }
+        else if (aIsStatic && !bIsStatic)
+        {
+            transformB->setPosition(posB + correction);
+        }
+        else if (!aIsStatic && !bIsStatic)
+        {
+            transformA->setPosition(posA - correction * 0.5f);
+            transformB->setPosition(posB + correction * 0.5f);
+        }
     }
 }

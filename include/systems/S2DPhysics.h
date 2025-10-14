@@ -5,6 +5,11 @@
 #include "components/CCollider.h"
 #include "physics/Quadtree.h"
 
+// Forward declarations
+class CTransform;
+class CCircleCollider;
+class CBoxCollider;
+
 /**
  * @brief 2D Physics system for handling physics simulations
  *
@@ -82,6 +87,48 @@ private:
      * @param colliderB Collider of second entity
      */
     void resolveCollision(Entity* a, Entity* b, const CCollider* colliderA, const CCollider* colliderB);
+
+    /**
+     * @brief Resolves circle-circle collision
+     * @param transformA Transform of first entity
+     * @param transformB Transform of second entity
+     * @param circleA First circle collider
+     * @param circleB Second circle collider
+     * @param aIsStatic Whether first entity is static
+     * @param bIsStatic Whether second entity is static
+     */
+    void resolveCircleVsCircle(CTransform* transformA, CTransform* transformB,
+                               const CCircleCollider* circleA, const CCircleCollider* circleB,
+                               bool aIsStatic, bool bIsStatic);
+
+    /**
+     * @brief Resolves circle-box collision
+     * @param transformA Transform of first entity
+     * @param transformB Transform of second entity
+     * @param circleA Circle collider (can be nullptr if A is box)
+     * @param boxA Box collider (can be nullptr if A is circle)
+     * @param circleB Circle collider (can be nullptr if B is box)
+     * @param boxB Box collider (can be nullptr if B is circle)
+     * @param aIsStatic Whether first entity is static
+     * @param bIsStatic Whether second entity is static
+     */
+    void resolveCircleVsBox(CTransform* transformA, CTransform* transformB,
+                            const CCircleCollider* circleA, const CBoxCollider* boxA,
+                            const CCircleCollider* circleB, const CBoxCollider* boxB,
+                            bool aIsStatic, bool bIsStatic);
+
+    /**
+     * @brief Resolves box-box collision
+     * @param transformA Transform of first entity
+     * @param transformB Transform of second entity
+     * @param boxA First box collider
+     * @param boxB Second box collider
+     * @param aIsStatic Whether first entity is static
+     * @param bIsStatic Whether second entity is static
+     */
+    void resolveBoxVsBox(CTransform* transformA, CTransform* transformB,
+                         const CBoxCollider* boxA, const CBoxCollider* boxB,
+                         bool aIsStatic, bool bIsStatic);
 };
 
 #endif  // S2D_PHYSICS_H

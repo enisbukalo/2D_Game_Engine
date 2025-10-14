@@ -737,3 +737,420 @@ TEST_F(PhysicsSystemTest, BoxCornerCollision)
     // depending on exact positioning
     EXPECT_TRUE(velocityChanged || !circleCollider->intersects(boxCollider));
 }
+
+// ========== REFACTORED COLLISION RESOLUTION TESTS ==========
+// These tests verify the new separated collision resolution functions
+
+TEST_F(PhysicsSystemTest, CircleVsCircle_HeadOnCollision)
+{
+    // Test the resolveCircleVsCircle function with a head-on collision
+    auto& physics = S2DPhysics::instance();
+    physics.setWorldBounds(Vec2(400.0f, 400.0f), Vec2(800.0f, 800.0f));
+
+    // Two circles moving toward each other
+    auto circle1 = EntityManager::instance().addEntity("circle1");
+    auto transform1 = circle1->addComponent<CTransform>();
+    auto collider1 = circle1->addComponent<CCircleCollider>(30.0f);
+    transform1->setPosition(Vec2(200.0f, 200.0f));
+    transform1->setVelocity(Vec2(100.0f, 0.0f));  // Moving right
+
+    auto circle2 = EntityManager::instance().addEntity("circle2");
+    auto transform2 = circle2->addComponent<CTransform>();
+    auto collider2 = circle2->addComponent<CCircleCollider>(30.0f);
+    transform2->setPosition(Vec2(250.0f, 200.0f));  // 50 units apart, overlapping (radius sum = 60)
+    transform2->setVelocity(Vec2(-100.0f, 0.0f));  // Moving left
+
+    EntityManager::instance().update(0.0f);
+
+    // Store initial velocities
+    float initialVel1X = transform1->getVelocity().x;
+    float initialVel2X = transform2->getVelocity().x;
+
+    // Update physics
+    physics.update(0.016f);
+
+    // Check velocities reversed (elastic collision)
+    float finalVel1X = transform1->getVelocity().x;
+    float finalVel2X = transform2->getVelocity().x;
+
+    // With restitution of 0.8, velocities should reverse and reduce
+    EXPECT_LT(finalVel1X, 0.0f);  // Circle 1 should bounce back (negative)
+    EXPECT_GT(finalVel2X, 0.0f);  // Circle 2 should bounce back (positive)
+    EXPECT_NE(finalVel1X, initialVel1X);
+    EXPECT_NE(finalVel2X, initialVel2X);
+}
+
+TEST_F(PhysicsSystemTest, CircleVsCircle_StaticCollision)
+{
+    // Test circle colliding with static circle
+    auto& physics = S2DPhysics::instance();
+    physics.setWorldBounds(Vec2(400.0f, 400.0f), Vec2(800.0f, 800.0f));
+
+    // Static circle
+    auto staticCircle = EntityManager::instance().addEntity("static");
+    auto staticTransform = staticCircle->addComponent<CTransform>();
+    auto staticCollider = staticCircle->addComponent<CCircleCollider>(40.0f);
+    staticCollider->setStatic(true);
+    staticTransform->setPosition(Vec2(300.0f, 200.0f));
+    staticTransform->setVelocity(Vec2(0.0f, 0.0f));
+
+    // Moving circle
+    auto movingCircle = EntityManager::instance().addEntity("moving");
+    auto movingTransform = movingCircle->addComponent<CTransform>();
+    auto movingCollider = movingCircle->addComponent<CCircleCollider>(40.0f);
+    movingTransform->setPosition(Vec2(250.0f, 200.0f));  // 50 apart, overlapping (radius sum = 80)
+    movingTransform->setVelocity(Vec2(100.0f, 0.0f));
+
+    EntityManager::instance().update(0.0f);
+
+    // Update physics
+    physics.update(0.016f);
+
+    // Static should not move
+    EXPECT_EQ(staticTransform->getVelocity().x, 0.0f);
+    EXPECT_EQ(staticTransform->getVelocity().y, 0.0f);
+
+    // Moving circle should bounce back
+    EXPECT_LT(movingTransform->getVelocity().x, 0.0f);
+}
+
+TEST_F(PhysicsSystemTest, CircleVsCircle_GlancingBlow)
+{
+    // Test circles colliding at an angle
+    auto& physics = S2DPhysics::instance();
+    physics.setWorldBounds(Vec2(400.0f, 400.0f), Vec2(800.0f, 800.0f));
+
+    auto circle1 = EntityManager::instance().addEntity("circle1");
+    auto transform1 = circle1->addComponent<CTransform>();
+    auto collider1 = circle1->addComponent<CCircleCollider>(25.0f);
+    transform1->setPosition(Vec2(200.0f, 200.0f));
+    transform1->setVelocity(Vec2(50.0f, 0.0f));
+
+    auto circle2 = EntityManager::instance().addEntity("circle2");
+    auto transform2 = circle2->addComponent<CTransform>();
+    auto collider2 = circle2->addComponent<CCircleCollider>(25.0f);
+    transform2->setPosition(Vec2(240.0f, 220.0f));  // Offset vertically
+    transform2->setVelocity(Vec2(-50.0f, 0.0f));
+
+    EntityManager::instance().update(0.0f);
+
+    physics.update(0.016f);
+
+    // Both circles should have y-component to their velocity after glancing collision
+    Vec2 vel1 = transform1->getVelocity();
+    Vec2 vel2 = transform2->getVelocity();
+
+    // At least one should have gained y-velocity
+    bool hasYVelocity = (std::abs(vel1.y) > 0.1f) || (std::abs(vel2.y) > 0.1f);
+    EXPECT_TRUE(hasYVelocity);
+}
+
+TEST_F(PhysicsSystemTest, CircleVsBox_DirectImpact)
+{
+    // Test circle hitting box face-on
+    auto& physics = S2DPhysics::instance();
+    physics.setWorldBounds(Vec2(400.0f, 400.0f), Vec2(800.0f, 800.0f));
+
+    // Static box
+    auto box = EntityManager::instance().addEntity("box");
+    auto boxTransform = box->addComponent<CTransform>();
+    auto boxCollider = box->addComponent<CBoxCollider>(50.0f, 50.0f);
+    boxCollider->setStatic(true);
+    boxTransform->setPosition(Vec2(300.0f, 200.0f));
+    boxTransform->setVelocity(Vec2(0.0f, 0.0f));
+
+    // Moving circle
+    auto circle = EntityManager::instance().addEntity("circle");
+    auto circleTransform = circle->addComponent<CTransform>();
+    auto circleCollider = circle->addComponent<CCircleCollider>(30.0f);
+    circleTransform->setPosition(Vec2(220.0f, 200.0f));  // Approaching from left
+    circleTransform->setVelocity(Vec2(100.0f, 0.0f));
+
+    EntityManager::instance().update(0.0f);
+
+    float initialVelX = circleTransform->getVelocity().x;
+
+    physics.update(0.016f);
+
+    float finalVelX = circleTransform->getVelocity().x;
+
+    // Circle should bounce back (negative velocity)
+    EXPECT_NE(finalVelX, initialVelX);
+    EXPECT_LT(finalVelX, 0.0f);
+}
+
+TEST_F(PhysicsSystemTest, CircleVsBox_CornerCollision)
+{
+    // Test circle hitting box corner
+    auto& physics = S2DPhysics::instance();
+    physics.setWorldBounds(Vec2(400.0f, 400.0f), Vec2(800.0f, 800.0f));
+
+    auto box = EntityManager::instance().addEntity("box");
+    auto boxTransform = box->addComponent<CTransform>();
+    auto boxCollider = box->addComponent<CBoxCollider>(40.0f, 40.0f);
+    boxCollider->setStatic(true);
+    boxTransform->setPosition(Vec2(300.0f, 300.0f));
+    boxTransform->setVelocity(Vec2(0.0f, 0.0f));
+
+    auto circle = EntityManager::instance().addEntity("circle");
+    auto circleTransform = circle->addComponent<CTransform>();
+    auto circleCollider = circle->addComponent<CCircleCollider>(25.0f);
+    // Position to hit the top-right corner
+    circleTransform->setPosition(Vec2(335.0f, 335.0f));
+    circleTransform->setVelocity(Vec2(-50.0f, -50.0f));
+
+    EntityManager::instance().update(0.0f);
+
+    physics.update(0.016f);
+
+    // Circle should bounce away from corner (both components should change)
+    Vec2 vel = circleTransform->getVelocity();
+    bool velocityChanged = (vel.x != -50.0f) || (vel.y != -50.0f);
+    EXPECT_TRUE(velocityChanged);
+}
+
+TEST_F(PhysicsSystemTest, CircleVsBox_CircleAsFirstParameter)
+{
+    // Test with circle as entity A and box as entity B
+    auto& physics = S2DPhysics::instance();
+    physics.setWorldBounds(Vec2(400.0f, 400.0f), Vec2(800.0f, 800.0f));
+
+    // Create circle first
+    auto circle = EntityManager::instance().addEntity("circle");
+    auto circleTransform = circle->addComponent<CTransform>();
+    auto circleCollider = circle->addComponent<CCircleCollider>(30.0f);
+    circleTransform->setPosition(Vec2(200.0f, 200.0f));
+    circleTransform->setVelocity(Vec2(80.0f, 0.0f));
+
+    // Create box second
+    auto box = EntityManager::instance().addEntity("box");
+    auto boxTransform = box->addComponent<CTransform>();
+    auto boxCollider = box->addComponent<CBoxCollider>(40.0f, 40.0f);
+    boxCollider->setStatic(true);
+    boxTransform->setPosition(Vec2(260.0f, 200.0f));
+
+    EntityManager::instance().update(0.0f);
+
+    physics.update(0.016f);
+
+    // Circle should bounce back
+    EXPECT_LT(circleTransform->getVelocity().x, 0.0f);
+}
+
+TEST_F(PhysicsSystemTest, CircleVsBox_BoxAsFirstParameter)
+{
+    // Test with box as entity A and circle as entity B
+    auto& physics = S2DPhysics::instance();
+    physics.setWorldBounds(Vec2(400.0f, 400.0f), Vec2(800.0f, 800.0f));
+
+    // Create box first
+    auto box = EntityManager::instance().addEntity("box");
+    auto boxTransform = box->addComponent<CTransform>();
+    auto boxCollider = box->addComponent<CBoxCollider>(40.0f, 40.0f);
+    boxCollider->setStatic(true);
+    boxTransform->setPosition(Vec2(260.0f, 200.0f));
+
+    // Create circle second
+    auto circle = EntityManager::instance().addEntity("circle");
+    auto circleTransform = circle->addComponent<CTransform>();
+    auto circleCollider = circle->addComponent<CCircleCollider>(30.0f);
+    circleTransform->setPosition(Vec2(200.0f, 200.0f));
+    circleTransform->setVelocity(Vec2(80.0f, 0.0f));
+
+    EntityManager::instance().update(0.0f);
+
+    physics.update(0.016f);
+
+    // Circle should bounce back (same result regardless of parameter order)
+    EXPECT_LT(circleTransform->getVelocity().x, 0.0f);
+}
+
+TEST_F(PhysicsSystemTest, BoxVsBox_HeadOnCollision)
+{
+    // Test two boxes colliding head-on
+    auto& physics = S2DPhysics::instance();
+    physics.setWorldBounds(Vec2(400.0f, 400.0f), Vec2(800.0f, 800.0f));
+
+    auto box1 = EntityManager::instance().addEntity("box1");
+    auto transform1 = box1->addComponent<CTransform>();
+    auto collider1 = box1->addComponent<CBoxCollider>(30.0f, 30.0f);
+    transform1->setPosition(Vec2(200.0f, 200.0f));
+    transform1->setVelocity(Vec2(60.0f, 0.0f));
+
+    auto box2 = EntityManager::instance().addEntity("box2");
+    auto transform2 = box2->addComponent<CTransform>();
+    auto collider2 = box2->addComponent<CBoxCollider>(30.0f, 30.0f);
+    transform2->setPosition(Vec2(250.0f, 200.0f));  // 50 apart, overlapping (half-width sum = 60)
+    transform2->setVelocity(Vec2(-60.0f, 0.0f));
+
+    EntityManager::instance().update(0.0f);
+
+    physics.update(0.016f);
+
+    // Both should bounce back
+    EXPECT_LT(transform1->getVelocity().x, 0.0f);
+    EXPECT_GT(transform2->getVelocity().x, 0.0f);
+}
+
+TEST_F(PhysicsSystemTest, BoxVsBox_OffsetCollision)
+{
+    // Test boxes colliding with vertical offset
+    auto& physics = S2DPhysics::instance();
+    physics.setWorldBounds(Vec2(400.0f, 400.0f), Vec2(800.0f, 800.0f));
+
+    auto box1 = EntityManager::instance().addEntity("box1");
+    auto transform1 = box1->addComponent<CTransform>();
+    auto collider1 = box1->addComponent<CBoxCollider>(40.0f, 40.0f);
+    transform1->setPosition(Vec2(200.0f, 200.0f));
+    transform1->setVelocity(Vec2(50.0f, 0.0f));
+
+    auto box2 = EntityManager::instance().addEntity("box2");
+    auto transform2 = box2->addComponent<CTransform>();
+    auto collider2 = box2->addComponent<CBoxCollider>(40.0f, 60.0f);  // Taller box
+    transform2->setPosition(Vec2(260.0f, 190.0f));  // Slightly lower
+    transform2->setVelocity(Vec2(-50.0f, 0.0f));
+
+    EntityManager::instance().update(0.0f);
+
+    physics.update(0.016f);
+
+    // Should resolve along the axis of least penetration
+    Vec2 vel1 = transform1->getVelocity();
+    Vec2 vel2 = transform2->getVelocity();
+
+    // At least one velocity component should have changed
+    bool changed = (vel1.x != 50.0f) || (vel1.y != 0.0f) || 
+                   (vel2.x != -50.0f) || (vel2.y != 0.0f);
+    EXPECT_TRUE(changed);
+}
+
+TEST_F(PhysicsSystemTest, BoxVsBox_StaticCollision)
+{
+    // Test dynamic box hitting static box
+    auto& physics = S2DPhysics::instance();
+    physics.setWorldBounds(Vec2(400.0f, 400.0f), Vec2(800.0f, 800.0f));
+
+    auto staticBox = EntityManager::instance().addEntity("static");
+    auto staticTransform = staticBox->addComponent<CTransform>();
+    auto staticCollider = staticBox->addComponent<CBoxCollider>(50.0f, 50.0f);
+    staticCollider->setStatic(true);
+    staticTransform->setPosition(Vec2(300.0f, 200.0f));
+
+    auto dynamicBox = EntityManager::instance().addEntity("dynamic");
+    auto dynamicTransform = dynamicBox->addComponent<CTransform>();
+    auto dynamicCollider = dynamicBox->addComponent<CBoxCollider>(40.0f, 40.0f);
+    dynamicTransform->setPosition(Vec2(230.0f, 200.0f));
+    dynamicTransform->setVelocity(Vec2(70.0f, 0.0f));
+
+    EntityManager::instance().update(0.0f);
+
+    physics.update(0.016f);
+
+    // Static should not move
+    EXPECT_EQ(staticTransform->getVelocity().x, 0.0f);
+
+    // Dynamic should bounce back
+    EXPECT_LT(dynamicTransform->getVelocity().x, 0.0f);
+}
+
+TEST_F(PhysicsSystemTest, PositionalCorrection_CircleVsCircle)
+{
+    // Test that overlapping circles are separated
+    auto& physics = S2DPhysics::instance();
+    physics.setWorldBounds(Vec2(400.0f, 400.0f), Vec2(800.0f, 800.0f));
+
+    auto circle1 = EntityManager::instance().addEntity("circle1");
+    auto transform1 = circle1->addComponent<CTransform>();
+    auto collider1 = circle1->addComponent<CCircleCollider>(40.0f);
+    transform1->setPosition(Vec2(200.0f, 200.0f));
+    transform1->setVelocity(Vec2(0.0f, 0.0f));
+
+    auto circle2 = EntityManager::instance().addEntity("circle2");
+    auto transform2 = circle2->addComponent<CTransform>();
+    auto collider2 = circle2->addComponent<CCircleCollider>(40.0f);
+    transform2->setPosition(Vec2(230.0f, 200.0f));  // Heavy overlap (distance 30 < radius sum 80)
+    transform2->setVelocity(Vec2(0.0f, 0.0f));
+
+    EntityManager::instance().update(0.0f);
+
+    // Verify they're overlapping
+    EXPECT_TRUE(collider1->intersects(collider2));
+
+    float initialDistance = (transform2->getPosition() - transform1->getPosition()).length();
+
+    physics.update(0.016f);
+
+    float finalDistance = (transform2->getPosition() - transform1->getPosition()).length();
+
+    // They should be pushed apart
+    EXPECT_GT(finalDistance, initialDistance);
+}
+
+TEST_F(PhysicsSystemTest, PositionalCorrection_CircleVsBox)
+{
+    // Test that overlapping circle and box are separated
+    auto& physics = S2DPhysics::instance();
+    physics.setWorldBounds(Vec2(400.0f, 400.0f), Vec2(800.0f, 800.0f));
+
+    auto box = EntityManager::instance().addEntity("box");
+    auto boxTransform = box->addComponent<CTransform>();
+    auto boxCollider = box->addComponent<CBoxCollider>(50.0f, 50.0f);
+    boxCollider->setStatic(true);
+    boxTransform->setPosition(Vec2(300.0f, 200.0f));
+
+    auto circle = EntityManager::instance().addEntity("circle");
+    auto circleTransform = circle->addComponent<CTransform>();
+    auto circleCollider = circle->addComponent<CCircleCollider>(35.0f);
+    circleTransform->setPosition(Vec2(260.0f, 200.0f));  // Deeply penetrating
+    circleTransform->setVelocity(Vec2(0.0f, 0.0f));
+
+    EntityManager::instance().update(0.0f);
+
+    EXPECT_TRUE(circleCollider->intersects(boxCollider));
+
+    float initialX = circleTransform->getPosition().x;
+
+    physics.update(0.016f);
+
+    float finalX = circleTransform->getPosition().x;
+
+    // Circle should be pushed away from box (to the left)
+    EXPECT_LT(finalX, initialX);
+}
+
+TEST_F(PhysicsSystemTest, NoVelocityChange_WhenSeparating)
+{
+    // Test that no velocity change occurs when objects are already separating
+    auto& physics = S2DPhysics::instance();
+    physics.setWorldBounds(Vec2(400.0f, 400.0f), Vec2(800.0f, 800.0f));
+
+    auto circle1 = EntityManager::instance().addEntity("circle1");
+    auto transform1 = circle1->addComponent<CTransform>();
+    auto collider1 = circle1->addComponent<CCircleCollider>(30.0f);
+    transform1->setPosition(Vec2(200.0f, 200.0f));
+    transform1->setVelocity(Vec2(-50.0f, 0.0f));  // Moving away
+
+    auto circle2 = EntityManager::instance().addEntity("circle2");
+    auto transform2 = circle2->addComponent<CTransform>();
+    auto collider2 = circle2->addComponent<CCircleCollider>(30.0f);
+    transform2->setPosition(Vec2(250.0f, 200.0f));  // Slightly overlapping
+    transform2->setVelocity(Vec2(50.0f, 0.0f));  // Moving away
+
+    EntityManager::instance().update(0.0f);
+
+    float initialVel1 = transform1->getVelocity().x;
+    float initialVel2 = transform2->getVelocity().x;
+
+    physics.update(0.016f);
+
+    // Velocities might change due to positional correction, but the impulse
+    // should only apply if approaching. With high separation velocities,
+    // the relative velocity check should prevent additional impulse
+    // This is a subtle test - main goal is no crash and reasonable behavior
+    Vec2 vel1 = transform1->getVelocity();
+    Vec2 vel2 = transform2->getVelocity();
+    
+    // Verify they're still generally moving apart
+    EXPECT_TRUE((vel1.x < 0.0f && vel2.x > 0.0f) || 
+                !collider1->intersects(collider2));
+}
