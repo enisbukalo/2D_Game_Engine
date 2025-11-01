@@ -10,18 +10,19 @@ NC='\033[0m' # No Color
 BUILD_TYPE="Debug"
 BUILD_SHARED="ON"
 RUN_TESTS=true
-CREATE_PACKAGE=false
 CLEAN_BUILD=false
+INSTALL_PREFIX="./package"
+
 # Help message
 usage() {
     echo "Usage: $0 [options]"
     echo "Options:"
-    echo "  -h, --help           Show this help message"
-    echo "  -t, --type TYPE      Set build type (Debug/Release)"
-    echo "  -s, --shared         Build shared library"
-    echo "  -n, --no-tests       Skip building and running tests"
-    echo "  -c, --clean         Clean build directory"
-    echo "  -p, --package        Create distributable package"
+    echo "  -h, --help              Show this help message"
+    echo "  -t, --type TYPE         Set build type (Debug/Release)"
+    echo "  -s, --shared            Build shared library"
+    echo "  -n, --no-tests          Skip building and running tests"
+    echo "  -c, --clean             Clean build directory"
+    echo "  -i, --install-prefix    Set install prefix (default: ./package)"
 }
 
 # Parse command line arguments
@@ -44,8 +45,9 @@ while [[ $# -gt 0 ]]; do
         -c|--clean)
             CLEAN_BUILD=true
             ;;
-        -p|--package)
-            CREATE_PACKAGE=true
+        -i|--install-prefix)
+            INSTALL_PREFIX="$2"
+            shift
             ;;
         *)
             echo -e "${RED}Unknown option: $1${NC}"
@@ -90,36 +92,9 @@ if [ "$RUN_TESTS" = true ]; then
     "./build/bin/${BUILD_TYPE}/unit_tests.exe" --gtest_output="xml:build/test_results.xml" 2>&1 | tee build/Testing/Temporary/LastTest.log || { echo -e "${RED}Tests failed!${NC}"; exit 1; }
 fi
 
-# Create package if requested
-if [ "$CREATE_PACKAGE" = true ]; then
-    echo -e "${GREEN}Creating package...${NC}"
-
-    # Create package directory structure
-    rm -rf package
-    rm -rf example_project/GameEngine
-
-    # Create package directory structure
-    mkdir -p package/include
-    mkdir -p package/lib
-    mkdir -p package/bin
-    mkdir -p example_project/GameEngine
-
-    # Copy header files preserving directory structure
-    cp -r include/* package/include/
-
-    # Copy libraries based on build type
-    if [ "$BUILD_SHARED" = "ON" ]; then
-        cp build/bin/$BUILD_TYPE/GameEngine*.dll package/bin/
-        cp build/lib/$BUILD_TYPE/GameEngine*.lib package/lib/
-    else
-        cp build/lib/$BUILD_TYPE/GameEngine*.lib package/lib/
-    fi
-
-    echo -e "${GREEN}Package created in package directory${NC}"
-
-    # Copy package to example project
-    cp -r package example_project/GameEngine
-    echo -e "${GREEN}Package created in example_project/GameEngine directory${NC}"
-fi
+# Install library using CMake
+echo -e "${GREEN}Installing library to ${INSTALL_PREFIX}...${NC}"
+cmake --install build --prefix "$INSTALL_PREFIX" || { echo -e "${RED}Installation failed!${NC}"; exit 1; }
 
 echo -e "${GREEN}Build completed successfully!${NC}"
+echo -e "${GREEN}Library installed to: ${INSTALL_PREFIX}${NC}"

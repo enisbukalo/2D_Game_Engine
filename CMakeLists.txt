@@ -24,6 +24,11 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Find threading library
+set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+find_package(Threads REQUIRED)
+
 # Enable parallel compilation for MSVC
 if(MSVC)
     add_compile_options(/MP)
@@ -56,7 +61,16 @@ FetchContent_Declare(SFML
 
 FetchContent_MakeAvailable(SFML)
 
-# Only build what we need from ImGui-SFML
+# Ensure SFML links against threading library for MinGW
+if(MINGW)
+    target_link_libraries(sfml-system PUBLIC Threads::Threads)
+    target_link_libraries(sfml-window PUBLIC Threads::Threads)
+endif()
+
+# Find OpenGL (required for ImGui-SFML)
+find_package(OpenGL REQUIRED)
+
+# Fetch ImGui
 FetchContent_Declare(IMGUI
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
     GIT_TAG v1.91.5
@@ -64,17 +78,45 @@ FetchContent_Declare(IMGUI
 
 FetchContent_MakeAvailable(IMGUI)
 
-# Configure ImGui-SFML
-set(IMGUI_DIR ${imgui_SOURCE_DIR})
-set(IMGUI_SFML_FIND_SFML OFF)
-set(IMGUI_SFML_INSTALL ON)
-
+# Fetch ImGui-SFML but don't make it available yet
 FetchContent_Declare(IMGUI_SFML
     GIT_REPOSITORY https://github.com/SFML/imgui-sfml.git
     GIT_TAG v3.0
     GIT_SHALLOW ON)
 
-FetchContent_MakeAvailable(SFML IMGUI_SFML)
+FetchContent_GetProperties(IMGUI_SFML)
+if(NOT imgui_sfml_POPULATED)
+    FetchContent_Populate(IMGUI_SFML)
+
+    # Manually build ImGui-SFML without using its CMakeLists.txt find_package
+    add_library(ImGui-SFML STATIC
+        ${imgui_sfml_SOURCE_DIR}/imgui-SFML.cpp
+        ${imgui_SOURCE_DIR}/imgui.cpp
+        ${imgui_SOURCE_DIR}/imgui_demo.cpp
+        ${imgui_SOURCE_DIR}/imgui_draw.cpp
+        ${imgui_SOURCE_DIR}/imgui_tables.cpp
+        ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    )
+
+    target_include_directories(ImGui-SFML PUBLIC
+        $<BUILD_INTERFACE:${imgui_sfml_SOURCE_DIR}>
+        $<BUILD_INTERFACE:${imgui_SOURCE_DIR}>
+        $<INSTALL_INTERFACE:include/ImGui-SFML>
+    )
+
+    target_link_libraries(ImGui-SFML PUBLIC
+        sfml-graphics
+        sfml-window
+        sfml-system
+        OpenGL::GL
+    )
+
+    target_compile_features(ImGui-SFML PUBLIC cxx_std_17)
+    target_compile_definitions(ImGui-SFML PUBLIC IMGUI_DISABLE_OBSOLETE_FUNCTIONS)
+
+    # Create an alias to match the original target name
+    add_library(ImGui-SFML::ImGui-SFML ALIAS ImGui-SFML)
+endif()
 
 # Common Directories
 set(ENGINE_SOURCES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
@@ -149,8 +191,8 @@ if(GAMEENGINE_INSTALL)
 
     set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/GameEngine)
 
-    # Install library
-    install(TARGETS GameEngine
+    # Install library and dependencies
+    install(TARGETS GameEngine ImGui-SFML
         EXPORT GameEngineTargets
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -167,6 +209,18 @@ if(GAMEENGINE_INSTALL)
         ${ENGINE_PHYSICS_DIR}
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/GameEngine
         FILES_MATCHING PATTERN "*.h"
+    )
+
+    # Install ImGui and ImGui-SFML headers
+    install(DIRECTORY
+        ${imgui_SOURCE_DIR}/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ImGui-SFML
+        FILES_MATCHING PATTERN "*.h"
+    )
+    install(FILES
+        ${imgui_sfml_SOURCE_DIR}/imgui-SFML.h
+        ${imgui_sfml_SOURCE_DIR}/imgui-SFML_export.h
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ImGui-SFML
     )
 
     # Export targets
