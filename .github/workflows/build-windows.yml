@@ -1,0 +1,48 @@
+name: Build Windows
+
+on:
+  workflow_call:
+    inputs:
+      build_type:
+        description: "Build type (Debug/Release)"
+        type: string
+        required: false
+        default: "Debug"
+      upload_package:
+        description: "Whether to upload the package artifact"
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  build-windows:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Build Docker image
+        run: docker-compose build
+
+      - name: Build Windows Package
+        run: |
+          docker-compose run --rm dev bash -c "chmod +x build-windows.sh && ./build-windows.sh -t ${{ inputs.build_type }}"
+
+      - name: Upload Windows Package
+        if: inputs.upload_package
+        uses: actions/upload-artifact@v4
+        with:
+          name: GameEngine-Windows-${{ inputs.build_type }}
+          path: package-windows/
+          retention-days: 30

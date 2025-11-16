@@ -5,11 +5,17 @@ on:
     branches: ["master"]
 
 jobs:
-  build:
+  build-linux:
     uses: ./.github/workflows/build.yml
     with:
-      build_command: ./build.sh -c -s -p
+      build_type: "Debug"
       upload_package: false
+
+  build-windows:
+    uses: ./.github/workflows/build-windows.yml
+    with:
+      build_type: "Debug"
+      upload_package: true
 
   lint:
     runs-on: ubuntu-latest

@@ -1,34 +1,37 @@
-name: Build GameEngine
+name: Build Linux
 
 on:
   workflow_call:
     inputs:
-      build_command:
-        description: "The build command to run"
+      build_type:
+        description: "Build type (Debug/Release)"
         type: string
-        required: true
+        required: false
+        default: "Debug"
       upload_package:
         description: "Whether to upload the package artifact"
         type: boolean
         required: false
         default: false
 
-env:
-  BUILD_TYPE: Debug
-
 jobs:
-  build:
-    runs-on: windows-latest
+  build-linux:
+    runs-on: ubuntu-latest
     timeout-minutes: 30
-
-    defaults:
-      run:
-        shell: bash
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            ninja-build \
+            libsfml-dev
 
       - name: Cache Dependencies
         uses: actions/cache@v4
@@ -43,22 +46,21 @@ jobs:
       - name: Build and Test
         run: |
           chmod +x build.sh
-          ${{ inputs.build_command }}
+          ./build.sh -c -t ${{ inputs.build_type }}
 
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-linux-${{ inputs.build_type }}
           path: |
             build/Testing/Temporary/LastTest.log
-            build/test_results.xml
           retention-days: 30
 
-      - name: Upload GameEngine Package
+      - name: Upload Linux Package
         if: inputs.upload_package
         uses: actions/upload-artifact@v4
         with:
-          name: GameEnginePackage
+          name: GameEngine-Linux-${{ inputs.build_type }}
           path: package/
           retention-days: 30
