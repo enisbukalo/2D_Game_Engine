@@ -125,19 +125,19 @@ The project supports building both for **Linux** (native) and **Windows** (cross
 **Linux Build (Development/Testing):**
 ```bash
 # Build and run tests
-docker-compose exec dev ./build-linux.sh
+docker-compose exec dev ./build_linux.sh
 
 # Build without tests
-docker-compose exec dev ./build-linux.sh --no-tests
+docker-compose exec dev ./build_linux.sh --no-tests
 
 # Clean build
-docker-compose exec dev ./build-linux.sh --clean
+docker-compose exec dev ./build_linux.sh --clean
 ```
 
 **Windows Build (Cross-compilation):**
 ```bash
 # Build for Windows
-docker-compose exec dev ./build-windows.sh
+docker-compose exec dev ./build_windows.sh
 ```
 
 **Enter Development Environment:**

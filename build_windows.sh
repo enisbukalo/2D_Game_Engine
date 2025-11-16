@@ -9,10 +9,10 @@ NC='\033[0m' # No Color
 # Default values
 BUILD_TYPE="Release"
 BUILD_SHARED="ON"
-BUILD_DIR="build-windows"
+BUILD_DIR="build_windows"
 CLEAN_BUILD=false
 TOOLCHAIN_FILE="cmake/toolchain-mingw64.cmake"
-INSTALL_PREFIX="./package-windows"
+INSTALL_PREFIX="./package_windows"
 
 # Help message
 usage() {

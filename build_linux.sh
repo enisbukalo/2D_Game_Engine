@@ -9,10 +9,10 @@ NC='\033[0m' # No Color
 # Default values
 BUILD_TYPE="Debug"
 BUILD_SHARED="OFF"
-BUILD_DIR="build-linux"
+BUILD_DIR="build_linux"
 RUN_TESTS=true
 CLEAN_BUILD=false
-INSTALL_PREFIX="./package-linux"
+INSTALL_PREFIX="./package_linux"
 
 # Help message
 usage() {

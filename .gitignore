@@ -1,8 +1,9 @@
 # Build directories
-build/
-build-windows/
-package-windows/
-deps_cache/
+build_linux/
+build_windows/
+package_linux/
+package_windows/
+deps_cache_linux/
 deps_cache_windows/
 out/
 CMakeFiles/
