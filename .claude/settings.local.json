@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(chmod:*)",
-      "Bash(docker exec:*)"
+      "Bash(docker exec:*)",
+      "WebSearch",
+      "WebFetch(domain:www.sfml-dev.org)",
+      "Bash(docker-compose build:*)",
+      "Bash(docker-compose run:*)",
+      "Bash(set MSYS_NO_PATHCONV=1)",
+      "Bash(MSYS_NO_PATHCONV=1 docker-compose run:*)"
     ],
     "deny": [],
     "ask": []

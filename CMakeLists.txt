@@ -42,46 +42,25 @@ include(FetchContent)
 # Configure dependency caching
 set(FETCHCONTENT_BASE_DIR ${DEPS_CACHE_DIR})
 
-# Configure SFML
-set(SFML_BUILD_AUDIO OFF CACHE BOOL "")
-set(SFML_BUILD_NETWORK OFF CACHE BOOL "")
-set(SFML_BUILD_EXAMPLES OFF CACHE BOOL "")
-set(SFML_BUILD_DOC OFF CACHE BOOL "")
-set(SFML_BUILD_TEST_SUITE OFF CACHE BOOL "")
-set(SFML_INSTALL_PKGCONFIG_FILES OFF CACHE BOOL "")
-set(BUILD_SHARED_LIBS ON CACHE BOOL "") # Build dependencies as shared libraries
-set(SFML_BUILD_MAIN OFF CACHE BOOL "")
-set(SFML_BUILD_WINDOW ON CACHE BOOL "")
-set(SFML_BUILD_GRAPHICS ON CACHE BOOL "")
-
-FetchContent_Declare(SFML
-    GIT_REPOSITORY https://github.com/SFML/SFML.git
-    GIT_TAG 3.0.2
-    GIT_SHALLOW ON)
-
-FetchContent_MakeAvailable(SFML)
-
-# Ensure SFML links against threading library for MinGW
-if(MINGW)
-    target_link_libraries(sfml-system PUBLIC Threads::Threads)
-    target_link_libraries(sfml-window PUBLIC Threads::Threads)
-endif()
+# Find SFML (pre-built for Windows cross-compilation)
+set(SFML_STATIC_LIBRARIES FALSE)
+find_package(SFML 2.6 REQUIRED COMPONENTS graphics window system)
 
 # Find OpenGL (required for ImGui-SFML)
 find_package(OpenGL REQUIRED)
 
-# Fetch ImGui
+# Fetch ImGui (v1.88 is compatible with ImGui-SFML v2.6)
 FetchContent_Declare(IMGUI
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
-    GIT_TAG v1.91.5
+    GIT_TAG v1.88
     GIT_SHALLOW ON)
 
 FetchContent_MakeAvailable(IMGUI)
 
-# Fetch ImGui-SFML but don't make it available yet
+# Fetch ImGui-SFML (v2.6 for SFML 2.6.x compatibility)
 FetchContent_Declare(IMGUI_SFML
     GIT_REPOSITORY https://github.com/SFML/imgui-sfml.git
-    GIT_TAG v3.0
+    GIT_TAG v2.6
     GIT_SHALLOW ON)
 
 FetchContent_GetProperties(IMGUI_SFML)
@@ -178,11 +157,17 @@ target_link_libraries(GameEngine
     sfml-window
     sfml-system
     ImGui-SFML
-    PRIVATE
-    opengl32
-    winmm
-    gdi32
 )
+
+# Link Windows-specific libraries only when building for Windows
+if(WIN32 OR MINGW)
+    target_link_libraries(GameEngine
+        PRIVATE
+        opengl32
+        winmm
+        gdi32
+    )
+endif()
 
 # Installation configuration
 if(GAMEENGINE_INSTALL)

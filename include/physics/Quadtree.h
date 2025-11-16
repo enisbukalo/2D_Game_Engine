@@ -51,8 +51,8 @@ struct AABB
 class Quadtree
 {
 public:
-    static const int MAX_OBJECTS = 8;  ///< Maximum objects before subdivision
-    static const int MAX_LEVELS  = 5;  ///< Maximum depth of the tree
+    static constexpr int MAX_OBJECTS = 8;  ///< Maximum objects before subdivision
+    static constexpr int MAX_LEVELS  = 5;  ///< Maximum depth of the tree
 
     /**
      * @brief Constructs a quadtree node

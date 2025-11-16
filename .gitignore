@@ -1,6 +1,7 @@
 # Build directories
 build/
 build-windows/
+package-windows/
 deps_cache/
 out/
 CMakeFiles/

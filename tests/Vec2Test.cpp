@@ -114,15 +114,15 @@ TEST_F(Vec2Test, ScalarDivision)
 TEST_F(Vec2Test, Rotation)
 {
     Vec2        v(1.0f, 0.0f);
-    const float M_PI = 3.14159265358979323846;
+    const float PI = 3.14159265358979323846f;
 
     // Test 90 degree rotation
-    v.rotate(M_PI / 2);
+    v.rotate(PI / 2);
     EXPECT_NEAR(v.x, 0.0f, EPSILON);
     EXPECT_NEAR(v.y, 1.0f, EPSILON);
 
     // Test 180 degree rotation
-    v.rotate(M_PI);
+    v.rotate(PI);
     EXPECT_NEAR(v.x, 0.0f, EPSILON);
     EXPECT_NEAR(v.y, -1.0f, EPSILON);
 }

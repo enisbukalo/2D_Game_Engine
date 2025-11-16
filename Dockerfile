@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
@@ -19,11 +19,13 @@ RUN apt-get update && apt-get install -y \
     libxi-dev \
     libudev-dev \
     libgl1-mesa-dev \
-    mingw-w64 \
+    gcc-mingw-w64-x86-64 \
+    g++-mingw-w64-x86-64 \
     wine \
     wine64 \
     libssl-dev \
     dos2unix \
+    libsfml-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install CMake 3.28+ from official source
@@ -35,7 +37,7 @@ RUN wget https://github.com/Kitware/CMake/releases/download/v3.28.0/cmake-3.28.0
 # Set up working directory
 WORKDIR /app
 
-# Download and setup SFML for Windows (MinGW)
+# Download and setup SFML 2.6.1 for Windows (MinGW GCC 13.1.0)
 RUN mkdir -p /opt/sfml-windows && \
     cd /opt/sfml-windows && \
     wget https://www.sfml-dev.org/files/SFML-2.6.1-windows-gcc-13.1.0-mingw-64-bit.zip && \

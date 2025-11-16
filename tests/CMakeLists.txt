@@ -42,10 +42,16 @@ target_link_libraries(unit_tests PRIVATE
     sfml-window
     sfml-system
     ImGui-SFML
-    opengl32
-    winmm
-    gdi32
 )
+
+# Link Windows-specific libraries only when building for Windows
+if(WIN32 OR MINGW)
+    target_link_libraries(unit_tests PRIVATE
+        opengl32
+        winmm
+        gdi32
+    )
+endif()
 
 # Include directories for tests
 target_include_directories(unit_tests PRIVATE
