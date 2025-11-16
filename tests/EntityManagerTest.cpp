@@ -161,8 +161,10 @@ TEST_F(EntityManagerTest, EntitySerialization)
 
     // Find and verify Transform component
     const JsonValue* transformData = nullptr;
-    for (const auto& comp : physicsComponents) {
-        if (!comp["cTransform"].isNull()) {
+    for (const auto& comp : physicsComponents)
+    {
+        if (!comp["cTransform"].isNull())
+        {
             transformData = &comp["cTransform"];
             break;
         }
@@ -178,8 +180,10 @@ TEST_F(EntityManagerTest, EntitySerialization)
 
     // Find and verify Gravity component
     const JsonValue* gravityData = nullptr;
-    for (const auto& comp : physicsComponents) {
-        if (!comp["cGravity"].isNull()) {
+    for (const auto& comp : physicsComponents)
+    {
+        if (!comp["cGravity"].isNull())
+        {
             gravityData = &comp["cGravity"];
             break;
         }
@@ -191,8 +195,10 @@ TEST_F(EntityManagerTest, EntitySerialization)
 
     // Find and verify CircleCollider component
     const JsonValue* colliderData = nullptr;
-    for (const auto& comp : physicsComponents) {
-        if (!comp["cCircleCollider"].isNull()) {
+    for (const auto& comp : physicsComponents)
+    {
+        if (!comp["cCircleCollider"].isNull())
+        {
             colliderData = &comp["cCircleCollider"];
             break;
         }
@@ -208,8 +214,10 @@ TEST_F(EntityManagerTest, EntitySerialization)
 
     // Find and verify Transform component
     const JsonValue* transform2Data = nullptr;
-    for (const auto& comp : namedComponents) {
-        if (!comp["cTransform"].isNull()) {
+    for (const auto& comp : namedComponents)
+    {
+        if (!comp["cTransform"].isNull())
+        {
             transform2Data = &comp["cTransform"];
             break;
         }
@@ -221,8 +229,10 @@ TEST_F(EntityManagerTest, EntitySerialization)
 
     // Find and verify Name component
     const JsonValue* name2Data = nullptr;
-    for (const auto& comp : namedComponents) {
-        if (!comp["cName"].isNull()) {
+    for (const auto& comp : namedComponents)
+    {
+        if (!comp["cName"].isNull())
+        {
             name2Data = &comp["cName"];
             break;
         }
@@ -237,8 +247,10 @@ TEST_F(EntityManagerTest, EntitySerialization)
 
     // Find and verify Transform component
     const JsonValue* transform3Data = nullptr;
-    for (const auto& comp : completeComponents) {
-        if (!comp["cTransform"].isNull()) {
+    for (const auto& comp : completeComponents)
+    {
+        if (!comp["cTransform"].isNull())
+        {
             transform3Data = &comp["cTransform"];
             break;
         }
@@ -251,8 +263,10 @@ TEST_F(EntityManagerTest, EntitySerialization)
 
     // Find and verify Gravity component
     const JsonValue* gravity3JsonData = nullptr;
-    for (const auto& comp : completeComponents) {
-        if (!comp["cGravity"].isNull()) {
+    for (const auto& comp : completeComponents)
+    {
+        if (!comp["cGravity"].isNull())
+        {
             gravity3JsonData = &comp["cGravity"];
             break;
         }
@@ -264,8 +278,10 @@ TEST_F(EntityManagerTest, EntitySerialization)
 
     // Find and verify Name component
     const JsonValue* name3JsonData = nullptr;
-    for (const auto& comp : completeComponents) {
-        if (!comp["cName"].isNull()) {
+    for (const auto& comp : completeComponents)
+    {
+        if (!comp["cName"].isNull())
+        {
             name3JsonData = &comp["cName"];
             break;
         }
@@ -275,8 +291,10 @@ TEST_F(EntityManagerTest, EntitySerialization)
 
     // Find and verify CircleCollider component
     const JsonValue* collider3JsonData = nullptr;
-    for (const auto& comp : completeComponents) {
-        if (!comp["cCircleCollider"].isNull()) {
+    for (const auto& comp : completeComponents)
+    {
+        if (!comp["cCircleCollider"].isNull())
+        {
             collider3JsonData = &comp["cCircleCollider"];
             break;
         }
