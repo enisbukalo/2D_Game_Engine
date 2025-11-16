@@ -24,20 +24,32 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Cache Docker layers
+      - name: Install Cross-Compilation Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            ninja-build \
+            gcc-mingw-w64-x86-64 \
+            g++-mingw-w64-x86-64 \
+            wget \
+            unzip
+
+      - name: Cache Dependencies
         uses: actions/cache@v4
         with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          path: |
+            deps_cache
+            build-windows/_deps
+          key: ${{ runner.os }}-mingw-deps-${{ hashFiles('**/CMakeLists.txt') }}
           restore-keys: |
-            ${{ runner.os }}-buildx-
-
-      - name: Build Docker image
-        run: docker-compose build
+            ${{ runner.os }}-mingw-deps-
 
       - name: Build Windows Package
         run: |
-          docker-compose run --rm dev bash -c "chmod +x build-windows.sh && ./build-windows.sh -t ${{ inputs.build_type }}"
+          chmod +x build-windows.sh
+          ./build-windows.sh -t ${{ inputs.build_type }}
 
       - name: Upload Windows Package
         if: inputs.upload_package
