@@ -1,10 +1,10 @@
 #include "physics/CollisionDetector.h"
-#include "components/CCollider.h"
-#include "components/CCircleCollider.h"
-#include "components/CBoxCollider.h"
-#include "components/CTransform.h"
 #include <algorithm>
 #include <cmath>
+#include "components/CBoxCollider.h"
+#include "components/CCircleCollider.h"
+#include "components/CCollider.h"
+#include "components/CTransform.h"
 
 bool CollisionDetector::intersects(const CCollider* a, const CCollider* b)
 {
@@ -14,8 +14,8 @@ bool CollisionDetector::intersects(const CCollider* a, const CCollider* b)
     // Try to cast to specific collider types
     auto* circleA = dynamic_cast<const CCircleCollider*>(a);
     auto* circleB = dynamic_cast<const CCircleCollider*>(b);
-    auto* boxA = dynamic_cast<const CBoxCollider*>(a);
-    auto* boxB = dynamic_cast<const CBoxCollider*>(b);
+    auto* boxA    = dynamic_cast<const CBoxCollider*>(a);
+    auto* boxB    = dynamic_cast<const CBoxCollider*>(b);
 
     // Circle vs Circle
     if (circleA && circleB)
@@ -41,7 +41,7 @@ bool CollisionDetector::circleVsCircle(const CCircleCollider* a, const CCircleCo
     Vec2 posB = b->getOwner()->getComponent<CTransform>()->getPosition();
 
     float radiusSum = a->getRadius() + b->getRadius();
-    float distSq = posA.distanceSquared(posB);
+    float distSq    = posA.distanceSquared(posB);
 
     return distSq <= (radiusSum * radiusSum);
 }
@@ -49,9 +49,9 @@ bool CollisionDetector::circleVsCircle(const CCircleCollider* a, const CCircleCo
 bool CollisionDetector::circleVsBox(const CCircleCollider* circle, const CBoxCollider* box)
 {
     Vec2 circlePos = circle->getOwner()->getComponent<CTransform>()->getPosition();
-    Vec2 boxPos = box->getOwner()->getComponent<CTransform>()->getPosition();
+    Vec2 boxPos    = box->getOwner()->getComponent<CTransform>()->getPosition();
 
-    Vec2 boxSize = box->getSize();
+    Vec2 boxSize  = box->getSize();
     Vec2 halfSize = boxSize * 0.5f;
 
     // Find the closest point on the box to the circle center
@@ -59,8 +59,8 @@ bool CollisionDetector::circleVsBox(const CCircleCollider* circle, const CBoxCol
     float closestY = std::max(boxPos.y - halfSize.y, std::min(circlePos.y, boxPos.y + halfSize.y));
 
     // Calculate distance between circle center and closest point
-    float distX = circlePos.x - closestX;
-    float distY = circlePos.y - closestY;
+    float distX  = circlePos.x - closestX;
+    float distY  = circlePos.y - closestY;
     float distSq = distX * distX + distY * distY;
 
     // Check if distance is less than circle radius
@@ -82,4 +82,3 @@ bool CollisionDetector::boxVsBox(const CBoxCollider* a, const CBoxCollider* b)
 
     return overlapX && overlapY;
 }
-

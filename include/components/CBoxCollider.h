@@ -93,5 +93,4 @@ private:
     Vec2 m_size;  ///< Size of the box (width, height) in world units
 };
 
-#endif // CBOXCOLLIDER_H
-
+#endif  // CBOXCOLLIDER_H

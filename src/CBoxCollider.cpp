@@ -68,13 +68,12 @@ void CBoxCollider::serialize(JsonBuilder& builder) const
 void CBoxCollider::deserialize(const JsonValue& value)
 {
     const auto& boxComp = value["cBoxCollider"];
-    m_size.x = boxComp["width"].getNumber();
-    m_size.y = boxComp["height"].getNumber();
-    m_isTrigger = boxComp["trigger"].getBool();
+    m_size.x            = boxComp["width"].getNumber();
+    m_size.y            = boxComp["height"].getNumber();
+    m_isTrigger         = boxComp["trigger"].getBool();
 }
 
 std::string CBoxCollider::getType() const
 {
     return "BoxCollider";
 }
-

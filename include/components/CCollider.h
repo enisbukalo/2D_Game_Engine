@@ -71,7 +71,7 @@ public:
 
 protected:
     bool m_isTrigger = false;  // If true, detect but don't resolve collisions
-    bool m_isStatic = false;   // If true, object cannot be moved by collisions
+    bool m_isStatic  = false;  // If true, object cannot be moved by collisions
 };
 
 #endif

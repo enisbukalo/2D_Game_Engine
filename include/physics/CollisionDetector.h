@@ -41,5 +41,4 @@ public:
     static bool boxVsBox(const CBoxCollider* a, const CBoxCollider* b);
 };
 
-#endif // COLLISIONDETECTOR_H
-
+#endif  // COLLISIONDETECTOR_H

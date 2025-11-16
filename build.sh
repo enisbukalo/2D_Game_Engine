@@ -8,7 +8,7 @@ NC='\033[0m' # No Color
 
 # Default values
 BUILD_TYPE="Debug"
-BUILD_SHARED="ON"
+BUILD_SHARED="OFF"
 RUN_TESTS=true
 CLEAN_BUILD=false
 INSTALL_PREFIX="./package"
@@ -88,8 +88,22 @@ if [ "$RUN_TESTS" = true ]; then
     # Create Testing directory structure
     mkdir -p build/Testing/Temporary
 
+    # Determine test executable name based on platform
+    if [ -f "./build/bin/unit_tests.exe" ]; then
+        TEST_EXEC="./build/bin/unit_tests.exe"
+    elif [ -f "./build/bin/${BUILD_TYPE}/unit_tests.exe" ]; then
+        TEST_EXEC="./build/bin/${BUILD_TYPE}/unit_tests.exe"
+    elif [ -f "./build/bin/unit_tests" ]; then
+        TEST_EXEC="./build/bin/unit_tests"
+    elif [ -f "./build/bin/${BUILD_TYPE}/unit_tests" ]; then
+        TEST_EXEC="./build/bin/${BUILD_TYPE}/unit_tests"
+    else
+        echo -e "${RED}Test executable not found!${NC}"
+        exit 1
+    fi
+
     # Run tests and capture output
-    "./build/bin/${BUILD_TYPE}/unit_tests.exe" --gtest_output="xml:build/test_results.xml" 2>&1 | tee build/Testing/Temporary/LastTest.log || { echo -e "${RED}Tests failed!${NC}"; exit 1; }
+    "$TEST_EXEC" --gtest_output="xml:build/test_results.xml" 2>&1 | tee build/Testing/Temporary/LastTest.log || { echo -e "${RED}Tests failed!${NC}"; exit 1; }
 fi
 
 # Install library using CMake

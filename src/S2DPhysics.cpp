@@ -2,9 +2,9 @@
 #include <algorithm>
 #include <iostream>
 #include "EntityManager.h"
-#include "components/CCollider.h"
-#include "components/CCircleCollider.h"
 #include "components/CBoxCollider.h"
+#include "components/CCircleCollider.h"
+#include "components/CCollider.h"
 #include "components/CGravity.h"
 #include "components/CTransform.h"
 
@@ -17,17 +17,18 @@ S2DPhysics& S2DPhysics::instance()
 void S2DPhysics::update(float deltaTime)
 {
     handleGravity(deltaTime);
+    integratePositions(deltaTime);
     updateQuadtree();
     checkCollisions();
 
     // Debug: print all entity velocities after physics update
     std::cout << "[DEBUG] S2DPhysics::update complete. Entity velocities:" << std::endl;
     auto& entityManager = EntityManager::instance();
-    auto entities = entityManager.getEntitiesWithComponent<CTransform>();
+    auto  entities      = entityManager.getEntitiesWithComponent<CTransform>();
     for (auto* entity : entities)
     {
         auto transform = entity->getComponent<CTransform>();
-        Vec2 vel = transform->getVelocity();
+        Vec2 vel       = transform->getVelocity();
         std::cout << "[DEBUG]   " << entity->getTag() << ": velocity=(" << vel.x << "," << vel.y << ")" << std::endl;
     }
 }
@@ -95,11 +96,31 @@ void S2DPhysics::updateQuadtree()
     }
 }
 
+void S2DPhysics::integratePositions(float deltaTime)
+{
+    auto& entityManager = EntityManager::instance();
+    auto  entities      = entityManager.getEntitiesWithComponent<CTransform>();
+
+    for (auto* entity : entities)
+    {
+        auto transform = entity->getComponent<CTransform>();
+        if (!transform)
+            continue;
+
+        // Update position based on velocity: position += velocity * deltaTime
+        Vec2 currentPos = transform->getPosition();
+        Vec2 velocity   = transform->getVelocity();
+        Vec2 newPos     = currentPos + (velocity * deltaTime);
+
+        transform->setPosition(newPos);
+    }
+}
+
 void S2DPhysics::handleGravity(float deltaTime)
 {
     auto& entityManager = EntityManager::instance();
 
-    // First update positions based on gravity
+    // Apply gravity force to velocities
     auto entities = entityManager.getEntitiesWithComponent<CGravity>();
     for (auto* entity : entities)
     {
@@ -108,16 +129,12 @@ void S2DPhysics::handleGravity(float deltaTime)
 
         if (transform && gravity && gravity->isActive())
         {
-            // Update physics as before...
-            Vec2 initialVelocity = transform->getVelocity();
-            Vec2 position        = transform->getPosition();
+            // Apply gravity to velocity: v = v0 + a*dt
+            Vec2 currentVelocity = transform->getVelocity();
             Vec2 force           = gravity->getForce();
+            Vec2 newVelocity     = currentVelocity + (force * deltaTime);
 
-            Vec2 newVelocity = initialVelocity + (force * deltaTime);
             transform->setVelocity(newVelocity);
-
-            position += initialVelocity * deltaTime + (force * deltaTime * deltaTime * 0.5f);
-            transform->setPosition(position);
         }
     }
 }
@@ -126,7 +143,7 @@ void S2DPhysics::checkCollisions()
 {
     auto& entityManager = EntityManager::instance();
     // Use getEntitiesWithComponentDerived to find all entities with CCollider or derived types
-    auto  entities      = entityManager.getEntitiesWithComponentDerived<CCollider>();
+    auto entities = entityManager.getEntitiesWithComponentDerived<CCollider>();
 
     std::cout << "[DEBUG] checkCollisions: Found " << entities.size() << " entities with colliders" << std::endl;
 
@@ -148,19 +165,19 @@ void S2DPhysics::checkCollisions()
         }
 
         auto transform = entity->getComponent<CTransform>();
-        auto bounds = collider->getBounds();
+        auto bounds    = collider->getBounds();
 
-        std::cout << "[DEBUG] Entity " << entity->getTag()
-                  << " at (" << transform->getPosition().x << ", " << transform->getPosition().y << ")"
-                  << " bounds: center(" << bounds.position.x << ", " << bounds.position.y << ")"
-                  << " halfSize(" << bounds.halfSize.x << ", " << bounds.halfSize.y << ")" << std::endl;
+        std::cout << "[DEBUG] Entity " << entity->getTag() << " at (" << transform->getPosition().x << ", "
+                  << transform->getPosition().y << ")" << " bounds: center(" << bounds.position.x << ", "
+                  << bounds.position.y << ")" << " halfSize(" << bounds.halfSize.x << ", " << bounds.halfSize.y << ")"
+                  << std::endl;
 
         // Query quadtree for potential collisions
         std::vector<Entity*> potentialCollisions = m_quadtree->query(bounds);
 
-        std::cout << "[DEBUG]   Quadtree query for bounds center(" << bounds.position.x << "," << bounds.position.y << ")"
-                  << " halfSize(" << bounds.halfSize.x << "," << bounds.halfSize.y << ")"
-                  << " returned " << potentialCollisions.size() << " potential collisions" << std::endl;
+        std::cout << "[DEBUG]   Quadtree query for bounds center(" << bounds.position.x << "," << bounds.position.y
+                  << ")" << " halfSize(" << bounds.halfSize.x << "," << bounds.halfSize.y << ")" << " returned "
+                  << potentialCollisions.size() << " potential collisions" << std::endl;
 
         // Narrow phase: Detailed collision checks
         for (auto* other : potentialCollisions)
@@ -192,8 +209,8 @@ void S2DPhysics::checkCollisions()
             // Detailed collision check
             if (collider->intersects(otherCollider))
             {
-                std::cout << "[DEBUG]   *** COLLISION DETECTED between " << entity->getTag()
-                          << " and " << other->getTag() << " ***" << std::endl;
+                std::cout << "[DEBUG]   *** COLLISION DETECTED between " << entity->getTag() << " and "
+                          << other->getTag() << " ***" << std::endl;
                 std::cout << "[DEBUG]   Calling handleCollision..." << std::endl;
                 handleCollision(entity, other);
                 std::cout << "[DEBUG]   handleCollision returned successfully" << std::endl;
@@ -207,7 +224,8 @@ void S2DPhysics::handleCollision(Entity* a, Entity* b)
     std::cout << "[DEBUG] handleCollision: Getting colliders..." << std::endl;
     auto colliderA = a->getComponentDerived<CCollider>();
     auto colliderB = b->getComponentDerived<CCollider>();
-    std::cout << "[DEBUG] handleCollision: Got colliders (A=" << (colliderA != nullptr) << ", B=" << (colliderB != nullptr) << ")" << std::endl;
+    std::cout << "[DEBUG] handleCollision: Got colliders (A=" << (colliderA != nullptr)
+              << ", B=" << (colliderB != nullptr) << ")" << std::endl;
 
     // If either is a trigger, just notify
     if (colliderA->isTrigger() || colliderB->isTrigger())
@@ -226,7 +244,8 @@ void S2DPhysics::resolveCollision(Entity* a, Entity* b, const CCollider* collide
     // Get transforms (need non-const access to update velocities)
     auto transformA = a->getComponent<CTransform>();
     auto transformB = b->getComponent<CTransform>();
-    std::cout << "[DEBUG] resolveCollision: Got transforms (A=" << (transformA != nullptr) << ", B=" << (transformB != nullptr) << ")" << std::endl;
+    std::cout << "[DEBUG] resolveCollision: Got transforms (A=" << (transformA != nullptr)
+              << ", B=" << (transformB != nullptr) << ")" << std::endl;
 
     if (!transformA || !transformB)
         return;
@@ -238,8 +257,8 @@ void S2DPhysics::resolveCollision(Entity* a, Entity* b, const CCollider* collide
     // Cast to specific collider types
     auto* circleA = dynamic_cast<const CCircleCollider*>(colliderA);
     auto* circleB = dynamic_cast<const CCircleCollider*>(colliderB);
-    auto* boxA = dynamic_cast<const CBoxCollider*>(colliderA);
-    auto* boxB = dynamic_cast<const CBoxCollider*>(colliderB);
+    auto* boxA    = dynamic_cast<const CBoxCollider*>(colliderA);
+    auto* boxB    = dynamic_cast<const CBoxCollider*>(colliderB);
 
     // Dispatch to appropriate collision resolver
     if (circleA && circleB)
@@ -256,9 +275,12 @@ void S2DPhysics::resolveCollision(Entity* a, Entity* b, const CCollider* collide
     }
 }
 
-void S2DPhysics::resolveCircleVsCircle(CTransform* transformA, CTransform* transformB,
-                                       const CCircleCollider* circleA, const CCircleCollider* circleB,
-                                       bool aIsStatic, bool bIsStatic)
+void S2DPhysics::resolveCircleVsCircle(CTransform*            transformA,
+                                       CTransform*            transformB,
+                                       const CCircleCollider* circleA,
+                                       const CCircleCollider* circleB,
+                                       bool                   aIsStatic,
+                                       bool                   bIsStatic)
 {
     // Get positions and velocities
     Vec2 posA = transformA->getPosition();
@@ -267,21 +289,21 @@ void S2DPhysics::resolveCircleVsCircle(CTransform* transformA, CTransform* trans
     Vec2 velB = transformB->getVelocity();
 
     // Calculate collision normal and penetration
-    Vec2 delta = posB - posA;
+    Vec2  delta    = posB - posA;
     float distance = delta.length();
 
     if (distance < 0.0001f)
         return;
 
     // Normal points from A to B
-    Vec2 normal = delta / distance;
+    Vec2  normal      = delta / distance;
     float penetration = (circleA->getRadius() + circleB->getRadius()) - distance;
 
     if (penetration <= 0.0f)
         return;
 
     // Calculate relative velocity
-    Vec2 relativeVel = velA - velB;
+    Vec2  relativeVel    = velA - velB;
     float velAlongNormal = relativeVel.dot(normal);
 
     std::cout << "[DEBUG] Circle vs Circle: normal=(" << normal.x << "," << normal.y << ")" << std::endl;
@@ -290,7 +312,7 @@ void S2DPhysics::resolveCircleVsCircle(CTransform* transformA, CTransform* trans
     // Only apply velocity changes if objects are approaching
     if (velAlongNormal > 0)
     {
-        float restitution = 0.8f;
+        float restitution      = 0.8f;
         float impulseMagnitude = -(1.0f + restitution) * velAlongNormal;
 
         // Apply impulse based on static/dynamic state
@@ -316,7 +338,7 @@ void S2DPhysics::resolveCircleVsCircle(CTransform* transformA, CTransform* trans
     if (penetration > 0.0f)
     {
         float correctionPercent = 0.8f;
-        Vec2 correction = normal * (penetration * correctionPercent);
+        Vec2  correction        = normal * (penetration * correctionPercent);
 
         if (bIsStatic && !aIsStatic)
         {
@@ -334,14 +356,18 @@ void S2DPhysics::resolveCircleVsCircle(CTransform* transformA, CTransform* trans
     }
 }
 
-void S2DPhysics::resolveCircleVsBox(CTransform* transformA, CTransform* transformB,
-                                    const CCircleCollider* circleA, const CBoxCollider* boxA,
-                                    const CCircleCollider* circleB, const CBoxCollider* boxB,
-                                    bool aIsStatic, bool bIsStatic)
+void S2DPhysics::resolveCircleVsBox(CTransform*            transformA,
+                                    CTransform*            transformB,
+                                    const CCircleCollider* circleA,
+                                    const CBoxCollider*    boxA,
+                                    const CCircleCollider* circleB,
+                                    const CBoxCollider*    boxB,
+                                    bool                   aIsStatic,
+                                    bool                   bIsStatic)
 {
     // Determine which is circle and which is box
     const CCircleCollider* circle = circleA ? circleA : circleB;
-    const CBoxCollider* box = boxA ? boxA : boxB;
+    const CBoxCollider*    box    = boxA ? boxA : boxB;
 
     // Get positions and velocities
     Vec2 posA = transformA->getPosition();
@@ -351,20 +377,20 @@ void S2DPhysics::resolveCircleVsBox(CTransform* transformA, CTransform* transfor
 
     // Determine circle and box positions based on which is which
     Vec2 circlePos = circleA ? posA : posB;
-    Vec2 boxPos = circleA ? posB : posA;
+    Vec2 boxPos    = circleA ? posB : posA;
 
-    Vec2 boxSize = box->getSize();
+    Vec2 boxSize  = box->getSize();
     Vec2 halfSize = boxSize * 0.5f;
 
     // Find closest point on box to circle
     float closestX = std::max(boxPos.x - halfSize.x, std::min(circlePos.x, boxPos.x + halfSize.x));
     float closestY = std::max(boxPos.y - halfSize.y, std::min(circlePos.y, boxPos.y + halfSize.y));
-    Vec2 closest(closestX, closestY);
+    Vec2  closest(closestX, closestY);
 
-    Vec2 delta = circlePos - closest;
+    Vec2  delta    = circlePos - closest;
     float distance = delta.length();
 
-    Vec2 normal;
+    Vec2  normal;
     float penetration;
 
     if (distance < 0.0001f)
@@ -376,19 +402,19 @@ void S2DPhysics::resolveCircleVsBox(CTransform* transformA, CTransform* transfor
         if (overlapX < overlapY)
         {
             // Normal points from box to circle (away from box center)
-            normal = Vec2((circlePos.x > boxPos.x) ? 1.0f : -1.0f, 0.0f);
+            normal      = Vec2((circlePos.x > boxPos.x) ? 1.0f : -1.0f, 0.0f);
             penetration = overlapX + circle->getRadius();
         }
         else
         {
-            normal = Vec2(0.0f, (circlePos.y > boxPos.y) ? 1.0f : -1.0f);
+            normal      = Vec2(0.0f, (circlePos.y > boxPos.y) ? 1.0f : -1.0f);
             penetration = overlapY + circle->getRadius();
         }
     }
     else
     {
         // Normal points from closest point on box to circle center
-        normal = delta / distance;
+        normal      = delta / distance;
         penetration = circle->getRadius() - distance;
     }
 
@@ -405,18 +431,19 @@ void S2DPhysics::resolveCircleVsBox(CTransform* transformA, CTransform* transfor
         return;
 
     // Calculate relative velocity
-    Vec2 relativeVel = velA - velB;
+    Vec2  relativeVel    = velA - velB;
     float velAlongNormal = relativeVel.dot(normal);
 
     std::cout << "[DEBUG] Circle vs Box: normal=(" << normal.x << "," << normal.y << ")" << std::endl;
-    std::cout << "[DEBUG] Circle vs Box: velA=(" << velA.x << "," << velA.y << ") velB=(" << velB.x << "," << velB.y << ")" << std::endl;
+    std::cout << "[DEBUG] Circle vs Box: velA=(" << velA.x << "," << velA.y << ") velB=(" << velB.x << "," << velB.y
+              << ")" << std::endl;
     std::cout << "[DEBUG] Circle vs Box: velAlongNormal=" << velAlongNormal << std::endl;
     std::cout << "[DEBUG] Circle vs Box: penetration=" << penetration << std::endl;
 
     // Only apply velocity changes if objects are approaching
     if (velAlongNormal > 0)
     {
-        float restitution = 0.8f;
+        float restitution      = 0.8f;
         float impulseMagnitude = -(1.0f + restitution) * velAlongNormal;
 
         // Apply impulse based on static/dynamic state
@@ -442,7 +469,7 @@ void S2DPhysics::resolveCircleVsBox(CTransform* transformA, CTransform* transfor
     if (penetration > 0.0f)
     {
         float correctionPercent = 0.8f;
-        Vec2 correction = normal * (penetration * correctionPercent);
+        Vec2  correction        = normal * (penetration * correctionPercent);
 
         if (bIsStatic && !aIsStatic)
         {
@@ -460,9 +487,8 @@ void S2DPhysics::resolveCircleVsBox(CTransform* transformA, CTransform* transfor
     }
 }
 
-void S2DPhysics::resolveBoxVsBox(CTransform* transformA, CTransform* transformB,
-                                 const CBoxCollider* boxA, const CBoxCollider* boxB,
-                                 bool aIsStatic, bool bIsStatic)
+void S2DPhysics::resolveBoxVsBox(
+    CTransform* transformA, CTransform* transformB, const CBoxCollider* boxA, const CBoxCollider* boxB, bool aIsStatic, bool bIsStatic)
 {
     // Get positions and velocities
     Vec2 posA = transformA->getPosition();
@@ -471,7 +497,7 @@ void S2DPhysics::resolveBoxVsBox(CTransform* transformA, CTransform* transformB,
     Vec2 velB = transformB->getVelocity();
 
     // Calculate collision normal and penetration
-    Vec2 delta = posB - posA;
+    Vec2 delta     = posB - posA;
     Vec2 halfSizeA = boxA->getSize() * 0.5f;
     Vec2 halfSizeB = boxB->getSize() * 0.5f;
 
@@ -479,20 +505,20 @@ void S2DPhysics::resolveBoxVsBox(CTransform* transformA, CTransform* transformB,
     float overlapX = (halfSizeA.x + halfSizeB.x) - std::abs(delta.x);
     float overlapY = (halfSizeA.y + halfSizeB.y) - std::abs(delta.y);
 
-    Vec2 normal;
+    Vec2  normal;
     float penetration;
 
     // Separate along axis of least penetration
     if (overlapX < overlapY)
     {
         // Normal points from A to B along X axis
-        normal = Vec2((delta.x > 0) ? 1.0f : -1.0f, 0.0f);
+        normal      = Vec2((delta.x > 0) ? 1.0f : -1.0f, 0.0f);
         penetration = overlapX;
     }
     else
     {
         // Normal points from A to B along Y axis
-        normal = Vec2(0.0f, (delta.y > 0) ? 1.0f : -1.0f);
+        normal      = Vec2(0.0f, (delta.y > 0) ? 1.0f : -1.0f);
         penetration = overlapY;
     }
 
@@ -500,7 +526,7 @@ void S2DPhysics::resolveBoxVsBox(CTransform* transformA, CTransform* transformB,
         return;
 
     // Calculate relative velocity
-    Vec2 relativeVel = velA - velB;
+    Vec2  relativeVel    = velA - velB;
     float velAlongNormal = relativeVel.dot(normal);
 
     std::cout << "[DEBUG] Box vs Box: normal=(" << normal.x << "," << normal.y << ")" << std::endl;
@@ -509,7 +535,7 @@ void S2DPhysics::resolveBoxVsBox(CTransform* transformA, CTransform* transformB,
     // Only apply velocity changes if objects are approaching
     if (velAlongNormal > 0)
     {
-        float restitution = 0.8f;
+        float restitution      = 0.8f;
         float impulseMagnitude = -(1.0f + restitution) * velAlongNormal;
 
         // Apply impulse based on static/dynamic state
@@ -535,7 +561,7 @@ void S2DPhysics::resolveBoxVsBox(CTransform* transformA, CTransform* transformB,
     if (penetration > 0.0f)
     {
         float correctionPercent = 0.8f;
-        Vec2 correction = normal * (penetration * correctionPercent);
+        Vec2  correction        = normal * (penetration * correctionPercent);
 
         if (bIsStatic && !aIsStatic)
         {

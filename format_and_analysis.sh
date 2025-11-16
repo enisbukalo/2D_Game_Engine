@@ -24,9 +24,9 @@ format_files() {
 
     # First check which files need formatting
     files_to_format=$(find . -type f \( -name "*.cpp" -o -name "*.h" \) \
-        -not -path "./build/*" \
-        -not -path "./deps_cache/*" \
-        -not -path "./package/*" \
+        -not -path "./build*" \
+        -not -path "./deps*" \
+        -not -path "./package*" \
         -not -path "./example_project/*")
 
     # Format each file that needs it
@@ -37,9 +37,9 @@ format_files() {
 
     # Verify formatting
     find . -type f \( -name "*.cpp" -o -name "*.h" \) \
-        -not -path "./build/*" \
-        -not -path "./deps_cache/*" \
-        -not -path "./package/*" \
+        -not -path "./build*" \
+        -not -path "./deps*" \
+        -not -path "./package*" \
         -not -path "./example_project/*" \
         -exec clang-format -style=file --dry-run --Werror {} +
 
@@ -55,13 +55,32 @@ format_files() {
 static_analysis() {
     echo -e "${YELLOW}Running static analysis...${NC}"
 
-    cppcheck --enable=all --error-exitcode=1 --check-level=exhaustive --suppress=missingIncludeSystem --suppress=unusedFunction --suppress=noExplicitConstructor --suppress=unmatchedSuppression --suppress=missingInclude --inline-suppr --std=c++17 -I include -I include/components -I include/systems src/ include/ include/components/ include/systems/
+    # Create report header
+    cat > static_analysis_report.md << 'EOF'
+# Static Analysis Report
 
-    local result=$?
+**Date:** $(date)
+**Tool:** cppcheck
+**Configuration:** --enable=all --check-level=exhaustive
+
+---
+
+## Results
+
+EOF
+
+    # Run cppcheck and capture output
+    cppcheck --enable=all --error-exitcode=1 --check-level=exhaustive --suppress=missingIncludeSystem --suppress=unusedFunction --suppress=noExplicitConstructor --suppress=unmatchedSuppression --suppress=missingInclude --inline-suppr --std=c++17 -I include -I include/components -I include/systems src/ include/ include/components/ include/systems/ 2>&1 | tee -a static_analysis_report.md
+
+    local result=${PIPESTATUS[0]}
+
+    # Add summary to report
     if [ $result -eq 0 ]; then
-        echo -e "${GREEN}Static analysis complete!${NC}"
+        echo -e "\n---\n\n**Status:** ✅ PASSED\n" >> static_analysis_report.md
+        echo -e "${GREEN}Static analysis complete! Report saved to static_analysis_report.md${NC}"
     else
-        echo -e "${RED}Static analysis failed!${NC}"
+        echo -e "\n---\n\n**Status:** ❌ FAILED\n" >> static_analysis_report.md
+        echo -e "${RED}Static analysis failed! Report saved to static_analysis_report.md${NC}"
         exit 1
     fi
 }

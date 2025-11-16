@@ -18,6 +18,9 @@ example_project/*
 .idea/
 cmake-build-*/
 
+# Static analysis
+static_analysis_report.md
+
 # Compiled files
 *.o
 *.obj

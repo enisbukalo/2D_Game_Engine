@@ -15,6 +15,7 @@ A modern C++ 2D game engine built with SFML, featuring an Entity Component Syste
     - [Math Utilities](#math-utilities)
   - [Dependencies](#dependencies)
   - [Building the Project](#building-the-project)
+    - [Docker Build (Recommended)](#docker-build-recommended)
     - [Build Options](#build-options)
     - [Examples](#examples)
     - [Build Output](#build-output)
@@ -102,43 +103,72 @@ The codebase is organized using pragma regions for better readability:
   - Distance calculations
 
 ## Dependencies
-- SFML 3.0.2.x: Graphics and window management
-- Dear ImGui 1.91.x: Immediate mode GUI
-- ImGui-SFML 3.0.x: SFML backend for Dear ImGui
-- C++17 or late
-- cppcheck
-- clang
+- SFML 2.6.1: Graphics and window management
+- Dear ImGui 1.88: Immediate mode GUI
+- ImGui-SFML 2.6: SFML backend for Dear ImGui
+- C++17 or later
+- CMake 3.28+
+- Google Test (for testing)
 
 ## Building the Project
 
-The project includes a build script (`build.sh`) that handles the build process, including dependency management, testing, and packaging.
+The project supports building both for **Linux** (native) and **Windows** (cross-compilation) via Docker.
+
+### Docker Build (Recommended)
+
+**Prerequisites:**
+- Docker
+- Docker Compose
+
+**Linux Build (Development/Testing):**
+```bash
+# Build and run tests
+docker-compose run --rm dev ./build.sh
+
+# Build without tests
+docker-compose run --rm dev ./build.sh --no-tests
+
+# Clean build
+docker-compose run --rm dev ./build.sh --clean
+```
+
+**Windows Build (Cross-compilation):**
+```bash
+# Build for Windows
+docker-compose run --rm dev /usr/local/bin/build-windows
+```
+
+**Enter Development Environment:**
+```bash
+docker-compose run --rm dev /bin/bash
+```
 
 ### Build Options
 
 The build script (`build.sh`) provides several options:
 
 - `-h, --help`: Show help message
-- `-t, --type TYPE`: Set build type (Debug/Release)
-- `-s, --shared`: Build as shared library [default: ON]
+- `-t, --type TYPE`: Set build type (Debug/Release) [default: Debug]
+- `-s, --shared`: Build as shared library [default: OFF]
 - `--no-tests`: Skip building and running tests
 - `-c, --clean`: Clean build directory
-- `-p, --package`: Create distributable package
+- `-i, --install-prefix`: Set install prefix [default: ./package]
 
 ### Examples
 
-Clean build with shared library:
+Clean build with tests:
 ```bash
-./build.sh -c -s
+./build.sh --clean
 ```
 
-Build package:
+Release build without tests:
 ```bash
-./build.sh -c -s -p
+./build.sh -t Release --no-tests
 ```
 
-Build without running tests:
+Build as shared library:
 ```bash
-./build.sh -c -s --no-tests
+./build.sh -s
 ```
 
 ### Build Output

@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     dos2unix \
     libsfml-dev \
+    cppcheck \
     && rm -rf /var/lib/apt/lists/*
 
 # Install CMake 3.28+ from official source

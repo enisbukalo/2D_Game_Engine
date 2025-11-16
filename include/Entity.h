@@ -1,6 +1,7 @@
 #ifndef ENTITY_H
 #define ENTITY_H
 
+#include <algorithm>
 #include <map>
 #include <memory>
 #include <string>
@@ -50,9 +51,9 @@ public:
     template <typename T>
     T *getComponentDerived()
     {
-        for (const auto& pair : m_components)
+        for (const auto &pair : m_components)
         {
-            T* component = dynamic_cast<T*>(pair.second.get());
+            T *component = dynamic_cast<T *>(pair.second.get());
             if (component != nullptr)
             {
                 return component;
@@ -100,14 +101,9 @@ public:
     template <typename T>
     bool hasComponentDerived()
     {
-        for (const auto& pair : m_components)
-        {
-            if (dynamic_cast<T*>(pair.second.get()) != nullptr)
-            {
-                return true;
-            }
-        }
-        return false;
+        return std::any_of(m_components.begin(),
+                           m_components.end(),
+                           [](const auto &pair) { return dynamic_cast<T *>(pair.second.get()) != nullptr; });
     };
 
     /**

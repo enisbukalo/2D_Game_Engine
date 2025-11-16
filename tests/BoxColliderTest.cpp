@@ -33,7 +33,7 @@ uint8_t BoxColliderTest::nextId = 1;
 
 TEST_F(BoxColliderTest, ConstructorWithWidthHeight)
 {
-    auto entity    = std::make_shared<TestEntity>("box", 1);
+    auto entity   = std::make_shared<TestEntity>("box", 1);
     auto collider = entity->addComponent<CBoxCollider>(30.0f, 50.0f);
 
     EXPECT_EQ(collider->getWidth(), 30.0f);
@@ -43,7 +43,7 @@ TEST_F(BoxColliderTest, ConstructorWithWidthHeight)
 
 TEST_F(BoxColliderTest, ConstructorWithVec2)
 {
-    auto entity    = std::make_shared<TestEntity>("box", 1);
+    auto entity = std::make_shared<TestEntity>("box", 1);
     Vec2 size(100.0f, 200.0f);
     auto collider = entity->addComponent<CBoxCollider>(size);
 
@@ -58,7 +58,7 @@ TEST_F(BoxColliderTest, ConstructorWithVec2)
 
 TEST_F(BoxColliderTest, GettersAndSetters)
 {
-    auto entity = std::make_shared<TestEntity>("box", 1);
+    auto entity   = std::make_shared<TestEntity>("box", 1);
     auto collider = entity->addComponent<CBoxCollider>(10.0f, 20.0f);
 
     EXPECT_EQ(collider->getWidth(), 10.0f);
@@ -76,7 +76,7 @@ TEST_F(BoxColliderTest, GettersAndSetters)
 
 TEST_F(BoxColliderTest, TriggerFlag)
 {
-    auto entity    = std::make_shared<TestEntity>("box", 1);
+    auto entity   = std::make_shared<TestEntity>("box", 1);
     auto collider = entity->addComponent<CBoxCollider>(10.0f, 10.0f);
 
     EXPECT_FALSE(collider->isTrigger());
@@ -127,7 +127,7 @@ TEST_F(BoxColliderTest, GetBoundsAfterMove)
 
 TEST_F(BoxColliderTest, GetType)
 {
-    auto entity    = std::make_shared<TestEntity>("box", 1);
+    auto entity   = std::make_shared<TestEntity>("box", 1);
     auto collider = entity->addComponent<CBoxCollider>(10.0f, 10.0f);
 
     EXPECT_EQ(collider->getType(), "BoxCollider");
@@ -137,7 +137,7 @@ TEST_F(BoxColliderTest, GetType)
 
 TEST_F(BoxColliderTest, ZeroSize)
 {
-    auto entity    = std::make_shared<TestEntity>("box", 1);
+    auto entity   = std::make_shared<TestEntity>("box", 1);
     auto collider = entity->addComponent<CBoxCollider>(0.0f, 0.0f);
 
     EXPECT_EQ(collider->getWidth(), 0.0f);
@@ -146,7 +146,7 @@ TEST_F(BoxColliderTest, ZeroSize)
 
 TEST_F(BoxColliderTest, LargeSize)
 {
-    auto entity    = std::make_shared<TestEntity>("box", 1);
+    auto entity   = std::make_shared<TestEntity>("box", 1);
     auto collider = entity->addComponent<CBoxCollider>(10000.0f, 20000.0f);
 
     EXPECT_EQ(collider->getWidth(), 10000.0f);
@@ -155,7 +155,7 @@ TEST_F(BoxColliderTest, LargeSize)
 
 TEST_F(BoxColliderTest, RectangularBox)
 {
-    auto entity    = std::make_shared<TestEntity>("box", 1);
+    auto entity   = std::make_shared<TestEntity>("box", 1);
     auto collider = entity->addComponent<CBoxCollider>(100.0f, 20.0f);
 
     EXPECT_EQ(collider->getWidth(), 100.0f);
@@ -165,11 +165,10 @@ TEST_F(BoxColliderTest, RectangularBox)
 
 TEST_F(BoxColliderTest, SquareBox)
 {
-    auto entity    = std::make_shared<TestEntity>("box", 1);
+    auto entity   = std::make_shared<TestEntity>("box", 1);
     auto collider = entity->addComponent<CBoxCollider>(50.0f, 50.0f);
 
     EXPECT_EQ(collider->getWidth(), 50.0f);
     EXPECT_EQ(collider->getHeight(), 50.0f);
     EXPECT_EQ(collider->getWidth(), collider->getHeight());
 }
-

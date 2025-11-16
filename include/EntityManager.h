@@ -85,7 +85,7 @@ public:
      * @brief Gets all entities that have a component of the specified type or derived from it
      * @tparam T The base component type to search for
      * @return Vector of pointers to entities with components derived from T
-     * 
+     *
      * This uses dynamic_cast internally, so it's slower than getEntitiesWithComponent
      * but works with inheritance hierarchies.
      */

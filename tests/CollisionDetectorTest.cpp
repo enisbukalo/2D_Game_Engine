@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
-#include "physics/CollisionDetector.h"
-#include "CCircleCollider.h"
 #include "CBoxCollider.h"
+#include "CCircleCollider.h"
 #include "CTransform.h"
 #include "Entity.h"
+#include "physics/CollisionDetector.h"
 
 // Test helper class
 class TestEntity : public Entity
@@ -158,10 +158,10 @@ TEST_F(CollisionDetectorTest, BoxVsBox_DifferentSizes)
 TEST_F(CollisionDetectorTest, CircleVsBox_Overlapping)
 {
     auto circle = createCircleEntity(Vec2(0.0f, 0.0f), 10.0f);
-    auto box = createBoxEntity(Vec2(15.0f, 0.0f), 20.0f, 20.0f);
+    auto box    = createBoxEntity(Vec2(15.0f, 0.0f), 20.0f, 20.0f);
 
     auto circleCollider = circle->getComponent<CCircleCollider>();
-    auto boxCollider = box->getComponent<CBoxCollider>();
+    auto boxCollider    = box->getComponent<CBoxCollider>();
 
     // Circle at 0, radius 10, reaches to x=10
     // Box at 15, half-width 10, starts at x=5
@@ -172,10 +172,10 @@ TEST_F(CollisionDetectorTest, CircleVsBox_Overlapping)
 TEST_F(CollisionDetectorTest, CircleVsBox_Separated)
 {
     auto circle = createCircleEntity(Vec2(0.0f, 0.0f), 10.0f);
-    auto box = createBoxEntity(Vec2(25.0f, 0.0f), 20.0f, 20.0f);
+    auto box    = createBoxEntity(Vec2(25.0f, 0.0f), 20.0f, 20.0f);
 
     auto circleCollider = circle->getComponent<CCircleCollider>();
-    auto boxCollider = box->getComponent<CBoxCollider>();
+    auto boxCollider    = box->getComponent<CBoxCollider>();
 
     // Circle at 0, radius 10, reaches to x=10
     // Box at 25, half-width 10, starts at x=15
@@ -186,10 +186,10 @@ TEST_F(CollisionDetectorTest, CircleVsBox_Separated)
 TEST_F(CollisionDetectorTest, CircleVsBox_CircleInsideBox)
 {
     auto circle = createCircleEntity(Vec2(0.0f, 0.0f), 5.0f);
-    auto box = createBoxEntity(Vec2(0.0f, 0.0f), 20.0f, 20.0f);
+    auto box    = createBoxEntity(Vec2(0.0f, 0.0f), 20.0f, 20.0f);
 
     auto circleCollider = circle->getComponent<CCircleCollider>();
-    auto boxCollider = box->getComponent<CBoxCollider>();
+    auto boxCollider    = box->getComponent<CBoxCollider>();
 
     // Small circle (radius 5) inside large box (half-size 10)
     EXPECT_TRUE(CollisionDetector::intersects(circleCollider, boxCollider));
@@ -198,10 +198,10 @@ TEST_F(CollisionDetectorTest, CircleVsBox_CircleInsideBox)
 TEST_F(CollisionDetectorTest, CircleVsBox_CircleAtCorner)
 {
     auto circle = createCircleEntity(Vec2(15.0f, 15.0f), 8.0f);
-    auto box = createBoxEntity(Vec2(0.0f, 0.0f), 20.0f, 20.0f);
+    auto box    = createBoxEntity(Vec2(0.0f, 0.0f), 20.0f, 20.0f);
 
     auto circleCollider = circle->getComponent<CCircleCollider>();
-    auto boxCollider = box->getComponent<CBoxCollider>();
+    auto boxCollider    = box->getComponent<CBoxCollider>();
 
     // Circle near corner of box at (10, 10)
     // Distance from (15, 15) to (10, 10) = ~7.07
@@ -212,10 +212,10 @@ TEST_F(CollisionDetectorTest, CircleVsBox_CircleAtCorner)
 TEST_F(CollisionDetectorTest, CircleVsBox_CircleAtCornerSeparated)
 {
     auto circle = createCircleEntity(Vec2(18.0f, 18.0f), 5.0f);
-    auto box = createBoxEntity(Vec2(0.0f, 0.0f), 20.0f, 20.0f);
+    auto box    = createBoxEntity(Vec2(0.0f, 0.0f), 20.0f, 20.0f);
 
     auto circleCollider = circle->getComponent<CCircleCollider>();
-    auto boxCollider = box->getComponent<CBoxCollider>();
+    auto boxCollider    = box->getComponent<CBoxCollider>();
 
     // Circle far from corner of box at (10, 10)
     // Distance from (18, 18) to (10, 10) = ~11.3
@@ -227,10 +227,10 @@ TEST_F(CollisionDetectorTest, CircleVsBox_CircleAtCornerSeparated)
 
 TEST_F(CollisionDetectorTest, BoxVsCircle_Overlapping)
 {
-    auto box = createBoxEntity(Vec2(0.0f, 0.0f), 20.0f, 20.0f);
+    auto box    = createBoxEntity(Vec2(0.0f, 0.0f), 20.0f, 20.0f);
     auto circle = createCircleEntity(Vec2(15.0f, 0.0f), 10.0f);
 
-    auto boxCollider = box->getComponent<CBoxCollider>();
+    auto boxCollider    = box->getComponent<CBoxCollider>();
     auto circleCollider = circle->getComponent<CCircleCollider>();
 
     // Test that order doesn't matter
@@ -239,10 +239,10 @@ TEST_F(CollisionDetectorTest, BoxVsCircle_Overlapping)
 
 TEST_F(CollisionDetectorTest, BoxVsCircle_Separated)
 {
-    auto box = createBoxEntity(Vec2(0.0f, 0.0f), 20.0f, 20.0f);
+    auto box    = createBoxEntity(Vec2(0.0f, 0.0f), 20.0f, 20.0f);
     auto circle = createCircleEntity(Vec2(25.0f, 0.0f), 10.0f);
 
-    auto boxCollider = box->getComponent<CBoxCollider>();
+    auto boxCollider    = box->getComponent<CBoxCollider>();
     auto circleCollider = circle->getComponent<CCircleCollider>();
 
     // Test that order doesn't matter
@@ -283,13 +283,12 @@ TEST_F(CollisionDetectorTest, BoxVsBox_ZeroSize)
 TEST_F(CollisionDetectorTest, CircleVsBox_LargeNumbers)
 {
     auto circle = createCircleEntity(Vec2(1000.0f, 1000.0f), 15.0f);
-    auto box = createBoxEntity(Vec2(1010.0f, 1000.0f), 20.0f, 20.0f);
+    auto box    = createBoxEntity(Vec2(1010.0f, 1000.0f), 20.0f, 20.0f);
 
     auto circleCollider = circle->getComponent<CCircleCollider>();
-    auto boxCollider = box->getComponent<CBoxCollider>();
+    auto boxCollider    = box->getComponent<CBoxCollider>();
 
     // Circle at 1000, radius 15, reaches to x=1015
     // Box at 1010, half-width 10, starts at x=1000
     EXPECT_TRUE(CollisionDetector::intersects(circleCollider, boxCollider));
 }
-

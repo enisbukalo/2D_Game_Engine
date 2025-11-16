@@ -73,6 +73,12 @@ private:
     void handleGravity(float deltaTime);
 
     /**
+     * @brief Integrates velocity to update positions
+     * @param deltaTime Time elapsed since last update in seconds
+     */
+    void integratePositions(float deltaTime);
+
+    /**
      * @brief Handles collisions between entities
      * @param a First entity involved in collision
      * @param b Second entity involved in collision
@@ -97,9 +103,12 @@ private:
      * @param aIsStatic Whether first entity is static
      * @param bIsStatic Whether second entity is static
      */
-    void resolveCircleVsCircle(CTransform* transformA, CTransform* transformB,
-                               const CCircleCollider* circleA, const CCircleCollider* circleB,
-                               bool aIsStatic, bool bIsStatic);
+    void resolveCircleVsCircle(CTransform*            transformA,
+                               CTransform*            transformB,
+                               const CCircleCollider* circleA,
+                               const CCircleCollider* circleB,
+                               bool                   aIsStatic,
+                               bool                   bIsStatic);
 
     /**
      * @brief Resolves circle-box collision
@@ -112,10 +121,14 @@ private:
      * @param aIsStatic Whether first entity is static
      * @param bIsStatic Whether second entity is static
      */
-    void resolveCircleVsBox(CTransform* transformA, CTransform* transformB,
-                            const CCircleCollider* circleA, const CBoxCollider* boxA,
-                            const CCircleCollider* circleB, const CBoxCollider* boxB,
-                            bool aIsStatic, bool bIsStatic);
+    void resolveCircleVsBox(CTransform*            transformA,
+                            CTransform*            transformB,
+                            const CCircleCollider* circleA,
+                            const CBoxCollider*    boxA,
+                            const CCircleCollider* circleB,
+                            const CBoxCollider*    boxB,
+                            bool                   aIsStatic,
+                            bool                   bIsStatic);
 
     /**
      * @brief Resolves box-box collision
@@ -126,9 +139,7 @@ private:
      * @param aIsStatic Whether first entity is static
      * @param bIsStatic Whether second entity is static
      */
-    void resolveBoxVsBox(CTransform* transformA, CTransform* transformB,
-                         const CBoxCollider* boxA, const CBoxCollider* boxB,
-                         bool aIsStatic, bool bIsStatic);
+    void resolveBoxVsBox(CTransform* transformA, CTransform* transformB, const CBoxCollider* boxA, const CBoxCollider* boxB, bool aIsStatic, bool bIsStatic);
 };
 
 #endif  // S2D_PHYSICS_H
