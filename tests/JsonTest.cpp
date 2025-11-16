@@ -1,11 +1,12 @@
 #include <gtest/gtest.h>
 #include <cmath>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include "JsonBuilder.h"
 #include "JsonParser.h"
 #include "JsonValue.h"
-#include "test_utils.h"
+#include "TestUtils.h"
 
 TEST(JsonTest, ParseEntityFile)
 {
@@ -420,4 +421,7 @@ TEST(JsonTest, BuilderWriteAndReadFile)
     const auto& gravity = settings["gravity"];
     EXPECT_TRUE(approxEqual(gravity["x"].getNumber(), 0.0));
     EXPECT_TRUE(approxEqual(gravity["y"].getNumber(), -9.81));
+
+    // Clean up
+    std::filesystem::remove(outputPath);
 }

@@ -1,12 +1,13 @@
-#include "Entity.h"
 #include <gtest/gtest.h>
+#include "CCircleCollider.h"
+#include "CGravity.h"
+#include "CName.h"
+#include "CTransform.h"
 #include "Component.h"
+#include "Entity.h"
 #include "Vec2.h"
-#include "components/CGravity.h"
-#include "components/CName.h"
-#include "components/CTransform.h"
 
-// Test helper class that exposes protected constructor
+// Test helper class that exposes protected constructor.
 class TestEntity : public Entity
 {
 public:
@@ -47,15 +48,19 @@ TEST(EntityTest, MultipleComponents)
 {
     TestEntity entity("test", 1);
 
-    CTransform *transform = entity.addComponent<CTransform>();
-    CName      *name      = entity.addComponent<CName>("TestEntity");
-    CGravity   *gravity   = entity.addComponent<CGravity>();
+    CTransform      *transform = entity.addComponent<CTransform>();
+    CName           *name      = entity.addComponent<CName>("TestEntity");
+    CGravity        *gravity   = entity.addComponent<CGravity>();
+    CCircleCollider *collider  = entity.addComponent<CCircleCollider>(2.0f);
 
     EXPECT_TRUE(entity.hasComponent<CTransform>());
     EXPECT_TRUE(entity.hasComponent<CName>());
     EXPECT_TRUE(entity.hasComponent<CGravity>());
+    EXPECT_TRUE(entity.hasComponent<CCircleCollider>());
 
     EXPECT_EQ(name->getName(), "TestEntity");
+    EXPECT_FLOAT_EQ(collider->getRadius(), 2.0f);
+    EXPECT_FALSE(collider->isTrigger());
 }
 
 TEST(EntityTest, ComponentUpdate)
@@ -63,9 +68,13 @@ TEST(EntityTest, ComponentUpdate)
     TestEntity entity("test", 1);
 
     CTransform *transform = entity.addComponent<CTransform>();
-    transform->setVelocity(Vec2(1.0f, 1.0f));
+    Vec2        initialPos(1.0f, 1.0f);
+    Vec2        initialVel(2.0f, 2.0f);
+    transform->setPosition(initialPos);
+    transform->setVelocity(initialVel);
 
+    // Update should not change position since physics system handles that now
     entity.update(1.0f);
-    EXPECT_FLOAT_EQ(transform->getPosition().x, 1.0f);
-    EXPECT_FLOAT_EQ(transform->getPosition().y, 1.0f);
+    EXPECT_EQ(transform->getPosition(), initialPos);
+    EXPECT_EQ(transform->getVelocity(), initialVel);
 }

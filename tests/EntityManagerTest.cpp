@@ -1,13 +1,14 @@
 #include <gtest/gtest.h>
 #include <filesystem>
+#include "CCircleCollider.h"
+#include "CGravity.h"
+#include "CName.h"
+#include "CTransform.h"
 #include "Component.h"
 #include "Entity.h"
 #include "EntityManager.h"
+#include "TestUtils.h"
 #include "Vec2.h"
-#include "components/CGravity.h"
-#include "components/CName.h"
-#include "components/CTransform.h"
-#include "test_utils.h"
 
 // Define the source directory path
 #ifndef SOURCE_DIR
@@ -67,21 +68,26 @@ TEST_F(EntityManagerTest, EntityTagging)
 
 TEST_F(EntityManagerTest, EntityComponentQuery)
 {
-    auto&                   manager = EntityManager::instance();
+    auto& manager = EntityManager::instance();
+
     std::shared_ptr<Entity> entity1 = manager.addEntity("test1");
     entity1->addComponent<CTransform>();
+    entity1->addComponent<CCircleCollider>(2.0f);
 
     std::shared_ptr<Entity> entity2 = manager.addEntity("test2");
     entity2->addComponent<CTransform>();
     entity2->addComponent<CGravity>();
+    entity2->addComponent<CCircleCollider>(3.0f);
 
     manager.update(0.0f);  // Process pending entities
 
     auto entitiesWithTransform = manager.getEntitiesWithComponent<CTransform>();
     auto entitiesWithGravity   = manager.getEntitiesWithComponent<CGravity>();
+    auto entitiesWithCollider  = manager.getEntitiesWithComponent<CCircleCollider>();
 
     EXPECT_EQ(entitiesWithTransform.size(), 2);
     EXPECT_EQ(entitiesWithGravity.size(), 1);
+    EXPECT_EQ(entitiesWithCollider.size(), 2);
 }
 
 TEST_F(EntityManagerTest, EntityUpdateSystem)
@@ -104,7 +110,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
 {
     auto& manager = EntityManager::instance();
 
-    // Create first entity with Transform and Gravity
+    // Create first entity with Transform, Gravity and CircleCollider
     auto entity1    = manager.addEntity("physics_object");
     auto transform1 = entity1->addComponent<CTransform>();
     transform1->setPosition(Vec2(100.0f, 200.0f));
@@ -112,6 +118,8 @@ TEST_F(EntityManagerTest, EntitySerialization)
     transform1->setRotation(45.0f);
     auto gravity1 = entity1->addComponent<CGravity>();
     gravity1->setForce(Vec2(0.0f, -15.0f));
+    auto collider1 = entity1->addComponent<CCircleCollider>(3.0f);
+    collider1->setTrigger(true);
 
     // Create second entity with Transform and Name
     auto entity2    = manager.addEntity("named_object");
@@ -129,6 +137,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
     gravity3->setForce(Vec2(5.0f, -9.81f));
     auto name3 = entity3->addComponent<CName>();
     name3->setName("CompleteObject");
+    auto collider3 = entity3->addComponent<CCircleCollider>(5.0f);
 
     // Process pending entities
     manager.update(0.0f);
@@ -145,63 +154,157 @@ TEST_F(EntityManagerTest, EntitySerialization)
     const auto& entities = root["entities"].getArray();
     ASSERT_EQ(entities.size(), 3);
 
-    // Find physics_object entity
+    // Find physics_object entity and verify its components
     const auto& physics = entities[0];
     EXPECT_EQ(physics["tag"].getString(), "physics_object");
     const auto& physicsComponents = physics["components"].getArray();
 
-    // Verify Transform component
-    const auto& transform = physicsComponents[0]["cTransform"];
-    const auto& pos       = transform["position"];
-    const auto& scale     = transform["scale"];
+    // Find and verify Transform component
+    const JsonValue* transformData = nullptr;
+    for (const auto& comp : physicsComponents)
+    {
+        if (!comp["cTransform"].isNull())
+        {
+            transformData = &comp["cTransform"];
+            break;
+        }
+    }
+    ASSERT_NE(transformData, nullptr);
+    const auto& pos   = (*transformData)["position"];
+    const auto& scale = (*transformData)["scale"];
     EXPECT_TRUE(approxEqual(pos["x"].getNumber(), 100.0));
     EXPECT_TRUE(approxEqual(pos["y"].getNumber(), 200.0));
     EXPECT_TRUE(approxEqual(scale["x"].getNumber(), 2.0));
     EXPECT_TRUE(approxEqual(scale["y"].getNumber(), 2.0));
-    EXPECT_TRUE(approxEqual(transform["rotation"].getNumber(), 45.0));
+    EXPECT_TRUE(approxEqual((*transformData)["rotation"].getNumber(), 45.0));
 
-    // Verify Gravity component
-    const auto& gravity = physicsComponents[1]["cGravity"];
-    const auto& force   = gravity["force"];
+    // Find and verify Gravity component
+    const JsonValue* gravityData = nullptr;
+    for (const auto& comp : physicsComponents)
+    {
+        if (!comp["cGravity"].isNull())
+        {
+            gravityData = &comp["cGravity"];
+            break;
+        }
+    }
+    ASSERT_NE(gravityData, nullptr);
+    const auto& force = (*gravityData)["force"];
     EXPECT_TRUE(approxEqual(force["x"].getNumber(), 0.0));
     EXPECT_TRUE(approxEqual(force["y"].getNumber(), -15.0));
+
+    // Find and verify CircleCollider component
+    const JsonValue* colliderData = nullptr;
+    for (const auto& comp : physicsComponents)
+    {
+        if (!comp["cCircleCollider"].isNull())
+        {
+            colliderData = &comp["cCircleCollider"];
+            break;
+        }
+    }
+    ASSERT_NE(colliderData, nullptr);
+    EXPECT_TRUE(approxEqual((*colliderData)["radius"].getNumber(), 3.0f));
+    EXPECT_TRUE((*colliderData)["trigger"].getBool());
 
     // Find named_object entity
     const auto& named = entities[1];
     EXPECT_EQ(named["tag"].getString(), "named_object");
     const auto& namedComponents = named["components"].getArray();
 
-    // Verify Transform component
-    const auto& transform2Data = namedComponents[0]["cTransform"];
-    const auto& pos2           = transform2Data["position"];
+    // Find and verify Transform component
+    const JsonValue* transform2Data = nullptr;
+    for (const auto& comp : namedComponents)
+    {
+        if (!comp["cTransform"].isNull())
+        {
+            transform2Data = &comp["cTransform"];
+            break;
+        }
+    }
+    ASSERT_NE(transform2Data, nullptr);
+    const auto& pos2 = (*transform2Data)["position"];
     EXPECT_TRUE(approxEqual(pos2["x"].getNumber(), -50.0));
     EXPECT_TRUE(approxEqual(pos2["y"].getNumber(), 75.0));
 
-    // Verify Name component
-    const auto& name = namedComponents[1]["cName"];
-    EXPECT_EQ(name["name"].getString(), "TestObject");
+    // Find and verify Name component
+    const JsonValue* name2Data = nullptr;
+    for (const auto& comp : namedComponents)
+    {
+        if (!comp["cName"].isNull())
+        {
+            name2Data = &comp["cName"];
+            break;
+        }
+    }
+    ASSERT_NE(name2Data, nullptr);
+    EXPECT_EQ((*name2Data)["name"].getString(), "TestObject");
 
-    // Find complete_object entity
+    // Find complete_object entity and verify its components
     const auto& complete = entities[2];
     EXPECT_EQ(complete["tag"].getString(), "complete_object");
     const auto& completeComponents = complete["components"].getArray();
 
-    // Verify Transform component
-    const auto& transform3Data = completeComponents[0]["cTransform"];
-    const auto& pos3           = transform3Data["position"];
+    // Find and verify Transform component
+    const JsonValue* transform3Data = nullptr;
+    for (const auto& comp : completeComponents)
+    {
+        if (!comp["cTransform"].isNull())
+        {
+            transform3Data = &comp["cTransform"];
+            break;
+        }
+    }
+    ASSERT_NE(transform3Data, nullptr);
+    const auto& pos3 = (*transform3Data)["position"];
     EXPECT_TRUE(approxEqual(pos3["x"].getNumber(), 300.0));
     EXPECT_TRUE(approxEqual(pos3["y"].getNumber(), -200.0));
-    EXPECT_TRUE(approxEqual(transform3Data["rotation"].getNumber(), 90.0));
+    EXPECT_TRUE(approxEqual((*transform3Data)["rotation"].getNumber(), 90.0));
 
-    // Verify Gravity component
-    const auto& gravity3Data = completeComponents[1]["cGravity"];
-    const auto& force3       = gravity3Data["force"];
+    // Find and verify Gravity component
+    const JsonValue* gravity3JsonData = nullptr;
+    for (const auto& comp : completeComponents)
+    {
+        if (!comp["cGravity"].isNull())
+        {
+            gravity3JsonData = &comp["cGravity"];
+            break;
+        }
+    }
+    ASSERT_NE(gravity3JsonData, nullptr);
+    const auto& force3 = (*gravity3JsonData)["force"];
     EXPECT_TRUE(approxEqual(force3["x"].getNumber(), 5.0));
     EXPECT_TRUE(approxEqual(force3["y"].getNumber(), -9.81));
 
-    // Verify Name component
-    const auto& name3Data = completeComponents[2]["cName"];
-    EXPECT_EQ(name3Data["name"].getString(), "CompleteObject");
+    // Find and verify Name component
+    const JsonValue* name3JsonData = nullptr;
+    for (const auto& comp : completeComponents)
+    {
+        if (!comp["cName"].isNull())
+        {
+            name3JsonData = &comp["cName"];
+            break;
+        }
+    }
+    ASSERT_NE(name3JsonData, nullptr);
+    EXPECT_EQ((*name3JsonData)["name"].getString(), "CompleteObject");
+
+    // Find and verify CircleCollider component
+    const JsonValue* collider3JsonData = nullptr;
+    for (const auto& comp : completeComponents)
+    {
+        if (!comp["cCircleCollider"].isNull())
+        {
+            collider3JsonData = &comp["cCircleCollider"];
+            break;
+        }
+    }
+    ASSERT_NE(collider3JsonData, nullptr);
+    EXPECT_TRUE(approxEqual((*collider3JsonData)["radius"].getNumber(), 5.0f));
+    EXPECT_FALSE((*collider3JsonData)["trigger"].getBool());
+
+    // Clean up
+    std::filesystem::remove(testFile);
 }
 
 TEST_F(EntityManagerTest, SaveAndLoadEntities)

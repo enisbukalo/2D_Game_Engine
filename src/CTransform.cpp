@@ -2,11 +2,6 @@
 #include "JsonBuilder.h"
 #include "JsonParser.h"
 
-void CTransform::update(float deltaTime)
-{
-    m_position += m_velocity * deltaTime;
-}
-
 std::string CTransform::getType() const
 {
     return "Transform";

@@ -1,8 +1,10 @@
-#include "Component.h"
 #include <gtest/gtest.h>
+#include "CBoxCollider.h"
+#include "CCircleCollider.h"
 #include "CGravity.h"
 #include "CName.h"
 #include "CTransform.h"
+#include "Component.h"
 #include "Entity.h"
 
 // Test helper classes
@@ -51,11 +53,14 @@ TEST(ComponentTest, TransformComponent)
     EXPECT_FLOAT_EQ(transform.getScale().y, 1.0f);
     EXPECT_FLOAT_EQ(transform.getRotation(), 0.0f);
 
-    // Test update with velocity
-    transform.setVelocity(Vec2(1.0f, 2.0f));
-    transform.update(0.5f);
-    EXPECT_FLOAT_EQ(transform.getPosition().x, 0.5f);
-    EXPECT_FLOAT_EQ(transform.getPosition().y, 1.0f);
+    // Test that position and velocity can be set but aren't automatically updated
+    Vec2 testPos(1.0f, 2.0f);
+    Vec2 testVel(3.0f, 4.0f);
+    transform.setPosition(testPos);
+    transform.setVelocity(testVel);
+    transform.update(0.5f);  // Update should not change position
+    EXPECT_EQ(transform.getPosition(), testPos);
+    EXPECT_EQ(transform.getVelocity(), testVel);
 }
 
 TEST(ComponentTest, GravityComponent)
@@ -192,4 +197,94 @@ TEST(ComponentTest, ComponentSerializationRoundTrip)
     EXPECT_FLOAT_EQ(transform2.getRotation(), transform->getRotation());
     EXPECT_EQ(gravity2.getForce(), gravity->getForce());
     EXPECT_EQ(name2.getName(), name->getName());
+}
+
+TEST(ComponentTest, CircleColliderSerialization)
+{
+    // Create and set up original component
+    CCircleCollider collider1(5.0f);
+    collider1.setTrigger(true);
+
+    // Serialize
+    JsonBuilder builder;
+    collider1.serialize(builder);
+    JsonValue json(builder.toString());
+
+    // Create new component and deserialize
+    CCircleCollider collider2;
+    collider2.deserialize(json);
+
+    // Verify all values match
+    EXPECT_FLOAT_EQ(collider2.getRadius(), collider1.getRadius());
+    EXPECT_EQ(collider2.isTrigger(), collider1.isTrigger());
+}
+
+TEST(ComponentTest, BoxColliderSerialization)
+{
+    // Create and set up original component
+    CBoxCollider collider1(10.0f, 20.0f);
+    collider1.setTrigger(true);
+
+    // Serialize
+    JsonBuilder builder;
+    collider1.serialize(builder);
+    JsonValue json(builder.toString());
+
+    // Create new component and deserialize
+    CBoxCollider collider2;
+    collider2.deserialize(json);
+
+    // Verify all values match
+    EXPECT_FLOAT_EQ(collider2.getWidth(), collider1.getWidth());
+    EXPECT_FLOAT_EQ(collider2.getHeight(), collider1.getHeight());
+    EXPECT_EQ(collider2.isTrigger(), collider1.isTrigger());
+}
+
+TEST(ComponentTest, CircleCollider)
+{
+    // Test construction and default values
+    CCircleCollider defaultCollider;
+    EXPECT_FLOAT_EQ(defaultCollider.getRadius(), 1.0f);
+    EXPECT_FALSE(defaultCollider.isTrigger());
+
+    // Test explicit construction and setters
+    CCircleCollider collider(5.0f);
+    EXPECT_FLOAT_EQ(collider.getRadius(), 5.0f);
+
+    collider.setRadius(3.0f);
+    EXPECT_FLOAT_EQ(collider.getRadius(), 3.0f);
+
+    collider.setTrigger(true);
+    EXPECT_TRUE(collider.isTrigger());
+}
+
+TEST(ComponentTest, BoxCollider)
+{
+    // Test construction and default values
+    CBoxCollider defaultCollider;
+    EXPECT_FLOAT_EQ(defaultCollider.getWidth(), 1.0f);
+    EXPECT_FLOAT_EQ(defaultCollider.getHeight(), 1.0f);
+    EXPECT_FALSE(defaultCollider.isTrigger());
+
+    // Test explicit construction and setters
+    CBoxCollider collider(10.0f, 20.0f);
+    EXPECT_FLOAT_EQ(collider.getWidth(), 10.0f);
+    EXPECT_FLOAT_EQ(collider.getHeight(), 20.0f);
+
+    collider.setSize(15.0f, 25.0f);
+    EXPECT_FLOAT_EQ(collider.getWidth(), 15.0f);
+    EXPECT_FLOAT_EQ(collider.getHeight(), 25.0f);
+
+    collider.setTrigger(true);
+    EXPECT_TRUE(collider.isTrigger());
+
+    // Test Vec2 constructor and setter
+    CBoxCollider collider2(Vec2(30.0f, 40.0f));
+    EXPECT_FLOAT_EQ(collider2.getWidth(), 30.0f);
+    EXPECT_FLOAT_EQ(collider2.getHeight(), 40.0f);
+
+    collider2.setSize(Vec2(50.0f, 60.0f));
+    Vec2 size = collider2.getSize();
+    EXPECT_FLOAT_EQ(size.x, 50.0f);
+    EXPECT_FLOAT_EQ(size.y, 60.0f);
 }

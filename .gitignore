@@ -1,13 +1,20 @@
+# Example directory
+Example_Game/
+
 # Build directories
-build/
-deps_cache/
+build_linux/
+build_windows/
+package_linux/
+package_windows/
+deps_cache_linux/
+deps_cache_windows/
 out/
 CMakeFiles/
 Debug/
 Release/
 package/
 install/
-example_project/GameEngine/
+example_project/*
 
 # IDE specific files
 .vs/
@@ -15,6 +22,9 @@ example_project/GameEngine/
 *.swo
 .idea/
 cmake-build-*/
+
+# Static analysis
+static_analysis_report.md
 
 # Compiled files
 *.o

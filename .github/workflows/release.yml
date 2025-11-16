@@ -5,17 +5,26 @@ on:
     types: [published]
 
 jobs:
-  build:
+  build-linux:
     permissions:
       contents: write
       actions: read
-    uses: ./.github/workflows/build.yml
+    uses: ./.github/workflows/build-linux.yml
     with:
-      build_command: ./build.sh -c -s -p --no-tests
+      build_type: "Release"
+      upload_package: true
+
+  build-windows:
+    permissions:
+      contents: write
+      actions: read
+    uses: ./.github/workflows/build-windows.yml
+    with:
+      build_type: "Release"
       upload_package: true
 
   upload-release:
-    needs: build
+    needs: [build-linux, build-windows]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -29,18 +38,28 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Using version: $VERSION"
 
-      - name: Download Build Artifact
+      - name: Download Linux Build Artifact
         uses: actions/download-artifact@v4
         with:
-          name: GameEnginePackage
-          path: release
+          name: GameEngine-Linux-Release
+          path: release-linux
 
-      - name: Create Release Package
+      - name: Download Windows Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: GameEngine-Windows-Release
+          path: release-windows
+
+      - name: Create Release Packages
         run: |
-          cd release
-          zip -r ../GameEngine-${{ steps.version.outputs.version }}.zip *
+          cd release-linux
+          zip -r ../GameEngine-Linux-${{ steps.version.outputs.version }}.zip *
+          cd ../release-windows
+          zip -r ../GameEngine-Windows-${{ steps.version.outputs.version }}.zip *
 
-      - name: Upload Release Asset
+      - name: Upload Release Assets
         uses: softprops/action-gh-release@v1
         with:
-          files: GameEngine-${{ steps.version.outputs.version }}.zip
+          files: |
+            GameEngine-Linux-${{ steps.version.outputs.version }}.zip
+            GameEngine-Windows-${{ steps.version.outputs.version }}.zip

@@ -5,14 +5,17 @@ A modern C++ 2D game engine built with SFML, featuring an Entity Component Syste
 ## Table of Contents
 - [GameEngine](#gameengine)
   - [Table of Contents](#table-of-contents)
+  - [Notes](#notes)
   - [Features](#features)
     - [Entity Component System (ECS)](#entity-component-system-ecs)
+    - [Physics System](#physics-system)
     - [Serialization System](#serialization-system)
     - [Code Organization](#code-organization)
     - [Core Systems](#core-systems)
     - [Math Utilities](#math-utilities)
   - [Dependencies](#dependencies)
   - [Building the Project](#building-the-project)
+    - [Docker Build (Recommended)](#docker-build-recommended)
     - [Build Options](#build-options)
     - [Examples](#examples)
     - [Build Output](#build-output)
@@ -24,15 +27,28 @@ A modern C++ 2D game engine built with SFML, featuring an Entity Component Syste
   - [Contributing](#contributing)
   - [License](#license)
 
+## Notes
+
+
 ## Features
 
 ### Entity Component System (ECS)
 - **Entity Management**: Flexible entity creation and lifecycle management
 - **Component-Based Architecture**: Modular component system for easy extension
 - **Built-in Components**:
-  - `CTransform`: Handles position, velocity, scale, and rotation
-  - `CGravity`: Implements basic gravity physics
+  - `CTransform`: Handles position, velocity, scale, and rotation data storage
+  - `CGravity`: Implements basic gravity physics configuration
   - `CName`: Provides naming functionality for entities
+
+### Physics System
+- **S2DPhysics**: Centralized physics system that handles all physics calculations
+  - Authoritative source for position and velocity updates
+  - Implements standard physics equations:
+    - Velocity: v = v0 + at
+    - Position: p = p0 + v0t + (1/2)at²
+  - Handles gravity effects on entities
+  - Clear separation between data (`CTransform`, `CGravity`) and behavior (`S2DPhysics`)
+  - Efficient batch processing of physics entities
 
 ### Serialization System
 - **JSON-based Serialization**: Full support for saving and loading game states
@@ -67,6 +83,11 @@ The codebase is organized using pragma regions for better readability:
   - Handle scene transitions
   - Error handling for scene operations
   - Scene state management
+- **2D Physics System**: Manages physics simulation and calculations
+  - Centralized physics processing
+  - Gravity and force application
+  - Velocity and position updates
+  - Component-based physics integration
 - **Component Factory**: Provides a factory pattern for component creation
 - **JSON System**:
   - `JsonBuilder`: Constructs JSON data structures
@@ -82,41 +103,74 @@ The codebase is organized using pragma regions for better readability:
   - Distance calculations
 
 ## Dependencies
-- SFML 2.6.x: Graphics and window management
-- Dear ImGui 1.91.x: Immediate mode GUI
-- ImGui-SFML 2.6.x: SFML backend for Dear ImGui
+- SFML 2.6.1: Graphics and window management
+- Dear ImGui 1.88: Immediate mode GUI
+- ImGui-SFML 2.6: SFML backend for Dear ImGui
 - C++17 or later
+- CMake 3.28+
+- Google Test (for testing)
 
 ## Building the Project
 
-The project includes a build script (`build.sh`) that handles the build process, including dependency management, testing, and packaging.
+The project supports building both for **Linux** (native) and **Windows** (cross-compilation) via Docker.
+
+### Docker Build (Recommended)
+
+**Prerequisites:**
+- Docker
+- Docker Compose
+- Run Docker Container
+- - ```docker-compose up -d --build```
+
+**Linux Build (Development/Testing):**
+```bash
+# Build and run tests
+docker-compose exec dev ./build_linux.sh
+
+# Build without tests
+docker-compose exec dev ./build_linux.sh --no-tests
+
+# Clean build
+docker-compose exec dev ./build_linux.sh --clean
+```
+
+**Windows Build (Cross-compilation):**
+```bash
+# Build for Windows
+docker-compose exec dev ./build_windows.sh
+```
+
+**Enter Development Environment:**
+```bash
+docker-compose exec dev /bin/bash
+```
 
 ### Build Options
 
 The build script (`build.sh`) provides several options:
 
 - `-h, --help`: Show help message
-- `-t, --type TYPE`: Set build type (Debug/Release)
-- `-s, --shared`: Build as shared library [default: ON]
+- `-t, --type TYPE`: Set build type (Debug/Release) [default: Debug]
+- `-s, --shared`: Build as shared library [default: OFF]
 - `--no-tests`: Skip building and running tests
 - `-c, --clean`: Clean build directory
-- `-p, --package`: Create distributable package
+- `-i, --install-prefix`: Set install prefix [default: ./package]
 
 ### Examples
 
-Clean build with shared library:
+Clean build with tests:
 ```bash
-./build.sh -c -s
+./build.sh --clean
 ```
 
-Build package:
+Release build without tests:
 ```bash
-./build.sh -c -s -p
+./build.sh -t Release --no-tests
 ```
 
-Build without running tests:
+Build as shared library:
 ```bash
-./build.sh -c -s --no-tests
+./build.sh -s
 ```
 
 ### Build Output
@@ -156,15 +210,23 @@ You will be required to link the dependencies manually in your project.
 // Get the scene manager instance
 auto& sceneManager = SceneManager::instance();
 
-// Create a new scene
+// Create a new scene with a physics-enabled entity
 auto& entityManager = EntityManager::instance();
+auto& physics = S2DPhysics::instance();
+
 auto player = entityManager.addEntity("player");
 auto transform = player->addComponent<CTransform>();
 auto gravity = player->addComponent<CGravity>();
 
-// Configure components
+// Configure initial conditions
 transform->setPosition(Vec2(100.0f, 200.0f));
-gravity->setForce(Vec2(0.0f, -9.81f));
+transform->setVelocity(Vec2(5.0f, 0.0f));  // Initial horizontal velocity
+gravity->setForce(Vec2(0.0f, -9.81f));     // Standard gravity
+
+// Game loop
+float deltaTime = 1.0f / 60.0f;  // 60 FPS
+physics.update(deltaTime);        // Physics system updates positions and velocities
+entityManager.update(deltaTime);  // Entity system processes updates
 
 // Save the scene
 sceneManager.saveScene("level1.json");
@@ -196,7 +258,8 @@ sceneManager.clearScene();
 │   ├── CGravity.h
 │   └── CName.h
 ├── systems/         # System implementations
-│   └── System.h
+│   ├── System.h
+│   └── S2DPhysics.h
 └── src/            # Source files
 ```
 

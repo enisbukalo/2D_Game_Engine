@@ -1,6 +1,4 @@
 # Build directories
-build/
-deps_cache/
 out/
 
 # IDE specific files

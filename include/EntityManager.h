@@ -82,6 +82,28 @@ public:
     };
 
     /**
+     * @brief Gets all entities that have a component of the specified type or derived from it
+     * @tparam T The base component type to search for
+     * @return Vector of pointers to entities with components derived from T
+     *
+     * This uses dynamic_cast internally, so it's slower than getEntitiesWithComponent
+     * but works with inheritance hierarchies.
+     */
+    template <typename T>
+    std::vector<Entity*> getEntitiesWithComponentDerived()
+    {
+        std::vector<Entity*> result;
+        for (auto& entity : m_entities)
+        {
+            if (entity->isAlive() && entity->hasComponentDerived<T>())
+            {
+                result.push_back(entity.get());
+            }
+        }
+        return result;
+    };
+
+    /**
      * @brief Saves the current game state to a file
      * @param filename Path to the file to save to
      */

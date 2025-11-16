@@ -24,57 +24,82 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Find threading library
+set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+find_package(Threads REQUIRED)
+
 # Enable parallel compilation for MSVC
 if(MSVC)
     add_compile_options(/MP)
 endif()
 
-# Cache directory for dependencies
-set(DEPS_CACHE_DIR "${CMAKE_SOURCE_DIR}/deps_cache" CACHE PATH "Directory for cached dependencies")
+# Cache directory for dependencies - separate for different toolchains
+if(MINGW OR WIN32)
+    set(DEPS_CACHE_DIR "${CMAKE_SOURCE_DIR}/deps_cache_windows" CACHE PATH "Directory for cached dependencies")
+else()
+    set(DEPS_CACHE_DIR "${CMAKE_SOURCE_DIR}/deps_cache_linux" CACHE PATH "Directory for cached dependencies")
+endif()
 
 include(FetchContent)
 
 # Configure dependency caching
 set(FETCHCONTENT_BASE_DIR ${DEPS_CACHE_DIR})
 
-# Configure SFML
-set(SFML_BUILD_AUDIO OFF CACHE BOOL "")
-set(SFML_BUILD_NETWORK OFF CACHE BOOL "")
-set(SFML_BUILD_EXAMPLES OFF CACHE BOOL "")
-set(SFML_BUILD_DOC OFF CACHE BOOL "")
-set(SFML_BUILD_TEST_SUITE OFF CACHE BOOL "")
-set(SFML_INSTALL_PKGCONFIG_FILES OFF CACHE BOOL "")
-set(BUILD_SHARED_LIBS ON CACHE BOOL "") # Build dependencies as shared libraries
-set(SFML_BUILD_MAIN OFF CACHE BOOL "")
-set(SFML_BUILD_WINDOW ON CACHE BOOL "")
-set(SFML_BUILD_GRAPHICS ON CACHE BOOL "")
+# Find SFML (pre-built for Windows cross-compilation)
+set(SFML_STATIC_LIBRARIES FALSE)
+find_package(SFML 2.6 REQUIRED COMPONENTS graphics window system)
 
-FetchContent_Declare(SFML
-    GIT_REPOSITORY https://github.com/SFML/SFML.git
-    GIT_TAG 2.6.x
-    GIT_SHALLOW ON)
+# Find OpenGL (required for ImGui-SFML)
+find_package(OpenGL REQUIRED)
 
-FetchContent_MakeAvailable(SFML)
-
-# Only build what we need from ImGui-SFML
+# Fetch ImGui (v1.88 is compatible with ImGui-SFML v2.6)
 FetchContent_Declare(IMGUI
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
-    GIT_TAG v1.91.3
+    GIT_TAG v1.88
     GIT_SHALLOW ON)
 
 FetchContent_MakeAvailable(IMGUI)
 
-# Configure ImGui-SFML
-set(IMGUI_DIR ${imgui_SOURCE_DIR})
-set(IMGUI_SFML_FIND_SFML OFF)
-set(IMGUI_SFML_INSTALL ON)
-
+# Fetch ImGui-SFML (v2.6 for SFML 2.6.x compatibility)
 FetchContent_Declare(IMGUI_SFML
     GIT_REPOSITORY https://github.com/SFML/imgui-sfml.git
-    GIT_TAG 2.6.x
+    GIT_TAG v2.6
     GIT_SHALLOW ON)
 
-FetchContent_MakeAvailable(SFML IMGUI_SFML)
+FetchContent_GetProperties(IMGUI_SFML)
+if(NOT imgui_sfml_POPULATED)
+    FetchContent_Populate(IMGUI_SFML)
+
+    # Manually build ImGui-SFML without using its CMakeLists.txt find_package
+    add_library(ImGui-SFML STATIC
+        ${imgui_sfml_SOURCE_DIR}/imgui-SFML.cpp
+        ${imgui_SOURCE_DIR}/imgui.cpp
+        ${imgui_SOURCE_DIR}/imgui_demo.cpp
+        ${imgui_SOURCE_DIR}/imgui_draw.cpp
+        ${imgui_SOURCE_DIR}/imgui_tables.cpp
+        ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    )
+
+    target_include_directories(ImGui-SFML PUBLIC
+        $<BUILD_INTERFACE:${imgui_sfml_SOURCE_DIR}>
+        $<BUILD_INTERFACE:${imgui_SOURCE_DIR}>
+        $<INSTALL_INTERFACE:include/ImGui-SFML>
+    )
+
+    target_link_libraries(ImGui-SFML PUBLIC
+        sfml-graphics
+        sfml-window
+        sfml-system
+        OpenGL::GL
+    )
+
+    target_compile_features(ImGui-SFML PUBLIC cxx_std_17)
+    target_compile_definitions(ImGui-SFML PUBLIC IMGUI_DISABLE_OBSOLETE_FUNCTIONS)
+
+    # Create an alias to match the original target name
+    add_library(ImGui-SFML::ImGui-SFML ALIAS ImGui-SFML)
+endif()
 
 # Common Directories
 set(ENGINE_SOURCES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
@@ -82,6 +107,7 @@ set(ENGINE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include")
 set(ENGINE_COMPONENT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/components")
 set(ENGINE_SYSTEM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/systems")
 set(ENGINE_UTILITY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/utility")
+set(ENGINE_PHYSICS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/physics")
 
 # Create Game Engine library
 file(GLOB_RECURSE ENGINE_SOURCES "${ENGINE_SOURCES_DIR}/*.cpp")
@@ -124,7 +150,12 @@ target_include_directories(GameEngine
     $<BUILD_INTERFACE:${ENGINE_COMPONENT_DIR}>
     $<BUILD_INTERFACE:${ENGINE_SYSTEM_DIR}>
     $<BUILD_INTERFACE:${ENGINE_UTILITY_DIR}>
-    $<INSTALL_INTERFACE:include/GameEngine>
+    $<BUILD_INTERFACE:${ENGINE_PHYSICS_DIR}>
+    $<INSTALL_INTERFACE:include/GameEngine/include>
+    $<INSTALL_INTERFACE:include/GameEngine/components>
+    $<INSTALL_INTERFACE:include/GameEngine/systems>
+    $<INSTALL_INTERFACE:include/GameEngine/utility>
+    $<INSTALL_INTERFACE:include/GameEngine/physics>
 )
 
 # Link against dependencies
@@ -134,11 +165,17 @@ target_link_libraries(GameEngine
     sfml-window
     sfml-system
     ImGui-SFML
-    PRIVATE
-    opengl32
-    winmm
-    gdi32
 )
+
+# Link Windows-specific libraries only when building for Windows
+if(WIN32 OR MINGW)
+    target_link_libraries(GameEngine
+        PRIVATE
+        opengl32
+        winmm
+        gdi32
+    )
+endif()
 
 # Installation configuration
 if(GAMEENGINE_INSTALL)
@@ -147,8 +184,8 @@ if(GAMEENGINE_INSTALL)
 
     set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/GameEngine)
 
-    # Install library
-    install(TARGETS GameEngine
+    # Install library and dependencies
+    install(TARGETS GameEngine ImGui-SFML
         EXPORT GameEngineTargets
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -162,8 +199,21 @@ if(GAMEENGINE_INSTALL)
         ${ENGINE_COMPONENT_DIR}
         ${ENGINE_SYSTEM_DIR}
         ${ENGINE_UTILITY_DIR}
+        ${ENGINE_PHYSICS_DIR}
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/GameEngine
         FILES_MATCHING PATTERN "*.h"
+    )
+
+    # Install ImGui and ImGui-SFML headers
+    install(DIRECTORY
+        ${imgui_SOURCE_DIR}/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ImGui-SFML
+        FILES_MATCHING PATTERN "*.h"
+    )
+    install(FILES
+        ${imgui_sfml_SOURCE_DIR}/imgui-SFML.h
+        ${imgui_sfml_SOURCE_DIR}/imgui-SFML_export.h
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ImGui-SFML
     )
 
     # Export targets
@@ -180,14 +230,21 @@ if(GAMEENGINE_INSTALL)
         COMPATIBILITY SameMajorVersion
     )
 
-    # Generate config file
-    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/GameEngineConfig.cmake"
-        "@PACKAGE_INIT@\n\n"
+    # Create a config file template
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/GameEngineConfig.cmake.in"
         "include(CMakeFindDependencyMacro)\n\n"
         "# Find dependencies\n"
-        "find_dependency(SFML COMPONENTS graphics)\n"
-        "find_dependency(ImGui-SFML)\n"
+        "find_dependency(SFML 2.6 COMPONENTS graphics window system)\n"
+        "find_dependency(OpenGL)\n\n"
+        "# Include the targets file\n"
         "include(\"\${CMAKE_CURRENT_LIST_DIR}/GameEngineTargets.cmake\")\n"
+    )
+
+    # Configure the config file
+    configure_file(
+        "${CMAKE_CURRENT_BINARY_DIR}/GameEngineConfig.cmake.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/GameEngineConfig.cmake"
+        @ONLY
     )
 
     # Install config files
@@ -200,10 +257,17 @@ endif()
 
 # Add tests if enabled
 if(GAMEENGINE_BUILD_TESTS)
-    # Configure GTest
+    # Configure GTest - build as static libraries to avoid DLL issues
     set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
     set(INSTALL_GMOCK OFF CACHE BOOL "" FORCE)
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
+    # Temporarily disable shared library building for Google Test
+    set(BUILD_SHARED_LIBS_BACKUP ${BUILD_SHARED_LIBS})
+    set(BUILD_SHARED_LIBS OFF)
+
     add_subdirectory(tests)
+
+    # Restore BUILD_SHARED_LIBS setting
+    set(BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS_BACKUP})
 endif()

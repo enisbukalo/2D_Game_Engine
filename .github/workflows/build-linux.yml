@@ -1,0 +1,87 @@
+name: Build Linux
+
+on:
+  workflow_call:
+    inputs:
+      build_type:
+        description: "Build type (Debug/Release)"
+        type: string
+        required: false
+        default: "Debug"
+      upload_package:
+        description: "Whether to upload the package artifact"
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            git \
+            clang \
+            clang-format \
+            ninja-build \
+            pkg-config \
+            wget \
+            unzip \
+            libx11-dev \
+            libxrandr-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libudev-dev \
+            libgl1-mesa-dev \
+            libssl-dev \
+            dos2unix \
+            libsfml-dev \
+            cppcheck
+
+      - name: Install CMake 3.28.0
+        run: |
+          wget https://github.com/Kitware/CMake/releases/download/v3.28.0/cmake-3.28.0-linux-x86_64.sh
+          chmod +x cmake-3.28.0-linux-x86_64.sh
+          sudo ./cmake-3.28.0-linux-x86_64.sh --skip-license --prefix=/usr/local
+          rm cmake-3.28.0-linux-x86_64.sh
+
+      - name: Cache Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            deps_cache
+            build/_deps
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/CMakeLists.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-
+
+      - name: Build and Test
+        run: |
+          chmod +x build_tools/build_linux.sh
+          ./build_tools/build_linux.sh -c -t ${{ inputs.build_type }}
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-linux-${{ inputs.build_type }}
+          path: |
+            build/Testing/Temporary/LastTest.log
+          retention-days: 30
+
+      - name: Upload Linux Package
+        if: inputs.upload_package
+        uses: actions/upload-artifact@v4
+        with:
+          name: GameEngine-Linux-${{ inputs.build_type }}
+          path: package_linux/
+          retention-days: 30

@@ -121,6 +121,34 @@ public:
      * @return True if vectors are not equal, false otherwise
      */
     bool operator!=(const Vec2& other) const;
+
+    /**
+     * @brief Scales the vector by a scalar value
+     * @param scalar The scaling factor
+     * @return Reference to this vector after scaling
+     */
+    Vec2& operator*=(float scalar);
+
+    /**
+     * @brief Divides the vector by a scalar value
+     * @param scalar The division factor
+     * @return Reference to this vector after division
+     */
+    Vec2& operator/=(float scalar);
+
+    /**
+     * @brief Returns the dot product of two vectors
+     * @param other The vector to calculate the dot product with
+     * @return The dot product of the two vectors
+     */
+    float dot(const Vec2& other) const;
+
+    /**
+     * @brief Calculates the squared distance to another vector
+     * @param other The vector to calculate distance to
+     * @return The squared distance between the two vectors
+     */
+    float distanceSquared(const Vec2& other) const;
 };
 
 #endif  // VEC2_H
