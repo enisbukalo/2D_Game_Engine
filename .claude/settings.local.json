@@ -8,7 +8,8 @@
       "Bash(docker-compose build:*)",
       "Bash(docker-compose run:*)",
       "Bash(set MSYS_NO_PATHCONV=1)",
-      "Bash(MSYS_NO_PATHCONV=1 docker-compose run:*)"
+      "Bash(MSYS_NO_PATHCONV=1 docker-compose run:*)",
+      "Bash(docker-compose exec:*)"
     ],
     "deny": [],
     "ask": []

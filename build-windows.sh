@@ -9,6 +9,7 @@ NC='\033[0m' # No Color
 # Default values
 BUILD_TYPE="Release"
 BUILD_SHARED="ON"
+BUILD_DIR="build-windows"
 CLEAN_BUILD=false
 TOOLCHAIN_FILE="cmake/toolchain-mingw64.cmake"
 INSTALL_PREFIX="./package-windows"
@@ -71,33 +72,34 @@ fi
 # Clean build directory if requested
 if [ "$CLEAN_BUILD" = true ]; then
     echo -e "${YELLOW}Cleaning Windows build directory...${NC}"
-    rm -rf build-windows
+    rm -rf ${BUILD_DIR}
 fi
 
 # Create build directory if it doesn't exist
-mkdir -p build-windows
+mkdir -p ${BUILD_DIR}
 
 # Configure project with CMake for Windows
 echo -e "${GREEN}Configuring project for Windows (MinGW)...${NC}"
-cmake -B build-windows \
+cmake -B ${BUILD_DIR} \
     -G Ninja \
     -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN_FILE" \
     -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
-    -DGAMEENGINE_BUILD_SHARED=$BUILD_SHARED || {
+    -DGAMEENGINE_BUILD_SHARED=$BUILD_SHARED \
+    -DGAMEENGINE_BUILD_TESTS=OFF || {
         echo -e "${RED}Configuration failed!${NC}"
         exit 1
     }
 
 # Build project
 echo -e "${GREEN}Building project for Windows...${NC}"
-cmake --build build-windows --config $BUILD_TYPE || {
+cmake --build ${BUILD_DIR} --config $BUILD_TYPE || {
     echo -e "${RED}Build failed!${NC}"
     exit 1
 }
 
 # Install library using CMake
 echo -e "${GREEN}Installing library to ${INSTALL_PREFIX}...${NC}"
-cmake --install build-windows --prefix "$INSTALL_PREFIX" || {
+cmake --install ${BUILD_DIR} --prefix "$INSTALL_PREFIX" || {
     echo -e "${RED}Installation failed!${NC}"
     exit 1
 }

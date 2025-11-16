@@ -9,9 +9,10 @@ NC='\033[0m' # No Color
 # Default values
 BUILD_TYPE="Debug"
 BUILD_SHARED="OFF"
+BUILD_DIR="build-linux"
 RUN_TESTS=true
 CLEAN_BUILD=false
-INSTALL_PREFIX="./package"
+INSTALL_PREFIX="./package-linux"
 
 # Help message
 usage() {
@@ -22,7 +23,7 @@ usage() {
     echo "  -s, --shared            Build shared library"
     echo "  -n, --no-tests          Skip building and running tests"
     echo "  -c, --clean             Clean build directory"
-    echo "  -i, --install-prefix    Set install prefix (default: ./package)"
+    echo "  -i, --install-prefix    Set install prefix (default: ./package-linux)"
 }
 
 # Parse command line arguments
@@ -68,47 +69,47 @@ fi
 # Clean build directory if requested
 if [ "$CLEAN_BUILD" = true ]; then
     echo -e "${YELLOW}Cleaning build directory...${NC}"
-    rm -rf build
+    rm -rf ${BUILD_DIR}
 fi
 
 # Create build directory if it doesn't exist
-mkdir -p build
+mkdir -p ${BUILD_DIR}
 
 # Configure project with CMake
 echo -e "${GREEN}Configuring project...${NC}"
-cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DGAMEENGINE_BUILD_SHARED=$BUILD_SHARED || { echo -e "${RED}Configuration failed!${NC}"; exit 1; }
+cmake -B ${BUILD_DIR} -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DGAMEENGINE_BUILD_SHARED=$BUILD_SHARED || { echo -e "${RED}Configuration failed!${NC}"; exit 1; }
 
 # Build project
 echo -e "${GREEN}Building project...${NC}"
-cmake --build build --config $BUILD_TYPE || { echo -e "${RED}Build failed!${NC}"; exit 1; }
+cmake --build ${BUILD_DIR} --config $BUILD_TYPE || { echo -e "${RED}Build failed!${NC}"; exit 1; }
 
 # Run tests if enabled
 if [ "$RUN_TESTS" = true ]; then
     echo -e "${GREEN}Running tests...${NC}"
     # Create Testing directory structure
-    mkdir -p build/Testing/Temporary
+    mkdir -p ${BUILD_DIR}/Testing/Temporary
 
     # Determine test executable name based on platform
-    if [ -f "./build/bin/unit_tests.exe" ]; then
-        TEST_EXEC="./build/bin/unit_tests.exe"
-    elif [ -f "./build/bin/${BUILD_TYPE}/unit_tests.exe" ]; then
-        TEST_EXEC="./build/bin/${BUILD_TYPE}/unit_tests.exe"
-    elif [ -f "./build/bin/unit_tests" ]; then
-        TEST_EXEC="./build/bin/unit_tests"
-    elif [ -f "./build/bin/${BUILD_TYPE}/unit_tests" ]; then
-        TEST_EXEC="./build/bin/${BUILD_TYPE}/unit_tests"
+    if [ -f "./${BUILD_DIR}/bin/unit_tests.exe" ]; then
+        TEST_EXEC="./${BUILD_DIR}/bin/unit_tests.exe"
+    elif [ -f "./${BUILD_DIR}/bin/${BUILD_TYPE}/unit_tests.exe" ]; then
+        TEST_EXEC="./${BUILD_DIR}/bin/${BUILD_TYPE}/unit_tests.exe"
+    elif [ -f "./${BUILD_DIR}/bin/unit_tests" ]; then
+        TEST_EXEC="./${BUILD_DIR}/bin/unit_tests"
+    elif [ -f "./${BUILD_DIR}/bin/${BUILD_TYPE}/unit_tests" ]; then
+        TEST_EXEC="./${BUILD_DIR}/bin/${BUILD_TYPE}/unit_tests"
     else
         echo -e "${RED}Test executable not found!${NC}"
         exit 1
     fi
 
     # Run tests and capture output
-    "$TEST_EXEC" --gtest_output="xml:build/test_results.xml" 2>&1 | tee build/Testing/Temporary/LastTest.log || { echo -e "${RED}Tests failed!${NC}"; exit 1; }
+    "$TEST_EXEC" --gtest_output="xml:${BUILD_DIR}/test_results.xml" 2>&1 | tee ${BUILD_DIR}/Testing/Temporary/LastTest.log || { echo -e "${RED}Tests failed!${NC}"; exit 1; }
 fi
 
 # Install library using CMake
 echo -e "${GREEN}Installing library to ${INSTALL_PREFIX}...${NC}"
-cmake --install build --prefix "$INSTALL_PREFIX" || { echo -e "${RED}Installation failed!${NC}"; exit 1; }
+cmake --install ${BUILD_DIR} --prefix "$INSTALL_PREFIX" || { echo -e "${RED}Installation failed!${NC}"; exit 1; }
 
 echo -e "${GREEN}Build completed successfully!${NC}"
 echo -e "${GREEN}Library installed to: ${INSTALL_PREFIX}${NC}"

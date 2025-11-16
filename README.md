@@ -119,28 +119,30 @@ The project supports building both for **Linux** (native) and **Windows** (cross
 **Prerequisites:**
 - Docker
 - Docker Compose
+- Run Docker Container
+- - ```docker-compose up -d --build```
 
 **Linux Build (Development/Testing):**
 ```bash
 # Build and run tests
-docker-compose run --rm dev ./build.sh
+docker-compose exec dev ./build-linux.sh
 
 # Build without tests
-docker-compose run --rm dev ./build.sh --no-tests
+docker-compose exec dev ./build-linux.sh --no-tests
 
 # Clean build
-docker-compose run --rm dev ./build.sh --clean
+docker-compose exec dev ./build-linux.sh --clean
 ```
 
 **Windows Build (Cross-compilation):**
 ```bash
 # Build for Windows
-docker-compose run --rm dev /usr/local/bin/build-windows
+docker-compose exec dev ./build-windows.sh
 ```
 
 **Enter Development Environment:**
 ```bash
-docker-compose run --rm dev /bin/bash
+docker-compose exec dev /bin/bash
 ```
 
 ### Build Options

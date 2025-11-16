@@ -3,6 +3,7 @@ build/
 build-windows/
 package-windows/
 deps_cache/
+deps_cache_windows/
 out/
 CMakeFiles/
 Debug/

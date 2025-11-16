@@ -34,8 +34,12 @@ if(MSVC)
     add_compile_options(/MP)
 endif()
 
-# Cache directory for dependencies
-set(DEPS_CACHE_DIR "${CMAKE_SOURCE_DIR}/deps_cache" CACHE PATH "Directory for cached dependencies")
+# Cache directory for dependencies - separate for different toolchains
+if(MINGW OR WIN32)
+    set(DEPS_CACHE_DIR "${CMAKE_SOURCE_DIR}/deps_cache_windows" CACHE PATH "Directory for cached dependencies")
+else()
+    set(DEPS_CACHE_DIR "${CMAKE_SOURCE_DIR}/deps_cache_linux" CACHE PATH "Directory for cached dependencies")
+endif()
 
 include(FetchContent)
 

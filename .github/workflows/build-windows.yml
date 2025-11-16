@@ -76,7 +76,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            deps_cache
+            deps_cache_windows
             build-windows/_deps
           key: ${{ runner.os }}-mingw-deps-${{ hashFiles('**/CMakeLists.txt') }}
           restore-keys: |
