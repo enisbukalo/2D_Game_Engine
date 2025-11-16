@@ -87,13 +87,13 @@ jobs:
           SFML_WINDOWS_ROOT: /opt/sfml-windows/sfml
           MINGW_PREFIX: x86_64-w64-mingw32
         run: |
-          chmod +x build-windows.sh
-          ./build-windows.sh -t ${{ inputs.build_type }}
+          chmod +x build_tools/build_windows.sh
+          ./build_tools/build_windows.sh -t ${{ inputs.build_type }}
 
       - name: Upload Windows Package
         if: inputs.upload_package
         uses: actions/upload-artifact@v4
         with:
           name: GameEngine-Windows-${{ inputs.build_type }}
-          path: package-windows/
+          path: package_windows/
           retention-days: 30

@@ -66,8 +66,8 @@ jobs:
 
       - name: Build and Test
         run: |
-          chmod +x build.sh
-          ./build.sh -c -t ${{ inputs.build_type }}
+          chmod +x build_tools/build_linux.sh
+          ./build_tools/build_linux.sh -c -t ${{ inputs.build_type }}
 
       - name: Upload Test Results
         if: always()
@@ -83,5 +83,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: GameEngine-Linux-${{ inputs.build_type }}
-          path: package/
+          path: package_linux/
           retention-days: 30
