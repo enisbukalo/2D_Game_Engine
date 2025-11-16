@@ -151,7 +151,11 @@ target_include_directories(GameEngine
     $<BUILD_INTERFACE:${ENGINE_SYSTEM_DIR}>
     $<BUILD_INTERFACE:${ENGINE_UTILITY_DIR}>
     $<BUILD_INTERFACE:${ENGINE_PHYSICS_DIR}>
-    $<INSTALL_INTERFACE:include/GameEngine>
+    $<INSTALL_INTERFACE:include/GameEngine/include>
+    $<INSTALL_INTERFACE:include/GameEngine/components>
+    $<INSTALL_INTERFACE:include/GameEngine/systems>
+    $<INSTALL_INTERFACE:include/GameEngine/utility>
+    $<INSTALL_INTERFACE:include/GameEngine/physics>
 )
 
 # Link against dependencies
@@ -226,14 +230,21 @@ if(GAMEENGINE_INSTALL)
         COMPATIBILITY SameMajorVersion
     )
 
-    # Generate config file
-    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/GameEngineConfig.cmake"
-        "@PACKAGE_INIT@\n\n"
+    # Create a config file template
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/GameEngineConfig.cmake.in"
         "include(CMakeFindDependencyMacro)\n\n"
         "# Find dependencies\n"
-        "find_dependency(SFML COMPONENTS graphics)\n"
-        "find_dependency(ImGui-SFML)\n"
+        "find_dependency(SFML 2.6 COMPONENTS graphics window system)\n"
+        "find_dependency(OpenGL)\n\n"
+        "# Include the targets file\n"
         "include(\"\${CMAKE_CURRENT_LIST_DIR}/GameEngineTargets.cmake\")\n"
+    )
+
+    # Configure the config file
+    configure_file(
+        "${CMAKE_CURRENT_BINARY_DIR}/GameEngineConfig.cmake.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/GameEngineConfig.cmake"
+        @ONLY
     )
 
     # Install config files
