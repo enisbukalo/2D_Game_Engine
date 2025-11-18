@@ -28,6 +28,18 @@ TEST_F(Vec2Test, Length)
     EXPECT_FLOAT_EQ(zero.length(), 0.0f);
 }
 
+TEST_F(Vec2Test, LengthSquared)
+{
+    Vec2 v(3.0f, 4.0f);
+    EXPECT_FLOAT_EQ(v.lengthSquared(), 25.0f);  // 3^2 + 4^2 = 25
+
+    Vec2 zero;
+    EXPECT_FLOAT_EQ(zero.lengthSquared(), 0.0f);
+
+    Vec2 v2(5.0f, 12.0f);
+    EXPECT_FLOAT_EQ(v2.lengthSquared(), 169.0f);  // 5^2 + 12^2 = 169
+}
+
 TEST_F(Vec2Test, Normalize)
 {
     Vec2 v(3.0f, 4.0f);

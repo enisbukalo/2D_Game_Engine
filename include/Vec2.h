@@ -33,6 +33,12 @@ public:
     float length();
 
     /**
+     * @brief Calculates the squared length (magnitude) of the vector
+     * @return The squared length of the vector (avoids expensive sqrt operation)
+     */
+    float lengthSquared() const;
+
+    /**
      * @brief Normalizes the vector to unit length
      * @return Reference to this vector after normalization
      */

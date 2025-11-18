@@ -2,10 +2,31 @@
 #define COLLISIONDETECTOR_H
 
 #include "Vec2.h"
+#include <vector>
 
 class CCollider;
 class CCircleCollider;
 class CBoxCollider;
+
+/**
+ * @brief Collision manifold containing detailed collision information
+ *
+ * Stores contact points on the edges/surfaces of colliding shapes,
+ * collision normal, and penetration depth for physics resolution.
+ */
+struct CollisionManifold
+{
+    bool hasCollision = false;          // Whether a collision occurred
+    Vec2 normal;                         // Collision normal (points from A to B)
+    float penetrationDepth = 0.0f;       // How deep the shapes overlap
+    std::vector<Vec2> contactPoints;     // Contact points on shape edges (1-2 points)
+
+    CollisionManifold() = default;
+
+    CollisionManifold(bool collision, const Vec2& norm, float depth, const std::vector<Vec2>& points)
+        : hasCollision(collision), normal(norm), penetrationDepth(depth), contactPoints(points)
+    {}
+};
 
 /**
  * @brief Centralized collision detection system
@@ -18,7 +39,7 @@ class CollisionDetector
 {
 public:
     /**
-     * @brief Main collision detection entry point
+     * @brief Main collision detection entry point (legacy boolean version)
      * @param a First collider
      * @param b Second collider
      * @return true if colliders are intersecting
@@ -26,19 +47,30 @@ public:
     static bool intersects(const CCollider* a, const CCollider* b);
 
     /**
-     * @brief Circle vs Circle collision detection
+     * @brief Main collision detection with manifold
+     * @param a First collider
+     * @param b Second collider
+     * @return CollisionManifold with contact points and collision details
      */
-    static bool circleVsCircle(const CCircleCollider* a, const CCircleCollider* b);
+    static CollisionManifold getManifold(const CCollider* a, const CCollider* b);
 
     /**
-     * @brief Circle vs Box collision detection
+     * @brief Circle vs Circle collision detection with edge contact points
+     * @return CollisionManifold with contact point on circle surfaces
      */
-    static bool circleVsBox(const CCircleCollider* circle, const CBoxCollider* box);
+    static CollisionManifold circleVsCircle(const CCircleCollider* a, const CCircleCollider* b);
 
     /**
-     * @brief Box vs Box collision detection
+     * @brief Circle vs Box collision detection with edge contact points
+     * @return CollisionManifold with contact points on circle and box edges
      */
-    static bool boxVsBox(const CBoxCollider* a, const CBoxCollider* b);
+    static CollisionManifold circleVsBox(const CCircleCollider* circle, const CBoxCollider* box);
+
+    /**
+     * @brief Box vs Box collision detection with edge contact points
+     * @return CollisionManifold with contact points on box edges
+     */
+    static CollisionManifold boxVsBox(const CBoxCollider* a, const CBoxCollider* b);
 };
 
 #endif  // COLLISIONDETECTOR_H
