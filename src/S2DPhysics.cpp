@@ -21,6 +21,7 @@ void S2DPhysics::update(float deltaTime)
     updateQuadtree();
     checkCollisions();
 
+#ifdef DEBUG
     // Debug: print all entity velocities after physics update
     std::cout << "[DEBUG] S2DPhysics::update complete. Entity velocities:" << std::endl;
     auto& entityManager = EntityManager::instance();
@@ -31,6 +32,7 @@ void S2DPhysics::update(float deltaTime)
         Vec2 vel       = transform->getVelocity();
         std::cout << "[DEBUG]   " << entity->getTag() << ": velocity=(" << vel.x << "," << vel.y << ")" << std::endl;
     }
+#endif
 }
 
 S2DPhysics::S2DPhysics() : m_worldBounds(Vec2(0, 0), Vec2(1000, 1000))  // Default world size
@@ -56,26 +58,34 @@ void S2DPhysics::updateQuadtree()
     auto& entityManager = EntityManager::instance();
     auto  entities      = entityManager.getEntitiesWithComponent<CTransform>();
 
+#ifdef DEBUG
     std::cout << "[DEBUG] updateQuadtree: Found " << entities.size() << " entities with transform" << std::endl;
     std::cout << "[DEBUG] World bounds: center(" << m_worldBounds.position.x << ", " << m_worldBounds.position.y << ")"
               << " halfSize(" << m_worldBounds.halfSize.x << ", " << m_worldBounds.halfSize.y << ")" << std::endl;
+#endif
 
     for (auto* entity : entities)
     {
         auto transform = entity->getComponent<CTransform>();
         Vec2 pos       = transform->getPosition();
 
+#ifdef DEBUG
         std::cout << "[DEBUG]   Entity " << entity->getTag() << " at (" << pos.x << ", " << pos.y << ")";
+#endif
 
         // Only insert entities that are within world bounds
         if (m_worldBounds.contains(pos))
         {
+#ifdef DEBUG
             std::cout << " - inserting into quadtree" << std::endl;
+#endif
             m_quadtree->insert(entity);
         }
         else
         {
+#ifdef DEBUG
             std::cout << " - OUT OF BOUNDS, clamping..." << std::endl;
+#endif
             // TODO: Implement Out Of Bounds Handling. (Options)
             //      - Wrap around to the other side
             //      - Bounce off the boundaries
@@ -145,75 +155,101 @@ void S2DPhysics::checkCollisions()
     // Use getEntitiesWithComponentDerived to find all entities with CCollider or derived types
     auto entities = entityManager.getEntitiesWithComponentDerived<CCollider>();
 
+#ifdef DEBUG
     std::cout << "[DEBUG] checkCollisions: Found " << entities.size() << " entities with colliders" << std::endl;
+#endif
 
     // Broad phase: Use quadtree to get potential collisions
     for (auto* entity : entities)
     {
+#ifdef DEBUG
         std::cout << "[DEBUG] Starting loop iteration for entity..." << std::endl;
+#endif
         if (!entity || !entity->isAlive())
         {
+#ifdef DEBUG
             std::cout << "[DEBUG]   Entity is null or not alive, skipping" << std::endl;
+#endif
             continue;
         }
 
         auto collider = entity->getComponentDerived<CCollider>();
         if (!collider)
         {
+#ifdef DEBUG
             std::cout << "[DEBUG]   Could not get collider component, skipping" << std::endl;
+#endif
             continue;
         }
 
         auto transform = entity->getComponent<CTransform>();
         auto bounds    = collider->getBounds();
 
+#ifdef DEBUG
         std::cout << "[DEBUG] Entity " << entity->getTag() << " at (" << transform->getPosition().x << ", "
                   << transform->getPosition().y << ")" << " bounds: center(" << bounds.position.x << ", "
                   << bounds.position.y << ")" << " halfSize(" << bounds.halfSize.x << ", " << bounds.halfSize.y << ")"
                   << std::endl;
+#endif
 
         // Query quadtree for potential collisions
         std::vector<Entity*> potentialCollisions = m_quadtree->query(bounds);
 
+#ifdef DEBUG
         std::cout << "[DEBUG]   Quadtree query for bounds center(" << bounds.position.x << "," << bounds.position.y
                   << ")" << " halfSize(" << bounds.halfSize.x << "," << bounds.halfSize.y << ")" << " returned "
                   << potentialCollisions.size() << " potential collisions" << std::endl;
+#endif
 
         // Narrow phase: Detailed collision checks
         for (auto* other : potentialCollisions)
         {
+#ifdef DEBUG
             std::cout << "[DEBUG]   Checking potential collision..." << std::endl;
+#endif
             if (!other || !other->isAlive() || entity == other)
             {
+#ifdef DEBUG
                 std::cout << "[DEBUG]     Skipping (null=" << (!other) << " alive=" << (other && other->isAlive())
                           << " self=" << (other && entity == other) << ")" << std::endl;
+#endif
                 continue;
             }
 
             // Skip if we've already processed this pair (avoid duplicate processing)
             if (entity->getId() >= other->getId())
             {
+#ifdef DEBUG
                 std::cout << "[DEBUG]     Skipping (already processed this pair)" << std::endl;
+#endif
                 continue;
             }
 
             auto otherCollider = other->getComponentDerived<CCollider>();
             if (!otherCollider)
             {
+#ifdef DEBUG
                 std::cout << "[DEBUG]     No collider on other entity, skipping" << std::endl;
+#endif
                 continue;
             }
 
+#ifdef DEBUG
             std::cout << "[DEBUG]   Checking collision with " << other->getTag() << std::endl;
+#endif
 
             // Detailed collision check
             if (collider->intersects(otherCollider))
             {
+#ifdef DEBUG
                 std::cout << "[DEBUG]   *** COLLISION DETECTED between " << entity->getTag() << " and "
                           << other->getTag() << " ***" << std::endl;
                 std::cout << "[DEBUG]   Calling handleCollision..." << std::endl;
+#endif
                 handleCollision(entity, other);
+#ifdef DEBUG
                 std::cout << "[DEBUG]   handleCollision returned successfully" << std::endl;
+#endif
             }
         }
     }
@@ -221,11 +257,15 @@ void S2DPhysics::checkCollisions()
 
 void S2DPhysics::handleCollision(Entity* a, Entity* b)
 {
+#ifdef DEBUG
     std::cout << "[DEBUG] handleCollision: Getting colliders..." << std::endl;
+#endif
     auto colliderA = a->getComponentDerived<CCollider>();
     auto colliderB = b->getComponentDerived<CCollider>();
+#ifdef DEBUG
     std::cout << "[DEBUG] handleCollision: Got colliders (A=" << (colliderA != nullptr)
               << ", B=" << (colliderB != nullptr) << ")" << std::endl;
+#endif
 
     // If either is a trigger, just notify
     if (colliderA->isTrigger() || colliderB->isTrigger())
@@ -240,12 +280,16 @@ void S2DPhysics::handleCollision(Entity* a, Entity* b)
 
 void S2DPhysics::resolveCollision(Entity* a, Entity* b, const CCollider* colliderA, const CCollider* colliderB)
 {
+#ifdef DEBUG
     std::cout << "[DEBUG] resolveCollision: START" << std::endl;
+#endif
     // Get transforms (need non-const access to update velocities)
     auto transformA = a->getComponent<CTransform>();
     auto transformB = b->getComponent<CTransform>();
+#ifdef DEBUG
     std::cout << "[DEBUG] resolveCollision: Got transforms (A=" << (transformA != nullptr)
               << ", B=" << (transformB != nullptr) << ")" << std::endl;
+#endif
 
     if (!transformA || !transformB)
         return;
@@ -302,10 +346,12 @@ void S2DPhysics::resolveCircleVsCircle(CTransform*              transformA,
     Vec2  relativeVel    = velA - velB;
     float velAlongNormal = relativeVel.dot(normal);
 
+#ifdef DEBUG
     std::cout << "[DEBUG] Circle vs Circle: normal=(" << normal.x << "," << normal.y << ")" << std::endl;
     std::cout << "[DEBUG] Circle vs Circle: velAlongNormal=" << velAlongNormal << std::endl;
     std::cout << "[DEBUG] Circle vs Circle: contactPoint=(" << manifold.contactPoints[0].x << ","
               << manifold.contactPoints[0].y << ")" << std::endl;
+#endif
 
     // Only apply velocity changes if objects are approaching
     if (velAlongNormal > 0)
@@ -378,6 +424,7 @@ void S2DPhysics::resolveCircleVsBox(CTransform*              transformA,
     Vec2  relativeVel    = velA - velB;
     float velAlongNormal = relativeVel.dot(normal);
 
+#ifdef DEBUG
     std::cout << "[DEBUG] Circle vs Box: normal=(" << normal.x << "," << normal.y << ")" << std::endl;
     std::cout << "[DEBUG] Circle vs Box: velA=(" << velA.x << "," << velA.y << ") velB=(" << velB.x << "," << velB.y
               << ")" << std::endl;
@@ -385,6 +432,7 @@ void S2DPhysics::resolveCircleVsBox(CTransform*              transformA,
     std::cout << "[DEBUG] Circle vs Box: penetration=" << penetration << std::endl;
     std::cout << "[DEBUG] Circle vs Box: contactPoint=(" << manifold.contactPoints[0].x << ","
               << manifold.contactPoints[0].y << ")" << std::endl;
+#endif
 
     // Only apply velocity changes if objects are approaching
     if (velAlongNormal > 0)
@@ -455,10 +503,12 @@ void S2DPhysics::resolveBoxVsBox(CTransform*              transformA,
     Vec2  relativeVel    = velA - velB;
     float velAlongNormal = relativeVel.dot(normal);
 
+#ifdef DEBUG
     std::cout << "[DEBUG] Box vs Box: normal=(" << normal.x << "," << normal.y << ")" << std::endl;
     std::cout << "[DEBUG] Box vs Box: velAlongNormal=" << velAlongNormal << std::endl;
     std::cout << "[DEBUG] Box vs Box: contactPoint=(" << manifold.contactPoints[0].x << ","
               << manifold.contactPoints[0].y << ")" << std::endl;
+#endif
 
     // Only apply velocity changes if objects are approaching
     if (velAlongNormal > 0)

@@ -11,6 +11,9 @@ project(GameEngine
     DESCRIPTION "A 2D Game Engine with Entity Component System"
     LANGUAGES CXX)
 
+# Define DEBUG macro for Debug builds only (works with multi-config generators)
+add_compile_definitions($<$<CONFIG:Debug>:DEBUG>)
+
 # Build options
 option(GAMEENGINE_BUILD_SHARED "Build GameEngine as shared library" OFF)
 option(GAMEENGINE_BUILD_TESTS "Build test programs" ON)
