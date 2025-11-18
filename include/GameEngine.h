@@ -34,8 +34,12 @@ public:
 
     /**
      * @brief Updates game logic and physics
+     * @param deltaTime Time elapsed since last update in seconds (variable timestep)
+     *
+     * Physics updates use fixed timestep internally for stability, while other
+     * systems can use the variable deltaTime if needed.
      */
-    void update();
+    void update(float deltaTime);
 
     /**
      * @brief Renders the current game state
@@ -52,7 +56,8 @@ private:
     const uint8_t m_subStepCount;  ///< Number of physics sub-steps per update
     const float   m_timeStep;      ///< Fixed time step for physics updates
 
-    bool m_gameRunning = false;  ///< Flag indicating if the game is running
+    bool  m_gameRunning   = false;  ///< Flag indicating if the game is running
+    float m_accumulator   = 0.0f;   ///< Accumulator for fixed timestep updates
 
     sf::RenderWindow* m_window;   ///< Pointer to the SFML render window
     sf::Vector2f      m_gravity;  ///< Global gravity vector
