@@ -3,8 +3,8 @@
 
 #include "System.h"
 #include "components/CCollider.h"
-#include "physics/Quadtree.h"
 #include "physics/CollisionDetector.h"
+#include "physics/Quadtree.h"
 
 // Forward declarations
 class CTransform;
@@ -105,12 +105,12 @@ private:
      * @param bIsStatic Whether second entity is static
      * @param manifold Collision manifold with edge contact points
      */
-    void resolveCircleVsCircle(CTransform*            transformA,
-                               CTransform*            transformB,
-                               const CCircleCollider* circleA,
-                               const CCircleCollider* circleB,
-                               bool                   aIsStatic,
-                               bool                   bIsStatic,
+    void resolveCircleVsCircle(CTransform*              transformA,
+                               CTransform*              transformB,
+                               const CCircleCollider*   circleA,
+                               const CCircleCollider*   circleB,
+                               bool                     aIsStatic,
+                               bool                     bIsStatic,
                                const CollisionManifold& manifold);
 
     /**
@@ -125,14 +125,14 @@ private:
      * @param bIsStatic Whether second entity is static
      * @param manifold Collision manifold with edge contact points
      */
-    void resolveCircleVsBox(CTransform*            transformA,
-                            CTransform*            transformB,
-                            const CCircleCollider* circleA,
-                            const CBoxCollider*    boxA,
-                            const CCircleCollider* circleB,
-                            const CBoxCollider*    boxB,
-                            bool                   aIsStatic,
-                            bool                   bIsStatic,
+    void resolveCircleVsBox(CTransform*              transformA,
+                            CTransform*              transformB,
+                            const CCircleCollider*   circleA,
+                            const CBoxCollider*      boxA,
+                            const CCircleCollider*   circleB,
+                            const CBoxCollider*      boxB,
+                            bool                     aIsStatic,
+                            bool                     bIsStatic,
                             const CollisionManifold& manifold);
 
     /**
@@ -145,7 +145,13 @@ private:
      * @param bIsStatic Whether second entity is static
      * @param manifold Collision manifold with edge contact points
      */
-    void resolveBoxVsBox(CTransform* transformA, CTransform* transformB, const CBoxCollider* boxA, const CBoxCollider* boxB, bool aIsStatic, bool bIsStatic, const CollisionManifold& manifold);
+    void resolveBoxVsBox(CTransform*              transformA,
+                         CTransform*              transformB,
+                         const CBoxCollider*      boxA,
+                         const CBoxCollider*      boxB,
+                         bool                     aIsStatic,
+                         bool                     bIsStatic,
+                         const CollisionManifold& manifold);
 };
 
 #endif  // S2D_PHYSICS_H

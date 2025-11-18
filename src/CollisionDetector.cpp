@@ -30,10 +30,11 @@ CollisionManifold CollisionDetector::getManifold(const CCollider* a, const CColl
     // Circle vs Box (order doesn't matter)
     if (circleA && boxB)
         return circleVsBox(circleA, boxB);
-    if (boxA && circleB) {
+    if (boxA && circleB)
+    {
         // Flip the normal when order is reversed
         CollisionManifold manifold = circleVsBox(circleB, boxA);
-        manifold.normal = manifold.normal * -1.0f;
+        manifold.normal            = manifold.normal * -1.0f;
         return manifold;
     }
 
@@ -50,13 +51,13 @@ CollisionManifold CollisionDetector::circleVsCircle(const CCircleCollider* a, co
     Vec2 posA = a->getOwner()->getComponent<CTransform>()->getPosition();
     Vec2 posB = b->getOwner()->getComponent<CTransform>()->getPosition();
 
-    float radiusA = a->getRadius();
-    float radiusB = b->getRadius();
+    float radiusA   = a->getRadius();
+    float radiusB   = b->getRadius();
     float radiusSum = radiusA + radiusB;
 
     // Calculate distance between centers
-    Vec2 delta = posB - posA;
-    float distSq = delta.lengthSquared();
+    Vec2  delta       = posB - posA;
+    float distSq      = delta.lengthSquared();
     float radiusSumSq = radiusSum * radiusSum;
 
     // No collision if circles are too far apart
@@ -66,10 +67,11 @@ CollisionManifold CollisionDetector::circleVsCircle(const CCircleCollider* a, co
     float distance = std::sqrt(distSq);
 
     // Handle perfectly overlapping circles
-    if (distance < 0.0001f) {
+    if (distance < 0.0001f)
+    {
         // Arbitrary separation direction
-        Vec2 normal(1.0f, 0.0f);
-        float penetration = radiusA; // Arbitrary, both circles overlap completely
+        Vec2  normal(1.0f, 0.0f);
+        float penetration = radiusA;  // Arbitrary, both circles overlap completely
 
         // Contact point in the middle
         Vec2 contactPoint = posA;
@@ -100,13 +102,13 @@ CollisionManifold CollisionDetector::circleVsBox(const CCircleCollider* circle, 
     // Find the closest point on the box edge to the circle center
     float closestX = std::max(boxPos.x - halfSize.x, std::min(circlePos.x, boxPos.x + halfSize.x));
     float closestY = std::max(boxPos.y - halfSize.y, std::min(circlePos.y, boxPos.y + halfSize.y));
-    Vec2 closestPoint(closestX, closestY);
+    Vec2  closestPoint(closestX, closestY);
 
     // Calculate vector from closest point on box edge to circle center
-    Vec2 delta = circlePos - closestPoint;
+    Vec2  delta  = circlePos - closestPoint;
     float distSq = delta.lengthSquared();
 
-    float radius = circle->getRadius();
+    float radius   = circle->getRadius();
     float radiusSq = radius * radius;
 
     // No collision if circle is too far from box edge
@@ -116,7 +118,8 @@ CollisionManifold CollisionDetector::circleVsBox(const CCircleCollider* circle, 
     float distance = std::sqrt(distSq);
 
     // Handle case where circle center is inside the box
-    if (distance < 0.0001f) {
+    if (distance < 0.0001f)
+    {
         // Circle center is inside box, find shortest distance to edge
         float distToLeft   = circlePos.x - (boxPos.x - halfSize.x);
         float distToRight  = (boxPos.x + halfSize.x) - circlePos.x;
@@ -129,14 +132,14 @@ CollisionManifold CollisionDetector::circleVsBox(const CCircleCollider* circle, 
         if (minDist == distToLeft)
             normal = Vec2(-1.0f, 0.0f);  // Push circle left (circle->box direction)
         else if (minDist == distToRight)
-            normal = Vec2(1.0f, 0.0f);   // Push circle right
+            normal = Vec2(1.0f, 0.0f);  // Push circle right
         else if (minDist == distToBottom)
             normal = Vec2(0.0f, -1.0f);  // Push circle down
         else
-            normal = Vec2(0.0f, 1.0f);   // Push circle up
+            normal = Vec2(0.0f, 1.0f);  // Push circle up
 
-        float penetration = radius + minDist;
-        Vec2 contactPoint = circlePos + normal * radius; // Point on circle edge in push direction
+        float penetration  = radius + minDist;
+        Vec2  contactPoint = circlePos + normal * radius;  // Point on circle edge in push direction
 
         return CollisionManifold(true, normal, penetration, {contactPoint});
     }
@@ -162,7 +165,7 @@ CollisionManifold CollisionDetector::boxVsBox(const CBoxCollider* a, const CBoxC
     Vec2 halfSizeB = b->getSize() * 0.5f;
 
     // Calculate overlap on each axis
-    Vec2 delta = posB - posA;
+    Vec2  delta    = posB - posA;
     float overlapX = (halfSizeA.x + halfSizeB.x) - std::abs(delta.x);
     float overlapY = (halfSizeA.y + halfSizeB.y) - std::abs(delta.y);
 
@@ -171,36 +174,39 @@ CollisionManifold CollisionDetector::boxVsBox(const CBoxCollider* a, const CBoxC
         return CollisionManifold();
 
     // Find the axis of least penetration (this is the collision edge direction)
-    Vec2 normal;
+    Vec2  normal;
     float penetration;
-    Vec2 contactPoint;
+    Vec2  contactPoint;
 
-    if (overlapX < overlapY) {
+    if (overlapX < overlapY)
+    {
         // Collision on the X axis (left or right edge)
         penetration = overlapX;
-        normal = (delta.x > 0.0f) ? Vec2(1.0f, 0.0f) : Vec2(-1.0f, 0.0f);
+        normal      = (delta.x > 0.0f) ? Vec2(1.0f, 0.0f) : Vec2(-1.0f, 0.0f);
 
         // Contact point is on the edge of box A
         float contactX = posA.x + (normal.x > 0.0f ? halfSizeA.x : -halfSizeA.x);
 
         // Y coordinate is clamped to the overlapping region
-        float minY = std::max(posA.y - halfSizeA.y, posB.y - halfSizeB.y);
-        float maxY = std::min(posA.y + halfSizeA.y, posB.y + halfSizeB.y);
-        float contactY = (minY + maxY) * 0.5f; // Midpoint of overlap
+        float minY     = std::max(posA.y - halfSizeA.y, posB.y - halfSizeB.y);
+        float maxY     = std::min(posA.y + halfSizeA.y, posB.y + halfSizeB.y);
+        float contactY = (minY + maxY) * 0.5f;  // Midpoint of overlap
 
         contactPoint = Vec2(contactX, contactY);
-    } else {
+    }
+    else
+    {
         // Collision on the Y axis (top or bottom edge)
         penetration = overlapY;
-        normal = (delta.y > 0.0f) ? Vec2(0.0f, 1.0f) : Vec2(0.0f, -1.0f);
+        normal      = (delta.y > 0.0f) ? Vec2(0.0f, 1.0f) : Vec2(0.0f, -1.0f);
 
         // Contact point is on the edge of box A
         float contactY = posA.y + (normal.y > 0.0f ? halfSizeA.y : -halfSizeA.y);
 
         // X coordinate is clamped to the overlapping region
-        float minX = std::max(posA.x - halfSizeA.x, posB.x - halfSizeB.x);
-        float maxX = std::min(posA.x + halfSizeA.x, posB.x + halfSizeB.x);
-        float contactX = (minX + maxX) * 0.5f; // Midpoint of overlap
+        float minX     = std::max(posA.x - halfSizeA.x, posB.x - halfSizeB.x);
+        float maxX     = std::min(posA.x + halfSizeA.x, posB.x + halfSizeB.x);
+        float contactX = (minX + maxX) * 0.5f;  // Midpoint of overlap
 
         contactPoint = Vec2(contactX, contactY);
     }

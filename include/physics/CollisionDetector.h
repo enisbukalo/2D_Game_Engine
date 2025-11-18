@@ -1,8 +1,8 @@
 #ifndef COLLISIONDETECTOR_H
 #define COLLISIONDETECTOR_H
 
-#include "Vec2.h"
 #include <vector>
+#include "Vec2.h"
 
 class CCollider;
 class CCircleCollider;
@@ -16,16 +16,17 @@ class CBoxCollider;
  */
 struct CollisionManifold
 {
-    bool hasCollision = false;          // Whether a collision occurred
-    Vec2 normal;                         // Collision normal (points from A to B)
-    float penetrationDepth = 0.0f;       // How deep the shapes overlap
-    std::vector<Vec2> contactPoints;     // Contact points on shape edges (1-2 points)
+    bool              hasCollision = false;     // Whether a collision occurred
+    Vec2              normal;                   // Collision normal (points from A to B)
+    float             penetrationDepth = 0.0f;  // How deep the shapes overlap
+    std::vector<Vec2> contactPoints;            // Contact points on shape edges (1-2 points)
 
     CollisionManifold() = default;
 
     CollisionManifold(bool collision, const Vec2& norm, float depth, const std::vector<Vec2>& points)
         : hasCollision(collision), normal(norm), penetrationDepth(depth), contactPoints(points)
-    {}
+    {
+    }
 };
 
 /**

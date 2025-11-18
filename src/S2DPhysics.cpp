@@ -280,12 +280,12 @@ void S2DPhysics::resolveCollision(Entity* a, Entity* b, const CCollider* collide
     }
 }
 
-void S2DPhysics::resolveCircleVsCircle(CTransform*            transformA,
-                                       CTransform*            transformB,
-                                       const CCircleCollider* circleA,
-                                       const CCircleCollider* circleB,
-                                       bool                   aIsStatic,
-                                       bool                   bIsStatic,
+void S2DPhysics::resolveCircleVsCircle(CTransform*              transformA,
+                                       CTransform*              transformB,
+                                       const CCircleCollider*   circleA,
+                                       const CCircleCollider*   circleB,
+                                       bool                     aIsStatic,
+                                       bool                     bIsStatic,
                                        const CollisionManifold& manifold)
 {
     // Get positions and velocities
@@ -304,7 +304,8 @@ void S2DPhysics::resolveCircleVsCircle(CTransform*            transformA,
 
     std::cout << "[DEBUG] Circle vs Circle: normal=(" << normal.x << "," << normal.y << ")" << std::endl;
     std::cout << "[DEBUG] Circle vs Circle: velAlongNormal=" << velAlongNormal << std::endl;
-    std::cout << "[DEBUG] Circle vs Circle: contactPoint=(" << manifold.contactPoints[0].x << "," << manifold.contactPoints[0].y << ")" << std::endl;
+    std::cout << "[DEBUG] Circle vs Circle: contactPoint=(" << manifold.contactPoints[0].x << ","
+              << manifold.contactPoints[0].y << ")" << std::endl;
 
     // Only apply velocity changes if objects are approaching
     if (velAlongNormal > 0)
@@ -353,14 +354,14 @@ void S2DPhysics::resolveCircleVsCircle(CTransform*            transformA,
     }
 }
 
-void S2DPhysics::resolveCircleVsBox(CTransform*            transformA,
-                                    CTransform*            transformB,
-                                    const CCircleCollider* circleA,
-                                    const CBoxCollider*    boxA,
-                                    const CCircleCollider* circleB,
-                                    const CBoxCollider*    boxB,
-                                    bool                   aIsStatic,
-                                    bool                   bIsStatic,
+void S2DPhysics::resolveCircleVsBox(CTransform*              transformA,
+                                    CTransform*              transformB,
+                                    const CCircleCollider*   circleA,
+                                    const CBoxCollider*      boxA,
+                                    const CCircleCollider*   circleB,
+                                    const CBoxCollider*      boxB,
+                                    bool                     aIsStatic,
+                                    bool                     bIsStatic,
                                     const CollisionManifold& manifold)
 {
     // Get positions and velocities
@@ -382,7 +383,8 @@ void S2DPhysics::resolveCircleVsBox(CTransform*            transformA,
               << ")" << std::endl;
     std::cout << "[DEBUG] Circle vs Box: velAlongNormal=" << velAlongNormal << std::endl;
     std::cout << "[DEBUG] Circle vs Box: penetration=" << penetration << std::endl;
-    std::cout << "[DEBUG] Circle vs Box: contactPoint=(" << manifold.contactPoints[0].x << "," << manifold.contactPoints[0].y << ")" << std::endl;
+    std::cout << "[DEBUG] Circle vs Box: contactPoint=(" << manifold.contactPoints[0].x << ","
+              << manifold.contactPoints[0].y << ")" << std::endl;
 
     // Only apply velocity changes if objects are approaching
     if (velAlongNormal > 0)
@@ -431,8 +433,13 @@ void S2DPhysics::resolveCircleVsBox(CTransform*            transformA,
     }
 }
 
-void S2DPhysics::resolveBoxVsBox(
-    CTransform* transformA, CTransform* transformB, const CBoxCollider* boxA, const CBoxCollider* boxB, bool aIsStatic, bool bIsStatic, const CollisionManifold& manifold)
+void S2DPhysics::resolveBoxVsBox(CTransform*              transformA,
+                                 CTransform*              transformB,
+                                 const CBoxCollider*      boxA,
+                                 const CBoxCollider*      boxB,
+                                 bool                     aIsStatic,
+                                 bool                     bIsStatic,
+                                 const CollisionManifold& manifold)
 {
     // Get positions and velocities
     Vec2 posA = transformA->getPosition();
@@ -450,7 +457,8 @@ void S2DPhysics::resolveBoxVsBox(
 
     std::cout << "[DEBUG] Box vs Box: normal=(" << normal.x << "," << normal.y << ")" << std::endl;
     std::cout << "[DEBUG] Box vs Box: velAlongNormal=" << velAlongNormal << std::endl;
-    std::cout << "[DEBUG] Box vs Box: contactPoint=(" << manifold.contactPoints[0].x << "," << manifold.contactPoints[0].y << ")" << std::endl;
+    std::cout << "[DEBUG] Box vs Box: contactPoint=(" << manifold.contactPoints[0].x << ","
+              << manifold.contactPoints[0].y << ")" << std::endl;
 
     // Only apply velocity changes if objects are approaching
     if (velAlongNormal > 0)
