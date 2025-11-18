@@ -250,6 +250,11 @@ void S2DPhysics::resolveCollision(Entity* a, Entity* b, const CCollider* collide
     if (!transformA || !transformB)
         return;
 
+    // Get collision manifold with edge-based contact points
+    CollisionManifold manifold = CollisionDetector::getManifold(colliderA, colliderB);
+    if (!manifold.hasCollision)
+        return;
+
     // Check if objects are static (immovable) based on their collider flag
     bool aIsStatic = colliderA->isStatic();
     bool bIsStatic = colliderB->isStatic();
@@ -260,27 +265,28 @@ void S2DPhysics::resolveCollision(Entity* a, Entity* b, const CCollider* collide
     auto* boxA    = dynamic_cast<const CBoxCollider*>(colliderA);
     auto* boxB    = dynamic_cast<const CBoxCollider*>(colliderB);
 
-    // Dispatch to appropriate collision resolver
+    // Dispatch to appropriate collision resolver with manifold
     if (circleA && circleB)
     {
-        resolveCircleVsCircle(transformA, transformB, circleA, circleB, aIsStatic, bIsStatic);
+        resolveCircleVsCircle(transformA, transformB, circleA, circleB, aIsStatic, bIsStatic, manifold);
     }
     else if ((circleA && boxB) || (boxA && circleB))
     {
-        resolveCircleVsBox(transformA, transformB, circleA, boxA, circleB, boxB, aIsStatic, bIsStatic);
+        resolveCircleVsBox(transformA, transformB, circleA, boxA, circleB, boxB, aIsStatic, bIsStatic, manifold);
     }
     else if (boxA && boxB)
     {
-        resolveBoxVsBox(transformA, transformB, boxA, boxB, aIsStatic, bIsStatic);
+        resolveBoxVsBox(transformA, transformB, boxA, boxB, aIsStatic, bIsStatic, manifold);
     }
 }
 
-void S2DPhysics::resolveCircleVsCircle(CTransform*            transformA,
-                                       CTransform*            transformB,
-                                       const CCircleCollider* circleA,
-                                       const CCircleCollider* circleB,
-                                       bool                   aIsStatic,
-                                       bool                   bIsStatic)
+void S2DPhysics::resolveCircleVsCircle(CTransform*              transformA,
+                                       CTransform*              transformB,
+                                       const CCircleCollider*   circleA,
+                                       const CCircleCollider*   circleB,
+                                       bool                     aIsStatic,
+                                       bool                     bIsStatic,
+                                       const CollisionManifold& manifold)
 {
     // Get positions and velocities
     Vec2 posA = transformA->getPosition();
@@ -288,19 +294,9 @@ void S2DPhysics::resolveCircleVsCircle(CTransform*            transformA,
     Vec2 velA = transformA->getVelocity();
     Vec2 velB = transformB->getVelocity();
 
-    // Calculate collision normal and penetration
-    Vec2  delta    = posB - posA;
-    float distance = delta.length();
-
-    if (distance < 0.0001f)
-        return;
-
-    // Normal points from A to B
-    Vec2  normal      = delta / distance;
-    float penetration = (circleA->getRadius() + circleB->getRadius()) - distance;
-
-    if (penetration <= 0.0f)
-        return;
+    // Use collision normal and penetration from manifold (edge-based)
+    Vec2  normal      = manifold.normal;
+    float penetration = manifold.penetrationDepth;
 
     // Calculate relative velocity
     Vec2  relativeVel    = velA - velB;
@@ -308,6 +304,8 @@ void S2DPhysics::resolveCircleVsCircle(CTransform*            transformA,
 
     std::cout << "[DEBUG] Circle vs Circle: normal=(" << normal.x << "," << normal.y << ")" << std::endl;
     std::cout << "[DEBUG] Circle vs Circle: velAlongNormal=" << velAlongNormal << std::endl;
+    std::cout << "[DEBUG] Circle vs Circle: contactPoint=(" << manifold.contactPoints[0].x << ","
+              << manifold.contactPoints[0].y << ")" << std::endl;
 
     // Only apply velocity changes if objects are approaching
     if (velAlongNormal > 0)
@@ -334,7 +332,7 @@ void S2DPhysics::resolveCircleVsCircle(CTransform*            transformA,
         }
     }
 
-    // Positional correction
+    // Positional correction using edge-based penetration depth
     if (penetration > 0.0f)
     {
         float correctionPercent = 0.8f;
@@ -356,79 +354,25 @@ void S2DPhysics::resolveCircleVsCircle(CTransform*            transformA,
     }
 }
 
-void S2DPhysics::resolveCircleVsBox(CTransform*            transformA,
-                                    CTransform*            transformB,
-                                    const CCircleCollider* circleA,
-                                    const CBoxCollider*    boxA,
-                                    const CCircleCollider* circleB,
-                                    const CBoxCollider*    boxB,
-                                    bool                   aIsStatic,
-                                    bool                   bIsStatic)
+void S2DPhysics::resolveCircleVsBox(CTransform*              transformA,
+                                    CTransform*              transformB,
+                                    const CCircleCollider*   circleA,
+                                    const CBoxCollider*      boxA,
+                                    const CCircleCollider*   circleB,
+                                    const CBoxCollider*      boxB,
+                                    bool                     aIsStatic,
+                                    bool                     bIsStatic,
+                                    const CollisionManifold& manifold)
 {
-    // Determine which is circle and which is box
-    const CCircleCollider* circle = circleA ? circleA : circleB;
-    const CBoxCollider*    box    = boxA ? boxA : boxB;
-
     // Get positions and velocities
     Vec2 posA = transformA->getPosition();
     Vec2 posB = transformB->getPosition();
     Vec2 velA = transformA->getVelocity();
     Vec2 velB = transformB->getVelocity();
 
-    // Determine circle and box positions based on which is which
-    Vec2 circlePos = circleA ? posA : posB;
-    Vec2 boxPos    = circleA ? posB : posA;
-
-    Vec2 boxSize  = box->getSize();
-    Vec2 halfSize = boxSize * 0.5f;
-
-    // Find closest point on box to circle
-    float closestX = std::max(boxPos.x - halfSize.x, std::min(circlePos.x, boxPos.x + halfSize.x));
-    float closestY = std::max(boxPos.y - halfSize.y, std::min(circlePos.y, boxPos.y + halfSize.y));
-    Vec2  closest(closestX, closestY);
-
-    Vec2  delta    = circlePos - closest;
-    float distance = delta.length();
-
-    Vec2  normal;
-    float penetration;
-
-    if (distance < 0.0001f)
-    {
-        // Circle center is inside box - push out along shortest axis
-        float overlapX = halfSize.x - std::abs(circlePos.x - boxPos.x);
-        float overlapY = halfSize.y - std::abs(circlePos.y - boxPos.y);
-
-        if (overlapX < overlapY)
-        {
-            // Normal points from box to circle (away from box center)
-            normal      = Vec2((circlePos.x > boxPos.x) ? 1.0f : -1.0f, 0.0f);
-            penetration = overlapX + circle->getRadius();
-        }
-        else
-        {
-            normal      = Vec2(0.0f, (circlePos.y > boxPos.y) ? 1.0f : -1.0f);
-            penetration = overlapY + circle->getRadius();
-        }
-    }
-    else
-    {
-        // Normal points from closest point on box to circle center
-        normal      = delta / distance;
-        penetration = circle->getRadius() - distance;
-    }
-
-    // At this point, normal points from box to circle
-    // We need normal to point from A to B
-    // If A is circle and B is box: normal should point from circle to box (flip it)
-    // If A is box and B is circle: normal should point from box to circle (keep it)
-    if (circleA)
-    {
-        normal = normal * -1.0f;
-    }
-
-    if (penetration <= 0.0f)
-        return;
+    // Use collision normal and penetration from manifold (edge-based)
+    Vec2  normal      = manifold.normal;
+    float penetration = manifold.penetrationDepth;
 
     // Calculate relative velocity
     Vec2  relativeVel    = velA - velB;
@@ -439,6 +383,8 @@ void S2DPhysics::resolveCircleVsBox(CTransform*            transformA,
               << ")" << std::endl;
     std::cout << "[DEBUG] Circle vs Box: velAlongNormal=" << velAlongNormal << std::endl;
     std::cout << "[DEBUG] Circle vs Box: penetration=" << penetration << std::endl;
+    std::cout << "[DEBUG] Circle vs Box: contactPoint=(" << manifold.contactPoints[0].x << ","
+              << manifold.contactPoints[0].y << ")" << std::endl;
 
     // Only apply velocity changes if objects are approaching
     if (velAlongNormal > 0)
@@ -465,7 +411,7 @@ void S2DPhysics::resolveCircleVsBox(CTransform*            transformA,
         }
     }
 
-    // Positional correction
+    // Positional correction using edge-based penetration depth
     if (penetration > 0.0f)
     {
         float correctionPercent = 0.8f;
@@ -487,8 +433,13 @@ void S2DPhysics::resolveCircleVsBox(CTransform*            transformA,
     }
 }
 
-void S2DPhysics::resolveBoxVsBox(
-    CTransform* transformA, CTransform* transformB, const CBoxCollider* boxA, const CBoxCollider* boxB, bool aIsStatic, bool bIsStatic)
+void S2DPhysics::resolveBoxVsBox(CTransform*              transformA,
+                                 CTransform*              transformB,
+                                 const CBoxCollider*      boxA,
+                                 const CBoxCollider*      boxB,
+                                 bool                     aIsStatic,
+                                 bool                     bIsStatic,
+                                 const CollisionManifold& manifold)
 {
     // Get positions and velocities
     Vec2 posA = transformA->getPosition();
@@ -496,34 +447,9 @@ void S2DPhysics::resolveBoxVsBox(
     Vec2 velA = transformA->getVelocity();
     Vec2 velB = transformB->getVelocity();
 
-    // Calculate collision normal and penetration
-    Vec2 delta     = posB - posA;
-    Vec2 halfSizeA = boxA->getSize() * 0.5f;
-    Vec2 halfSizeB = boxB->getSize() * 0.5f;
-
-    // Calculate overlap on each axis
-    float overlapX = (halfSizeA.x + halfSizeB.x) - std::abs(delta.x);
-    float overlapY = (halfSizeA.y + halfSizeB.y) - std::abs(delta.y);
-
-    Vec2  normal;
-    float penetration;
-
-    // Separate along axis of least penetration
-    if (overlapX < overlapY)
-    {
-        // Normal points from A to B along X axis
-        normal      = Vec2((delta.x > 0) ? 1.0f : -1.0f, 0.0f);
-        penetration = overlapX;
-    }
-    else
-    {
-        // Normal points from A to B along Y axis
-        normal      = Vec2(0.0f, (delta.y > 0) ? 1.0f : -1.0f);
-        penetration = overlapY;
-    }
-
-    if (penetration <= 0.0f)
-        return;
+    // Use collision normal and penetration from manifold (edge-based)
+    Vec2  normal      = manifold.normal;
+    float penetration = manifold.penetrationDepth;
 
     // Calculate relative velocity
     Vec2  relativeVel    = velA - velB;
@@ -531,6 +457,8 @@ void S2DPhysics::resolveBoxVsBox(
 
     std::cout << "[DEBUG] Box vs Box: normal=(" << normal.x << "," << normal.y << ")" << std::endl;
     std::cout << "[DEBUG] Box vs Box: velAlongNormal=" << velAlongNormal << std::endl;
+    std::cout << "[DEBUG] Box vs Box: contactPoint=(" << manifold.contactPoints[0].x << ","
+              << manifold.contactPoints[0].y << ")" << std::endl;
 
     // Only apply velocity changes if objects are approaching
     if (velAlongNormal > 0)
@@ -557,7 +485,7 @@ void S2DPhysics::resolveBoxVsBox(
         }
     }
 
-    // Positional correction
+    // Positional correction using edge-based penetration depth
     if (penetration > 0.0f)
     {
         float correctionPercent = 0.8f;

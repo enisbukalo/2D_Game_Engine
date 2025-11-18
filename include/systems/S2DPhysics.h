@@ -3,6 +3,7 @@
 
 #include "System.h"
 #include "components/CCollider.h"
+#include "physics/CollisionDetector.h"
 #include "physics/Quadtree.h"
 
 // Forward declarations
@@ -95,23 +96,25 @@ private:
     void resolveCollision(Entity* a, Entity* b, const CCollider* colliderA, const CCollider* colliderB);
 
     /**
-     * @brief Resolves circle-circle collision
+     * @brief Resolves circle-circle collision using edge-based contact points
      * @param transformA Transform of first entity
      * @param transformB Transform of second entity
      * @param circleA First circle collider
      * @param circleB Second circle collider
      * @param aIsStatic Whether first entity is static
      * @param bIsStatic Whether second entity is static
+     * @param manifold Collision manifold with edge contact points
      */
-    void resolveCircleVsCircle(CTransform*            transformA,
-                               CTransform*            transformB,
-                               const CCircleCollider* circleA,
-                               const CCircleCollider* circleB,
-                               bool                   aIsStatic,
-                               bool                   bIsStatic);
+    void resolveCircleVsCircle(CTransform*              transformA,
+                               CTransform*              transformB,
+                               const CCircleCollider*   circleA,
+                               const CCircleCollider*   circleB,
+                               bool                     aIsStatic,
+                               bool                     bIsStatic,
+                               const CollisionManifold& manifold);
 
     /**
-     * @brief Resolves circle-box collision
+     * @brief Resolves circle-box collision using edge-based contact points
      * @param transformA Transform of first entity
      * @param transformB Transform of second entity
      * @param circleA Circle collider (can be nullptr if A is box)
@@ -120,26 +123,35 @@ private:
      * @param boxB Box collider (can be nullptr if B is circle)
      * @param aIsStatic Whether first entity is static
      * @param bIsStatic Whether second entity is static
+     * @param manifold Collision manifold with edge contact points
      */
-    void resolveCircleVsBox(CTransform*            transformA,
-                            CTransform*            transformB,
-                            const CCircleCollider* circleA,
-                            const CBoxCollider*    boxA,
-                            const CCircleCollider* circleB,
-                            const CBoxCollider*    boxB,
-                            bool                   aIsStatic,
-                            bool                   bIsStatic);
+    void resolveCircleVsBox(CTransform*              transformA,
+                            CTransform*              transformB,
+                            const CCircleCollider*   circleA,
+                            const CBoxCollider*      boxA,
+                            const CCircleCollider*   circleB,
+                            const CBoxCollider*      boxB,
+                            bool                     aIsStatic,
+                            bool                     bIsStatic,
+                            const CollisionManifold& manifold);
 
     /**
-     * @brief Resolves box-box collision
+     * @brief Resolves box-box collision using edge-based contact points
      * @param transformA Transform of first entity
      * @param transformB Transform of second entity
      * @param boxA First box collider
      * @param boxB Second box collider
      * @param aIsStatic Whether first entity is static
      * @param bIsStatic Whether second entity is static
+     * @param manifold Collision manifold with edge contact points
      */
-    void resolveBoxVsBox(CTransform* transformA, CTransform* transformB, const CBoxCollider* boxA, const CBoxCollider* boxB, bool aIsStatic, bool bIsStatic);
+    void resolveBoxVsBox(CTransform*              transformA,
+                         CTransform*              transformB,
+                         const CBoxCollider*      boxA,
+                         const CBoxCollider*      boxB,
+                         bool                     aIsStatic,
+                         bool                     bIsStatic,
+                         const CollisionManifold& manifold);
 };
 
 #endif  // S2D_PHYSICS_H

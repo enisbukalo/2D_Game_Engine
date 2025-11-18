@@ -292,3 +292,78 @@ TEST_F(CollisionDetectorTest, CircleVsBox_LargeNumbers)
     // Box at 1010, half-width 10, starts at x=1000
     EXPECT_TRUE(CollisionDetector::intersects(circleCollider, boxCollider));
 }
+
+// ==================== Edge-Based Contact Point Tests ====================
+
+TEST_F(CollisionDetectorTest, CircleVsCircle_ContactPointOnEdge)
+{
+    auto circle1 = createCircleEntity(Vec2(0.0f, 0.0f), 10.0f);
+    auto circle2 = createCircleEntity(Vec2(15.0f, 0.0f), 10.0f);
+
+    auto collider1 = circle1->getComponent<CCircleCollider>();
+    auto collider2 = circle2->getComponent<CCircleCollider>();
+
+    CollisionManifold manifold = CollisionDetector::circleVsCircle(collider1, collider2);
+
+    EXPECT_TRUE(manifold.hasCollision);
+    EXPECT_EQ(manifold.contactPoints.size(), 1);
+
+    // Contact point should be on circle1's edge at (10, 0)
+    EXPECT_FLOAT_EQ(manifold.contactPoints[0].x, 10.0f);
+    EXPECT_FLOAT_EQ(manifold.contactPoints[0].y, 0.0f);
+
+    // Normal should point from circle1 to circle2 (1, 0)
+    EXPECT_FLOAT_EQ(manifold.normal.x, 1.0f);
+    EXPECT_FLOAT_EQ(manifold.normal.y, 0.0f);
+
+    // Penetration: 20 (radiusSum) - 15 (distance) = 5
+    EXPECT_FLOAT_EQ(manifold.penetrationDepth, 5.0f);
+}
+
+TEST_F(CollisionDetectorTest, BoxVsBox_ContactPointOnEdge)
+{
+    auto box1 = createBoxEntity(Vec2(0.0f, 0.0f), 20.0f, 20.0f);
+    auto box2 = createBoxEntity(Vec2(18.0f, 0.0f), 20.0f, 20.0f);
+
+    auto collider1 = box1->getComponent<CBoxCollider>();
+    auto collider2 = box2->getComponent<CBoxCollider>();
+
+    CollisionManifold manifold = CollisionDetector::boxVsBox(collider1, collider2);
+
+    EXPECT_TRUE(manifold.hasCollision);
+    EXPECT_EQ(manifold.contactPoints.size(), 1);
+
+    // Contact point should be on box1's right edge
+    EXPECT_FLOAT_EQ(manifold.contactPoints[0].x, 10.0f);  // Right edge of box1
+    EXPECT_FLOAT_EQ(manifold.contactPoints[0].y, 0.0f);   // Midpoint of overlap
+
+    // Normal should point right (1, 0)
+    EXPECT_FLOAT_EQ(manifold.normal.x, 1.0f);
+    EXPECT_FLOAT_EQ(manifold.normal.y, 0.0f);
+
+    // Penetration: overlap on X axis
+    EXPECT_FLOAT_EQ(manifold.penetrationDepth, 2.0f);
+}
+
+TEST_F(CollisionDetectorTest, CircleVsBox_ContactPointOnCircleEdge)
+{
+    auto circle = createCircleEntity(Vec2(0.0f, 0.0f), 10.0f);
+    auto box    = createBoxEntity(Vec2(18.0f, 0.0f), 20.0f, 20.0f);
+
+    auto circleCollider = circle->getComponent<CCircleCollider>();
+    auto boxCollider    = box->getComponent<CBoxCollider>();
+
+    CollisionManifold manifold = CollisionDetector::circleVsBox(circleCollider, boxCollider);
+
+    EXPECT_TRUE(manifold.hasCollision);
+    EXPECT_EQ(manifold.contactPoints.size(), 1);
+
+    // Contact point should be on circle's edge facing the box at (10, 0)
+    // circlePos + normal * radius = (0,0) + (1,0) * 10 = (10, 0)
+    EXPECT_FLOAT_EQ(manifold.contactPoints[0].x, 10.0f);
+    EXPECT_FLOAT_EQ(manifold.contactPoints[0].y, 0.0f);
+
+    // Normal points from circle toward box (pointing right)
+    EXPECT_FLOAT_EQ(manifold.normal.x, 1.0f);
+    EXPECT_FLOAT_EQ(manifold.normal.y, 0.0f);
+}

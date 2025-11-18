@@ -5,6 +5,11 @@ float Vec2::length()
     return sqrt(x * x + y * y);
 }
 
+float Vec2::lengthSquared() const
+{
+    return x * x + y * y;
+}
+
 Vec2& Vec2::normalize()
 {
     float l = length();
