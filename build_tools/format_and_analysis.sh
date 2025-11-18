@@ -22,12 +22,16 @@ fi
 format_files() {
     echo -e "${YELLOW}Formatting files...${NC}"
 
-    # First check which files need formatting
-    files_to_format=$(find . -type f \( -name "*.cpp" -o -name "*.h" \) \
-        -not -path "./build*" \
-        -not -path "./deps*" \
-        -not -path "./package*" \
-        -not -path "./example_project/*")
+    # Use git ls-files to respect .gitignore and only get tracked files
+    files_to_format=$(git ls-files '*.cpp' '*.h')
+    
+    # Lets ignore all of the files in the tests/ directory
+    files_to_format=$(echo "$files_to_format" | grep -v '^tests/')
+
+    if [ -z "$files_to_format" ]; then
+        echo -e "${YELLOW}No files to format${NC}"
+        return
+    fi
 
     # Format each file that needs it
     for file in $files_to_format; do
@@ -35,13 +39,8 @@ format_files() {
         clang-format -style=file -i "$file"
     done
 
-    # Verify formatting
-    find . -type f \( -name "*.cpp" -o -name "*.h" \) \
-        -not -path "./build*" \
-        -not -path "./deps*" \
-        -not -path "./package*" \
-        -not -path "./example_project/*" \
-        -exec clang-format -style=file --dry-run --Werror {} +
+    # Verify formatting (using git ls-files again)
+    git ls-files '*.cpp' '*.h' | xargs clang-format -style=file --dry-run --Werror
 
     local result=$?
     if [ $result -eq 0 ]; then
@@ -56,7 +55,7 @@ static_analysis() {
     echo -e "${YELLOW}Running static analysis...${NC}"
 
     # Create report header
-    cat > static_analysis_report.md << 'EOF'
+    cat > static_analysis_report.md << EOF
 # Static Analysis Report
 
 **Date:** $(date)
@@ -69,8 +68,20 @@ static_analysis() {
 
 EOF
 
-    # Run cppcheck and capture output
-    cppcheck --enable=all --error-exitcode=1 --check-level=exhaustive --suppress=missingIncludeSystem --suppress=unusedFunction --suppress=noExplicitConstructor --suppress=unmatchedSuppression --suppress=missingInclude --inline-suppr --std=c++17 -I include -I include/components -I include/systems src/ include/ include/components/ include/systems/ 2>&1 | tee -a static_analysis_report.md
+    # Get list of tracked source and header files
+    tracked_files=$(git ls-files '*.cpp' '*.h')
+
+    # Ignore all of the files in the tests/ directory
+    tracked_files=$(echo "$tracked_files" | grep -v '^tests/')
+
+    if [ -z "$tracked_files" ]; then
+        echo -e "${YELLOW}No files to analyze${NC}"
+        echo -e "\n---\n\n**Status:** ⚠️ NO FILES\n" >> static_analysis_report.md
+        return
+    fi
+
+    # Run cppcheck on tracked files only
+    echo "$tracked_files" | xargs cppcheck --enable=all --error-exitcode=1 --check-level=exhaustive --language=c++ --std=c++17 --suppress=missingIncludeSystem --suppress=unusedFunction --suppress=noExplicitConstructor --suppress=unmatchedSuppression --suppress=missingInclude --inline-suppr -I include -I include/components -I include/systems 2>&1 | tee -a static_analysis_report.md
 
     local result=${PIPESTATUS[0]}
 

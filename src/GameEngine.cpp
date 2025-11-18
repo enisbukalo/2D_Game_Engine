@@ -1,6 +1,6 @@
 #include "GameEngine.h"
-#include "systems/S2DPhysics.h"
 #include "EntityManager.h"
+#include "systems/S2DPhysics.h"
 
 GameEngine::GameEngine(sf::RenderWindow* window, sf::Vector2f gravity, uint8_t subStepCount, float timeStep)
     : m_window(window), m_gravity(gravity), m_subStepCount(subStepCount), m_timeStep(timeStep)
@@ -9,8 +9,8 @@ GameEngine::GameEngine(sf::RenderWindow* window, sf::Vector2f gravity, uint8_t s
 
     // Set up physics world bounds based on window size
     sf::Vector2u windowSize = window->getSize();
-    Vec2 center(windowSize.x / 2.0f, windowSize.y / 2.0f);
-    Vec2 size(windowSize.x, windowSize.y);
+    Vec2         center(windowSize.x / 2.0f, windowSize.y / 2.0f);
+    Vec2         size(windowSize.x, windowSize.y);
     S2DPhysics::instance().setWorldBounds(center, size);
 }
 
