@@ -53,7 +53,10 @@ find_package(SFML 2.6 REQUIRED COMPONENTS graphics window system)
 # Find OpenGL (required for ImGui-SFML)
 find_package(OpenGL REQUIRED)
 
-# Fetch spdlog for logging
+# Fetch spdlog for logging (header-only mode to avoid symbol conflicts)
+set(SPDLOG_FMT_EXTERNAL OFF CACHE BOOL "" FORCE)
+set(SPDLOG_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+set(SPDLOG_INSTALL ON CACHE BOOL "" FORCE)
 FetchContent_Declare(SPDLOG
     GIT_REPOSITORY https://github.com/gabime/spdlog.git
     GIT_TAG v1.12.0
@@ -174,7 +177,7 @@ target_link_libraries(GameEngine
     sfml-system
     ImGui-SFML
     Threads::Threads
-    spdlog::spdlog
+    spdlog::spdlog_header_only
 )
 
 # Link Windows-specific libraries only when building for Windows
@@ -194,8 +197,8 @@ if(GAMEENGINE_INSTALL)
 
     set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/GameEngine)
 
-    # Install library and dependencies
-    install(TARGETS GameEngine ImGui-SFML spdlog
+    # Install library and dependencies (spdlog installs itself via SPDLOG_INSTALL)
+    install(TARGETS GameEngine ImGui-SFML
         EXPORT GameEngineTargets
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -224,13 +227,6 @@ if(GAMEENGINE_INSTALL)
         ${imgui_sfml_SOURCE_DIR}/imgui-SFML.h
         ${imgui_sfml_SOURCE_DIR}/imgui-SFML_export.h
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ImGui-SFML
-    )
-
-    # Install spdlog headers
-    install(DIRECTORY
-        ${spdlog_SOURCE_DIR}/include/
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-        FILES_MATCHING PATTERN "*.h"
     )
 
     # Export targets
