@@ -177,7 +177,7 @@ target_link_libraries(GameEngine
     sfml-system
     ImGui-SFML
     Threads::Threads
-    spdlog::spdlog_header_only
+    spdlog::spdlog
 )
 
 # Link Windows-specific libraries only when building for Windows
@@ -197,8 +197,8 @@ if(GAMEENGINE_INSTALL)
 
     set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/GameEngine)
 
-    # Install library and dependencies (spdlog installs itself via SPDLOG_INSTALL)
-    install(TARGETS GameEngine ImGui-SFML
+    # Install library and dependencies
+    install(TARGETS GameEngine ImGui-SFML spdlog
         EXPORT GameEngineTargets
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
