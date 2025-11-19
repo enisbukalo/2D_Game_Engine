@@ -317,3 +317,142 @@ TEST_F(LoggerTest, MultipleShutdownCalls)
 
     EXPECT_TRUE(logFileContains("Shutdown test"));
 }
+
+TEST_F(LoggerTest, FileIsCreatedOnDisk)
+{
+    // Ensure file doesn't exist
+    EXPECT_FALSE(std::filesystem::exists(TEST_LOG_FILE));
+
+    Logger::instance().init(TEST_LOG_FILE);
+    LOG_INFO("File creation test");
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    Logger::instance().shutdown();
+
+    // Verify file was created
+    EXPECT_TRUE(std::filesystem::exists(TEST_LOG_FILE));
+}
+
+TEST_F(LoggerTest, FilePersistsAfterShutdown)
+{
+    Logger::instance().init(TEST_LOG_FILE);
+    LOG_INFO("Persistence test");
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    Logger::instance().shutdown();
+
+    // File should still exist after shutdown
+    EXPECT_TRUE(std::filesystem::exists(TEST_LOG_FILE));
+
+    // Should be able to read the content
+    EXPECT_TRUE(logFileContains("Persistence test"));
+}
+
+TEST_F(LoggerTest, FileTruncatesOnReinitialization)
+{
+    // First initialization
+    Logger::instance().init(TEST_LOG_FILE);
+    LOG_INFO("First message");
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    Logger::instance().shutdown();
+
+    // Verify first message is in file
+    EXPECT_TRUE(logFileContains("First message"));
+
+    // Second initialization (should truncate)
+    Logger::instance().init(TEST_LOG_FILE);
+    LOG_INFO("Second message");
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    Logger::instance().shutdown();
+
+    // First message should be gone, only second message remains
+    std::string content = readLogFile();
+    EXPECT_TRUE(content.find("Second message") != std::string::npos);
+    EXPECT_FALSE(content.find("First message") != std::string::npos);
+}
+
+TEST_F(LoggerTest, InvalidFilePathHandling)
+{
+    // Try to create a log file in an invalid/inaccessible path
+    std::string invalidPath = "/root/invalid_path/nopermission/test.log";
+
+    // Logger should handle this gracefully (init may fail silently)
+    Logger::instance().init(invalidPath);
+
+    // Log a message - should not crash even if file couldn't be opened
+    LOG_INFO("This message may not be written to file");
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    Logger::instance().shutdown();
+
+    // File should not exist at invalid path
+    EXPECT_FALSE(std::filesystem::exists(invalidPath));
+}
+
+TEST_F(LoggerTest, LargeFileWrite)
+{
+    Logger::instance().init(TEST_LOG_FILE);
+
+    // Write 1000 messages to test file handling
+    for (int i = 0; i < 1000; ++i)
+    {
+        LOG_INFO_STREAM("Large file test message " << i);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    Logger::instance().shutdown();
+
+    // Verify file exists and has content
+    EXPECT_TRUE(std::filesystem::exists(TEST_LOG_FILE));
+
+    // Check file size is reasonable (should be > 0 bytes)
+    auto fileSize = std::filesystem::file_size(TEST_LOG_FILE);
+    EXPECT_GT(fileSize, 0);
+
+    // Verify first and last messages are present
+    EXPECT_TRUE(logFileContains("Large file test message 0"));
+    EXPECT_TRUE(logFileContains("Large file test message 999"));
+}
+
+TEST_F(LoggerTest, FileClosedAfterShutdown)
+{
+    Logger::instance().init(TEST_LOG_FILE);
+    LOG_INFO("File close test");
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    Logger::instance().shutdown();
+
+    // After shutdown, we should be able to delete the file (indicating it's closed)
+    EXPECT_TRUE(std::filesystem::exists(TEST_LOG_FILE));
+    EXPECT_NO_THROW(std::filesystem::remove(TEST_LOG_FILE));
+}
+
+TEST_F(LoggerTest, EmptyFileAfterInitWithNoMessages)
+{
+    Logger::instance().init(TEST_LOG_FILE);
+
+    // Don't log anything, just shutdown
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    Logger::instance().shutdown();
+
+    // File should exist but be empty
+    EXPECT_TRUE(std::filesystem::exists(TEST_LOG_FILE));
+    auto fileSize = std::filesystem::file_size(TEST_LOG_FILE);
+    EXPECT_EQ(fileSize, 0);
+}
+
+TEST_F(LoggerTest, ConsoleAndFileOutputBothWork)
+{
+    Logger::instance().init(TEST_LOG_FILE);
+
+    LOG_INFO("Console and file test");
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    Logger::instance().shutdown();
+
+    // Message should be in file
+    EXPECT_TRUE(logFileContains("Console and file test"));
+
+    // Note: We can't easily test console output in unit tests,
+    // but the implementation writes to both std::cout and the file
+}
