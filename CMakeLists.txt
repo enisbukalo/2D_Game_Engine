@@ -244,6 +244,7 @@ if(GAMEENGINE_INSTALL)
     file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/GameEngineConfig.cmake.in"
         "include(CMakeFindDependencyMacro)\n\n"
         "# Find dependencies\n"
+        "find_dependency(Threads)\n"
         "find_dependency(SFML 2.6 COMPONENTS graphics window system)\n"
         "find_dependency(OpenGL)\n\n"
         "# Include the targets file\n"
