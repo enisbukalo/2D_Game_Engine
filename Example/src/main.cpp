@@ -225,13 +225,11 @@ public:
             auto* gravity1 = ball->addComponent<CGravity>();
             gravity1->setForce(Vec2(0.0f, GRAVITY));  // Positive Y = downward
 
-            // Debug: Print first ball info
-            if (i == 0)
-            {
-                auto* c = ball->getComponent<CCircleCollider>();
-                std::cout << "Ball 0 created: radius=" << c->getRadius() << " static=" << c->isStatic()
-                          << " trigger=" << c->isTrigger() << std::endl;
-            }
+            // Randomize initial velocity
+            auto* transform = ball->getComponent<CTransform>();
+            float initialVelX = static_cast<float>((rand() % 501) - 100);  // -100 to +100
+            float initialVelY = static_cast<float>((rand() % 501) - 100);  // -100 to +100
+            transform->setVelocity(Vec2(initialVelX, initialVelY));
         }
     }
 

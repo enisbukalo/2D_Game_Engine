@@ -24,10 +24,11 @@ void Quadtree::split()
     Vec2 childSize   = m_bounds.halfSize;         // Child's full size is parent's halfSize
     Vec2 quarterSize = m_bounds.halfSize * 0.5f;  // Quarter of parent's full size for positioning
 
-    m_children[0] = std::make_unique<Quadtree>(m_level + 1, AABB(m_bounds.position + Vec2(-quarterSize.x, quarterSize.y), childSize));
-    m_children[1] = std::make_unique<Quadtree>(m_level + 1, AABB(m_bounds.position + Vec2(quarterSize.x, quarterSize.y), childSize));
-    m_children[2] = std::make_unique<Quadtree>(m_level + 1, AABB(m_bounds.position + Vec2(-quarterSize.x, -quarterSize.y), childSize));
-    m_children[3] = std::make_unique<Quadtree>(m_level + 1, AABB(m_bounds.position + Vec2(quarterSize.x, -quarterSize.y), childSize));
+    // In Y-down coordinates: -Y is up (smaller Y), +Y is down (larger Y)
+    m_children[0] = std::make_unique<Quadtree>(m_level + 1, AABB(m_bounds.position + Vec2(-quarterSize.x, -quarterSize.y), childSize));  // Top-left
+    m_children[1] = std::make_unique<Quadtree>(m_level + 1, AABB(m_bounds.position + Vec2(quarterSize.x, -quarterSize.y), childSize));   // Top-right
+    m_children[2] = std::make_unique<Quadtree>(m_level + 1, AABB(m_bounds.position + Vec2(-quarterSize.x, quarterSize.y), childSize));   // Bottom-left
+    m_children[3] = std::make_unique<Quadtree>(m_level + 1, AABB(m_bounds.position + Vec2(quarterSize.x, quarterSize.y), childSize));    // Bottom-right
 }
 
 std::vector<int> Quadtree::getOverlappingQuadrants(const AABB& bounds) const
