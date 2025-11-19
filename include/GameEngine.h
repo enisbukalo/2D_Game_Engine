@@ -52,6 +52,12 @@ public:
      */
     bool is_running() const;
 
+    /**
+     * @brief Gets the logger instance for external logging
+     * @return Shared pointer to the spdlog logger, or nullptr if not initialized
+     */
+    static std::shared_ptr<spdlog::logger> getLogger();
+
 private:
     const uint8_t m_subStepCount;  ///< Number of physics sub-steps per update
     const float   m_timeStep;      ///< Fixed time step for physics updates

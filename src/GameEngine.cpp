@@ -101,3 +101,8 @@ bool GameEngine::is_running() const
 {
     return m_gameRunning;
 }
+
+std::shared_ptr<spdlog::logger> GameEngine::getLogger()
+{
+    return spdlog::get("GameEngine");
+}

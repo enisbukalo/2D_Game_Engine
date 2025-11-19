@@ -167,6 +167,7 @@ target_include_directories(GameEngine
     $<INSTALL_INTERFACE:include/GameEngine/systems>
     $<INSTALL_INTERFACE:include/GameEngine/utility>
     $<INSTALL_INTERFACE:include/GameEngine/physics>
+    $<INSTALL_INTERFACE:include>
 )
 
 # Link against dependencies
@@ -177,6 +178,7 @@ target_link_libraries(GameEngine
     sfml-system
     ImGui-SFML
     Threads::Threads
+    PRIVATE
     spdlog::spdlog
 )
 
@@ -198,7 +200,7 @@ if(GAMEENGINE_INSTALL)
     set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/GameEngine)
 
     # Install library and dependencies
-    install(TARGETS GameEngine ImGui-SFML spdlog
+    install(TARGETS GameEngine ImGui-SFML
         EXPORT GameEngineTargets
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -246,13 +248,10 @@ if(GAMEENGINE_INSTALL)
     # Create a config file template
     file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/GameEngineConfig.cmake.in"
         "include(CMakeFindDependencyMacro)\n\n"
-        "# Add spdlog to CMAKE_PREFIX_PATH if not already present\n"
-        "list(APPEND CMAKE_PREFIX_PATH \"\${CMAKE_CURRENT_LIST_DIR}/../../..\")\n\n"
         "# Find dependencies\n"
         "find_dependency(Threads)\n"
         "find_dependency(SFML 2.6 COMPONENTS graphics window system)\n"
-        "find_dependency(OpenGL)\n"
-        "find_dependency(spdlog)\n\n"
+        "find_dependency(OpenGL)\n\n"
         "# Include the targets file\n"
         "include(\"\${CMAKE_CURRENT_LIST_DIR}/GameEngineTargets.cmake\")\n"
     )

@@ -22,8 +22,7 @@ if(MSVC)
     add_compile_options(/MP)
 endif()
 
-# Set the path to the GameEngine installation (local copy)
-set(GameEngine_DIR "${CMAKE_CURRENT_SOURCE_DIR}/GameEngine-Windows-Debug/lib/cmake/GameEngine" CACHE PATH "Path to GameEngine installation")
+# Note: CMAKE_PREFIX_PATH and GameEngine_DIR are set by the build script
 
 # Find SFML (required by GameEngine)
 find_package(SFML 2.6 REQUIRED COMPONENTS graphics window system)

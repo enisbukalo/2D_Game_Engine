@@ -6,8 +6,8 @@
 #include <components/CCircleCollider.h>
 #include <components/CGravity.h>
 #include <components/CTransform.h>
-#include <spdlog/spdlog.h>
 #include <SFML/Graphics.hpp>
+#include <iostream>
 #include <memory>
 #include <sstream>
 
@@ -37,8 +37,8 @@ public:
         : m_window(sf::VideoMode(1200, 800), "Bouncing Balls Example"),
           m_gameEngine(std::make_unique<GameEngine>(&m_window, sf::Vector2f(0.0f, 500.0f), 1, 0.01667f)),
           m_running(true),
-          m_subStepCount(1),
-          m_ballAmount(6),
+          m_subStepCount(8),
+          m_ballAmount(25),
           m_fontLoaded(false),
           m_gravityEnabled(true)
     {
@@ -47,8 +47,7 @@ public:
         // Try to load a system font (optional, will work without it)
         if (!m_font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf"))
         {
-            if (auto logger = spdlog::get("GameEngine"))
-                logger->warn("Could not load font. UI text will not be displayed.");
+            std::cout << "Could not load font. UI text will not be displayed." << std::endl;
         }
         else
         {
@@ -65,72 +64,16 @@ public:
         // Force EntityManager to process pending entities
         EntityManager::instance().update(0.0f);
 
-        spdlog::get("GameEngine")->info("Game initialized!");
-        spdlog::get("GameEngine")->info("Controls:");
-        spdlog::get("GameEngine")->info("  Up/Down or +/-  : Adjust physics substeps");
-        spdlog::get("GameEngine")->info("  Left/Right      : Adjust ball count");
-        spdlog::get("GameEngine")->info("  R               : Restart scenario");
-        spdlog::get("GameEngine")->info("  G               : Toggle gravity");
-        spdlog::get("GameEngine")->info("  Escape          : Exit");
-        spdlog::get("GameEngine")->info("Initial SubSteps: {}", (int)m_subStepCount);
-        spdlog::get("GameEngine")->info("Number of balls: {}", m_ballAmount);
-        spdlog::get("GameEngine")->info("Gravity: {}", (m_gravityEnabled ? "ON" : "OFF"));
-
-        // Debug: Check boundary colliders
-        spdlog::get("GameEngine")->info("\nBoundary Colliders:");
-        auto floor     = EntityManager::instance().getEntitiesByTag("floor");
-        auto rightWall = EntityManager::instance().getEntitiesByTag("rightWall");
-        auto leftWall  = EntityManager::instance().getEntitiesByTag("leftWall");
-        auto topWall   = EntityManager::instance().getEntitiesByTag("topWall");
-
-        if (!floor.empty())
-        {
-            auto* t = floor[0]->getComponent<CTransform>();
-            auto* c = floor[0]->getComponent<CBoxCollider>();
-            spdlog::get("GameEngine")
-                ->info("Floor: pos({},{}) size({},{}) static={}",
-                       t->getPosition().x,
-                       t->getPosition().y,
-                       c->getSize().x,
-                       c->getSize().y,
-                       c->isStatic());
-        }
-        if (!rightWall.empty())
-        {
-            auto* t = rightWall[0]->getComponent<CTransform>();
-            auto* c = rightWall[0]->getComponent<CBoxCollider>();
-            spdlog::get("GameEngine")
-                ->info("RightWall: pos({},{}) size({},{}) static={}",
-                       t->getPosition().x,
-                       t->getPosition().y,
-                       c->getSize().x,
-                       c->getSize().y,
-                       c->isStatic());
-        }
-        if (!leftWall.empty())
-        {
-            auto* t = leftWall[0]->getComponent<CTransform>();
-            auto* c = leftWall[0]->getComponent<CBoxCollider>();
-            spdlog::get("GameEngine")
-                ->info("LeftWall: pos({},{}) size({},{}) static={}",
-                       t->getPosition().x,
-                       t->getPosition().y,
-                       c->getSize().x,
-                       c->getSize().y,
-                       c->isStatic());
-        }
-        if (!topWall.empty())
-        {
-            auto* t = topWall[0]->getComponent<CTransform>();
-            auto* c = topWall[0]->getComponent<CBoxCollider>();
-            spdlog::get("GameEngine")
-                ->info("TopWall: pos({},{}) size({},{}) static={}",
-                       t->getPosition().x,
-                       t->getPosition().y,
-                       c->getSize().x,
-                       c->getSize().y,
-                       c->isStatic());
-        }
+        std::cout << "Game initialized!" << std::endl;
+        std::cout << "Controls:" << std::endl;
+        std::cout << "  Up/Down or +/-  : Adjust physics substeps" << std::endl;
+        std::cout << "  Left/Right      : Adjust ball count" << std::endl;
+        std::cout << "  R               : Restart scenario" << std::endl;
+        std::cout << "  G               : Toggle gravity" << std::endl;
+        std::cout << "  Escape          : Exit" << std::endl;
+        std::cout << "Initial SubSteps: " << (int)m_subStepCount << std::endl;
+        std::cout << "Number of balls: " << m_ballAmount << std::endl;
+        std::cout << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << std::endl;
     }
 
     void handleEvents()
@@ -156,7 +99,7 @@ public:
                     {
                         m_subStepCount++;
                         recreateGameEngine();
-                        spdlog::get("GameEngine")->info("SubSteps: {}", (int)m_subStepCount);
+                        std::cout << "SubSteps: " << (int)m_subStepCount << std::endl;
                     }
                 }
                 else if (event.key.code == sf::Keyboard::Down || event.key.code == sf::Keyboard::Subtract
@@ -166,7 +109,7 @@ public:
                     {
                         m_subStepCount--;
                         recreateGameEngine();
-                        spdlog::get("GameEngine")->info("SubSteps: {}", (int)m_subStepCount);
+                        std::cout << "SubSteps: " << (int)m_subStepCount << std::endl;
                     }
                 }
                 // Adjust ball count with Left/Right arrows
@@ -175,7 +118,7 @@ public:
                     if (m_ballAmount > 1)
                     {
                         m_ballAmount--;
-                        spdlog::get("GameEngine")->info("Ball count: {} (Press R to restart)", m_ballAmount);
+                        std::cout << "Ball count: " << m_ballAmount << " (Press R to restart)" << std::endl;
                     }
                 }
                 else if (event.key.code == sf::Keyboard::Right)
@@ -183,7 +126,7 @@ public:
                     if (m_ballAmount < 500)
                     {
                         m_ballAmount++;
-                        spdlog::get("GameEngine")->info("Ball count: {} (Press R to restart)", m_ballAmount);
+                        std::cout << "Ball count: " << m_ballAmount << " (Press R to restart)" << std::endl;
                     }
                 }
                 // Restart scenario with R key
@@ -275,8 +218,7 @@ public:
                 }
             }
         }
-
-        spdlog::get("GameEngine")->info("Gravity: {}", (m_gravityEnabled ? "ON" : "OFF"));
+        std::cout << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << std::endl;
     }
 
     void recreateGameEngine()
@@ -287,10 +229,10 @@ public:
 
     void restart()
     {
-        spdlog::get("GameEngine")->info("\n=== Restarting scenario ===");
-        spdlog::get("GameEngine")->info("Ball count: {}", m_ballAmount);
-        spdlog::get("GameEngine")->info("SubSteps: {}", (int)m_subStepCount);
-        spdlog::get("GameEngine")->info("Gravity: {}", (m_gravityEnabled ? "ON" : "OFF"));
+        std::cout << "\n=== Restarting scenario ===" << std::endl;
+        std::cout << "Ball count: " << m_ballAmount << std::endl;
+        std::cout << "SubSteps: " << (int)m_subStepCount << std::endl;
+        std::cout << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << std::endl;
 
         // Clear all entities
         EntityManager::instance().clear();
@@ -305,7 +247,7 @@ public:
         // Force EntityManager to process pending entities
         EntityManager::instance().update(0.0f);
 
-        spdlog::get("GameEngine")->info("=== Restart complete ===");
+        std::cout << "=== Restart complete ===" << std::endl;
     }
 
     void update(float dt)
@@ -434,7 +376,7 @@ int main()
     }
     catch (const std::exception& e)
     {
-        spdlog::get("GameEngine")->error("Fatal error: {}", e.what());
+        std::cout << "Fatal error: " << e.what() << std::endl;
         return 1;
     }
 

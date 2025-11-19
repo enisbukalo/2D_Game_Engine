@@ -61,6 +61,7 @@ fi
 
 # Set GameEngine directory based on build type
 GAMEENGINE_DIR="./GameEngine-Windows-$BUILD_TYPE"
+PARENT_PACKAGE_DIR="../package_windows"
 
 # Check if CMakeLists.txt exists
 if [ ! -f "CMakeLists.txt" ]; then
@@ -69,12 +70,33 @@ if [ ! -f "CMakeLists.txt" ]; then
     exit 1
 fi
 
-# Check if GameEngine library exists
+# Check if GameEngine library exists, if not try to use local build from parent directory
 if [ ! -d "$GAMEENGINE_DIR" ]; then
-    echo -e "${RED}Error: GameEngine library not found at $GAMEENGINE_DIR${NC}"
-    echo "Please ensure the GameEngine-Windows-$BUILD_TYPE directory exists."
-    echo "You can download it using: ./update_example_game_windows.sh -t $BUILD_TYPE"
-    exit 1
+    if [ -d "$PARENT_PACKAGE_DIR" ]; then
+        echo -e "${YELLOW}GameEngine artifact not found, using local build from parent directory...${NC}"
+        echo -e "${YELLOW}Creating $GAMEENGINE_DIR from $PARENT_PACKAGE_DIR${NC}"
+
+        # Remove old symlink/directory if it exists
+        rm -rf "$GAMEENGINE_DIR"
+
+        # Create the directory structure to mimic CI/CD artifact
+        mkdir -p "$GAMEENGINE_DIR"
+
+        # Copy the package contents to mimic artifact structure
+        cp -r "$PARENT_PACKAGE_DIR"/* "$GAMEENGINE_DIR/"
+
+        echo -e "${GREEN}Successfully set up GameEngine from local build${NC}"
+    else
+        echo -e "${RED}Error: GameEngine library not found!${NC}"
+        echo "Checked locations:"
+        echo "  1. $GAMEENGINE_DIR (CI/CD artifact)"
+        echo "  2. $PARENT_PACKAGE_DIR (local build)"
+        echo ""
+        echo "Options:"
+        echo "  - Download CI/CD artifact: ./update_example_game_windows.sh -t $BUILD_TYPE"
+        echo "  - Build locally: cd .. && ./build_tools/build.sh --windows --type $BUILD_TYPE"
+        exit 1
+    fi
 fi
 
 # Check if toolchain file exists
@@ -99,6 +121,7 @@ cmake -B ${BUILD_DIR} \
     -G Ninja \
     -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN_FILE" \
     -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
+    -DCMAKE_PREFIX_PATH="$GAMEENGINE_DIR" \
     -DGameEngine_DIR="$GAMEENGINE_DIR/lib/cmake/GameEngine" || {
         echo -e "${RED}Configuration failed!${NC}"
         exit 1
