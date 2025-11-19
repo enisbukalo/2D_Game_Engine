@@ -245,20 +245,6 @@ public:
     {
         // GameEngine handles physics updates with fixed timestep
         m_gameEngine->update(dt);
-
-        // Debug: Print ball positions every 60 frames
-        static int frameCount = 0;
-        if (++frameCount % 60 == 0)
-        {
-            auto balls = EntityManager::instance().getEntitiesByTag("ball");
-            if (!balls.empty())
-            {
-                auto* t = balls[0]->getComponent<CTransform>();
-                auto* c = balls[0]->getComponent<CCircleCollider>();
-                std::cout << "Ball 0: pos(" << t->getPosition().x << "," << t->getPosition().y << ") vel("
-                          << t->getVelocity().x << "," << t->getVelocity().y << ")" << std::endl;
-            }
-        }
     }
 
     void render()
