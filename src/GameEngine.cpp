@@ -1,16 +1,34 @@
 #include "GameEngine.h"
+#include <spdlog/async.h>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
 #include "EntityManager.h"
 #include "systems/S2DPhysics.h"
-#include "utility/Logger.h"
 
 GameEngine::GameEngine(sf::RenderWindow* window, sf::Vector2f gravity, uint8_t subStepCount, float timeStep)
     : m_window(window), m_gravity(gravity), m_subStepCount(subStepCount), m_timeStep(timeStep)
 {
-    // Initialize logger
-    Logger::instance().init("game_engine.log");
-    LOG_INFO("GameEngine initialized");
-    LOG_INFO_STREAM("Window size: " << window->getSize().x << "x" << window->getSize().y);
-    LOG_INFO_STREAM("SubSteps: " << (int)subStepCount << ", TimeStep: " << timeStep);
+    // Initialize spdlog logger
+    if (!spdlog::get("GameEngine"))
+    {
+        auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+        auto file_sink    = std::make_shared<spdlog::sinks::basic_file_sink_mt>("game_engine.log", true);
+
+        console_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] [Thread:%t] %v");
+        file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] [Thread:%t] %v");
+
+        std::vector<spdlog::sink_ptr> sinks{console_sink, file_sink};
+        auto                          logger = std::make_shared<spdlog::async_logger>(
+            "GameEngine", sinks.begin(), sinks.end(), spdlog::thread_pool(), spdlog::async_overflow_policy::block);
+        logger->set_level(spdlog::level::debug);
+        logger->flush_on(spdlog::level::err);
+        spdlog::register_logger(logger);
+    }
+
+    spdlog::get("GameEngine")->info("GameEngine initialized");
+    spdlog::get("GameEngine")->info("Window size: {}x{}", window->getSize().x, window->getSize().y);
+    spdlog::get("GameEngine")->info("SubSteps: {}, TimeStep: {}", (int)subStepCount, timeStep);
 
     m_gameRunning = true;
 
@@ -23,8 +41,12 @@ GameEngine::GameEngine(sf::RenderWindow* window, sf::Vector2f gravity, uint8_t s
 
 GameEngine::~GameEngine()
 {
-    LOG_INFO("GameEngine shutting down");
-    Logger::instance().shutdown();
+    if (auto logger = spdlog::get("GameEngine"))
+    {
+        logger->info("GameEngine shutting down");
+        logger->flush();
+        spdlog::drop("GameEngine");
+    }
 }
 
 void GameEngine::readInputs()

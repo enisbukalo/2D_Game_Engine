@@ -53,6 +53,14 @@ find_package(SFML 2.6 REQUIRED COMPONENTS graphics window system)
 # Find OpenGL (required for ImGui-SFML)
 find_package(OpenGL REQUIRED)
 
+# Fetch spdlog for logging
+FetchContent_Declare(SPDLOG
+    GIT_REPOSITORY https://github.com/gabime/spdlog.git
+    GIT_TAG v1.12.0
+    GIT_SHALLOW ON)
+
+FetchContent_MakeAvailable(SPDLOG)
+
 # Fetch ImGui (v1.88 is compatible with ImGui-SFML v2.6)
 FetchContent_Declare(IMGUI
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
@@ -165,6 +173,8 @@ target_link_libraries(GameEngine
     sfml-window
     sfml-system
     ImGui-SFML
+    Threads::Threads
+    spdlog::spdlog
 )
 
 # Link Windows-specific libraries only when building for Windows
@@ -185,7 +195,7 @@ if(GAMEENGINE_INSTALL)
     set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/GameEngine)
 
     # Install library and dependencies
-    install(TARGETS GameEngine ImGui-SFML
+    install(TARGETS GameEngine ImGui-SFML spdlog
         EXPORT GameEngineTargets
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
