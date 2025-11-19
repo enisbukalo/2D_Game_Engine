@@ -42,7 +42,7 @@ S2DPhysics::S2DPhysics() : m_worldBounds(Vec2(0, 0), Vec2(1000, 1000))  // Defau
 
 void S2DPhysics::setWorldBounds(const Vec2& center, const Vec2& size)
 {
-    m_worldBounds = AABB(center, size * 0.5f);
+    m_worldBounds = AABB(center, size);
     m_quadtree    = std::make_unique<Quadtree>(0, m_worldBounds);
 }
 

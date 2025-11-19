@@ -9,7 +9,7 @@
 class QuadtreeTest : public ::testing::Test
 {
 protected:
-    QuadtreeTest() : bounds(Vec2(0, 0), Vec2(50, 50))  // Initialize bounds in constructor.
+    QuadtreeTest() : bounds(Vec2(0, 0), Vec2(100, 100))  // Full size 100x100, halfSize will be 50x50
     {
     }
 
@@ -57,7 +57,7 @@ TEST_F(QuadtreeTest, InsertSingleEntity)
     tree->insert(entity);
 
     // Query the entire area using the same bounds as the tree
-    AABB queryArea(Vec2(0, 0), Vec2(50, 50));
+    AABB queryArea(Vec2(0, 0), Vec2(100, 100));  // Full size 100x100
     auto results = tree->query(queryArea);
     EXPECT_EQ(results.size(), 1);
     EXPECT_EQ(results[0], entity);
@@ -67,7 +67,7 @@ TEST_F(QuadtreeTest, InsertSingleEntity)
 TEST_F(QuadtreeTest, QueryEmptyArea)
 {
     // Query an area where no entities exist
-    AABB emptyArea(Vec2(100, 100), Vec2(10, 10));
+    AABB emptyArea(Vec2(100, 100), Vec2(20, 20));  // Full size 20x20
     auto results = tree->query(emptyArea);
     EXPECT_TRUE(results.empty());
 }
@@ -116,7 +116,7 @@ TEST_F(QuadtreeTest, QuerySpecificQuadrant)
     }
 
     // Query only the top-left quadrant
-    AABB topLeft(Vec2(-25, 25), Vec2(10, 10));
+    AABB topLeft(Vec2(-25, 25), Vec2(20, 20));  // Full size 20x20
     auto results = tree->query(topLeft);
     EXPECT_EQ(results.size(), 1);
     EXPECT_EQ(results[0]->getComponent<CTransform>()->getPosition(), Vec2(-25, 25));
@@ -131,10 +131,10 @@ TEST_F(QuadtreeTest, LargeColliderMultiQuadrant)
 
     // Query each quadrant - the entity should be found in all of them
     std::vector<AABB> quadrantQueries = {
-        AABB(Vec2(-20, 20), Vec2(5, 5)),   // Top-left
-        AABB(Vec2(20, 20), Vec2(5, 5)),    // Top-right
-        AABB(Vec2(-20, -20), Vec2(5, 5)),  // Bottom-left
-        AABB(Vec2(20, -20), Vec2(5, 5))    // Bottom-right
+        AABB(Vec2(-20, 20), Vec2(10, 10)),   // Top-left, full size 10x10
+        AABB(Vec2(20, 20), Vec2(10, 10)),    // Top-right, full size 10x10
+        AABB(Vec2(-20, -20), Vec2(10, 10)),  // Bottom-left, full size 10x10
+        AABB(Vec2(20, -20), Vec2(10, 10))    // Bottom-right, full size 10x10
     };
 
     for (const auto& queryArea : quadrantQueries)
@@ -156,8 +156,8 @@ TEST_F(QuadtreeTest, ColliderOnQuadrantBoundary)
     tree->insert(entity);
 
     // Query areas on both sides of the boundary
-    AABB leftQuery(Vec2(-5, 0), Vec2(5, 5));
-    AABB rightQuery(Vec2(5, 0), Vec2(5, 5));
+    AABB leftQuery(Vec2(-5, 0), Vec2(10, 10));   // Full size 10x10
+    AABB rightQuery(Vec2(5, 0), Vec2(10, 10));   // Full size 10x10
 
     auto leftResults  = tree->query(leftQuery);
     auto rightResults = tree->query(rightQuery);
@@ -182,7 +182,7 @@ TEST_F(QuadtreeTest, MultipleOverlappingColliders)
     tree->insert(entity3);
 
     // Query an area where all colliders overlap
-    AABB queryArea(Vec2(0, 0), Vec2(5, 5));
+    AABB queryArea(Vec2(0, 0), Vec2(10, 10));  // Full size 10x10
     auto results = tree->query(queryArea);
 
     EXPECT_EQ(results.size(), 3) << "Should find all entities with overlapping colliders";
@@ -201,7 +201,7 @@ TEST_F(QuadtreeTest, SubdivisionWithColliders)
     }
 
     // Query a small area that should contain only a few entities
-    AABB smallArea(basePos, Vec2(2, 2));
+    AABB smallArea(basePos, Vec2(4, 4));  // Full size 4x4
     auto results = tree->query(smallArea);
     EXPECT_LT(results.size(), Quadtree::MAX_OBJECTS);
 }
@@ -238,7 +238,7 @@ TEST_F(QuadtreeTest, QueryPartialOverlap)
     }
 
     // Query an area that partially overlaps multiple quadrants
-    AABB queryArea(Vec2(10, 10), Vec2(20, 20));
+    AABB queryArea(Vec2(10, 10), Vec2(40, 40));  // Full size 40x40
     auto results = tree->query(queryArea);
 
     // Verify that we find all entities whose colliders overlap the query area

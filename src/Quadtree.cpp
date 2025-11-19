@@ -21,8 +21,8 @@ void Quadtree::clear()
 
 void Quadtree::split()
 {
-    Vec2 childSize   = m_bounds.halfSize * 0.5f;
-    Vec2 quarterSize = childSize * 0.5f;
+    Vec2 childSize   = m_bounds.halfSize;  // Child's full size is parent's halfSize
+    Vec2 quarterSize = m_bounds.halfSize * 0.5f;  // Quarter of parent's full size for positioning
 
     m_children[0] = std::make_unique<Quadtree>(m_level + 1, AABB(m_bounds.position + Vec2(-quarterSize.x, quarterSize.y), childSize));
     m_children[1] = std::make_unique<Quadtree>(m_level + 1, AABB(m_bounds.position + Vec2(quarterSize.x, quarterSize.y), childSize));
