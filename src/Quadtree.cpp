@@ -35,11 +35,12 @@ std::vector<int> Quadtree::getOverlappingQuadrants(const AABB& bounds) const
     std::vector<int> quadrants;
 
     // Check each quadrant
+    // Note: In SFML/screen coordinates, Y increases DOWNWARD (Y=0 at top, larger Y at bottom)
     Vec2 topLeft     = bounds.position - bounds.halfSize;
     Vec2 bottomRight = bounds.position + bounds.halfSize;
 
-    // Check top quadrants (y > center)
-    if (bottomRight.y > m_bounds.position.y)
+    // Check top quadrants (smaller Y values, above center line)
+    if (topLeft.y < m_bounds.position.y)
     {
         if (topLeft.x < m_bounds.position.x)
             quadrants.push_back(0);  // Top-left
@@ -47,8 +48,8 @@ std::vector<int> Quadtree::getOverlappingQuadrants(const AABB& bounds) const
             quadrants.push_back(1);  // Top-right
     }
 
-    // Check bottom quadrants (y < center)
-    if (topLeft.y < m_bounds.position.y)
+    // Check bottom quadrants (larger Y values, below center line)
+    if (bottomRight.y > m_bounds.position.y)
     {
         if (topLeft.x < m_bounds.position.x)
             quadrants.push_back(2);  // Bottom-left
