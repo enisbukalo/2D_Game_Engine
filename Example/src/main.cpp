@@ -18,6 +18,7 @@ private:
     std::unique_ptr<GameEngine> m_gameEngine;
     sf::Font                    m_font;
     uint8_t                     m_subStepCount;
+    int                         m_ballAmount;
     bool                        m_running;
     bool                        m_fontLoaded;
     bool                        m_gravityEnabled;
@@ -25,7 +26,6 @@ private:
     const float RESTITUTION                 = 0.8f;      // Bounciness factor
     const float GRAVITY                     = 500.0f;    // Gravity force
     const float TIME_STEP                   = 0.01667f;  // Fixed time step for physics updates
-    const int   BALL_AMOUNT                 = 25;        // Balls to generate
     const int   BOUNDARY_COLLIDER_THICKNESS = 50;        // Thickness of boundary colliders
 
     // Define Screen Size
@@ -38,6 +38,7 @@ public:
           m_gameEngine(std::make_unique<GameEngine>(&m_window, sf::Vector2f(0.0f, 500.0f), 1, 0.01667f)),
           m_running(true),
           m_subStepCount(1),
+          m_ballAmount(6),
           m_fontLoaded(false),
           m_gravityEnabled(true)
     {
@@ -66,10 +67,12 @@ public:
         std::cout << "Game initialized!" << std::endl;
         std::cout << "Controls:" << std::endl;
         std::cout << "  Up/Down or +/-  : Adjust physics substeps" << std::endl;
+        std::cout << "  Left/Right      : Adjust ball count" << std::endl;
+        std::cout << "  R               : Restart scenario" << std::endl;
         std::cout << "  G               : Toggle gravity" << std::endl;
         std::cout << "  Escape          : Exit" << std::endl;
         std::cout << "Initial SubSteps: " << (int)m_subStepCount << std::endl;
-        std::cout << "Number of balls: " << BALL_AMOUNT << std::endl;
+        std::cout << "Number of balls: " << m_ballAmount << std::endl;
         std::cout << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << std::endl;
 
         // Debug: Check boundary colliders
@@ -145,6 +148,28 @@ public:
                         std::cout << "SubSteps: " << (int)m_subStepCount << std::endl;
                     }
                 }
+                // Adjust ball count with Left/Right arrows
+                else if (event.key.code == sf::Keyboard::Left)
+                {
+                    if (m_ballAmount > 1)
+                    {
+                        m_ballAmount--;
+                        std::cout << "Ball count: " << m_ballAmount << " (Press R to restart)" << std::endl;
+                    }
+                }
+                else if (event.key.code == sf::Keyboard::Right)
+                {
+                    if (m_ballAmount < 500)
+                    {
+                        m_ballAmount++;
+                        std::cout << "Ball count: " << m_ballAmount << " (Press R to restart)" << std::endl;
+                    }
+                }
+                // Restart scenario with R key
+                else if (event.key.code == sf::Keyboard::R)
+                {
+                    restart();
+                }
                 // Toggle gravity with G key
                 else if (event.key.code == sf::Keyboard::G)
                 {
@@ -187,7 +212,7 @@ public:
 
     void createBalls()
     {
-        for (int i = 0; i < BALL_AMOUNT; i++)
+        for (int i = 0; i < m_ballAmount; i++)
         {
             // Lets get a random X and Y position within ranges of
             // X between 450 and 750
@@ -239,6 +264,29 @@ public:
     {
         // Recreate the game engine with new substep count
         m_gameEngine = std::make_unique<GameEngine>(&m_window, sf::Vector2f(0.0f, GRAVITY), m_subStepCount, TIME_STEP);
+    }
+
+    void restart()
+    {
+        std::cout << "\n=== Restarting scenario ===" << std::endl;
+        std::cout << "Ball count: " << m_ballAmount << std::endl;
+        std::cout << "SubSteps: " << (int)m_subStepCount << std::endl;
+        std::cout << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << std::endl;
+
+        // Clear all entities
+        EntityManager::instance().clear();
+
+        // Recreate game engine
+        m_gameEngine = std::make_unique<GameEngine>(&m_window, sf::Vector2f(0.0f, GRAVITY), m_subStepCount, TIME_STEP);
+
+        // Recreate boundary colliders and balls
+        createBoundaryColliders();
+        createBalls();
+
+        // Force EntityManager to process pending entities
+        EntityManager::instance().update(0.0f);
+
+        std::cout << "=== Restart complete ===" << std::endl;
     }
 
     void update(float dt)
@@ -324,6 +372,7 @@ public:
         {
             std::ostringstream oss;
             oss << "SubSteps: " << (int)m_subStepCount << " (Use Up/Down or +/-)\n";
+            oss << "Ball Count: " << m_ballAmount << " (Use Left/Right, press R to restart)\n";
             oss << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << " (Press G to toggle)";
 
             sf::Text text;
