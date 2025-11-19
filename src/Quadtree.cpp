@@ -90,14 +90,11 @@ void Quadtree::insert(Entity* entity)
         // Get all quadrants this entity overlaps
         auto overlappingQuadrants = getOverlappingQuadrants(entityBounds);
 
-        // If the entity fits within child quadrants
-        if (!overlappingQuadrants.empty())
+        // Only delegate to child if entity fits entirely within a SINGLE quadrant
+        // Entities spanning multiple quadrants stay at this level
+        if (overlappingQuadrants.size() == 1)
         {
-            // Insert into all overlapping quadrants
-            for (int quadrant : overlappingQuadrants)
-            {
-                m_children[quadrant]->insert(entity);
-            }
+            m_children[overlappingQuadrants[0]]->insert(entity);
             return;
         }
     }
@@ -127,13 +124,11 @@ void Quadtree::insert(Entity* entity)
                 AABB objBounds    = objCollider->getBounds();
                 auto objQuadrants = getOverlappingQuadrants(objBounds);
 
-                // Only move down if the object fits entirely within child quadrants
-                if (!objQuadrants.empty())
+                // Only move down if the object fits entirely within a SINGLE child quadrant
+                // Objects spanning multiple quadrants stay at this level
+                if (objQuadrants.size() == 1)
                 {
-                    for (int quadrant : objQuadrants)
-                    {
-                        m_children[quadrant]->insert(obj);
-                    }
+                    m_children[objQuadrants[0]]->insert(obj);
                     it = m_objects.erase(it);
                     continue;
                 }
