@@ -246,6 +246,8 @@ if(GAMEENGINE_INSTALL)
     # Create a config file template
     file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/GameEngineConfig.cmake.in"
         "include(CMakeFindDependencyMacro)\n\n"
+        "# Add spdlog to CMAKE_PREFIX_PATH if not already present\n"
+        "list(APPEND CMAKE_PREFIX_PATH \"\${CMAKE_CURRENT_LIST_DIR}/../../..\")\n\n"
         "# Find dependencies\n"
         "find_dependency(Threads)\n"
         "find_dependency(SFML 2.6 COMPONENTS graphics window system)\n"
