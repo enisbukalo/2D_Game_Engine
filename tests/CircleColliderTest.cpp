@@ -109,5 +109,5 @@ TEST_F(CircleColliderTest, BoundingBox)
 
     AABB bounds = collider->getBounds();
     EXPECT_EQ(bounds.position, position);
-    EXPECT_EQ(bounds.halfSize, Vec2(radius * 2, radius * 2));
+    EXPECT_EQ(bounds.halfSize, Vec2(radius, radius));  // halfSize should be the radius
 }
