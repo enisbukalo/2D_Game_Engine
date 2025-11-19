@@ -6,7 +6,7 @@
 #include <components/CCircleCollider.h>
 #include <components/CGravity.h>
 #include <components/CTransform.h>
-#include <utility/Logger.h>
+#include <spdlog/spdlog.h>
 #include <SFML/Graphics.hpp>
 #include <memory>
 #include <sstream>
@@ -47,7 +47,8 @@ public:
         // Try to load a system font (optional, will work without it)
         if (!m_font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf"))
         {
-            LOG_WARNING("Could not load font. UI text will not be displayed.");
+            if (auto logger = spdlog::get("GameEngine"))
+                logger->warn("Could not load font. UI text will not be displayed.");
         }
         else
         {

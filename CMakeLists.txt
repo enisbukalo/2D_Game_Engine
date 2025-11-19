@@ -226,6 +226,13 @@ if(GAMEENGINE_INSTALL)
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ImGui-SFML
     )
 
+    # Install spdlog headers
+    install(DIRECTORY
+        ${spdlog_SOURCE_DIR}/include/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        FILES_MATCHING PATTERN "*.h"
+    )
+
     # Export targets
     install(EXPORT GameEngineTargets
         FILE GameEngineTargets.cmake
