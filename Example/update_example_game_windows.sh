@@ -9,6 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXAMPLE_GAME_DIR="$SCRIPT_DIR"
 BUILD_TYPE="Release"  # Default to Release
 REPO="enisbukalo/2D_Game_Engine"
+BRANCH=""  # Auto-detected from current git branch
 
 # Help message
 usage() {
@@ -16,6 +17,7 @@ usage() {
     echo "Options:"
     echo "  -h, --help              Show this help message"
     echo "  -t, --type TYPE         Set build type (Debug/Release) [default: Release]"
+    echo "  -b, --branch BRANCH     Specify branch to download from [default: current branch]"
 }
 
 # Parse command line arguments
@@ -27,6 +29,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -t|--type)
             BUILD_TYPE="$2"
+            shift
+            ;;
+        -b|--branch)
+            BRANCH="$2"
             shift
             ;;
         *)
@@ -45,6 +51,17 @@ BUILD_TYPE="$(tr '[:lower:]' '[:upper:]' <<< ${BUILD_TYPE:0:1})$(tr '[:upper:]' 
 if [[ "$BUILD_TYPE" != "Debug" && "$BUILD_TYPE" != "Release" ]]; then
     echo "Error: Invalid build type '$BUILD_TYPE'. Must be Debug or Release."
     exit 1
+fi
+
+# Auto-detect current branch if not specified
+if [ -z "$BRANCH" ]; then
+    BRANCH=$(cd "$SCRIPT_DIR/.." && git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+    if [ -n "$BRANCH" ]; then
+        echo "Auto-detected current branch: $BRANCH"
+    else
+        echo "Warning: Could not detect current branch, will use default branch"
+        BRANCH=""
+    fi
 fi
 
 ARTIFACT_NAME="GameEngine-Windows-$BUILD_TYPE"
@@ -69,33 +86,33 @@ if ! gh auth status &> /dev/null; then
     exit 1
 fi
 
-# Get the latest successful workflow run for CI (which calls build-windows)
-echo "Finding latest successful CI workflow run..."
-RUN_ID=$(gh run list \
-    --repo="$REPO" \
-    --workflow=ci.yml \
-    --status=success \
-    --limit=1 \
-    --json databaseId \
-    --jq '.[0].databaseId')
+# Get the latest CI workflow run from the branch
+if [ -n "$BRANCH" ]; then
+    echo "Finding latest CI run on branch: $BRANCH..."
+    RUN_ID=$(gh run list \
+        --repo="$REPO" \
+        --workflow=ci.yml \
+        --branch="$BRANCH" \
+        --limit=1 \
+        --json databaseId \
+        --jq '.[0].databaseId')
+else
+    echo "Finding latest CI run..."
+    RUN_ID=$(gh run list \
+        --repo="$REPO" \
+        --workflow=ci.yml \
+        --limit=1 \
+        --json databaseId \
+        --jq '.[0].databaseId')
+fi
 
 if [ -z "$RUN_ID" ]; then
-    echo "Error: No successful CI workflow runs found"
-    echo "Tip: Make sure you have a PR with passing CI checks"
+    echo "Error: No CI workflow runs found"
+    echo "Tip: Make sure you have a PR with CI running"
     exit 1
 fi
 
-echo "Latest successful run ID: $RUN_ID"
-echo ""
-
-# Download the artifact
-echo "Downloading artifact: $ARTIFACT_NAME"
-TEMP_DIR=$(mktemp -d)
-cd "$TEMP_DIR"
-
-gh run download "$RUN_ID" --repo="$REPO" --name "$ARTIFACT_NAME"
-
-echo "Artifact downloaded to: $TEMP_DIR"
+echo "Latest CI run ID: $RUN_ID"
 echo ""
 
 # Remove old GameEngine-Windows directory
@@ -104,14 +121,21 @@ if [ -d "$TARGET_DIR" ]; then
     rm -rf "$TARGET_DIR"
 fi
 
-# Create target directory and move contents
-echo "Installing new GameEngine-Windows-$BUILD_TYPE..."
+# Create target directory
+echo "Creating GameEngine-Windows-$BUILD_TYPE directory..."
 mkdir -p "$TARGET_DIR"
-mv bin include lib "$TARGET_DIR/"
 
-# Cleanup
+# Download the artifact directly to target directory
+echo "Downloading artifact: $ARTIFACT_NAME"
+cd "$TARGET_DIR"
+
+gh run download "$RUN_ID" --repo="$REPO" --name "$ARTIFACT_NAME"
+
+echo "Artifact downloaded to: $TARGET_DIR"
+echo ""
+
+# Return to Example directory
 cd "$EXAMPLE_GAME_DIR"
-rm -rf "$TEMP_DIR"
 
 echo ""
 echo "========================================="

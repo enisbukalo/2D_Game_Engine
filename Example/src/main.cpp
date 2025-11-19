@@ -413,7 +413,7 @@ int main()
     }
     catch (const std::exception& e)
     {
-        std::cerr << "Error: " << e.what() << std::endl;
+        LOG_ERROR_STREAM("Fatal error: " << e.what());
         return 1;
     }
 
