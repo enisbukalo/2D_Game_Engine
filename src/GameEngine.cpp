@@ -9,26 +9,43 @@
 GameEngine::GameEngine(sf::RenderWindow* window, sf::Vector2f gravity, uint8_t subStepCount, float timeStep)
     : m_window(window), m_gravity(gravity), m_subStepCount(subStepCount), m_timeStep(timeStep)
 {
-    // Initialize spdlog logger
+    // Initialize spdlog thread pool and logger
     if (!spdlog::get("GameEngine"))
     {
+        // Initialize thread pool if not already done
+        try
+        {
+            spdlog::init_thread_pool(8192, 1);
+        }
+        catch (const spdlog::spdlog_ex&)
+        {
+            // Thread pool already exists, that's fine
+        }
+
         auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
         auto file_sink    = std::make_shared<spdlog::sinks::basic_file_sink_mt>("game_engine.log", true);
 
         console_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] [Thread:%t] %v");
         file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] [Thread:%t] %v");
 
+        console_sink->set_level(spdlog::level::debug);
+        file_sink->set_level(spdlog::level::trace);
+
         std::vector<spdlog::sink_ptr> sinks{console_sink, file_sink};
         auto                          logger = std::make_shared<spdlog::async_logger>(
             "GameEngine", sinks.begin(), sinks.end(), spdlog::thread_pool(), spdlog::async_overflow_policy::block);
-        logger->set_level(spdlog::level::debug);
-        logger->flush_on(spdlog::level::err);
+        logger->set_level(spdlog::level::trace);
+        logger->flush_on(spdlog::level::debug);
         spdlog::register_logger(logger);
     }
 
-    spdlog::get("GameEngine")->info("GameEngine initialized");
-    spdlog::get("GameEngine")->info("Window size: {}x{}", window->getSize().x, window->getSize().y);
-    spdlog::get("GameEngine")->info("SubSteps: {}, TimeStep: {}", (int)subStepCount, timeStep);
+    if (auto logger = spdlog::get("GameEngine"))
+    {
+        logger->info("GameEngine initialized");
+        logger->info("Window size: {}x{}", window->getSize().x, window->getSize().y);
+        logger->info("SubSteps: {}, TimeStep: {}", (int)subStepCount, timeStep);
+        logger->flush();
+    }
 
     m_gameRunning = true;
 
@@ -45,8 +62,9 @@ GameEngine::~GameEngine()
     {
         logger->info("GameEngine shutting down");
         logger->flush();
-        spdlog::drop("GameEngine");
     }
+    // Note: Don't drop the logger or shutdown thread pool here since the logger
+    // may be reused if another GameEngine instance is created
 }
 
 void GameEngine::readInputs()

@@ -13,7 +13,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"
 
 # Default values
-BUILD_TYPE="Release"
+BUILD_TYPE="Debug"
 BUILD_DIR="build"
 CLEAN_BUILD=false
 TOOLCHAIN_FILE="../cmake/toolchain-mingw64.cmake"
@@ -23,7 +23,7 @@ usage() {
     echo "Usage: $0 [options]"
     echo "Options:"
     echo "  -h, --help              Show this help message"
-    echo "  -t, --type TYPE         Set build type (Debug/Release) [default: Release]"
+    echo "  -t, --type TYPE         Set build type (Debug/Release) [default: Debug]"
     echo "  -c, --clean             Clean build directory"
 }
 
@@ -60,7 +60,6 @@ if [[ "$BUILD_TYPE" != "Debug" && "$BUILD_TYPE" != "Release" ]]; then
 fi
 
 # Set GameEngine directory based on build type
-GAMEENGINE_DIR="./GameEngine-Windows-$BUILD_TYPE"
 PARENT_PACKAGE_DIR="../package_windows"
 
 # Check if CMakeLists.txt exists
@@ -70,34 +69,17 @@ if [ ! -f "CMakeLists.txt" ]; then
     exit 1
 fi
 
-# Check if GameEngine library exists, if not try to use local build from parent directory
-if [ ! -d "$GAMEENGINE_DIR" ]; then
-    if [ -d "$PARENT_PACKAGE_DIR" ]; then
-        echo -e "${YELLOW}GameEngine artifact not found, using local build from parent directory...${NC}"
-        echo -e "${YELLOW}Creating $GAMEENGINE_DIR from $PARENT_PACKAGE_DIR${NC}"
-
-        # Remove old symlink/directory if it exists
-        rm -rf "$GAMEENGINE_DIR"
-
-        # Create the directory structure to mimic CI/CD artifact
-        mkdir -p "$GAMEENGINE_DIR"
-
-        # Copy the package contents to mimic artifact structure
-        cp -r "$PARENT_PACKAGE_DIR"/* "$GAMEENGINE_DIR/"
-
-        echo -e "${GREEN}Successfully set up GameEngine from local build${NC}"
-    else
-        echo -e "${RED}Error: GameEngine library not found!${NC}"
-        echo "Checked locations:"
-        echo "  1. $GAMEENGINE_DIR (CI/CD artifact)"
-        echo "  2. $PARENT_PACKAGE_DIR (local build)"
-        echo ""
-        echo "Options:"
-        echo "  - Download CI/CD artifact: ./update_example_game_windows.sh -t $BUILD_TYPE"
-        echo "  - Build locally: cd .. && ./build_tools/build.sh --windows --type $BUILD_TYPE"
-        exit 1
-    fi
+# Always use local build from parent directory
+if [ ! -d "$PARENT_PACKAGE_DIR" ]; then
+    echo -e "${RED}Error: GameEngine library not found at $PARENT_PACKAGE_DIR${NC}"
+    echo ""
+    echo "Please build locally first:"
+    echo "  cd .. && ./build_tools/build.sh --windows --type $BUILD_TYPE"
+    exit 1
 fi
+
+echo -e "${GREEN}Using local build from $PARENT_PACKAGE_DIR${NC}"
+GAMEENGINE_DIR="$PARENT_PACKAGE_DIR"
 
 # Check if toolchain file exists
 if [ ! -f "$TOOLCHAIN_FILE" ]; then
@@ -129,7 +111,7 @@ cmake -B ${BUILD_DIR} \
 
 # Build project
 echo -e "${GREEN}Building Example Game for Windows...${NC}"
-cmake --build ${BUILD_DIR} --config $BUILD_TYPE || {
+cmake --build ${BUILD_DIR} --config $BUILD_TYPE -j8 || {
     echo -e "${RED}Build failed!${NC}"
     exit 1
 }

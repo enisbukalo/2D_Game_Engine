@@ -37,7 +37,7 @@ public:
         : m_window(sf::VideoMode(1200, 800), "Bouncing Balls Example"),
           m_gameEngine(std::make_unique<GameEngine>(&m_window, sf::Vector2f(0.0f, 500.0f), 1, 0.01667f)),
           m_running(true),
-          m_subStepCount(8),
+          m_subStepCount(4),
           m_ballAmount(25),
           m_fontLoaded(false),
           m_gravityEnabled(true)

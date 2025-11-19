@@ -63,10 +63,10 @@ if(WIN32 OR MINGW)
         set(DLL_SUFFIX "-d")
     endif()
 
-    # Copy GameEngine DLL
+    # Copy GameEngine DLL from package_windows
     add_custom_command(TARGET BounceGame POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_CURRENT_SOURCE_DIR}/GameEngine-Windows-${CMAKE_BUILD_TYPE}/bin/libGameEngine${DLL_SUFFIX}.dll"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../package_windows/bin/libGameEngine${DLL_SUFFIX}.dll"
             "$<TARGET_FILE_DIR:BounceGame>"
         COMMENT "Copying GameEngine DLL to output directory"
     )
