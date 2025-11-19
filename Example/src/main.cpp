@@ -7,7 +7,7 @@
 #include <components/CGravity.h>
 #include <components/CTransform.h>
 #include <SFML/Graphics.hpp>
-#include <iostream>
+#include <utility/Logger.h>
 #include <memory>
 #include <sstream>
 
@@ -47,7 +47,7 @@ public:
         // Try to load a system font (optional, will work without it)
         if (!m_font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf"))
         {
-            std::cout << "Warning: Could not load font. UI text will not be displayed." << std::endl;
+            LOG_WARNING("Could not load font. UI text will not be displayed.");
         }
         else
         {
@@ -64,19 +64,19 @@ public:
         // Force EntityManager to process pending entities
         EntityManager::instance().update(0.0f);
 
-        std::cout << "Game initialized!" << std::endl;
-        std::cout << "Controls:" << std::endl;
-        std::cout << "  Up/Down or +/-  : Adjust physics substeps" << std::endl;
-        std::cout << "  Left/Right      : Adjust ball count" << std::endl;
-        std::cout << "  R               : Restart scenario" << std::endl;
-        std::cout << "  G               : Toggle gravity" << std::endl;
-        std::cout << "  Escape          : Exit" << std::endl;
-        std::cout << "Initial SubSteps: " << (int)m_subStepCount << std::endl;
-        std::cout << "Number of balls: " << m_ballAmount << std::endl;
-        std::cout << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << std::endl;
+        LOG_INFO("Game initialized!");
+        LOG_INFO("Controls:");
+        LOG_INFO("  Up/Down or +/-  : Adjust physics substeps");
+        LOG_INFO("  Left/Right      : Adjust ball count");
+        LOG_INFO("  R               : Restart scenario");
+        LOG_INFO("  G               : Toggle gravity");
+        LOG_INFO("  Escape          : Exit");
+        LOG_INFO_STREAM("Initial SubSteps: " << (int)m_subStepCount);
+        LOG_INFO_STREAM("Number of balls: " << m_ballAmount);
+        LOG_INFO_STREAM("Gravity: " << (m_gravityEnabled ? "ON" : "OFF"));
 
         // Debug: Check boundary colliders
-        std::cout << "\nBoundary Colliders:" << std::endl;
+        LOG_INFO("\nBoundary Colliders:");
         auto floor     = EntityManager::instance().getEntitiesByTag("floor");
         auto rightWall = EntityManager::instance().getEntitiesByTag("rightWall");
         auto leftWall  = EntityManager::instance().getEntitiesByTag("leftWall");
@@ -86,29 +86,29 @@ public:
         {
             auto* t = floor[0]->getComponent<CTransform>();
             auto* c = floor[0]->getComponent<CBoxCollider>();
-            std::cout << "Floor: pos(" << t->getPosition().x << "," << t->getPosition().y << ") size(" << c->getSize().x
-                      << "," << c->getSize().y << ") static=" << c->isStatic() << std::endl;
+            LOG_INFO_STREAM("Floor: pos(" << t->getPosition().x << "," << t->getPosition().y << ") size(" << c->getSize().x
+                      << "," << c->getSize().y << ") static=" << c->isStatic());
         }
         if (!rightWall.empty())
         {
             auto* t = rightWall[0]->getComponent<CTransform>();
             auto* c = rightWall[0]->getComponent<CBoxCollider>();
-            std::cout << "RightWall: pos(" << t->getPosition().x << "," << t->getPosition().y << ") size("
-                      << c->getSize().x << "," << c->getSize().y << ") static=" << c->isStatic() << std::endl;
+            LOG_INFO_STREAM("RightWall: pos(" << t->getPosition().x << "," << t->getPosition().y << ") size("
+                      << c->getSize().x << "," << c->getSize().y << ") static=" << c->isStatic());
         }
         if (!leftWall.empty())
         {
             auto* t = leftWall[0]->getComponent<CTransform>();
             auto* c = leftWall[0]->getComponent<CBoxCollider>();
-            std::cout << "LeftWall: pos(" << t->getPosition().x << "," << t->getPosition().y << ") size("
-                      << c->getSize().x << "," << c->getSize().y << ") static=" << c->isStatic() << std::endl;
+            LOG_INFO_STREAM("LeftWall: pos(" << t->getPosition().x << "," << t->getPosition().y << ") size("
+                      << c->getSize().x << "," << c->getSize().y << ") static=" << c->isStatic());
         }
         if (!topWall.empty())
         {
             auto* t = topWall[0]->getComponent<CTransform>();
             auto* c = topWall[0]->getComponent<CBoxCollider>();
-            std::cout << "TopWall: pos(" << t->getPosition().x << "," << t->getPosition().y << ") size("
-                      << c->getSize().x << "," << c->getSize().y << ") static=" << c->isStatic() << std::endl;
+            LOG_INFO_STREAM("TopWall: pos(" << t->getPosition().x << "," << t->getPosition().y << ") size("
+                      << c->getSize().x << "," << c->getSize().y << ") static=" << c->isStatic());
         }
     }
 
@@ -135,7 +135,7 @@ public:
                     {
                         m_subStepCount++;
                         recreateGameEngine();
-                        std::cout << "SubSteps: " << (int)m_subStepCount << std::endl;
+                        LOG_INFO_STREAM("SubSteps: " << (int)m_subStepCount);
                     }
                 }
                 else if (event.key.code == sf::Keyboard::Down || event.key.code == sf::Keyboard::Subtract
@@ -145,7 +145,7 @@ public:
                     {
                         m_subStepCount--;
                         recreateGameEngine();
-                        std::cout << "SubSteps: " << (int)m_subStepCount << std::endl;
+                        LOG_INFO_STREAM("SubSteps: " << (int)m_subStepCount);
                     }
                 }
                 // Adjust ball count with Left/Right arrows
@@ -154,7 +154,7 @@ public:
                     if (m_ballAmount > 1)
                     {
                         m_ballAmount--;
-                        std::cout << "Ball count: " << m_ballAmount << " (Press R to restart)" << std::endl;
+                        LOG_INFO_STREAM("Ball count: " << m_ballAmount << " (Press R to restart)");
                     }
                 }
                 else if (event.key.code == sf::Keyboard::Right)
@@ -162,7 +162,7 @@ public:
                     if (m_ballAmount < 500)
                     {
                         m_ballAmount++;
-                        std::cout << "Ball count: " << m_ballAmount << " (Press R to restart)" << std::endl;
+                        LOG_INFO_STREAM("Ball count: " << m_ballAmount << " (Press R to restart)");
                     }
                 }
                 // Restart scenario with R key
@@ -255,7 +255,7 @@ public:
             }
         }
 
-        std::cout << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << std::endl;
+        LOG_INFO_STREAM("Gravity: " << (m_gravityEnabled ? "ON" : "OFF"));
     }
 
     void recreateGameEngine()
@@ -266,10 +266,10 @@ public:
 
     void restart()
     {
-        std::cout << "\n=== Restarting scenario ===" << std::endl;
-        std::cout << "Ball count: " << m_ballAmount << std::endl;
-        std::cout << "SubSteps: " << (int)m_subStepCount << std::endl;
-        std::cout << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << std::endl;
+        LOG_INFO("\n=== Restarting scenario ===");
+        LOG_INFO_STREAM("Ball count: " << m_ballAmount);
+        LOG_INFO_STREAM("SubSteps: " << (int)m_subStepCount);
+        LOG_INFO_STREAM("Gravity: " << (m_gravityEnabled ? "ON" : "OFF"));
 
         // Clear all entities
         EntityManager::instance().clear();
@@ -284,7 +284,7 @@ public:
         // Force EntityManager to process pending entities
         EntityManager::instance().update(0.0f);
 
-        std::cout << "=== Restart complete ===" << std::endl;
+        LOG_INFO("=== Restart complete ===");
     }
 
     void update(float dt)

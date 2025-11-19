@@ -1,10 +1,17 @@
 #include "GameEngine.h"
 #include "EntityManager.h"
 #include "systems/S2DPhysics.h"
+#include "utility/Logger.h"
 
 GameEngine::GameEngine(sf::RenderWindow* window, sf::Vector2f gravity, uint8_t subStepCount, float timeStep)
     : m_window(window), m_gravity(gravity), m_subStepCount(subStepCount), m_timeStep(timeStep)
 {
+    // Initialize logger
+    Logger::instance().init("game_engine.log");
+    LOG_INFO("GameEngine initialized");
+    LOG_INFO_STREAM("Window size: " << window->getSize().x << "x" << window->getSize().y);
+    LOG_INFO_STREAM("SubSteps: " << (int)subStepCount << ", TimeStep: " << timeStep);
+
     m_gameRunning = true;
 
     // Set up physics world bounds based on window size
@@ -16,7 +23,8 @@ GameEngine::GameEngine(sf::RenderWindow* window, sf::Vector2f gravity, uint8_t s
 
 GameEngine::~GameEngine()
 {
-    // Cleanup resources if needed
+    LOG_INFO("GameEngine shutting down");
+    Logger::instance().shutdown();
 }
 
 void GameEngine::readInputs()
