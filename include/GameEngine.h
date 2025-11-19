@@ -1,9 +1,9 @@
 #ifndef GAMEENGINE_H
 #define GAMEENGINE_H
 
+#include <spdlog/spdlog.h>
 #include <SFML/Graphics.hpp>
 #include <memory>
-#include <spdlog/spdlog.h>
 
 /**
  * @brief Main game engine class handling core game loop and systems
