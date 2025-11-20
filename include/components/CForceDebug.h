@@ -21,24 +21,36 @@ public:
      * @brief Set the gravity force for this frame
      * @param force The gravity force vector
      */
-    void setGravityForce(const Vec2& force) { m_gravityForce = force; }
+    void setGravityForce(const Vec2& force)
+    {
+        m_gravityForce = force;
+    }
 
     /**
      * @brief Get the gravity force for visualization
      * @return The gravity force vector
      */
-    Vec2 getGravityForce() const { return m_gravityForce; }
+    Vec2 getGravityForce() const
+    {
+        return m_gravityForce;
+    }
 
     /**
      * @brief Clear all recorded forces (call at start of physics frame)
      */
-    void clearForces() { m_gravityForce = Vec2(0.0f, 0.0f); }
+    void clearForces()
+    {
+        m_gravityForce = Vec2(0.0f, 0.0f);
+    }
 
     /**
      * @brief Gets the type identifier for this component
      * @return String "ForceDebug"
      */
-    std::string getType() const override { return "ForceDebug"; }
+    std::string getType() const override
+    {
+        return "ForceDebug";
+    }
 
     /**
      * @brief Serializes the force debug data to JSON

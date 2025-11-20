@@ -216,8 +216,8 @@ public:
             auto  ball    = EntityManager::instance().addEntity("ball");
             ball->addComponent<CTransform>(Vec2(randomX, randomY), Vec2(1.0f, 1.0f), 0.0f);
             ball->addComponent<CCircleCollider>(BALL_RADIUS);
-            ball->addComponent<CGravity>();    // Uses default 1.0 multiplier
-            ball->addComponent<CForceDebug>(); // For force visualization
+            ball->addComponent<CGravity>();     // Uses default 1.0 multiplier
+            ball->addComponent<CForceDebug>();  // For force visualization
 
             // Randomize initial velocity
             auto* transform   = ball->getComponent<CTransform>();
@@ -269,8 +269,8 @@ public:
         auto  ball    = EntityManager::instance().addEntity("ball");
         ball->addComponent<CTransform>(Vec2(randomX, randomY), Vec2(1.0f, 1.0f), 0.0f);
         ball->addComponent<CCircleCollider>(BALL_RADIUS);
-        ball->addComponent<CGravity>();    // Uses default 1.0 multiplier
-        ball->addComponent<CForceDebug>(); // For force visualization
+        ball->addComponent<CGravity>();     // Uses default 1.0 multiplier
+        ball->addComponent<CForceDebug>();  // For force visualization
 
         // Randomize initial velocity
         auto* transform   = ball->getComponent<CTransform>();
