@@ -44,7 +44,7 @@ protected:
         transform1->setPosition(Vec2(100.0f, 200.0f));
         transform1->setScale(Vec2(2.0f, 2.0f));
         auto gravity1 = entity1->addComponent<CGravity>();
-        gravity1->setForce(Vec2(0.0f, -15.0f));
+        gravity1->setMultiplier(1.5f);
         auto collider1 = entity1->addComponent<CCircleCollider>(3.0f);
 
         // Create another entity with Transform and Name
@@ -95,7 +95,7 @@ TEST_F(SceneManagerTest, SaveAndLoadScene)
 
     auto gravity1 = physicsEntity->getComponent<CGravity>();
     ASSERT_NE(gravity1, nullptr);
-    EXPECT_EQ(gravity1->getForce(), Vec2(0.0f, -15.0f));
+    EXPECT_FLOAT_EQ(gravity1->getMultiplier(), 1.5f);
 
     auto collider1 = physicsEntity->getComponent<CCircleCollider>();
     ASSERT_NE(collider1, nullptr);

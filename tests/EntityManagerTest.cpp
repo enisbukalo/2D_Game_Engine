@@ -98,8 +98,7 @@ TEST_F(EntityManagerTest, EntityUpdateSystem)
     auto  gravity   = entity->addComponent<CGravity>();
 
     const float EPSILON = 0.0001f;  // Small value for floating point comparison
-    EXPECT_NEAR(gravity->getForce().x, 0.0f, EPSILON);
-    EXPECT_NEAR(gravity->getForce().y, -9.81f, EPSILON);
+    EXPECT_NEAR(gravity->getMultiplier(), 1.0f, EPSILON);  // Default multiplier is 1.0
 
     // Test system update
     float deltaTime = 1.0f;
@@ -117,7 +116,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
     transform1->setScale(Vec2(2.0f, 2.0f));
     transform1->setRotation(45.0f);
     auto gravity1 = entity1->addComponent<CGravity>();
-    gravity1->setForce(Vec2(0.0f, -15.0f));
+    gravity1->setMultiplier(1.5f);
     auto collider1 = entity1->addComponent<CCircleCollider>(3.0f);
     collider1->setTrigger(true);
 
@@ -134,7 +133,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
     transform3->setPosition(Vec2(300.0f, -200.0f));
     transform3->setRotation(90.0f);
     auto gravity3 = entity3->addComponent<CGravity>();
-    gravity3->setForce(Vec2(5.0f, -9.81f));
+    gravity3->setMultiplier(0.5f);
     auto name3 = entity3->addComponent<CName>();
     name3->setName("CompleteObject");
     auto collider3 = entity3->addComponent<CCircleCollider>(5.0f);
@@ -189,9 +188,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
         }
     }
     ASSERT_NE(gravityData, nullptr);
-    const auto& force = (*gravityData)["force"];
-    EXPECT_TRUE(approxEqual(force["x"].getNumber(), 0.0));
-    EXPECT_TRUE(approxEqual(force["y"].getNumber(), -15.0));
+    EXPECT_TRUE(approxEqual((*gravityData)["multiplier"].getNumber(), 1.5));
 
     // Find and verify CircleCollider component
     const JsonValue* colliderData = nullptr;
@@ -272,9 +269,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
         }
     }
     ASSERT_NE(gravity3JsonData, nullptr);
-    const auto& force3 = (*gravity3JsonData)["force"];
-    EXPECT_TRUE(approxEqual(force3["x"].getNumber(), 5.0));
-    EXPECT_TRUE(approxEqual(force3["y"].getNumber(), -9.81));
+    EXPECT_TRUE(approxEqual((*gravity3JsonData)["multiplier"].getNumber(), 0.5));
 
     // Find and verify Name component
     const JsonValue* name3JsonData = nullptr;
@@ -319,7 +314,7 @@ TEST_F(EntityManagerTest, SaveAndLoadEntities)
     transform1->setScale(Vec2(2.0f, 2.0f));
     transform1->setRotation(45.0f);
     auto gravity1 = entity1->addComponent<CGravity>();
-    gravity1->setForce(Vec2(0.0f, -15.0f));
+    gravity1->setMultiplier(1.5f);
 
     // Create second entity with Transform and Name
     auto entity2    = manager.addEntity("named_object");
@@ -358,7 +353,7 @@ TEST_F(EntityManagerTest, SaveAndLoadEntities)
 
     auto loadedGravity1 = loadedPhysics->getComponent<CGravity>();
     ASSERT_NE(loadedGravity1, nullptr);
-    EXPECT_EQ(loadedGravity1->getForce(), Vec2(0.0f, -15.0f));
+    EXPECT_FLOAT_EQ(loadedGravity1->getMultiplier(), 1.5f);
 
     // Find and verify named_object
     auto namedObjects = manager.getEntitiesByTag("named_object");

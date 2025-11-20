@@ -37,8 +37,13 @@ A modern C++ 2D game engine built with SFML, featuring an Entity Component Syste
 - **Component-Based Architecture**: Modular component system for easy extension
 - **Built-in Components**:
   - `CTransform`: Handles position, velocity, scale, and rotation data storage
-  - `CGravity`: Implements basic gravity physics configuration
+  - `CGravity`: Applies a multiplier to the global gravity (1.0 = normal, 0.0 = no gravity, 2.0 = double, -1.0 = upward/reverse)
   - `CName`: Provides naming functionality for entities
+
+### Physics Scale Convention
+- **100 pixels = 1 meter**: This scale is used throughout the physics system
+- **Positive Y = Downward**: Following screen coordinates, positive Y values mean downward direction
+- **Default gravity**: 981 pixels/s² downward (equivalent to Earth's 9.81 m/s²)
 
 ### Physics System
 - **S2DPhysics**: Centralized physics system that handles all physics calculations
@@ -46,7 +51,10 @@ A modern C++ 2D game engine built with SFML, featuring an Entity Component Syste
   - Implements standard physics equations:
     - Velocity: v = v0 + at
     - Position: p = p0 + v0t + (1/2)at²
-  - Handles gravity effects on entities
+  - **Global gravity system** with per-entity multipliers
+    - Set global gravity once via `setGlobalGravity(Vec2)`
+    - Entities use `CGravity` component to apply multipliers
+    - Easy to change gravity globally or per-entity
   - Clear separation between data (`CTransform`, `CGravity`) and behavior (`S2DPhysics`)
   - Efficient batch processing of physics entities
 
@@ -214,19 +222,32 @@ auto& sceneManager = SceneManager::instance();
 auto& entityManager = EntityManager::instance();
 auto& physics = S2DPhysics::instance();
 
+// Set global gravity (affects all entities with CGravity)
+// Scale: 100 pixels = 1 meter, so 9.81 m/s² = 981 px/s²
+// Positive Y = downward (screen coordinates)
+physics.setGlobalGravity(Vec2(0.0f, 981.0f));  // Standard Earth gravity
+
 auto player = entityManager.addEntity("player");
 auto transform = player->addComponent<CTransform>();
-auto gravity = player->addComponent<CGravity>();
+auto gravity = player->addComponent<CGravity>();  // Uses default 1.0 multiplier
 
 // Configure initial conditions
 transform->setPosition(Vec2(100.0f, 200.0f));
 transform->setVelocity(Vec2(5.0f, 0.0f));  // Initial horizontal velocity
-gravity->setForce(Vec2(0.0f, -9.81f));     // Standard gravity
+
+// Optional: Customize gravity for specific entities
+auto moon = entityManager.addEntity("moon");
+auto moonTransform = moon->addComponent<CTransform>();
+auto moonGravity = moon->addComponent<CGravity>();
+moonGravity->setMultiplier(0.166f);  // Moon has ~1/6 Earth's gravity
 
 // Game loop
 float deltaTime = 1.0f / 60.0f;  // 60 FPS
 physics.update(deltaTime);        // Physics system updates positions and velocities
 entityManager.update(deltaTime);  // Entity system processes updates
+
+// Change gravity globally (e.g., zero gravity sequence)
+physics.setGlobalGravity(Vec2(0.0f, 0.0f));
 
 // Save the scene
 sceneManager.saveScene("level1.json");

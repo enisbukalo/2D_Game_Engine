@@ -15,13 +15,8 @@ void CGravity::serialize(JsonBuilder& builder) const
     builder.beginObject();
     builder.addKey("cGravity");
     builder.beginObject();
-    builder.addKey("force");
-    builder.beginObject();
-    builder.addKey("x");
-    builder.addNumber(m_force.x);
-    builder.addKey("y");
-    builder.addNumber(m_force.y);
-    builder.endObject();
+    builder.addKey("multiplier");
+    builder.addNumber(m_multiplier);
     builder.endObject();
     builder.endObject();
 }
@@ -29,17 +24,15 @@ void CGravity::serialize(JsonBuilder& builder) const
 void CGravity::deserialize(const JsonValue& value)
 {
     const auto& gravity = value["cGravity"];
-    const auto& force   = gravity["force"];
-    m_force.x           = force["x"].getNumber();
-    m_force.y           = force["y"].getNumber();
+    m_multiplier        = static_cast<float>(gravity["multiplier"].getNumber());
 }
 
-Vec2 CGravity::getForce() const
+float CGravity::getMultiplier() const
 {
-    return m_force;
+    return m_multiplier;
 }
 
-void CGravity::setForce(const Vec2& force)
+void CGravity::setMultiplier(float multiplier)
 {
-    m_force = force;
+    m_multiplier = multiplier;
 }

@@ -70,8 +70,7 @@ TEST(ComponentTest, GravityComponent)
     auto       gravity   = entity.addComponent<CGravity>();
 
     const float EPSILON = 0.0001f;  // Small value for floating point comparison
-    EXPECT_NEAR(gravity->getForce().x, 0.0f, EPSILON);
-    EXPECT_NEAR(gravity->getForce().y, -9.81f, EPSILON);
+    EXPECT_NEAR(gravity->getMultiplier(), 1.0f, EPSILON);  // Default multiplier is 1.0
 
     // Test gravity application
     float deltaTime = 1.0f;
@@ -116,7 +115,7 @@ TEST(ComponentTest, GravitySerialization)
 {
     // Create and set up original component
     CGravity gravity1;
-    gravity1.setForce(Vec2(10.0f, -15.0f));
+    gravity1.setMultiplier(2.5f);
 
     // Serialize
     JsonBuilder builder;
@@ -127,8 +126,8 @@ TEST(ComponentTest, GravitySerialization)
     CGravity gravity2;
     gravity2.deserialize(json);
 
-    // Verify force matches
-    EXPECT_EQ(gravity2.getForce(), gravity1.getForce());
+    // Verify multiplier matches
+    EXPECT_FLOAT_EQ(gravity2.getMultiplier(), gravity1.getMultiplier());
 }
 
 TEST(ComponentTest, NameSerialization)
@@ -162,7 +161,7 @@ TEST(ComponentTest, ComponentSerializationRoundTrip)
     transform->setRotation(45.0f);
 
     auto gravity = entity.addComponent<CGravity>();
-    gravity->setForce(Vec2(10.0f, -15.0f));
+    gravity->setMultiplier(1.5f);
 
     auto name = entity.addComponent<CName>();
     name->setName("CompleteObject");
@@ -195,7 +194,7 @@ TEST(ComponentTest, ComponentSerializationRoundTrip)
     EXPECT_EQ(transform2.getVelocity(), transform->getVelocity());
     EXPECT_EQ(transform2.getScale(), transform->getScale());
     EXPECT_FLOAT_EQ(transform2.getRotation(), transform->getRotation());
-    EXPECT_EQ(gravity2.getForce(), gravity->getForce());
+    EXPECT_FLOAT_EQ(gravity2.getMultiplier(), gravity->getMultiplier());
     EXPECT_EQ(name2.getName(), name->getName());
 }
 

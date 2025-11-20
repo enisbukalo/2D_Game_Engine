@@ -54,14 +54,27 @@ public:
      */
     const Quadtree* getQuadtree() const;
 
+    /**
+     * @brief Sets the global gravity vector
+     * @param gravity The global gravity vector to apply
+     */
+    void setGlobalGravity(const Vec2& gravity);
+
+    /**
+     * @brief Gets the current global gravity vector
+     * @return The global gravity vector
+     */
+    Vec2 getGlobalGravity() const;
+
 private:
     // Private constructor to prevent direct instantiation
     S2DPhysics();
     // Private destructor to prevent deletion through pointers
     ~S2DPhysics() override = default;
 
-    std::unique_ptr<Quadtree> m_quadtree;     ///< Spatial partitioning structure
-    AABB                      m_worldBounds;  ///< World boundaries
+    std::unique_ptr<Quadtree> m_quadtree;       ///< Spatial partitioning structure
+    AABB                      m_worldBounds;    ///< World boundaries
+    Vec2                      m_globalGravity;  ///< Global gravity vector applied to all entities
 
     /**
      * @brief Checks for collisions between entities

@@ -41,6 +41,9 @@ GameEngine::GameEngine(sf::RenderWindow* window, sf::Vector2f gravity, uint8_t s
     Vec2         center(windowSize.x / 2.0f, windowSize.y / 2.0f);
     Vec2         size(windowSize.x, windowSize.y);
     S2DPhysics::instance().setWorldBounds(center, size);
+
+    // Set global gravity in physics system
+    S2DPhysics::instance().setGlobalGravity(Vec2(gravity.x, gravity.y));
 }
 
 GameEngine::~GameEngine()
