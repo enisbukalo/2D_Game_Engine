@@ -1,5 +1,4 @@
 #include <gtest/gtest.h>
-#include <iostream>
 #include "CBoxCollider.h"
 #include "CCircleCollider.h"
 #include "CGravity.h"
@@ -16,6 +15,8 @@ protected:
         EntityManager::instance().clear();
         // Reset global gravity to default (981 px/s² downward)
         S2DPhysics::instance().setGlobalGravity(Vec2(0, 981));
+        // Set large world bounds to prevent boundary clamping during tests
+        S2DPhysics::instance().setWorldBounds(Vec2(0, 0), Vec2(10000, 10000));
     }
 
     void TearDown() override
@@ -44,10 +45,6 @@ TEST_F(PhysicsSystemTest, BasicGravityEffect)
     auto& physics = S2DPhysics::instance();
     physics.setGlobalGravity(Vec2(0.0f, 981.0f));
 
-    // Debug: verify gravity was set
-    Vec2 actualGravity = physics.getGlobalGravity();
-    std::cout << "DEBUG: Gravity after set: " << actualGravity.y << std::endl;
-
     // Create an entity with initial position and gravity multiplier 1.0
     Vec2 initialPos(0.0f, 0.0f);
     Vec2 initialVel(0.0f, 0.0f);
@@ -63,8 +60,6 @@ TEST_F(PhysicsSystemTest, BasicGravityEffect)
     // Check that gravity affected the velocity and position
     // Using semi-implicit Euler integration: v_new = v + a*dt, p_new = p + v_new*dt
     auto transform = entity->getComponent<CTransform>();
-    std::cout << "DEBUG: Final position.y: " << transform->getPosition().y << std::endl;
-    std::cout << "DEBUG: Final velocity.y: " << transform->getVelocity().y << std::endl;
     EXPECT_FLOAT_EQ(transform->getVelocity().y, 981.0f);  // v = v0 + at = 0 + 981*1.0
     EXPECT_FLOAT_EQ(transform->getPosition().y, 981.0f);  // p = p0 + v_new*t = 0 + 981*1.0
 }

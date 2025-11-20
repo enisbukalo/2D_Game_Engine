@@ -35,7 +35,9 @@ void S2DPhysics::update(float deltaTime)
     }
 }
 
-S2DPhysics::S2DPhysics() : m_worldBounds(Vec2(0, 0), Vec2(1000, 1000)), m_globalGravity(Vec2(0, 981))  // Default world size and gravity (9.81 m/s² at 100px/m scale)
+S2DPhysics::S2DPhysics()
+    : m_worldBounds(Vec2(0, 0), Vec2(1000, 1000)),
+      m_globalGravity(Vec2(0, 981))  // Default world size and gravity (9.81 m/s² at 100px/m scale)
 {
     m_quadtree = std::make_unique<Quadtree>(0, m_worldBounds);
 }

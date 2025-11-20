@@ -20,7 +20,7 @@ const int   INITIAL_BALL_COUNT      = 125;
 const int   INITIAL_SUBSTEP_COUNT   = 4;
 const bool  INITIAL_GRAVITY_ENABLED = false;
 const float TIME_STEP               = 0.01667f;  // 60 FPS
-const float GRAVITY_FORCE           = 500.0f;    // Gravity force
+const float GRAVITY_FORCE           = 981.0f;    // Gravity force (9.81 m/s² at 100px/m scale)
 
 class BounceGame
 {

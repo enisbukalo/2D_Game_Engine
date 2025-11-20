@@ -72,8 +72,8 @@ private:
     // Private destructor to prevent deletion through pointers
     ~S2DPhysics() override = default;
 
-    std::unique_ptr<Quadtree> m_quadtree;     ///< Spatial partitioning structure
-    AABB                      m_worldBounds;  ///< World boundaries
+    std::unique_ptr<Quadtree> m_quadtree;       ///< Spatial partitioning structure
+    AABB                      m_worldBounds;    ///< World boundaries
     Vec2                      m_globalGravity;  ///< Global gravity vector applied to all entities
 
     /**
