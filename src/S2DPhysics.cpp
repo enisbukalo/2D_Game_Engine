@@ -35,7 +35,7 @@ void S2DPhysics::update(float deltaTime)
     }
 }
 
-S2DPhysics::S2DPhysics() : m_worldBounds(Vec2(0, 0), Vec2(1000, 1000))  // Default world size
+S2DPhysics::S2DPhysics() : m_worldBounds(Vec2(0, 0), Vec2(1000, 1000)), m_globalGravity(Vec2(0, 981))  // Default world size and gravity (9.81 m/s² at 100px/m scale)
 {
     m_quadtree = std::make_unique<Quadtree>(0, m_worldBounds);
 }
@@ -49,6 +49,16 @@ void S2DPhysics::setWorldBounds(const Vec2& center, const Vec2& size)
 const Quadtree* S2DPhysics::getQuadtree() const
 {
     return m_quadtree.get();
+}
+
+void S2DPhysics::setGlobalGravity(const Vec2& gravity)
+{
+    m_globalGravity = gravity;
+}
+
+Vec2 S2DPhysics::getGlobalGravity() const
+{
+    return m_globalGravity;
 }
 
 void S2DPhysics::updateQuadtree()
@@ -144,9 +154,9 @@ void S2DPhysics::handleGravity(float deltaTime)
 
         if (transform && gravity && gravity->isActive())
         {
-            // Apply gravity to velocity: v = v0 + a*dt
+            // Apply global gravity multiplied by entity's multiplier: v = v0 + (g * m) * dt
             Vec2 currentVelocity = transform->getVelocity();
-            Vec2 force           = gravity->getForce();
+            Vec2 force           = m_globalGravity * gravity->getMultiplier();
             Vec2 newVelocity     = currentVelocity + (force * deltaTime);
 
             transform->setVelocity(newVelocity);

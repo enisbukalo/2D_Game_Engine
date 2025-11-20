@@ -207,8 +207,7 @@ public:
             auto  ball    = EntityManager::instance().addEntity("ball");
             ball->addComponent<CTransform>(Vec2(randomX, randomY), Vec2(1.0f, 1.0f), 0.0f);
             ball->addComponent<CCircleCollider>(BALL_RADIUS);
-            auto* gravity1 = ball->addComponent<CGravity>();
-            gravity1->setForce(m_gravityEnabled ? Vec2(0.0f, GRAVITY_FORCE) : Vec2(0.0f, 0.0f));
+            ball->addComponent<CGravity>();  // Uses default 1.0 multiplier
 
             // Randomize initial velocity
             auto* transform   = ball->getComponent<CTransform>();
@@ -222,22 +221,14 @@ public:
     {
         m_gravityEnabled = !m_gravityEnabled;
 
-        // Update gravity on all balls
-        auto balls = EntityManager::instance().getEntitiesByTag("ball");
-        for (auto& ball : balls)
+        // Update global gravity in physics system
+        if (m_gravityEnabled)
         {
-            if (ball->hasComponent<CGravity>())
-            {
-                auto* gravity = ball->getComponent<CGravity>();
-                if (m_gravityEnabled)
-                {
-                    gravity->setForce(Vec2(0.0f, GRAVITY_FORCE));
-                }
-                else
-                {
-                    gravity->setForce(Vec2(0.0f, 0.0f));
-                }
-            }
+            S2DPhysics::instance().setGlobalGravity(Vec2(0.0f, GRAVITY_FORCE));
+        }
+        else
+        {
+            S2DPhysics::instance().setGlobalGravity(Vec2(0.0f, 0.0f));
         }
         std::cout << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << std::endl;
     }
@@ -262,8 +253,7 @@ public:
         auto  ball    = EntityManager::instance().addEntity("ball");
         ball->addComponent<CTransform>(Vec2(randomX, randomY), Vec2(1.0f, 1.0f), 0.0f);
         ball->addComponent<CCircleCollider>(BALL_RADIUS);
-        auto* gravity = ball->addComponent<CGravity>();
-        gravity->setForce(m_gravityEnabled ? Vec2(0.0f, GRAVITY_FORCE) : Vec2(0.0f, 0.0f));
+        ball->addComponent<CGravity>();  // Uses default 1.0 multiplier
 
         // Randomize initial velocity
         auto* transform   = ball->getComponent<CTransform>();

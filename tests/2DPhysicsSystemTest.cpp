@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <iostream>
 #include "CBoxCollider.h"
 #include "CCircleCollider.h"
 #include "CGravity.h"
@@ -13,6 +14,8 @@ protected:
     {
         // Clear the EntityManager before each test.
         EntityManager::instance().clear();
+        // Reset global gravity to default (981 px/s² downward)
+        S2DPhysics::instance().setGlobalGravity(Vec2(0, 981));
     }
 
     void TearDown() override
@@ -20,8 +23,8 @@ protected:
         EntityManager::instance().clear();
     }
 
-    // Helper method to create a physics entity
-    std::shared_ptr<Entity> createPhysicsEntity(const std::string& tag, const Vec2& position, const Vec2& velocity, const Vec2& gravity)
+    // Helper method to create a physics entity with gravity multiplier
+    std::shared_ptr<Entity> createPhysicsEntity(const std::string& tag, const Vec2& position, const Vec2& velocity, float gravityMultiplier = 1.0f)
     {
         auto entity    = EntityManager::instance().addEntity(tag);
         auto transform = entity->addComponent<CTransform>();
@@ -29,7 +32,7 @@ protected:
         transform->setVelocity(velocity);
 
         auto gravityComp = entity->addComponent<CGravity>();
-        gravityComp->setForce(gravity);
+        gravityComp->setMultiplier(gravityMultiplier);
 
         return entity;
     }
@@ -37,16 +40,20 @@ protected:
 
 TEST_F(PhysicsSystemTest, BasicGravityEffect)
 {
-    // Create an entity with initial position and gravity
+    // Set global gravity (positive = downward at 100px/m scale: 9.81 m/s² = 981 px/s²)
+    auto& physics = S2DPhysics::instance();
+    physics.setGlobalGravity(Vec2(0.0f, 981.0f));
+
+    // Debug: verify gravity was set
+    Vec2 actualGravity = physics.getGlobalGravity();
+    std::cout << "DEBUG: Gravity after set: " << actualGravity.y << std::endl;
+
+    // Create an entity with initial position and gravity multiplier 1.0
     Vec2 initialPos(0.0f, 0.0f);
     Vec2 initialVel(0.0f, 0.0f);
-    Vec2 gravity(0.0f, -9.81f);
 
-    auto entity = createPhysicsEntity("test", initialPos, initialVel, gravity);
+    auto entity = createPhysicsEntity("test", initialPos, initialVel, 1.0f);
     EntityManager::instance().update(0.0f);  // Process pending entities
-
-    // Get the physics system instance
-    auto& physics = S2DPhysics::instance();
 
     // Update physics for 1 second
     float deltaTime = 1.0f;
@@ -56,26 +63,28 @@ TEST_F(PhysicsSystemTest, BasicGravityEffect)
     // Check that gravity affected the velocity and position
     // Using semi-implicit Euler integration: v_new = v + a*dt, p_new = p + v_new*dt
     auto transform = entity->getComponent<CTransform>();
-    EXPECT_FLOAT_EQ(transform->getVelocity().y, -9.81f);  // v = v0 + at = 0 + (-9.81)*1.0
-    EXPECT_FLOAT_EQ(transform->getPosition().y, -9.81f);  // p = p0 + v_new*t = 0 + (-9.81)*1.0
+    std::cout << "DEBUG: Final position.y: " << transform->getPosition().y << std::endl;
+    std::cout << "DEBUG: Final velocity.y: " << transform->getVelocity().y << std::endl;
+    EXPECT_FLOAT_EQ(transform->getVelocity().y, 981.0f);  // v = v0 + at = 0 + 981*1.0
+    EXPECT_FLOAT_EQ(transform->getPosition().y, 981.0f);  // p = p0 + v_new*t = 0 + 981*1.0
 }
 
 TEST_F(PhysicsSystemTest, MultipleEntitiesPhysics)
 {
+    // Set global gravity
+    auto& physics = S2DPhysics::instance();
+    physics.setGlobalGravity(Vec2(0.0f, 981.0f));
+
     // Create two entities with different initial conditions
     Vec2 pos1(0.0f, 100.0f);
     Vec2 vel1(5.0f, 0.0f);
-    Vec2 gravity1(0.0f, -9.81f);
 
     Vec2 pos2(100.0f, 100.0f);
     Vec2 vel2(-5.0f, 0.0f);
-    Vec2 gravity2(0.0f, -9.81f);
 
-    auto entity1 = createPhysicsEntity("test1", pos1, vel1, gravity1);
-    auto entity2 = createPhysicsEntity("test2", pos2, vel2, gravity2);
+    auto entity1 = createPhysicsEntity("test1", pos1, vel1, 1.0f);
+    auto entity2 = createPhysicsEntity("test2", pos2, vel2, 1.0f);
     EntityManager::instance().update(0.0f);  // Process pending entities
-
-    auto& physics = S2DPhysics::instance();
 
     // Update physics for 1 second
     float deltaTime = 1.0f;
@@ -88,24 +97,25 @@ TEST_F(PhysicsSystemTest, MultipleEntitiesPhysics)
 
     // Entity 1: Moving right with gravity - v_new=(5,-9.81), p_new=(0,100)+(5,-9.81)*1.0
     EXPECT_FLOAT_EQ(transform1->getPosition().x, 5.0f);
-    EXPECT_FLOAT_EQ(transform1->getPosition().y, 90.19f);
+    EXPECT_FLOAT_EQ(transform1->getPosition().y, 1081.0f);
 
     // Entity 2: Moving left with gravity - v_new=(-5,-9.81), p_new=(100,100)+(-5,-9.81)*1.0
     EXPECT_FLOAT_EQ(transform2->getPosition().x, 95.0f);
-    EXPECT_FLOAT_EQ(transform2->getPosition().y, 90.19f);
+    EXPECT_FLOAT_EQ(transform2->getPosition().y, 1081.0f);
 }
 
 TEST_F(PhysicsSystemTest, ZeroGravity)
 {
-    // Create an entity with velocity but no gravity
+    // Set global gravity to zero
+    auto& physics = S2DPhysics::instance();
+    physics.setGlobalGravity(Vec2(0.0f, 0.0f));
+
+    // Create an entity with velocity but no gravity (multiplier = 1.0 but global gravity is 0)
     Vec2 initialPos(0.0f, 0.0f);
     Vec2 initialVel(10.0f, 5.0f);
-    Vec2 gravity(0.0f, 0.0f);
 
-    auto entity = createPhysicsEntity("test", initialPos, initialVel, gravity);
+    auto entity = createPhysicsEntity("test", initialPos, initialVel, 1.0f);
     EntityManager::instance().update(0.0f);
-
-    auto& physics = S2DPhysics::instance();
 
     // Update physics for 1 second
     float deltaTime = 1.0f;
@@ -122,19 +132,20 @@ TEST_F(PhysicsSystemTest, ZeroGravity)
 
 TEST_F(PhysicsSystemTest, DisabledGravityComponent)
 {
+    // Set global gravity
+    auto& physics = S2DPhysics::instance();
+    physics.setGlobalGravity(Vec2(0.0f, 981.0f));
+
     // Create an entity with gravity
     Vec2 initialPos(0.0f, 100.0f);
     Vec2 initialVel(0.0f, 0.0f);
-    Vec2 gravity(0.0f, -9.81f);
 
-    auto entity = createPhysicsEntity("test", initialPos, initialVel, gravity);
+    auto entity = createPhysicsEntity("test", initialPos, initialVel, 1.0f);
     EntityManager::instance().update(0.0f);
 
     // Disable the gravity component
     auto gravityComp = entity->getComponent<CGravity>();
     gravityComp->setActive(false);
-
-    auto& physics = S2DPhysics::instance();
 
     // Update physics for 1 second
     float deltaTime = 1.0f;
@@ -149,39 +160,43 @@ TEST_F(PhysicsSystemTest, DisabledGravityComponent)
 
 TEST_F(PhysicsSystemTest, CustomGravityValues)
 {
-    // Test different gravity values
-    std::vector<Vec2> gravityValues = {
-        Vec2(0.0f, -1.0f),   // Weak gravity
-        Vec2(0.0f, -20.0f),  // Strong gravity
-        Vec2(5.0f, -5.0f),   // Diagonal gravity
-        Vec2(-3.0f, 3.0f)    // Inverse diagonal gravity
+    // Set global gravity
+    auto& physics = S2DPhysics::instance();
+    physics.setGlobalGravity(Vec2(5.0f, 10.0f));  // Base gravity
+
+    // Test different gravity multipliers
+    std::vector<float> gravityMultipliers = {
+        0.1f,   // Weak gravity (10%)
+        2.0f,   // Strong gravity (200%)
+        1.0f,   // Normal gravity (100%)
+        -0.5f   // Reverse gravity at half strength
     };
 
     std::vector<std::shared_ptr<Entity>> entities;
     Vec2                                 initialPos(0.0f, 0.0f);
     Vec2                                 initialVel(0.0f, 0.0f);
 
-    // Create entities with different gravity values
-    for (size_t i = 0; i < gravityValues.size(); ++i)
+    // Create entities with different gravity multipliers
+    for (size_t i = 0; i < gravityMultipliers.size(); ++i)
     {
-        auto entity = createPhysicsEntity("test" + std::to_string(i), initialPos, initialVel, gravityValues[i]);
+        auto entity = createPhysicsEntity("test" + std::to_string(i), initialPos, initialVel, gravityMultipliers[i]);
         entities.push_back(entity);
     }
     EntityManager::instance().update(0.0f);
-
-    auto& physics = S2DPhysics::instance();
 
     // Update physics for 1 second
     float deltaTime = 1.0f;
     physics.update(deltaTime);
     EntityManager::instance().update(deltaTime);
 
-    // Verify each entity's motion matches its gravity
+    // Verify each entity's motion matches its gravity multiplier
+    Vec2 globalGravity = physics.getGlobalGravity();
     for (size_t i = 0; i < entities.size(); ++i)
     {
-        auto transform = entities[i]->getComponent<CTransform>();
-        EXPECT_FLOAT_EQ(transform->getVelocity().x, gravityValues[i].x);
-        EXPECT_FLOAT_EQ(transform->getVelocity().y, gravityValues[i].y);
+        auto  transform      = entities[i]->getComponent<CTransform>();
+        Vec2  expectedForce  = globalGravity * gravityMultipliers[i];
+        EXPECT_FLOAT_EQ(transform->getVelocity().x, expectedForce.x);
+        EXPECT_FLOAT_EQ(transform->getVelocity().y, expectedForce.y);
     }
 }
 
@@ -384,6 +399,9 @@ TEST_F(PhysicsSystemTest, CollisionWithGravity)
     groundTransform->setPosition(Vec2(400.0f, 50.0f));
     groundTransform->setVelocity(Vec2(0.0f, 0.0f));
 
+    // Set global gravity for this test
+    physics.setGlobalGravity(Vec2(0.0f, 500.0f));
+
     // Falling ball with gravity
     auto ball          = EntityManager::instance().addEntity("ball");
     auto ballTransform = ball->addComponent<CTransform>();
@@ -391,7 +409,7 @@ TEST_F(PhysicsSystemTest, CollisionWithGravity)
     auto ballCollider  = ball->addComponent<CCircleCollider>(25.0f);
     ballTransform->setPosition(Vec2(400.0f, 300.0f));
     ballTransform->setVelocity(Vec2(0.0f, 0.0f));
-    ballGravity->setForce(Vec2(0.0f, -500.0f));  // Downward gravity
+    ballGravity->setMultiplier(1.0f);  // Normal gravity multiplier
 
     EntityManager::instance().update(0.0f);
 
@@ -628,6 +646,9 @@ TEST_F(PhysicsSystemTest, BoxWithGravity)
     groundTransform->setPosition(Vec2(400.0f, 50.0f));
     groundTransform->setVelocity(Vec2(0.0f, 0.0f));
 
+    // Set global gravity for this test
+    physics.setGlobalGravity(Vec2(0.0f, 500.0f));
+
     // Falling box with gravity
     auto box          = EntityManager::instance().addEntity("box");
     auto boxTransform = box->addComponent<CTransform>();
@@ -635,7 +656,7 @@ TEST_F(PhysicsSystemTest, BoxWithGravity)
     auto boxCollider  = box->addComponent<CBoxCollider>(30.0f, 30.0f);
     boxTransform->setPosition(Vec2(400.0f, 300.0f));
     boxTransform->setVelocity(Vec2(0.0f, 0.0f));
-    boxGravity->setForce(Vec2(0.0f, -500.0f));  // Downward gravity
+    boxGravity->setMultiplier(1.0f);  // Normal gravity multiplier
 
     EntityManager::instance().update(0.0f);
 

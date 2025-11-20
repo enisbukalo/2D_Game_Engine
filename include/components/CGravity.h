@@ -8,10 +8,11 @@
  * @brief Component for applying gravity forces to entities
  *
  * @description
- * CGravity is a component that applies a constant force (typically downward)
- * to an entity's transform component. The force is applied each frame during
- * the physics update step. The default gravity force is set to -9.81 m/s²
- * in the Y direction, but can be modified for different gravity effects.
+ * CGravity is a component that applies a multiplier to the global gravity force.
+ * The multiplier is applied to the global gravity defined in S2DPhysics during
+ * the physics update step. The default multiplier is 1.0, which applies the global
+ * gravity as-is. A multiplier of 0.0 means no gravity, 2.0 means double gravity,
+ * and -1.0 means reverse gravity.
  */
 struct CGravity : public Component
 {
@@ -43,19 +44,19 @@ public:
     void deserialize(const JsonValue& value) override;
 
     /**
-     * @brief Gets the force of the gravity
-     * @return Force as a Vec2
+     * @brief Gets the gravity multiplier
+     * @return Multiplier value (1.0 = normal gravity, 0.0 = no gravity, 2.0 = double gravity, etc.)
      */
-    Vec2 getForce() const;
+    float getMultiplier() const;
 
     /**
-     * @brief Sets the force of the gravity
-     * @param force New force as a Vec2
+     * @brief Sets the gravity multiplier
+     * @param multiplier New multiplier value
      */
-    void setForce(const Vec2& force);
+    void setMultiplier(float multiplier);
 
 private:
-    Vec2 m_force = Vec2(0.0f, -9.81f);  ///< Gravity force vector (default: Earth gravity)
+    float m_multiplier = 1.0f;  ///< Gravity multiplier (default: 1.0 for normal gravity)
 };
 
 #endif  // CGRAVITY_H
