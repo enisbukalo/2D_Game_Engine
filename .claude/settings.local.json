@@ -15,7 +15,9 @@
       "Bash(mkdir:*)",
       "Bash(gh issue view:*)",
       "Bash(./build.sh:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(git checkout:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
