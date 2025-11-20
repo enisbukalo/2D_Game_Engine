@@ -22,7 +22,7 @@ GameEngine::GameEngine(sf::RenderWindow* window, sf::Vector2f gravity, uint8_t s
         file_sink->set_level(spdlog::level::debug);
 
         std::vector<spdlog::sink_ptr> sinks{console_sink, file_sink};
-        auto                          logger = std::make_shared<spdlog::logger>("GameEngine", sinks.begin(), sinks.end());
+        auto logger = std::make_shared<spdlog::logger>("GameEngine", sinks.begin(), sinks.end());
         logger->set_level(spdlog::level::info);  // Set to info to reduce spam
         spdlog::register_logger(logger);
     }
