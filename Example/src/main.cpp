@@ -6,14 +6,21 @@
 #include <components/CCircleCollider.h>
 #include <components/CGravity.h>
 #include <components/CTransform.h>
+#include <physics/Quadtree.h>
+#include <systems/S2DPhysics.h>
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <memory>
 #include <sstream>
 
 // Define Screen Size
-const int SCREEN_WIDTH  = 1600;
-const int SCREEN_HEIGHT = 1000;
+const int   SCREEN_WIDTH            = 1600;
+const int   SCREEN_HEIGHT           = 1000;
+const int   INITIAL_BALL_COUNT      = 125;
+const int   INITIAL_SUBSTEP_COUNT   = 4;
+const bool  INITIAL_GRAVITY_ENABLED = false;
+const float TIME_STEP               = 0.01667f;  // 60 FPS
+const float GRAVITY_FORCE           = 500.0f;    // Gravity force
 
 class BounceGame
 {
@@ -28,20 +35,20 @@ private:
     bool                        m_gravityEnabled;
     bool                        m_showColliders;
 
-    const float RESTITUTION                 = 0.8f;      // Bounciness factor
-    const float GRAVITY                     = 500.0f;    // Gravity force
-    const float TIME_STEP                   = 0.01667f;  // Fixed time step for physics updates
-    const int   BOUNDARY_COLLIDER_THICKNESS = 50;        // Thickness of boundary colliders
+    const float RESTITUTION                 = 0.8f;   // Bounciness factor
+    const float BALL_RADIUS                 = 10.0f;  // Radius of each ball
+    const int   BOUNDARY_COLLIDER_THICKNESS = 50;     // Thickness of boundary colliders
 
 public:
     BounceGame()
-        : m_window(sf::VideoMode(1600, 1000), "Bouncing Balls Example"),
-          m_gameEngine(std::make_unique<GameEngine>(&m_window, sf::Vector2f(0.0f, 500.0f), 1, 0.01667f)),
+        : m_window(sf::VideoMode(SCREEN_WIDTH, SCREEN_HEIGHT), "Bouncing Balls Example"),
+          m_gameEngine(
+              std::make_unique<GameEngine>(&m_window, sf::Vector2f(0.0f, INITIAL_GRAVITY_ENABLED ? GRAVITY_FORCE : 0.0f), 1, TIME_STEP)),
           m_running(true),
-          m_subStepCount(4),
-          m_ballAmount(25),
+          m_subStepCount(INITIAL_SUBSTEP_COUNT),
+          m_ballAmount(INITIAL_BALL_COUNT),
           m_fontLoaded(false),
-          m_gravityEnabled(true),
+          m_gravityEnabled(INITIAL_GRAVITY_ENABLED),
           m_showColliders(true)
     {
         m_window.setFramerateLimit(60);
@@ -121,7 +128,8 @@ public:
                     if (m_ballAmount > 1)
                     {
                         m_ballAmount--;
-                        std::cout << "Ball count: " << m_ballAmount << " (Press R to restart)" << std::endl;
+                        removeRandomBall();
+                        std::cout << "Ball count: " << m_ballAmount << std::endl;
                     }
                 }
                 else if (event.key.code == sf::Keyboard::Right)
@@ -129,7 +137,8 @@ public:
                     if (m_ballAmount < 500)
                     {
                         m_ballAmount++;
-                        std::cout << "Ball count: " << m_ballAmount << " (Press R to restart)" << std::endl;
+                        spawnRandomBall();
+                        std::cout << "Ball count: " << m_ballAmount << std::endl;
                     }
                 }
                 // Restart scenario with R key
@@ -184,18 +193,22 @@ public:
 
     void createBalls()
     {
+        // Calculate spawn boundaries accounting for boundary thickness and ball radius
+        const float MIN_X = BOUNDARY_COLLIDER_THICKNESS + BALL_RADIUS;
+        const float MAX_X = SCREEN_WIDTH - BOUNDARY_COLLIDER_THICKNESS - BALL_RADIUS;
+        const float MIN_Y = BOUNDARY_COLLIDER_THICKNESS + BALL_RADIUS;
+        const float MAX_Y = SCREEN_HEIGHT - BOUNDARY_COLLIDER_THICKNESS - BALL_RADIUS;
+
         for (int i = 0; i < m_ballAmount; i++)
         {
-            // Lets get a random X and Y position within ranges of
-            // X between 450 and 750
-            // Y between 50 and 500
-            float randomX = static_cast<float>(rand() % (750 - 450 + 1) + 450);
-            float randomY = static_cast<float>(rand() % (500 - 50 + 1) + 50);
+            // Random position within safe spawn area
+            float randomX = MIN_X + static_cast<float>(rand()) / RAND_MAX * (MAX_X - MIN_X);
+            float randomY = MIN_Y + static_cast<float>(rand()) / RAND_MAX * (MAX_Y - MIN_Y);
             auto  ball    = EntityManager::instance().addEntity("ball");
             ball->addComponent<CTransform>(Vec2(randomX, randomY), Vec2(1.0f, 1.0f), 0.0f);
-            ball->addComponent<CCircleCollider>(20.0f);
+            ball->addComponent<CCircleCollider>(BALL_RADIUS);
             auto* gravity1 = ball->addComponent<CGravity>();
-            gravity1->setForce(Vec2(0.0f, GRAVITY));  // Positive Y = downward
+            gravity1->setForce(m_gravityEnabled ? Vec2(0.0f, GRAVITY_FORCE) : Vec2(0.0f, 0.0f));
 
             // Randomize initial velocity
             auto* transform   = ball->getComponent<CTransform>();
@@ -218,7 +231,7 @@ public:
                 auto* gravity = ball->getComponent<CGravity>();
                 if (m_gravityEnabled)
                 {
-                    gravity->setForce(Vec2(0.0f, GRAVITY));
+                    gravity->setForce(Vec2(0.0f, GRAVITY_FORCE));
                 }
                 else
                 {
@@ -235,10 +248,45 @@ public:
         std::cout << "Colliders: " << (m_showColliders ? "ON" : "OFF") << std::endl;
     }
 
+    void spawnRandomBall()
+    {
+        // Calculate spawn boundaries accounting for boundary thickness and ball radius
+        const float MIN_X = BOUNDARY_COLLIDER_THICKNESS + BALL_RADIUS;
+        const float MAX_X = SCREEN_WIDTH - BOUNDARY_COLLIDER_THICKNESS - BALL_RADIUS;
+        const float MIN_Y = BOUNDARY_COLLIDER_THICKNESS + BALL_RADIUS;
+        const float MAX_Y = SCREEN_HEIGHT - BOUNDARY_COLLIDER_THICKNESS - BALL_RADIUS;
+
+        // Random position within safe spawn area
+        float randomX = MIN_X + static_cast<float>(rand()) / RAND_MAX * (MAX_X - MIN_X);
+        float randomY = MIN_Y + static_cast<float>(rand()) / RAND_MAX * (MAX_Y - MIN_Y);
+        auto  ball    = EntityManager::instance().addEntity("ball");
+        ball->addComponent<CTransform>(Vec2(randomX, randomY), Vec2(1.0f, 1.0f), 0.0f);
+        ball->addComponent<CCircleCollider>(BALL_RADIUS);
+        auto* gravity = ball->addComponent<CGravity>();
+        gravity->setForce(m_gravityEnabled ? Vec2(0.0f, GRAVITY_FORCE) : Vec2(0.0f, 0.0f));
+
+        // Randomize initial velocity
+        auto* transform   = ball->getComponent<CTransform>();
+        float initialVelX = static_cast<float>((rand() % 501) - 100);  // -100 to +100
+        float initialVelY = static_cast<float>((rand() % 501) - 100);  // -100 to +100
+        transform->setVelocity(Vec2(initialVelX, initialVelY));
+    }
+
+    void removeRandomBall()
+    {
+        auto balls = EntityManager::instance().getEntitiesByTag("ball");
+        if (!balls.empty())
+        {
+            // Pick a random ball to remove
+            int randomIndex = rand() % balls.size();
+            balls[randomIndex]->destroy();
+        }
+    }
+
     void recreateGameEngine()
     {
         // Recreate the game engine with new substep count
-        m_gameEngine = std::make_unique<GameEngine>(&m_window, sf::Vector2f(0.0f, GRAVITY), m_subStepCount, TIME_STEP);
+        m_gameEngine = std::make_unique<GameEngine>(&m_window, sf::Vector2f(0.0f, m_gravityEnabled ? GRAVITY_FORCE : 0.0f), m_subStepCount, TIME_STEP);
     }
 
     void restart()
@@ -252,7 +300,7 @@ public:
         EntityManager::instance().clear();
 
         // Recreate game engine
-        m_gameEngine = std::make_unique<GameEngine>(&m_window, sf::Vector2f(0.0f, GRAVITY), m_subStepCount, TIME_STEP);
+        m_gameEngine = std::make_unique<GameEngine>(&m_window, sf::Vector2f(0.0f, m_gravityEnabled ? GRAVITY_FORCE : 0.0f), m_subStepCount, TIME_STEP);
 
         // Recreate boundary colliders and balls
         createBoundaryColliders();
@@ -296,7 +344,7 @@ public:
                 shape.setFillColor(sf::Color(100, 100, 100));  // Gray
                 if (m_showColliders)
                 {
-                    shape.setOutlineColor(sf::Color(0, 255, 0));   // Lime green
+                    shape.setOutlineColor(sf::Color(0, 255, 0));  // Lime green
                     shape.setOutlineThickness(2.0f);
                 }
                 m_window.draw(shape);
@@ -352,14 +400,40 @@ public:
             ballIndex++;
         }
 
+        // Draw quadtree visualization
+        if (m_showColliders)
+        {
+            const Quadtree* quadtree = S2DPhysics::instance().getQuadtree();
+            if (quadtree)
+            {
+                std::vector<AABB> quadtreeBounds;
+                quadtree->getAllBounds(quadtreeBounds);
+
+                for (const auto& bounds : quadtreeBounds)
+                {
+                    // Calculate the full size from half-size
+                    float width  = bounds.halfSize.x * 2.0f;
+                    float height = bounds.halfSize.y * 2.0f;
+
+                    sf::RectangleShape quadShape(sf::Vector2f(width, height));
+                    quadShape.setOrigin(width / 2.0f, height / 2.0f);
+                    quadShape.setPosition(bounds.position.x, bounds.position.y);
+                    quadShape.setFillColor(sf::Color::Transparent);
+                    quadShape.setOutlineColor(sf::Color(255, 255, 0, 128));  // Semi-transparent yellow
+                    quadShape.setOutlineThickness(1.0f);
+                    m_window.draw(quadShape);
+                }
+            }
+        }
+
         // Draw UI text showing current substep count and gravity status
         if (m_fontLoaded)
         {
             std::ostringstream oss;
             oss << "SubSteps: " << (int)m_subStepCount << " (Use Up/Down or +/-)\n";
-            oss << "Ball Count: " << m_ballAmount << " (Use Left/Right, press R to restart)\n";
+            oss << "Ball Count: " << m_ballAmount << " (Use Left/Right to add/remove)\n";
             oss << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << " (Press G to toggle)\n";
-            oss << "Colliders: " << (m_showColliders ? "ON" : "OFF") << " (Press C to toggle)";
+            oss << "Colliders/Quadtree: " << (m_showColliders ? "ON" : "OFF") << " (Press C to toggle)";
 
             sf::Text text;
             text.setFont(m_font);

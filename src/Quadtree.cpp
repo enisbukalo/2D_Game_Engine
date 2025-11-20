@@ -184,3 +184,18 @@ std::vector<Entity*> Quadtree::query(const AABB& area)
 
     return found;
 }
+
+void Quadtree::getAllBounds(std::vector<AABB>& bounds) const
+{
+    // Add this node's bounds
+    bounds.push_back(m_bounds);
+
+    // Recursively add children's bounds
+    if (m_children[0])
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            m_children[i]->getAllBounds(bounds);
+        }
+    }
+}

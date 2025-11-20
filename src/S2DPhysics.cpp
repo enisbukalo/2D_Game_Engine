@@ -46,6 +46,11 @@ void S2DPhysics::setWorldBounds(const Vec2& center, const Vec2& size)
     m_quadtree    = std::make_unique<Quadtree>(0, m_worldBounds);
 }
 
+const Quadtree* S2DPhysics::getQuadtree() const
+{
+    return m_quadtree.get();
+}
+
 void S2DPhysics::updateQuadtree()
 {
     // TODO: Implement Way For Reference To Move With Camera. (Options)
