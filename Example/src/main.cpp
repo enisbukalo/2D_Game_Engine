@@ -11,6 +11,10 @@
 #include <memory>
 #include <sstream>
 
+// Define Screen Size
+const int SCREEN_WIDTH  = 1600;
+const int SCREEN_HEIGHT = 1000;
+
 class BounceGame
 {
 private:
@@ -22,25 +26,23 @@ private:
     bool                        m_running;
     bool                        m_fontLoaded;
     bool                        m_gravityEnabled;
+    bool                        m_showColliders;
 
     const float RESTITUTION                 = 0.8f;      // Bounciness factor
     const float GRAVITY                     = 500.0f;    // Gravity force
     const float TIME_STEP                   = 0.01667f;  // Fixed time step for physics updates
     const int   BOUNDARY_COLLIDER_THICKNESS = 50;        // Thickness of boundary colliders
 
-    // Define Screen Size
-    const int SCREEN_WIDTH  = 1200;
-    const int SCREEN_HEIGHT = 800;
-
 public:
     BounceGame()
-        : m_window(sf::VideoMode(1200, 800), "Bouncing Balls Example"),
+        : m_window(sf::VideoMode(1600, 1000), "Bouncing Balls Example"),
           m_gameEngine(std::make_unique<GameEngine>(&m_window, sf::Vector2f(0.0f, 500.0f), 1, 0.01667f)),
           m_running(true),
           m_subStepCount(4),
           m_ballAmount(25),
           m_fontLoaded(false),
-          m_gravityEnabled(true)
+          m_gravityEnabled(true),
+          m_showColliders(true)
     {
         m_window.setFramerateLimit(60);
 
@@ -70,6 +72,7 @@ public:
         std::cout << "  Left/Right      : Adjust ball count" << std::endl;
         std::cout << "  R               : Restart scenario" << std::endl;
         std::cout << "  G               : Toggle gravity" << std::endl;
+        std::cout << "  C               : Toggle collider visibility" << std::endl;
         std::cout << "  Escape          : Exit" << std::endl;
         std::cout << "Initial SubSteps: " << (int)m_subStepCount << std::endl;
         std::cout << "Number of balls: " << m_ballAmount << std::endl;
@@ -138,6 +141,11 @@ public:
                 else if (event.key.code == sf::Keyboard::G)
                 {
                     toggleGravity();
+                }
+                // Toggle collider visibility with C key
+                else if (event.key.code == sf::Keyboard::C)
+                {
+                    toggleColliders();
                 }
             }
         }
@@ -221,6 +229,12 @@ public:
         std::cout << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << std::endl;
     }
 
+    void toggleColliders()
+    {
+        m_showColliders = !m_showColliders;
+        std::cout << "Colliders: " << (m_showColliders ? "ON" : "OFF") << std::endl;
+    }
+
     void recreateGameEngine()
     {
         // Recreate the game engine with new substep count
@@ -280,6 +294,11 @@ public:
                 shape.setOrigin(size.x / 2, size.y / 2);
                 shape.setPosition(pos.x, pos.y);
                 shape.setFillColor(sf::Color(100, 100, 100));  // Gray
+                if (m_showColliders)
+                {
+                    shape.setOutlineColor(sf::Color(0, 255, 0));   // Lime green
+                    shape.setOutlineThickness(2.0f);
+                }
                 m_window.draw(shape);
             }
         }
@@ -323,6 +342,11 @@ public:
                     break;
             }
             ballShape.setFillColor(color);
+            if (m_showColliders)
+            {
+                ballShape.setOutlineColor(sf::Color(0, 255, 0));  // Lime green
+                ballShape.setOutlineThickness(2.0f);
+            }
 
             m_window.draw(ballShape);
             ballIndex++;
@@ -334,7 +358,8 @@ public:
             std::ostringstream oss;
             oss << "SubSteps: " << (int)m_subStepCount << " (Use Up/Down or +/-)\n";
             oss << "Ball Count: " << m_ballAmount << " (Use Left/Right, press R to restart)\n";
-            oss << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << " (Press G to toggle)";
+            oss << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << " (Press G to toggle)\n";
+            oss << "Colliders: " << (m_showColliders ? "ON" : "OFF") << " (Press C to toggle)";
 
             sf::Text text;
             text.setFont(m_font);
