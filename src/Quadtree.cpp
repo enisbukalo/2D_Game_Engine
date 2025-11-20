@@ -21,13 +21,18 @@ void Quadtree::clear()
 
 void Quadtree::split()
 {
-    Vec2 childSize   = m_bounds.halfSize * 0.5f;
-    Vec2 quarterSize = childSize * 0.5f;
+    Vec2 childSize   = m_bounds.halfSize;         // Child's full size is parent's halfSize
+    Vec2 quarterSize = m_bounds.halfSize * 0.5f;  // Quarter of parent's full size for positioning
 
-    m_children[0] = std::make_unique<Quadtree>(m_level + 1, AABB(m_bounds.position + Vec2(-quarterSize.x, quarterSize.y), childSize));
-    m_children[1] = std::make_unique<Quadtree>(m_level + 1, AABB(m_bounds.position + Vec2(quarterSize.x, quarterSize.y), childSize));
-    m_children[2] = std::make_unique<Quadtree>(m_level + 1, AABB(m_bounds.position + Vec2(-quarterSize.x, -quarterSize.y), childSize));
-    m_children[3] = std::make_unique<Quadtree>(m_level + 1, AABB(m_bounds.position + Vec2(quarterSize.x, -quarterSize.y), childSize));
+    // In Y-down coordinates: -Y is up (smaller Y), +Y is down (larger Y)
+    m_children[0] = std::make_unique<Quadtree>(m_level + 1,
+                                               AABB(m_bounds.position + Vec2(-quarterSize.x, -quarterSize.y), childSize));  // Top-left
+    m_children[1] = std::make_unique<Quadtree>(m_level + 1,
+                                               AABB(m_bounds.position + Vec2(quarterSize.x, -quarterSize.y), childSize));  // Top-right
+    m_children[2] = std::make_unique<Quadtree>(m_level + 1,
+                                               AABB(m_bounds.position + Vec2(-quarterSize.x, quarterSize.y), childSize));  // Bottom-left
+    m_children[3] = std::make_unique<Quadtree>(m_level + 1,
+                                               AABB(m_bounds.position + Vec2(quarterSize.x, quarterSize.y), childSize));  // Bottom-right
 }
 
 std::vector<int> Quadtree::getOverlappingQuadrants(const AABB& bounds) const
@@ -35,11 +40,12 @@ std::vector<int> Quadtree::getOverlappingQuadrants(const AABB& bounds) const
     std::vector<int> quadrants;
 
     // Check each quadrant
+    // Note: In SFML/screen coordinates, Y increases DOWNWARD (Y=0 at top, larger Y at bottom)
     Vec2 topLeft     = bounds.position - bounds.halfSize;
     Vec2 bottomRight = bounds.position + bounds.halfSize;
 
-    // Check top quadrants (y > center)
-    if (bottomRight.y > m_bounds.position.y)
+    // Check top quadrants (smaller Y values, above center line)
+    if (topLeft.y < m_bounds.position.y)
     {
         if (topLeft.x < m_bounds.position.x)
             quadrants.push_back(0);  // Top-left
@@ -47,8 +53,8 @@ std::vector<int> Quadtree::getOverlappingQuadrants(const AABB& bounds) const
             quadrants.push_back(1);  // Top-right
     }
 
-    // Check bottom quadrants (y < center)
-    if (topLeft.y < m_bounds.position.y)
+    // Check bottom quadrants (larger Y values, below center line)
+    if (bottomRight.y > m_bounds.position.y)
     {
         if (topLeft.x < m_bounds.position.x)
             quadrants.push_back(2);  // Bottom-left
@@ -88,14 +94,11 @@ void Quadtree::insert(Entity* entity)
         // Get all quadrants this entity overlaps
         auto overlappingQuadrants = getOverlappingQuadrants(entityBounds);
 
-        // If the entity fits within child quadrants
-        if (!overlappingQuadrants.empty())
+        // Only delegate to child if entity fits entirely within a SINGLE quadrant
+        // Entities spanning multiple quadrants stay at this level
+        if (overlappingQuadrants.size() == 1)
         {
-            // Insert into all overlapping quadrants
-            for (int quadrant : overlappingQuadrants)
-            {
-                m_children[quadrant]->insert(entity);
-            }
+            m_children[overlappingQuadrants[0]]->insert(entity);
             return;
         }
     }
@@ -125,13 +128,11 @@ void Quadtree::insert(Entity* entity)
                 AABB objBounds    = objCollider->getBounds();
                 auto objQuadrants = getOverlappingQuadrants(objBounds);
 
-                // Only move down if the object fits entirely within child quadrants
-                if (!objQuadrants.empty())
+                // Only move down if the object fits entirely within a SINGLE child quadrant
+                // Objects spanning multiple quadrants stay at this level
+                if (objQuadrants.size() == 1)
                 {
-                    for (int quadrant : objQuadrants)
-                    {
-                        m_children[quadrant]->insert(obj);
-                    }
+                    m_children[objQuadrants[0]]->insert(obj);
                     it = m_objects.erase(it);
                     continue;
                 }
@@ -182,4 +183,19 @@ std::vector<Entity*> Quadtree::query(const AABB& area)
     }
 
     return found;
+}
+
+void Quadtree::getAllBounds(std::vector<AABB>& bounds) const
+{
+    // Add this node's bounds
+    bounds.push_back(m_bounds);
+
+    // Recursively add children's bounds
+    if (m_children[0])
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            m_children[i]->getAllBounds(bounds);
+        }
+    }
 }

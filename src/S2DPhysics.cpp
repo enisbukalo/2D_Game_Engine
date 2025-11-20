@@ -1,6 +1,6 @@
 #include "systems/S2DPhysics.h"
+#include <spdlog/spdlog.h>
 #include <algorithm>
-#include <iostream>
 #include "EntityManager.h"
 #include "components/CBoxCollider.h"
 #include "components/CCircleCollider.h"
@@ -22,14 +22,16 @@ void S2DPhysics::update(float deltaTime)
     checkCollisions();
 
     // Debug: print all entity velocities after physics update
-    std::cout << "[DEBUG] S2DPhysics::update complete. Entity velocities:" << std::endl;
+    if (auto logger = spdlog::get("GameEngine"))
+        logger->debug("S2DPhysics::update complete. Entity velocities:");
     auto& entityManager = EntityManager::instance();
     auto  entities      = entityManager.getEntitiesWithComponent<CTransform>();
     for (auto* entity : entities)
     {
         auto transform = entity->getComponent<CTransform>();
         Vec2 vel       = transform->getVelocity();
-        std::cout << "[DEBUG]   " << entity->getTag() << ": velocity=(" << vel.x << "," << vel.y << ")" << std::endl;
+        if (auto logger = spdlog::get("GameEngine"))
+            logger->debug("  {}: velocity=({},{})", entity->getTag(), vel.x, vel.y);
     }
 }
 
@@ -40,8 +42,13 @@ S2DPhysics::S2DPhysics() : m_worldBounds(Vec2(0, 0), Vec2(1000, 1000))  // Defau
 
 void S2DPhysics::setWorldBounds(const Vec2& center, const Vec2& size)
 {
-    m_worldBounds = AABB(center, size * 0.5f);
+    m_worldBounds = AABB(center, size);
     m_quadtree    = std::make_unique<Quadtree>(0, m_worldBounds);
+}
+
+const Quadtree* S2DPhysics::getQuadtree() const
+{
+    return m_quadtree.get();
 }
 
 void S2DPhysics::updateQuadtree()
@@ -56,26 +63,34 @@ void S2DPhysics::updateQuadtree()
     auto& entityManager = EntityManager::instance();
     auto  entities      = entityManager.getEntitiesWithComponent<CTransform>();
 
-    std::cout << "[DEBUG] updateQuadtree: Found " << entities.size() << " entities with transform" << std::endl;
-    std::cout << "[DEBUG] World bounds: center(" << m_worldBounds.position.x << ", " << m_worldBounds.position.y << ")"
-              << " halfSize(" << m_worldBounds.halfSize.x << ", " << m_worldBounds.halfSize.y << ")" << std::endl;
+    if (auto logger = spdlog::get("GameEngine"))
+        logger->debug("updateQuadtree: Found {} entities with transform", entities.size());
+    if (auto logger = spdlog::get("GameEngine"))
+        logger->debug("World bounds: center({}, {}) halfSize({}, {})",
+                      m_worldBounds.position.x,
+                      m_worldBounds.position.y,
+                      m_worldBounds.halfSize.x,
+                      m_worldBounds.halfSize.y);
 
     for (auto* entity : entities)
     {
         auto transform = entity->getComponent<CTransform>();
         Vec2 pos       = transform->getPosition();
 
-        std::cout << "[DEBUG]   Entity " << entity->getTag() << " at (" << pos.x << ", " << pos.y << ")";
+        if (auto logger = spdlog::get("GameEngine"))
+            logger->debug("  Entity {} at ({}, {})", entity->getTag(), pos.x, pos.y);
 
         // Only insert entities that are within world bounds
         if (m_worldBounds.contains(pos))
         {
-            std::cout << " - inserting into quadtree" << std::endl;
+            if (auto logger = spdlog::get("GameEngine"))
+                logger->debug(" - inserting into quadtree");
             m_quadtree->insert(entity);
         }
         else
         {
-            std::cout << " - OUT OF BOUNDS, clamping..." << std::endl;
+            if (auto logger = spdlog::get("GameEngine"))
+                logger->debug(" - OUT OF BOUNDS, clamping...");
             // TODO: Implement Out Of Bounds Handling. (Options)
             //      - Wrap around to the other side
             //      - Bounce off the boundaries
@@ -145,75 +160,94 @@ void S2DPhysics::checkCollisions()
     // Use getEntitiesWithComponentDerived to find all entities with CCollider or derived types
     auto entities = entityManager.getEntitiesWithComponentDerived<CCollider>();
 
-    std::cout << "[DEBUG] checkCollisions: Found " << entities.size() << " entities with colliders" << std::endl;
+    if (auto logger = spdlog::get("GameEngine"))
+        logger->debug("checkCollisions: Found {} entities with colliders", entities.size());
 
     // Broad phase: Use quadtree to get potential collisions
     for (auto* entity : entities)
     {
-        std::cout << "[DEBUG] Starting loop iteration for entity..." << std::endl;
+        if (auto logger = spdlog::get("GameEngine"))
+            logger->debug("Starting loop iteration for entity...");
         if (!entity || !entity->isAlive())
         {
-            std::cout << "[DEBUG]   Entity is null or not alive, skipping" << std::endl;
+            if (auto logger = spdlog::get("GameEngine"))
+                logger->debug("  Entity is null or not alive, skipping");
             continue;
         }
 
         auto collider = entity->getComponentDerived<CCollider>();
         if (!collider)
         {
-            std::cout << "[DEBUG]   Could not get collider component, skipping" << std::endl;
+            if (auto logger = spdlog::get("GameEngine"))
+                logger->debug("  Could not get collider component, skipping");
             continue;
         }
 
         auto transform = entity->getComponent<CTransform>();
         auto bounds    = collider->getBounds();
 
-        std::cout << "[DEBUG] Entity " << entity->getTag() << " at (" << transform->getPosition().x << ", "
-                  << transform->getPosition().y << ")" << " bounds: center(" << bounds.position.x << ", "
-                  << bounds.position.y << ")" << " halfSize(" << bounds.halfSize.x << ", " << bounds.halfSize.y << ")"
-                  << std::endl;
+        if (auto logger = spdlog::get("GameEngine"))
+            logger->debug("Entity {} at ({}, {}) bounds: center({}, {}) halfSize({}, {})",
+                          entity->getTag(),
+                          transform->getPosition().x,
+                          transform->getPosition().y,
+                          bounds.position.x,
+                          bounds.position.y,
+                          bounds.halfSize.x,
+                          bounds.halfSize.y);
 
         // Query quadtree for potential collisions
         std::vector<Entity*> potentialCollisions = m_quadtree->query(bounds);
 
-        std::cout << "[DEBUG]   Quadtree query for bounds center(" << bounds.position.x << "," << bounds.position.y
-                  << ")" << " halfSize(" << bounds.halfSize.x << "," << bounds.halfSize.y << ")" << " returned "
-                  << potentialCollisions.size() << " potential collisions" << std::endl;
+        if (auto logger = spdlog::get("GameEngine"))
+            logger->debug("  Quadtree query for bounds center({},{}) halfSize({},{}) returned {} potential collisions",
+                          bounds.position.x,
+                          bounds.position.y,
+                          bounds.halfSize.x,
+                          bounds.halfSize.y,
+                          potentialCollisions.size());
 
         // Narrow phase: Detailed collision checks
         for (auto* other : potentialCollisions)
         {
-            std::cout << "[DEBUG]   Checking potential collision..." << std::endl;
+            if (auto logger = spdlog::get("GameEngine"))
+                logger->debug("  Checking potential collision...");
             if (!other || !other->isAlive() || entity == other)
             {
-                std::cout << "[DEBUG]     Skipping (null=" << (!other) << " alive=" << (other && other->isAlive())
-                          << " self=" << (other && entity == other) << ")" << std::endl;
+                if (auto logger = spdlog::get("GameEngine"))
+                    logger->debug("    Skipping (null={} alive={} self={})", (!other), (other && other->isAlive()), (other && entity == other));
                 continue;
             }
 
             // Skip if we've already processed this pair (avoid duplicate processing)
             if (entity->getId() >= other->getId())
             {
-                std::cout << "[DEBUG]     Skipping (already processed this pair)" << std::endl;
+                if (auto logger = spdlog::get("GameEngine"))
+                    logger->debug("    Skipping (already processed this pair)");
                 continue;
             }
 
             auto otherCollider = other->getComponentDerived<CCollider>();
             if (!otherCollider)
             {
-                std::cout << "[DEBUG]     No collider on other entity, skipping" << std::endl;
+                if (auto logger = spdlog::get("GameEngine"))
+                    logger->debug("    No collider on other entity, skipping");
                 continue;
             }
 
-            std::cout << "[DEBUG]   Checking collision with " << other->getTag() << std::endl;
+            if (auto logger = spdlog::get("GameEngine"))
+                logger->debug("  Checking collision with {}", other->getTag());
 
             // Detailed collision check
             if (collider->intersects(otherCollider))
             {
-                std::cout << "[DEBUG]   *** COLLISION DETECTED between " << entity->getTag() << " and "
-                          << other->getTag() << " ***" << std::endl;
-                std::cout << "[DEBUG]   Calling handleCollision..." << std::endl;
+                if (auto logger = spdlog::get("GameEngine"))
+                    logger->debug("  *** COLLISION DETECTED between {} and {} ***", entity->getTag(), other->getTag());
+                if (auto logger = spdlog::get("GameEngine"))
+                    logger->debug("  Calling handleCollision...");
                 handleCollision(entity, other);
-                std::cout << "[DEBUG]   handleCollision returned successfully" << std::endl;
+                if (auto logger = spdlog::get("GameEngine"))
+                    logger->debug("  handleCollision returned successfully");
             }
         }
     }
@@ -221,11 +255,12 @@ void S2DPhysics::checkCollisions()
 
 void S2DPhysics::handleCollision(Entity* a, Entity* b)
 {
-    std::cout << "[DEBUG] handleCollision: Getting colliders..." << std::endl;
+    if (auto logger = spdlog::get("GameEngine"))
+        logger->debug("handleCollision: Getting colliders...");
     auto colliderA = a->getComponentDerived<CCollider>();
     auto colliderB = b->getComponentDerived<CCollider>();
-    std::cout << "[DEBUG] handleCollision: Got colliders (A=" << (colliderA != nullptr)
-              << ", B=" << (colliderB != nullptr) << ")" << std::endl;
+    if (auto logger = spdlog::get("GameEngine"))
+        logger->debug("handleCollision: Got colliders (A={}, B={})", (colliderA != nullptr), (colliderB != nullptr));
 
     // If either is a trigger, just notify
     if (colliderA->isTrigger() || colliderB->isTrigger())
@@ -240,12 +275,13 @@ void S2DPhysics::handleCollision(Entity* a, Entity* b)
 
 void S2DPhysics::resolveCollision(Entity* a, Entity* b, const CCollider* colliderA, const CCollider* colliderB)
 {
-    std::cout << "[DEBUG] resolveCollision: START" << std::endl;
+    if (auto logger = spdlog::get("GameEngine"))
+        logger->debug("resolveCollision: START");
     // Get transforms (need non-const access to update velocities)
     auto transformA = a->getComponent<CTransform>();
     auto transformB = b->getComponent<CTransform>();
-    std::cout << "[DEBUG] resolveCollision: Got transforms (A=" << (transformA != nullptr)
-              << ", B=" << (transformB != nullptr) << ")" << std::endl;
+    if (auto logger = spdlog::get("GameEngine"))
+        logger->debug("resolveCollision: Got transforms (A={}, B={})", (transformA != nullptr), (transformB != nullptr));
 
     if (!transformA || !transformB)
         return;
@@ -302,10 +338,12 @@ void S2DPhysics::resolveCircleVsCircle(CTransform*              transformA,
     Vec2  relativeVel    = velA - velB;
     float velAlongNormal = relativeVel.dot(normal);
 
-    std::cout << "[DEBUG] Circle vs Circle: normal=(" << normal.x << "," << normal.y << ")" << std::endl;
-    std::cout << "[DEBUG] Circle vs Circle: velAlongNormal=" << velAlongNormal << std::endl;
-    std::cout << "[DEBUG] Circle vs Circle: contactPoint=(" << manifold.contactPoints[0].x << ","
-              << manifold.contactPoints[0].y << ")" << std::endl;
+    if (auto logger = spdlog::get("GameEngine"))
+        logger->debug("Circle vs Circle: normal=({},{})", normal.x, normal.y);
+    if (auto logger = spdlog::get("GameEngine"))
+        logger->debug("Circle vs Circle: velAlongNormal={}", velAlongNormal);
+    if (auto logger = spdlog::get("GameEngine"))
+        logger->debug("Circle vs Circle: contactPoint=({},{})", manifold.contactPoints[0].x, manifold.contactPoints[0].y);
 
     // Only apply velocity changes if objects are approaching
     if (velAlongNormal > 0)
@@ -378,13 +416,16 @@ void S2DPhysics::resolveCircleVsBox(CTransform*              transformA,
     Vec2  relativeVel    = velA - velB;
     float velAlongNormal = relativeVel.dot(normal);
 
-    std::cout << "[DEBUG] Circle vs Box: normal=(" << normal.x << "," << normal.y << ")" << std::endl;
-    std::cout << "[DEBUG] Circle vs Box: velA=(" << velA.x << "," << velA.y << ") velB=(" << velB.x << "," << velB.y
-              << ")" << std::endl;
-    std::cout << "[DEBUG] Circle vs Box: velAlongNormal=" << velAlongNormal << std::endl;
-    std::cout << "[DEBUG] Circle vs Box: penetration=" << penetration << std::endl;
-    std::cout << "[DEBUG] Circle vs Box: contactPoint=(" << manifold.contactPoints[0].x << ","
-              << manifold.contactPoints[0].y << ")" << std::endl;
+    if (auto logger = spdlog::get("GameEngine"))
+        logger->debug("Circle vs Box: normal=({},{})", normal.x, normal.y);
+    if (auto logger = spdlog::get("GameEngine"))
+        logger->debug("Circle vs Box: velA=({},{}) velB=({},{})", velA.x, velA.y, velB.x, velB.y);
+    if (auto logger = spdlog::get("GameEngine"))
+        logger->debug("Circle vs Box: velAlongNormal={}", velAlongNormal);
+    if (auto logger = spdlog::get("GameEngine"))
+        logger->debug("Circle vs Box: penetration={}", penetration);
+    if (auto logger = spdlog::get("GameEngine"))
+        logger->debug("Circle vs Box: contactPoint=({},{})", manifold.contactPoints[0].x, manifold.contactPoints[0].y);
 
     // Only apply velocity changes if objects are approaching
     if (velAlongNormal > 0)
@@ -455,10 +496,12 @@ void S2DPhysics::resolveBoxVsBox(CTransform*              transformA,
     Vec2  relativeVel    = velA - velB;
     float velAlongNormal = relativeVel.dot(normal);
 
-    std::cout << "[DEBUG] Box vs Box: normal=(" << normal.x << "," << normal.y << ")" << std::endl;
-    std::cout << "[DEBUG] Box vs Box: velAlongNormal=" << velAlongNormal << std::endl;
-    std::cout << "[DEBUG] Box vs Box: contactPoint=(" << manifold.contactPoints[0].x << ","
-              << manifold.contactPoints[0].y << ")" << std::endl;
+    if (auto logger = spdlog::get("GameEngine"))
+        logger->debug("Box vs Box: normal=({},{})", normal.x, normal.y);
+    if (auto logger = spdlog::get("GameEngine"))
+        logger->debug("Box vs Box: velAlongNormal={}", velAlongNormal);
+    if (auto logger = spdlog::get("GameEngine"))
+        logger->debug("Box vs Box: contactPoint=({},{})", manifold.contactPoints[0].x, manifold.contactPoints[0].y);
 
     // Only apply velocity changes if objects are approaching
     if (velAlongNormal > 0)

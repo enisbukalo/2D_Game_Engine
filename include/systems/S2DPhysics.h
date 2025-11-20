@@ -48,6 +48,12 @@ public:
      */
     void setWorldBounds(const Vec2& center, const Vec2& size);
 
+    /**
+     * @brief Gets the quadtree for visualization or debugging
+     * @return Pointer to the quadtree, or nullptr if not initialized
+     */
+    const Quadtree* getQuadtree() const;
+
 private:
     // Private constructor to prevent direct instantiation
     S2DPhysics();

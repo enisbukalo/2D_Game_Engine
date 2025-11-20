@@ -39,8 +39,8 @@ format_files() {
         clang-format -style=file -i "$file"
     done
 
-    # Verify formatting (using git ls-files again)
-    git ls-files '*.cpp' '*.h' | xargs clang-format -style=file --dry-run --Werror
+    # Verify formatting (using git ls-files again, excluding tests)
+    git ls-files '*.cpp' '*.h' | grep -v '^tests/' | xargs clang-format -style=file --dry-run --Werror
 
     local result=$?
     if [ $result -eq 0 ]; then

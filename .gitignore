@@ -1,7 +1,9 @@
 # Example directory
-Example_Game/
+GameEngine-Windows-Debug/
+GameEngine-Windows-Release/
 
 # Build directories
+build/
 build_linux/
 build_windows/
 package_linux/

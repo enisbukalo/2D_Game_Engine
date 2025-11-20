@@ -92,6 +92,12 @@ public:
         return m_bounds;
     }
 
+    /**
+     * @brief Collects all quadtree node boundaries for visualization
+     * @param bounds Output vector to store all node boundaries
+     */
+    void getAllBounds(std::vector<AABB>& bounds) const;
+
 private:
     int                       m_level;        ///< Current depth level
     std::vector<Entity*>      m_objects;      ///< Entities at this node

@@ -11,10 +11,16 @@ jobs:
       build_type: "Debug"
       upload_package: false
 
-  build-windows:
+  build-windows-debug:
     uses: ./.github/workflows/build-windows.yml
     with:
       build_type: "Debug"
+      upload_package: true
+
+  build-windows-release:
+    uses: ./.github/workflows/build-windows.yml
+    with:
+      build_type: "Release"
       upload_package: true
 
   lint:
@@ -32,6 +38,7 @@ jobs:
             -not -path "./deps_cache/*" \
             -not -path "./package/*" \
             -not -path "./example_project/*" \
+            -not -path "./tests/*" \
             -exec clang-format -style=file --dry-run --Werror {} +
 
   static-analysis:

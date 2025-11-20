@@ -81,7 +81,10 @@ cmake -B ${BUILD_DIR} -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DGAMEENGINE_BUILD_SHARED=$
 
 # Build project
 echo -e "${GREEN}Building project...${NC}"
-cmake --build ${BUILD_DIR} --config $BUILD_TYPE || { echo -e "${RED}Build failed!${NC}"; exit 1; }
+# Use all available CPU cores for parallel compilation
+NPROC=$(nproc 2>/dev/null || echo 4)
+echo -e "${GREEN}Using $NPROC parallel jobs${NC}"
+cmake --build ${BUILD_DIR} --config $BUILD_TYPE -j${NPROC} || { echo -e "${RED}Build failed!${NC}"; exit 1; }
 
 # Run tests if enabled
 if [ "$RUN_TESTS" = true ]; then

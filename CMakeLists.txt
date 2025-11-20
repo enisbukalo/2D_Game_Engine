@@ -53,6 +53,17 @@ find_package(SFML 2.6 REQUIRED COMPONENTS graphics window system)
 # Find OpenGL (required for ImGui-SFML)
 find_package(OpenGL REQUIRED)
 
+# Fetch spdlog for logging (header-only mode to avoid symbol conflicts)
+set(SPDLOG_FMT_EXTERNAL OFF CACHE BOOL "" FORCE)
+set(SPDLOG_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+set(SPDLOG_INSTALL ON CACHE BOOL "" FORCE)
+FetchContent_Declare(SPDLOG
+    GIT_REPOSITORY https://github.com/gabime/spdlog.git
+    GIT_TAG v1.12.0
+    GIT_SHALLOW ON)
+
+FetchContent_MakeAvailable(SPDLOG)
+
 # Fetch ImGui (v1.88 is compatible with ImGui-SFML v2.6)
 FetchContent_Declare(IMGUI
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
@@ -156,6 +167,7 @@ target_include_directories(GameEngine
     $<INSTALL_INTERFACE:include/GameEngine/systems>
     $<INSTALL_INTERFACE:include/GameEngine/utility>
     $<INSTALL_INTERFACE:include/GameEngine/physics>
+    $<INSTALL_INTERFACE:include>
 )
 
 # Link against dependencies
@@ -165,6 +177,9 @@ target_link_libraries(GameEngine
     sfml-window
     sfml-system
     ImGui-SFML
+    Threads::Threads
+    PRIVATE
+    spdlog::spdlog
 )
 
 # Link Windows-specific libraries only when building for Windows
@@ -234,6 +249,7 @@ if(GAMEENGINE_INSTALL)
     file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/GameEngineConfig.cmake.in"
         "include(CMakeFindDependencyMacro)\n\n"
         "# Find dependencies\n"
+        "find_dependency(Threads)\n"
         "find_dependency(SFML 2.6 COMPONENTS graphics window system)\n"
         "find_dependency(OpenGL)\n\n"
         "# Include the targets file\n"

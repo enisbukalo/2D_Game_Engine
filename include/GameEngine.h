@@ -1,7 +1,9 @@
 #ifndef GAMEENGINE_H
 #define GAMEENGINE_H
 
+#include <spdlog/spdlog.h>
 #include <SFML/Graphics.hpp>
+#include <memory>
 
 /**
  * @brief Main game engine class handling core game loop and systems
@@ -51,6 +53,12 @@ public:
      * @return true if the game is running, false otherwise
      */
     bool is_running() const;
+
+    /**
+     * @brief Gets the logger instance for external logging
+     * @return Shared pointer to the spdlog logger, or nullptr if not initialized
+     */
+    static std::shared_ptr<spdlog::logger> getLogger();
 
 private:
     const uint8_t m_subStepCount;  ///< Number of physics sub-steps per update

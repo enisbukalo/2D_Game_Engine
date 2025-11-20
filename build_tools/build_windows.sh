@@ -92,7 +92,10 @@ cmake -B ${BUILD_DIR} \
 
 # Build project
 echo -e "${GREEN}Building project for Windows...${NC}"
-cmake --build ${BUILD_DIR} --config $BUILD_TYPE || {
+# Use all available CPU cores for parallel compilation
+NPROC=$(nproc 2>/dev/null || echo 4)
+echo -e "${GREEN}Using $NPROC parallel jobs${NC}"
+cmake --build ${BUILD_DIR} --config $BUILD_TYPE -j${NPROC} || {
     echo -e "${RED}Build failed!${NC}"
     exit 1
 }

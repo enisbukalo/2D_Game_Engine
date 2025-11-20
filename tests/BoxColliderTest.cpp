@@ -101,8 +101,8 @@ TEST_F(BoxColliderTest, GetBounds)
 
     EXPECT_EQ(bounds.position.x, 100.0f);
     EXPECT_EQ(bounds.position.y, 200.0f);
-    EXPECT_EQ(bounds.halfSize.x, 40.0f);
-    EXPECT_EQ(bounds.halfSize.y, 60.0f);
+    EXPECT_EQ(bounds.halfSize.x, 20.0f);  // Half of width 40.0f
+    EXPECT_EQ(bounds.halfSize.y, 30.0f);  // Half of height 60.0f
 }
 
 TEST_F(BoxColliderTest, GetBoundsAfterMove)

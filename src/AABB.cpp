@@ -1,7 +1,10 @@
 #include <cmath>  // for std::abs
 #include "physics/Quadtree.h"
 
-AABB::AABB(const Vec2& pos, const Vec2& size) : position(pos), halfSize(Vec2(std::abs(size.x), std::abs(size.y))) {}
+AABB::AABB(const Vec2& pos, const Vec2& size)
+    : position(pos), halfSize(Vec2(std::abs(size.x) * 0.5f, std::abs(size.y) * 0.5f))
+{
+}
 
 bool AABB::contains(const Vec2& point) const
 {
