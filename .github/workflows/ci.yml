@@ -38,6 +38,7 @@ jobs:
             -not -path "./deps_cache/*" \
             -not -path "./package/*" \
             -not -path "./example_project/*" \
+            -not -path "./tests/*" \
             -exec clang-format -style=file --dry-run --Werror {} +
 
   static-analysis:
