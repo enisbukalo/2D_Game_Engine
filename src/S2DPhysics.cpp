@@ -5,6 +5,7 @@
 #include "components/CBoxCollider.h"
 #include "components/CCircleCollider.h"
 #include "components/CCollider.h"
+#include "components/CForceDebug.h"
 #include "components/CGravity.h"
 #include "components/CTransform.h"
 
@@ -160,6 +161,13 @@ void S2DPhysics::handleGravity(float deltaTime)
             Vec2 currentVelocity = transform->getVelocity();
             Vec2 force           = m_globalGravity * gravity->getMultiplier();
             Vec2 newVelocity     = currentVelocity + (force * deltaTime);
+
+            // Store force in debug component for visualization (if entity has one)
+            auto forceDebug = entity->getComponent<CForceDebug>();
+            if (forceDebug)
+            {
+                forceDebug->setGravityForce(force);
+            }
 
             transform->setVelocity(newVelocity);
         }

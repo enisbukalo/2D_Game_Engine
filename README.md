@@ -8,6 +8,7 @@ A modern C++ 2D game engine built with SFML, featuring an Entity Component Syste
   - [Notes](#notes)
   - [Features](#features)
     - [Entity Component System (ECS)](#entity-component-system-ecs)
+    - [Physics Scale Convention](#physics-scale-convention)
     - [Physics System](#physics-system)
     - [Serialization System](#serialization-system)
     - [Code Organization](#code-organization)
@@ -16,8 +17,15 @@ A modern C++ 2D game engine built with SFML, featuring an Entity Component Syste
   - [Dependencies](#dependencies)
   - [Building the Project](#building-the-project)
     - [Docker Build (Recommended)](#docker-build-recommended)
+- [Build and run tests](#build-and-run-tests)
+- [Build without tests](#build-without-tests)
+- [Clean build](#clean-build)
+- [Build for Windows](#build-for-windows)
     - [Build Options](#build-options)
     - [Examples](#examples)
+- [Clean build with tests:](#clean-build-with-tests)
+- [Release build without tests:](#release-build-without-tests)
+- [Build as shared library:](#build-as-shared-library)
     - [Build Output](#build-output)
     - [Building Example Project](#building-example-project)
       - [NOTE!!!: YOU MUST RUN THE BUILD.SH SCRIPT IN THE ROOT DIRECTORY FIRST.](#note-you-must-run-the-buildsh-script-in-the-root-directory-first)
@@ -128,30 +136,30 @@ The project supports building both for **Linux** (native) and **Windows** (cross
 - Docker
 - Docker Compose
 - Run Docker Container
-- - ```docker-compose up -d --build```
+- - ```docker-compose up -d```
 
 **Linux Build (Development/Testing):**
-```bash
+
 # Build and run tests
-docker-compose exec dev ./build_linux.sh
+```docker-compose exec dev ./build_linux.sh```
 
 # Build without tests
-docker-compose exec dev ./build_linux.sh --no-tests
+```docker-compose exec dev ./build_linux.sh --no-tests```
 
 # Clean build
-docker-compose exec dev ./build_linux.sh --clean
-```
+```docker-compose exec dev ./build_linux.sh --clean```
+
 
 **Windows Build (Cross-compilation):**
-```bash
+
 # Build for Windows
-docker-compose exec dev ./build_windows.sh
-```
+```docker-compose exec dev ./build_windows.sh```
+
 
 **Enter Development Environment:**
-```bash
-docker-compose exec dev /bin/bash
-```
+
+```docker-compose exec dev /bin/bash```
+
 
 ### Build Options
 
@@ -166,20 +174,20 @@ The build script (`build.sh`) provides several options:
 
 ### Examples
 
-Clean build with tests:
-```bash
-./build.sh --clean
-```
+# Clean build with tests:
 
-Release build without tests:
-```bash
-./build.sh -t Release --no-tests
-```
+```./build.sh --clean```
 
-Build as shared library:
-```bash
-./build.sh -s
-```
+
+# Release build without tests:
+
+```./build.sh -t Release --no-tests```
+
+
+# Build as shared library:
+
+```./build.sh -s```
+
 
 ### Build Output
 

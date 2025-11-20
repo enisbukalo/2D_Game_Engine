@@ -4,6 +4,7 @@
 #include <Vec2.h>
 #include <components/CBoxCollider.h>
 #include <components/CCircleCollider.h>
+#include <components/CForceDebug.h>
 #include <components/CGravity.h>
 #include <components/CTransform.h>
 #include <physics/Quadtree.h>
@@ -34,6 +35,7 @@ private:
     bool                        m_fontLoaded;
     bool                        m_gravityEnabled;
     bool                        m_showColliders;
+    bool                        m_showVectors;
 
     const float RESTITUTION                 = 0.8f;   // Bounciness factor
     const float BALL_RADIUS                 = 10.0f;  // Radius of each ball
@@ -49,7 +51,8 @@ public:
           m_ballAmount(INITIAL_BALL_COUNT),
           m_fontLoaded(false),
           m_gravityEnabled(INITIAL_GRAVITY_ENABLED),
-          m_showColliders(true)
+          m_showColliders(true),
+          m_showVectors(false)
     {
         m_window.setFramerateLimit(60);
 
@@ -80,6 +83,7 @@ public:
         std::cout << "  R               : Restart scenario" << std::endl;
         std::cout << "  G               : Toggle gravity" << std::endl;
         std::cout << "  C               : Toggle collider visibility" << std::endl;
+        std::cout << "  V               : Toggle vector visualization" << std::endl;
         std::cout << "  Escape          : Exit" << std::endl;
         std::cout << "Initial SubSteps: " << (int)m_subStepCount << std::endl;
         std::cout << "Number of balls: " << m_ballAmount << std::endl;
@@ -156,6 +160,11 @@ public:
                 {
                     toggleColliders();
                 }
+                // Toggle vector visualization with V key
+                else if (event.key.code == sf::Keyboard::V)
+                {
+                    toggleVectors();
+                }
             }
         }
     }
@@ -207,7 +216,8 @@ public:
             auto  ball    = EntityManager::instance().addEntity("ball");
             ball->addComponent<CTransform>(Vec2(randomX, randomY), Vec2(1.0f, 1.0f), 0.0f);
             ball->addComponent<CCircleCollider>(BALL_RADIUS);
-            ball->addComponent<CGravity>();  // Uses default 1.0 multiplier
+            ball->addComponent<CGravity>();     // Uses default 1.0 multiplier
+            ball->addComponent<CForceDebug>();  // For force visualization
 
             // Randomize initial velocity
             auto* transform   = ball->getComponent<CTransform>();
@@ -239,6 +249,12 @@ public:
         std::cout << "Colliders: " << (m_showColliders ? "ON" : "OFF") << std::endl;
     }
 
+    void toggleVectors()
+    {
+        m_showVectors = !m_showVectors;
+        std::cout << "Vectors: " << (m_showVectors ? "ON" : "OFF") << std::endl;
+    }
+
     void spawnRandomBall()
     {
         // Calculate spawn boundaries accounting for boundary thickness and ball radius
@@ -253,7 +269,8 @@ public:
         auto  ball    = EntityManager::instance().addEntity("ball");
         ball->addComponent<CTransform>(Vec2(randomX, randomY), Vec2(1.0f, 1.0f), 0.0f);
         ball->addComponent<CCircleCollider>(BALL_RADIUS);
-        ball->addComponent<CGravity>();  // Uses default 1.0 multiplier
+        ball->addComponent<CGravity>();     // Uses default 1.0 multiplier
+        ball->addComponent<CForceDebug>();  // For force visualization
 
         // Randomize initial velocity
         auto* transform   = ball->getComponent<CTransform>();
@@ -300,6 +317,22 @@ public:
         EntityManager::instance().update(0.0f);
 
         std::cout << "=== Restart complete ===" << std::endl;
+    }
+
+    void drawVector(const Vec2& start, const Vec2& vector, const sf::Color& color, float scale = 1.0f)
+    {
+        // Calculate end point based on start position and vector
+        Vec2 scaledVector = vector * scale;
+        Vec2 end          = start + scaledVector;
+
+        // Draw line using VertexArray
+        sf::VertexArray line(sf::Lines, 2);
+        line[0].position = sf::Vector2f(start.x, start.y);
+        line[0].color    = color;
+        line[1].position = sf::Vector2f(end.x, end.y);
+        line[1].color    = color;
+
+        m_window.draw(line);
     }
 
     void update(float dt)
@@ -390,6 +423,37 @@ public:
             ballIndex++;
         }
 
+        // Draw velocity and force vectors
+        if (m_showVectors)
+        {
+            for (auto& ball : balls)
+            {
+                if (!ball->hasComponent<CTransform>())
+                    continue;
+
+                auto* transform = ball->getComponent<CTransform>();
+                Vec2  pos       = transform->getPosition();
+
+                // Draw velocity vector (yellow)
+                Vec2 velocity = transform->getVelocity();
+                if (velocity.length() > 0.01f)  // Only draw if velocity is non-negligible
+                {
+                    drawVector(pos, velocity, sf::Color::Yellow, 0.1f);
+                }
+
+                // Draw gravity force vector (red)
+                auto* forceDebug = ball->getComponent<CForceDebug>();
+                if (forceDebug)
+                {
+                    Vec2 gravityForce = forceDebug->getGravityForce();
+                    if (gravityForce.length() > 0.01f)  // Only draw if force is non-negligible
+                    {
+                        drawVector(pos, gravityForce, sf::Color::Red, 0.01f);
+                    }
+                }
+            }
+        }
+
         // Draw quadtree visualization
         if (m_showColliders)
         {
@@ -423,7 +487,8 @@ public:
             oss << "SubSteps: " << (int)m_subStepCount << " (Use Up/Down or +/-)\n";
             oss << "Ball Count: " << m_ballAmount << " (Use Left/Right to add/remove)\n";
             oss << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << " (Press G to toggle)\n";
-            oss << "Colliders/Quadtree: " << (m_showColliders ? "ON" : "OFF") << " (Press C to toggle)";
+            oss << "Colliders/Quadtree: " << (m_showColliders ? "ON" : "OFF") << " (Press C to toggle)\n";
+            oss << "Vectors: " << (m_showVectors ? "ON" : "OFF") << " (Press V to toggle)";
 
             sf::Text text;
             text.setFont(m_font);
