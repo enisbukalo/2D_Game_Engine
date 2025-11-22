@@ -7,7 +7,7 @@ CRigidBody2D::CRigidBody2D()
     , m_inverseMass(1.0f)  // 1/1.0 = 1.0
     , m_restitution(0.5f)  // Medium bounce (wood/plastic feel)
     , m_friction(0.3f)     // Medium friction
-    , m_linearDrag(0.01f)  // Very slight air resistance
+    , m_linearDrag(0.25f)  // Moderate air resistance (25% per second)
     , m_angularDrag(0.05f) // Slight rotational dampening
     , m_useGravity(true)   // Most objects affected by gravity
     , m_gravityScale(1.0f) // Normal gravity strength

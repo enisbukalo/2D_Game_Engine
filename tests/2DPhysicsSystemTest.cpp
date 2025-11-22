@@ -51,6 +51,11 @@ TEST_F(PhysicsSystemTest, BasicGravityEffect)
     Vec2 initialVel(0.0f, 0.0f);
 
     auto entity = createPhysicsEntity("test", initialPos, initialVel, 1.0f);
+
+    // Disable drag to test pure gravity effect
+    auto rigidBody = entity->getComponent<CRigidBody2D>();
+    rigidBody->setLinearDrag(0.0f);
+
     EntityManager::instance().update(0.0f);  // Process pending entities
 
     // Update physics for 1 second
@@ -80,6 +85,11 @@ TEST_F(PhysicsSystemTest, MultipleEntitiesPhysics)
 
     auto entity1 = createPhysicsEntity("test1", pos1, vel1, 1.0f);
     auto entity2 = createPhysicsEntity("test2", pos2, vel2, 1.0f);
+
+    // Disable drag to test pure gravity + velocity effect
+    entity1->getComponent<CRigidBody2D>()->setLinearDrag(0.0f);
+    entity2->getComponent<CRigidBody2D>()->setLinearDrag(0.0f);
+
     EntityManager::instance().update(0.0f);  // Process pending entities
 
     // Update physics for 1 second
@@ -111,6 +121,10 @@ TEST_F(PhysicsSystemTest, ZeroGravity)
     Vec2 initialVel(10.0f, 5.0f);
 
     auto entity = createPhysicsEntity("test", initialPos, initialVel, 1.0f);
+
+    // Disable drag to test pure velocity effect
+    entity->getComponent<CRigidBody2D>()->setLinearDrag(0.0f);
+
     EntityManager::instance().update(0.0f);
 
     // Update physics for 1 second
@@ -176,6 +190,8 @@ TEST_F(PhysicsSystemTest, CustomGravityValues)
     for (size_t i = 0; i < gravityMultipliers.size(); ++i)
     {
         auto entity = createPhysicsEntity("test" + std::to_string(i), initialPos, initialVel, gravityMultipliers[i]);
+        // Disable drag to test pure gravity effect
+        entity->getComponent<CRigidBody2D>()->setLinearDrag(0.0f);
         entities.push_back(entity);
     }
     EntityManager::instance().update(0.0f);
@@ -1169,4 +1185,135 @@ TEST_F(PhysicsSystemTest, NoVelocityChange_WhenSeparating)
 
     // Verify they're still generally moving apart
     EXPECT_TRUE((vel1.x < 0.0f && vel2.x > 0.0f) || !collider1->intersects(collider2));
+}
+
+// ============================================================================
+// Drag Tests
+// ============================================================================
+
+TEST_F(PhysicsSystemTest, LinearDragSlowsVelocity)
+{
+    auto& physics = S2DPhysics::instance();
+    physics.setGlobalGravity(Vec2(0.0f, 0.0f));  // No gravity for this test
+
+    // Create entity with high drag
+    auto entity = EntityManager::instance().addEntity("drag_test");
+    auto transform = entity->addComponent<CTransform>();
+    transform->setPosition(Vec2(0.0f, 0.0f));
+    transform->setVelocity(Vec2(100.0f, 0.0f));  // Initial velocity
+
+    auto rigidBody = entity->addComponent<CRigidBody2D>();
+    rigidBody->setLinearDrag(1.0f);  // High drag coefficient
+    rigidBody->setUseGravity(false);
+
+    EntityManager::instance().update(0.0f);  // Process pending entities
+
+    // Update physics multiple times
+    float deltaTime = 0.1f;
+    for (int i = 0; i < 10; i++)
+    {
+        physics.update(deltaTime);
+    }
+
+    // Velocity should have decreased significantly due to drag
+    Vec2 finalVelocity = transform->getVelocity();
+    EXPECT_LT(finalVelocity.x, 100.0f);  // Should be less than initial
+    EXPECT_GT(finalVelocity.x, 0.0f);    // But not negative (drag doesn't reverse)
+}
+
+TEST_F(PhysicsSystemTest, ZeroDragNoEffect)
+{
+    auto& physics = S2DPhysics::instance();
+    physics.setGlobalGravity(Vec2(0.0f, 0.0f));  // No gravity
+
+    // Create entity with zero drag
+    auto entity = EntityManager::instance().addEntity("no_drag_test");
+    auto transform = entity->addComponent<CTransform>();
+    transform->setPosition(Vec2(0.0f, 0.0f));
+    transform->setVelocity(Vec2(100.0f, 50.0f));
+
+    auto rigidBody = entity->addComponent<CRigidBody2D>();
+    rigidBody->setLinearDrag(0.0f);  // No drag
+    rigidBody->setUseGravity(false);
+
+    EntityManager::instance().update(0.0f);
+
+    // Update physics
+    float deltaTime = 1.0f;
+    physics.update(deltaTime);
+
+    // Velocity should remain unchanged (no drag, no gravity)
+    Vec2 finalVelocity = transform->getVelocity();
+    EXPECT_FLOAT_EQ(finalVelocity.x, 100.0f);
+    EXPECT_FLOAT_EQ(finalVelocity.y, 50.0f);
+}
+
+TEST_F(PhysicsSystemTest, KinematicIgnoresDrag)
+{
+    auto& physics = S2DPhysics::instance();
+    physics.setGlobalGravity(Vec2(0.0f, 0.0f));
+
+    // Create kinematic entity with drag
+    auto entity = EntityManager::instance().addEntity("kinematic_test");
+    auto transform = entity->addComponent<CTransform>();
+    transform->setPosition(Vec2(0.0f, 0.0f));
+    transform->setVelocity(Vec2(100.0f, 0.0f));
+
+    auto rigidBody = entity->addComponent<CRigidBody2D>();
+    rigidBody->setLinearDrag(10.0f);  // Very high drag
+    rigidBody->setKinematic(true);     // Kinematic = ignores physics forces
+    rigidBody->setUseGravity(false);
+
+    EntityManager::instance().update(0.0f);
+
+    // Update physics
+    float deltaTime = 1.0f;
+    physics.update(deltaTime);
+
+    // Velocity should remain unchanged (kinematic ignores drag)
+    Vec2 finalVelocity = transform->getVelocity();
+    EXPECT_FLOAT_EQ(finalVelocity.x, 100.0f);
+}
+
+TEST_F(PhysicsSystemTest, DragWithGravity)
+{
+    auto& physics = S2DPhysics::instance();
+    physics.setGlobalGravity(Vec2(0.0f, 981.0f));
+
+    // Create entity with moderate drag and gravity
+    auto entity = EntityManager::instance().addEntity("drag_gravity_test");
+    auto transform = entity->addComponent<CTransform>();
+    transform->setPosition(Vec2(0.0f, 0.0f));
+    transform->setVelocity(Vec2(0.0f, 0.0f));
+
+    auto rigidBody = entity->addComponent<CRigidBody2D>();
+    rigidBody->setLinearDrag(0.1f);  // Moderate drag
+    rigidBody->setGravityScale(1.0f);
+    rigidBody->setUseGravity(true);
+
+    EntityManager::instance().update(0.0f);
+
+    // Simulate falling with drag for several frames
+    float deltaTime = 0.016f;  // ~60 FPS
+    for (int i = 0; i < 60; i++)  // 1 second
+    {
+        physics.update(deltaTime);
+    }
+
+    // Velocity should have increased due to gravity but be limited by drag
+    Vec2 finalVelocity = transform->getVelocity();
+    EXPECT_GT(finalVelocity.y, 0.0f);  // Should be falling (positive Y)
+
+    // With drag, terminal velocity should be reached (velocity stops increasing)
+    // Let it run more and check velocity doesn't change much
+    Vec2 velocityBefore = finalVelocity;
+    for (int i = 0; i < 60; i++)  // Another second
+    {
+        physics.update(deltaTime);
+    }
+    Vec2 velocityAfter = transform->getVelocity();
+
+    // The velocity change should be smaller in the second interval (approaching terminal velocity)
+    // This is a qualitative test - exact terminal velocity depends on drag coefficient
+    EXPECT_GT(velocityAfter.y, velocityBefore.y);  // Still increasing but slower
 }

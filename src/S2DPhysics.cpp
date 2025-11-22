@@ -20,6 +20,7 @@ void S2DPhysics::update(float deltaTime)
 {
     handleGravity(deltaTime);
     clearForces();  // Clear after accumulating forces for this frame (saves to totalForce for visualization)
+    applyDrag(deltaTime);
     integratePositions(deltaTime);
     updateQuadtree();
     checkCollisions();
@@ -78,6 +79,46 @@ void S2DPhysics::clearForces()
         {
             rigidBody->clearForces();
         }
+    }
+}
+
+void S2DPhysics::applyDrag(float deltaTime)
+{
+    auto& entityManager = EntityManager::instance();
+    auto rigidBodies = entityManager.getEntitiesWithComponent<CRigidBody2D>();
+
+    for (auto* entity : rigidBodies)
+    {
+        auto rigidBody = entity->getComponent<CRigidBody2D>();
+        auto transform = entity->getComponent<CTransform>();
+
+        if (!rigidBody || !transform || !rigidBody->isActive())
+            continue;
+
+        // Skip kinematic bodies (they don't respond to drag)
+        if (rigidBody->isKinematic())
+            continue;
+
+        // Get current velocity
+        Vec2 velocity = transform->getVelocity();
+        float velocityMagnitude = velocity.length();
+
+        // Skip if velocity is negligible to avoid division by zero
+        if (velocityMagnitude < 0.001f)
+            continue;
+
+        // Apply linear drag: F_drag = -drag * velocity
+        // This creates an exponential decay: v(t) = v0 * e^(-drag * t)
+        // We use the approximation: v_new = v_old * (1 - drag * dt)
+        float linearDrag = rigidBody->getLinearDrag();
+        float dragFactor = 1.0f - (linearDrag * deltaTime);
+
+        // Clamp to prevent negative velocities from drag
+        dragFactor = std::max(0.0f, dragFactor);
+
+        // Apply drag to velocity
+        Vec2 newVelocity = velocity * dragFactor;
+        transform->setVelocity(newVelocity);
     }
 }
 

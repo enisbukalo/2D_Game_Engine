@@ -304,3 +304,23 @@ TEST(RigidBody2DTest, UpdateMethod)
     // Update should not crash (currently does nothing)
     rb.update(1.0f / 60.0f);
 }
+
+// ============================================================================
+// Drag Tests
+// ============================================================================
+
+TEST(RigidBody2DTest, DragProperties)
+{
+    CRigidBody2D rb;
+
+    // Test default drag values
+    EXPECT_FLOAT_EQ(rb.getLinearDrag(), 0.25f);
+    EXPECT_FLOAT_EQ(rb.getAngularDrag(), 0.05f);
+
+    // Test setting drag values
+    rb.setLinearDrag(0.05f);
+    EXPECT_FLOAT_EQ(rb.getLinearDrag(), 0.05f);
+
+    rb.setAngularDrag(0.1f);
+    EXPECT_FLOAT_EQ(rb.getAngularDrag(), 0.1f);
+}

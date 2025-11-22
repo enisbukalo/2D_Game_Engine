@@ -104,6 +104,12 @@ private:
     void clearForces();
 
     /**
+     * @brief Applies linear drag to entities with rigid bodies
+     * @param deltaTime Time elapsed since last update in seconds
+     */
+    void applyDrag(float deltaTime);
+
+    /**
      * @brief Handles collisions between entities
      * @param a First entity involved in collision
      * @param b Second entity involved in collision
