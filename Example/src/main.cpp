@@ -6,6 +6,7 @@
 #include <components/CCircleCollider.h>
 #include <components/CForceDebug.h>
 #include <components/CGravity.h>
+#include <components/CRigidBody2D.h>
 #include <components/CTransform.h>
 #include <physics/Quadtree.h>
 #include <systems/S2DPhysics.h>
@@ -40,6 +41,15 @@ private:
     const float RESTITUTION                 = 0.8f;   // Bounciness factor
     const float BALL_RADIUS                 = 10.0f;  // Radius of each ball
     const int   BOUNDARY_COLLIDER_THICKNESS = 50;     // Thickness of boundary colliders
+    const float RANDOM_VELOCITY_RANGE       = 200.0f; // Random velocity range: -200 to +200
+
+    // Helper function to generate random velocity in a symmetric range
+    Vec2 getRandomVelocity() const
+    {
+        float velX = static_cast<float>((rand() % static_cast<int>(RANDOM_VELOCITY_RANGE * 2 + 1)) - RANDOM_VELOCITY_RANGE);
+        float velY = static_cast<float>((rand() % static_cast<int>(RANDOM_VELOCITY_RANGE * 2 + 1)) - RANDOM_VELOCITY_RANGE);
+        return Vec2(velX, velY);
+    }
 
 public:
     BounceGame()
@@ -216,14 +226,11 @@ public:
             auto  ball    = EntityManager::instance().addEntity("ball");
             ball->addComponent<CTransform>(Vec2(randomX, randomY), Vec2(1.0f, 1.0f), 0.0f);
             ball->addComponent<CCircleCollider>(BALL_RADIUS);
-            ball->addComponent<CGravity>();     // Uses default 1.0 multiplier
-            ball->addComponent<CForceDebug>();  // For force visualization
+            ball->addComponent<CRigidBody2D>();  // Unified physics component (replaces CGravity + CForceDebug)
 
             // Randomize initial velocity
-            auto* transform   = ball->getComponent<CTransform>();
-            float initialVelX = static_cast<float>((rand() % 501) - 100);  // -100 to +100
-            float initialVelY = static_cast<float>((rand() % 501) - 100);  // -100 to +100
-            transform->setVelocity(Vec2(initialVelX, initialVelY));
+            auto* transform = ball->getComponent<CTransform>();
+            transform->setVelocity(getRandomVelocity());
         }
     }
 
@@ -269,14 +276,11 @@ public:
         auto  ball    = EntityManager::instance().addEntity("ball");
         ball->addComponent<CTransform>(Vec2(randomX, randomY), Vec2(1.0f, 1.0f), 0.0f);
         ball->addComponent<CCircleCollider>(BALL_RADIUS);
-        ball->addComponent<CGravity>();     // Uses default 1.0 multiplier
-        ball->addComponent<CForceDebug>();  // For force visualization
+        ball->addComponent<CRigidBody2D>();  // Unified physics component (replaces CGravity + CForceDebug)
 
         // Randomize initial velocity
-        auto* transform   = ball->getComponent<CTransform>();
-        float initialVelX = static_cast<float>((rand() % 501) - 100);  // -100 to +100
-        float initialVelY = static_cast<float>((rand() % 501) - 100);  // -100 to +100
-        transform->setVelocity(Vec2(initialVelX, initialVelY));
+        auto* transform = ball->getComponent<CTransform>();
+        transform->setVelocity(getRandomVelocity());
     }
 
     void removeRandomBall()
@@ -442,13 +446,13 @@ public:
                 }
 
                 // Draw gravity force vector (red)
-                auto* forceDebug = ball->getComponent<CForceDebug>();
-                if (forceDebug)
+                auto* rigidBody = ball->getComponent<CRigidBody2D>();
+                if (rigidBody)
                 {
-                    Vec2 gravityForce = forceDebug->getGravityForce();
-                    if (gravityForce.length() > 0.01f)  // Only draw if force is non-negligible
+                    Vec2 totalForce = rigidBody->getTotalForce();
+                    if (totalForce.length() > 0.01f)  // Only draw if force is non-negligible
                     {
-                        drawVector(pos, gravityForce, sf::Color::Red, 0.01f);
+                        drawVector(pos, totalForce, sf::Color::Red, 0.01f);
                     }
                 }
             }

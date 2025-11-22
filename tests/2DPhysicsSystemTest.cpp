@@ -2,6 +2,7 @@
 #include "CBoxCollider.h"
 #include "CCircleCollider.h"
 #include "CGravity.h"
+#include "CRigidBody2D.h"
 #include "CTransform.h"
 #include "EntityManager.h"
 #include "S2DPhysics.h"
@@ -24,16 +25,16 @@ protected:
         EntityManager::instance().clear();
     }
 
-    // Helper method to create a physics entity with gravity multiplier
-    std::shared_ptr<Entity> createPhysicsEntity(const std::string& tag, const Vec2& position, const Vec2& velocity, float gravityMultiplier = 1.0f)
+    // Helper method to create a physics entity with gravity scale
+    std::shared_ptr<Entity> createPhysicsEntity(const std::string& tag, const Vec2& position, const Vec2& velocity, float gravityScale = 1.0f)
     {
         auto entity    = EntityManager::instance().addEntity(tag);
         auto transform = entity->addComponent<CTransform>();
         transform->setPosition(position);
         transform->setVelocity(velocity);
 
-        auto gravityComp = entity->addComponent<CGravity>();
-        gravityComp->setMultiplier(gravityMultiplier);
+        auto rigidBody = entity->addComponent<CRigidBody2D>();
+        rigidBody->setGravityScale(gravityScale);
 
         return entity;
     }
@@ -138,9 +139,9 @@ TEST_F(PhysicsSystemTest, DisabledGravityComponent)
     auto entity = createPhysicsEntity("test", initialPos, initialVel, 1.0f);
     EntityManager::instance().update(0.0f);
 
-    // Disable the gravity component
-    auto gravityComp = entity->getComponent<CGravity>();
-    gravityComp->setActive(false);
+    // Disable gravity for this rigid body
+    auto rigidBody = entity->getComponent<CRigidBody2D>();
+    rigidBody->setUseGravity(false);
 
     // Update physics for 1 second
     float deltaTime = 1.0f;
@@ -400,11 +401,11 @@ TEST_F(PhysicsSystemTest, CollisionWithGravity)
     // Falling ball with gravity
     auto ball          = EntityManager::instance().addEntity("ball");
     auto ballTransform = ball->addComponent<CTransform>();
-    auto ballGravity   = ball->addComponent<CGravity>();
+    auto ballRigidBody = ball->addComponent<CRigidBody2D>();
     auto ballCollider  = ball->addComponent<CCircleCollider>(25.0f);
     ballTransform->setPosition(Vec2(400.0f, 300.0f));
     ballTransform->setVelocity(Vec2(0.0f, 0.0f));
-    ballGravity->setMultiplier(1.0f);  // Normal gravity multiplier
+    ballRigidBody->setGravityScale(1.0f);  // Normal gravity scale
 
     EntityManager::instance().update(0.0f);
 
@@ -647,11 +648,11 @@ TEST_F(PhysicsSystemTest, BoxWithGravity)
     // Falling box with gravity
     auto box          = EntityManager::instance().addEntity("box");
     auto boxTransform = box->addComponent<CTransform>();
-    auto boxGravity   = box->addComponent<CGravity>();
+    auto boxRigidBody = box->addComponent<CRigidBody2D>();
     auto boxCollider  = box->addComponent<CBoxCollider>(30.0f, 30.0f);
     boxTransform->setPosition(Vec2(400.0f, 300.0f));
     boxTransform->setVelocity(Vec2(0.0f, 0.0f));
-    boxGravity->setMultiplier(1.0f);  // Normal gravity multiplier
+    boxRigidBody->setGravityScale(1.0f);  // Normal gravity scale
 
     EntityManager::instance().update(0.0f);
 

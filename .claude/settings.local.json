@@ -17,7 +17,9 @@
       "Bash(./build.sh:*)",
       "Bash(cat:*)",
       "Bash(git checkout:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(bash build.sh:*)",
+      "Bash(bash build_tools/build.sh:*)"
     ],
     "deny": [],
     "ask": []
