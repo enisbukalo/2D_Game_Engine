@@ -3,6 +3,7 @@
 #include "CCircleCollider.h"
 #include "CGravity.h"
 #include "CName.h"
+#include "CRigidBody2D.h"
 #include "CTransform.h"
 
 ComponentFactory::ComponentFactory()
@@ -30,6 +31,7 @@ void ComponentFactory::registerBuiltInComponents()
 {
     registerComponent<CTransform>("Transform");
     registerComponent<CGravity>("Gravity");
+    registerComponent<CRigidBody2D>("RigidBody2D");
     registerComponent<CName>("Name");
     registerComponent<CCircleCollider>("CircleCollider");
     registerComponent<CBoxCollider>("BoxCollider");

@@ -99,6 +99,17 @@ private:
     void integratePositions(float deltaTime);
 
     /**
+     * @brief Clears accumulated forces on all rigid bodies (saves to totalForce for visualization)
+     */
+    void clearForces();
+
+    /**
+     * @brief Applies linear drag to entities with rigid bodies
+     * @param deltaTime Time elapsed since last update in seconds
+     */
+    void applyDrag(float deltaTime);
+
+    /**
      * @brief Handles collisions between entities
      * @param a First entity involved in collision
      * @param b Second entity involved in collision
@@ -123,6 +134,7 @@ private:
      * @param aIsStatic Whether first entity is static
      * @param bIsStatic Whether second entity is static
      * @param manifold Collision manifold with edge contact points
+     * @param restitution Combined restitution value for the collision
      */
     void resolveCircleVsCircle(CTransform*              transformA,
                                CTransform*              transformB,
@@ -130,7 +142,8 @@ private:
                                const CCircleCollider*   circleB,
                                bool                     aIsStatic,
                                bool                     bIsStatic,
-                               const CollisionManifold& manifold);
+                               const CollisionManifold& manifold,
+                               float                    restitution);
 
     /**
      * @brief Resolves circle-box collision using edge-based contact points
@@ -143,6 +156,7 @@ private:
      * @param aIsStatic Whether first entity is static
      * @param bIsStatic Whether second entity is static
      * @param manifold Collision manifold with edge contact points
+     * @param restitution Combined restitution value for the collision
      */
     void resolveCircleVsBox(CTransform*              transformA,
                             CTransform*              transformB,
@@ -152,7 +166,8 @@ private:
                             const CBoxCollider*      boxB,
                             bool                     aIsStatic,
                             bool                     bIsStatic,
-                            const CollisionManifold& manifold);
+                            const CollisionManifold& manifold,
+                            float                    restitution);
 
     /**
      * @brief Resolves box-box collision using edge-based contact points
@@ -163,6 +178,7 @@ private:
      * @param aIsStatic Whether first entity is static
      * @param bIsStatic Whether second entity is static
      * @param manifold Collision manifold with edge contact points
+     * @param restitution Combined restitution value for the collision
      */
     void resolveBoxVsBox(CTransform*              transformA,
                          CTransform*              transformB,
@@ -170,7 +186,8 @@ private:
                          const CBoxCollider*      boxB,
                          bool                     aIsStatic,
                          bool                     bIsStatic,
-                         const CollisionManifold& manifold);
+                         const CollisionManifold& manifold,
+                         float                    restitution);
 };
 
 #endif  // S2D_PHYSICS_H

@@ -7,6 +7,7 @@
 #include "components/CCollider.h"
 #include "components/CForceDebug.h"
 #include "components/CGravity.h"
+#include "components/CRigidBody2D.h"
 #include "components/CTransform.h"
 
 S2DPhysics& S2DPhysics::instance()
@@ -18,6 +19,8 @@ S2DPhysics& S2DPhysics::instance()
 void S2DPhysics::update(float deltaTime)
 {
     handleGravity(deltaTime);
+    clearForces();  // Clear after accumulating forces for this frame (saves to totalForce for visualization)
+    applyDrag(deltaTime);
     integratePositions(deltaTime);
     updateQuadtree();
     checkCollisions();
@@ -62,6 +65,61 @@ void S2DPhysics::setGlobalGravity(const Vec2& gravity)
 Vec2 S2DPhysics::getGlobalGravity() const
 {
     return m_globalGravity;
+}
+
+void S2DPhysics::clearForces()
+{
+    auto& entityManager = EntityManager::instance();
+    auto  rigidBodies   = entityManager.getEntitiesWithComponent<CRigidBody2D>();
+
+    for (auto* entity : rigidBodies)
+    {
+        auto rigidBody = entity->getComponent<CRigidBody2D>();
+        if (rigidBody && rigidBody->isActive())
+        {
+            rigidBody->clearForces();
+        }
+    }
+}
+
+void S2DPhysics::applyDrag(float deltaTime)
+{
+    auto& entityManager = EntityManager::instance();
+    auto  rigidBodies   = entityManager.getEntitiesWithComponent<CRigidBody2D>();
+
+    for (auto* entity : rigidBodies)
+    {
+        auto rigidBody = entity->getComponent<CRigidBody2D>();
+        auto transform = entity->getComponent<CTransform>();
+
+        if (!rigidBody || !transform || !rigidBody->isActive())
+            continue;
+
+        // Skip kinematic bodies (they don't respond to drag)
+        if (rigidBody->isKinematic())
+            continue;
+
+        // Get current velocity
+        Vec2  velocity          = transform->getVelocity();
+        float velocityMagnitude = velocity.length();
+
+        // Skip if velocity is negligible to avoid division by zero
+        if (velocityMagnitude < 0.001f)
+            continue;
+
+        // Apply linear drag: F_drag = -drag * velocity
+        // This creates an exponential decay: v(t) = v0 * e^(-drag * t)
+        // We use the approximation: v_new = v_old * (1 - drag * dt)
+        float linearDrag = rigidBody->getLinearDrag();
+        float dragFactor = 1.0f - (linearDrag * deltaTime);
+
+        // Clamp to prevent negative velocities from drag
+        dragFactor = std::max(0.0f, dragFactor);
+
+        // Apply drag to velocity
+        Vec2 newVelocity = velocity * dragFactor;
+        transform->setVelocity(newVelocity);
+    }
 }
 
 void S2DPhysics::updateQuadtree()
@@ -148,7 +206,32 @@ void S2DPhysics::handleGravity(float deltaTime)
 {
     auto& entityManager = EntityManager::instance();
 
-    // Apply gravity force to velocities
+    // Apply gravity force to entities with CRigidBody2D
+    auto rigidBodies = entityManager.getEntitiesWithComponent<CRigidBody2D>();
+    for (auto* entity : rigidBodies)
+    {
+        auto transform = entity->getComponent<CTransform>();
+        auto rigidBody = entity->getComponent<CRigidBody2D>();
+
+        if (transform && rigidBody && rigidBody->isActive())
+        {
+            // Only apply gravity if the body uses gravity and is not kinematic
+            if (rigidBody->getUseGravity() && !rigidBody->isKinematic())
+            {
+                // Apply global gravity multiplied by entity's gravity scale: v = v0 + (g * scale) * dt
+                Vec2 currentVelocity = transform->getVelocity();
+                Vec2 force           = m_globalGravity * rigidBody->getGravityScale();
+                Vec2 newVelocity     = currentVelocity + (force * deltaTime);
+
+                // Store force in rigid body for visualization
+                rigidBody->addForce(force);
+
+                transform->setVelocity(newVelocity);
+            }
+        }
+    }
+
+    // Backward compatibility: Apply gravity force to entities with CGravity (deprecated)
     auto entities = entityManager.getEntitiesWithComponent<CGravity>();
     for (auto* entity : entities)
     {
@@ -315,6 +398,16 @@ void S2DPhysics::resolveCollision(Entity* a, Entity* b, const CCollider* collide
     bool aIsStatic = colliderA->isStatic();
     bool bIsStatic = colliderB->isStatic();
 
+    // Get rigid bodies (if present) to determine restitution
+    auto rigidBodyA = a->getComponent<CRigidBody2D>();
+    auto rigidBodyB = b->getComponent<CRigidBody2D>();
+
+    // Calculate combined restitution (use minimum of both objects' restitution values)
+    // If an entity doesn't have a rigid body, use default hardcoded value (0.8f for backward compatibility)
+    float restitutionA = rigidBodyA ? rigidBodyA->getRestitution() : 0.8f;
+    float restitutionB = rigidBodyB ? rigidBodyB->getRestitution() : 0.8f;
+    float restitution  = (restitutionA < restitutionB) ? restitutionA : restitutionB;
+
     // Cast to specific collider types
     auto* circleA = dynamic_cast<const CCircleCollider*>(colliderA);
     auto* circleB = dynamic_cast<const CCircleCollider*>(colliderB);
@@ -324,15 +417,15 @@ void S2DPhysics::resolveCollision(Entity* a, Entity* b, const CCollider* collide
     // Dispatch to appropriate collision resolver with manifold
     if (circleA && circleB)
     {
-        resolveCircleVsCircle(transformA, transformB, circleA, circleB, aIsStatic, bIsStatic, manifold);
+        resolveCircleVsCircle(transformA, transformB, circleA, circleB, aIsStatic, bIsStatic, manifold, restitution);
     }
     else if ((circleA && boxB) || (boxA && circleB))
     {
-        resolveCircleVsBox(transformA, transformB, circleA, boxA, circleB, boxB, aIsStatic, bIsStatic, manifold);
+        resolveCircleVsBox(transformA, transformB, circleA, boxA, circleB, boxB, aIsStatic, bIsStatic, manifold, restitution);
     }
     else if (boxA && boxB)
     {
-        resolveBoxVsBox(transformA, transformB, boxA, boxB, aIsStatic, bIsStatic, manifold);
+        resolveBoxVsBox(transformA, transformB, boxA, boxB, aIsStatic, bIsStatic, manifold, restitution);
     }
 }
 
@@ -342,7 +435,8 @@ void S2DPhysics::resolveCircleVsCircle(CTransform*              transformA,
                                        const CCircleCollider*   circleB,
                                        bool                     aIsStatic,
                                        bool                     bIsStatic,
-                                       const CollisionManifold& manifold)
+                                       const CollisionManifold& manifold,
+                                       float                    restitution)
 {
     // Get positions and velocities
     Vec2 posA = transformA->getPosition();
@@ -368,7 +462,6 @@ void S2DPhysics::resolveCircleVsCircle(CTransform*              transformA,
     // Only apply velocity changes if objects are approaching
     if (velAlongNormal > 0)
     {
-        float restitution      = 0.8f;
         float impulseMagnitude = -(1.0f + restitution) * velAlongNormal;
 
         // Apply impulse based on static/dynamic state
@@ -420,7 +513,8 @@ void S2DPhysics::resolveCircleVsBox(CTransform*              transformA,
                                     const CBoxCollider*      boxB,
                                     bool                     aIsStatic,
                                     bool                     bIsStatic,
-                                    const CollisionManifold& manifold)
+                                    const CollisionManifold& manifold,
+                                    float                    restitution)
 {
     // Get positions and velocities
     Vec2 posA = transformA->getPosition();
@@ -450,7 +544,6 @@ void S2DPhysics::resolveCircleVsBox(CTransform*              transformA,
     // Only apply velocity changes if objects are approaching
     if (velAlongNormal > 0)
     {
-        float restitution      = 0.8f;
         float impulseMagnitude = -(1.0f + restitution) * velAlongNormal;
 
         // Apply impulse based on static/dynamic state
@@ -500,7 +593,8 @@ void S2DPhysics::resolveBoxVsBox(CTransform*              transformA,
                                  const CBoxCollider*      boxB,
                                  bool                     aIsStatic,
                                  bool                     bIsStatic,
-                                 const CollisionManifold& manifold)
+                                 const CollisionManifold& manifold,
+                                 float                    restitution)
 {
     // Get positions and velocities
     Vec2 posA = transformA->getPosition();
@@ -526,7 +620,6 @@ void S2DPhysics::resolveBoxVsBox(CTransform*              transformA,
     // Only apply velocity changes if objects are approaching
     if (velAlongNormal > 0)
     {
-        float restitution      = 0.8f;
         float impulseMagnitude = -(1.0f + restitution) * velAlongNormal;
 
         // Apply impulse based on static/dynamic state
