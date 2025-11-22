@@ -28,13 +28,6 @@ CRigidBody2D::CRigidBody2D()
 {
 }
 
-void CRigidBody2D::update(float deltaTime)
-{
-    // Update is called by the entity manager
-    // Physics system handles actual force application
-    // This could be used for drag application in the future
-}
-
 void CRigidBody2D::serialize(JsonBuilder& builder) const
 {
     builder.beginObject();

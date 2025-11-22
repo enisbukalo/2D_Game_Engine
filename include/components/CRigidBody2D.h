@@ -43,7 +43,6 @@ public:
     ~CRigidBody2D() override = default;
 
     // Component interface
-    void        update(float deltaTime) override;
     std::string getType() const override
     {
         return "RigidBody2D";

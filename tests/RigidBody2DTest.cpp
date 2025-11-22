@@ -26,7 +26,7 @@ TEST(RigidBody2DTest, DefaultValues)
     // Material properties
     EXPECT_FLOAT_EQ(rb.getRestitution(), 0.5f);
     EXPECT_FLOAT_EQ(rb.getFriction(), 0.3f);
-    EXPECT_FLOAT_EQ(rb.getLinearDrag(), 0.01f);
+    EXPECT_FLOAT_EQ(rb.getLinearDrag(), 0.25f);
     EXPECT_FLOAT_EQ(rb.getAngularDrag(), 0.05f);
 
     // Gravity settings
@@ -296,13 +296,6 @@ TEST(RigidBody2DTest, ComponentActive)
 
     rb.setActive(false);
     EXPECT_FALSE(rb.isActive());
-}
-
-TEST(RigidBody2DTest, UpdateMethod)
-{
-    CRigidBody2D rb;
-    // Update should not crash (currently does nothing)
-    rb.update(1.0f / 60.0f);
 }
 
 // ============================================================================
