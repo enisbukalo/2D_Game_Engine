@@ -38,10 +38,10 @@ private:
     bool                        m_showColliders;
     bool                        m_showVectors;
 
-    const float RESTITUTION                 = 0.8f;   // Bounciness factor
-    const float BALL_RADIUS                 = 10.0f;  // Radius of each ball
-    const int   BOUNDARY_COLLIDER_THICKNESS = 50;     // Thickness of boundary colliders
-    const float RANDOM_VELOCITY_RANGE       = 200.0f; // Random velocity range: -200 to +200
+    const float RESTITUTION                 = 0.8f;    // Bounciness factor
+    const float BALL_RADIUS                 = 10.0f;   // Radius of each ball
+    const int   BOUNDARY_COLLIDER_THICKNESS = 50;      // Thickness of boundary colliders
+    const float RANDOM_VELOCITY_RANGE       = 200.0f;  // Random velocity range: -200 to +200
 
     // Helper function to generate random velocity in a symmetric range
     Vec2 getRandomVelocity() const

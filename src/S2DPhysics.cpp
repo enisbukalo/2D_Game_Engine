@@ -70,7 +70,7 @@ Vec2 S2DPhysics::getGlobalGravity() const
 void S2DPhysics::clearForces()
 {
     auto& entityManager = EntityManager::instance();
-    auto rigidBodies = entityManager.getEntitiesWithComponent<CRigidBody2D>();
+    auto  rigidBodies   = entityManager.getEntitiesWithComponent<CRigidBody2D>();
 
     for (auto* entity : rigidBodies)
     {
@@ -85,7 +85,7 @@ void S2DPhysics::clearForces()
 void S2DPhysics::applyDrag(float deltaTime)
 {
     auto& entityManager = EntityManager::instance();
-    auto rigidBodies = entityManager.getEntitiesWithComponent<CRigidBody2D>();
+    auto  rigidBodies   = entityManager.getEntitiesWithComponent<CRigidBody2D>();
 
     for (auto* entity : rigidBodies)
     {
@@ -100,7 +100,7 @@ void S2DPhysics::applyDrag(float deltaTime)
             continue;
 
         // Get current velocity
-        Vec2 velocity = transform->getVelocity();
+        Vec2  velocity          = transform->getVelocity();
         float velocityMagnitude = velocity.length();
 
         // Skip if velocity is negligible to avoid division by zero
@@ -406,7 +406,7 @@ void S2DPhysics::resolveCollision(Entity* a, Entity* b, const CCollider* collide
     // If an entity doesn't have a rigid body, use default hardcoded value (0.8f for backward compatibility)
     float restitutionA = rigidBodyA ? rigidBodyA->getRestitution() : 0.8f;
     float restitutionB = rigidBodyB ? rigidBodyB->getRestitution() : 0.8f;
-    float restitution = (restitutionA < restitutionB) ? restitutionA : restitutionB;
+    float restitution  = (restitutionA < restitutionB) ? restitutionA : restitutionB;
 
     // Cast to specific collider types
     auto* circleA = dynamic_cast<const CCircleCollider*>(colliderA);

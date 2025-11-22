@@ -3,24 +3,33 @@
 #include <JsonValue.h>
 
 CRigidBody2D::CRigidBody2D()
-    : m_mass(1.0f)
-    , m_inverseMass(1.0f)  // 1/1.0 = 1.0
-    , m_restitution(0.5f)  // Medium bounce (wood/plastic feel)
-    , m_friction(0.3f)     // Medium friction
-    , m_linearDrag(0.25f)  // Moderate air resistance (25% per second)
-    , m_angularDrag(0.05f) // Slight rotational dampening
-    , m_useGravity(true)   // Most objects affected by gravity
-    , m_gravityScale(1.0f) // Normal gravity strength
-    , m_isKinematic(false) // Most objects are dynamic
-    , m_freezePositionX(false)
-    , m_freezePositionY(false)
-    , m_freezeRotation(false)
-    , m_accumulatedForce(0.0f, 0.0f)
-    , m_totalForce(0.0f, 0.0f)
+    : m_mass(1.0f),
+      m_inverseMass(1.0f)  // 1/1.0 = 1.0
+      ,
+      m_restitution(0.5f)  // Medium bounce (wood/plastic feel)
+      ,
+      m_friction(0.3f)  // Medium friction
+      ,
+      m_linearDrag(0.25f)  // Moderate air resistance (25% per second)
+      ,
+      m_angularDrag(0.05f)  // Slight rotational dampening
+      ,
+      m_useGravity(true)  // Most objects affected by gravity
+      ,
+      m_gravityScale(1.0f)  // Normal gravity strength
+      ,
+      m_isKinematic(false)  // Most objects are dynamic
+      ,
+      m_freezePositionX(false),
+      m_freezePositionY(false),
+      m_freezeRotation(false),
+      m_accumulatedForce(0.0f, 0.0f),
+      m_totalForce(0.0f, 0.0f)
 {
 }
 
-void CRigidBody2D::update(float deltaTime) {
+void CRigidBody2D::update(float deltaTime)
+{
     // Update is called by the entity manager
     // Physics system handles actual force application
     // This could be used for drag application in the future
@@ -63,35 +72,42 @@ void CRigidBody2D::deserialize(const JsonValue& value)
 {
     const auto& rb = value["cRigidBody2D"];
 
-    m_mass = static_cast<float>(rb["mass"].getNumber());
-    m_restitution = static_cast<float>(rb["restitution"].getNumber());
-    m_friction = static_cast<float>(rb["friction"].getNumber());
-    m_linearDrag = static_cast<float>(rb["linearDrag"].getNumber());
-    m_angularDrag = static_cast<float>(rb["angularDrag"].getNumber());
-    m_useGravity = rb["useGravity"].getBool();
-    m_gravityScale = static_cast<float>(rb["gravityScale"].getNumber());
-    m_isKinematic = rb["isKinematic"].getBool();
+    m_mass            = static_cast<float>(rb["mass"].getNumber());
+    m_restitution     = static_cast<float>(rb["restitution"].getNumber());
+    m_friction        = static_cast<float>(rb["friction"].getNumber());
+    m_linearDrag      = static_cast<float>(rb["linearDrag"].getNumber());
+    m_angularDrag     = static_cast<float>(rb["angularDrag"].getNumber());
+    m_useGravity      = rb["useGravity"].getBool();
+    m_gravityScale    = static_cast<float>(rb["gravityScale"].getNumber());
+    m_isKinematic     = rb["isKinematic"].getBool();
     m_freezePositionX = rb["freezePositionX"].getBool();
     m_freezePositionY = rb["freezePositionY"].getBool();
-    m_freezeRotation = rb["freezeRotation"].getBool();
+    m_freezeRotation  = rb["freezeRotation"].getBool();
 
     // Recalculate inverse mass after deserialization
-    if (m_mass > 0.0f) {
+    if (m_mass > 0.0f)
+    {
         m_inverseMass = 1.0f / m_mass;
-    } else {
+    }
+    else
+    {
         m_inverseMass = 0.0f;  // Infinite mass (immovable)
     }
 }
 
-void CRigidBody2D::addForce(const Vec2& force) {
-    if (m_isKinematic) {
+void CRigidBody2D::addForce(const Vec2& force)
+{
+    if (m_isKinematic)
+    {
         return;  // Kinematic bodies don't respond to forces
     }
     m_accumulatedForce = m_accumulatedForce + force;
 }
 
-void CRigidBody2D::addImpulse(const Vec2& impulse) {
-    if (m_isKinematic) {
+void CRigidBody2D::addImpulse(const Vec2& impulse)
+{
+    if (m_isKinematic)
+    {
         return;  // Kinematic bodies don't respond to impulses
     }
     // Impulses are applied immediately to velocity by the physics system
@@ -99,21 +115,27 @@ void CRigidBody2D::addImpulse(const Vec2& impulse) {
     m_accumulatedForce = m_accumulatedForce + impulse;
 }
 
-void CRigidBody2D::clearForces() {
-    m_totalForce = m_accumulatedForce;  // Save for visualization
+void CRigidBody2D::clearForces()
+{
+    m_totalForce       = m_accumulatedForce;  // Save for visualization
     m_accumulatedForce = Vec2(0.0f, 0.0f);
 }
 
-void CRigidBody2D::setMass(float mass) {
-    if (mass < 0.0f) {
+void CRigidBody2D::setMass(float mass)
+{
+    if (mass < 0.0f)
+    {
         mass = 0.0f;  // Clamp to zero minimum
     }
 
     m_mass = mass;
 
-    if (mass > 0.0f) {
+    if (mass > 0.0f)
+    {
         m_inverseMass = 1.0f / mass;
-    } else {
+    }
+    else
+    {
         m_inverseMass = 0.0f;  // Infinite mass (immovable object)
     }
 }
