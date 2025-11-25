@@ -134,7 +134,7 @@ private:
     std::vector<std::shared_ptr<Entity>> m_entities;       ///< List of all active entities
     std::vector<std::shared_ptr<Entity>> m_entitiesToAdd;  ///< Queue of entities to be added
     std::unordered_map<std::string, std::vector<std::shared_ptr<Entity>>> m_entityMap;  ///< Map of entities by tag
-    uint8_t m_totalEntities = 0;  ///< Counter for generating unique entity IDs
+    size_t m_totalEntities = 0;  ///< Counter for generating unique entity IDs
 };
 
 #endif  // ENTITYMANAGER_H

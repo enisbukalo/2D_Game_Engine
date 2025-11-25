@@ -2,6 +2,7 @@
 #define ENTITY_H
 
 #include <algorithm>
+#include <iterator>
 #include <map>
 #include <memory>
 #include <string>
@@ -60,6 +61,24 @@ public:
             }
         }
         return nullptr;
+    };
+
+    /**
+     * @brief Gets all of the components attached to this entity
+     * @tparam T The type of components to get
+     * @return Vector of pointers to components of the specified type
+     *
+     * This method retrieves all components of any type attached to this entity.
+     */
+    std::vector<Component *> getAllComponents()
+    {
+        std::vector<Component *> components;
+        components.reserve(m_components.size());
+        std::transform(m_components.begin(),
+                       m_components.end(),
+                       std::back_inserter(components),
+                       [](const auto &pair) { return pair.second.get(); });
+        return components;
     };
 
     /**
@@ -135,7 +154,7 @@ public:
      * @brief Gets the entity's unique identifier
      * @return The entity's ID
      */
-    uint8_t getId() const;
+    size_t getId() const;
 
     /**
      * @brief Gets the entity's tag
@@ -165,11 +184,11 @@ protected:
      * @param tag The entity's tag for identification and grouping
      * @param id Unique identifier for the entity
      */
-    Entity(const std::string &tag, uint8_t id) : m_tag(tag), m_id(id) {}
+    Entity(const std::string &tag, size_t id) : m_tag(tag), m_id(id) {}
 
 private:
     std::unordered_map<std::type_index, std::unique_ptr<Component>> m_components;  ///< Map of components indexed by type
-    uint8_t           m_id    = 0;                                                 ///< Unique identifier
+    size_t            m_id    = 0;                                                 ///< Unique identifier
     const std::string m_tag   = "Default";                                         ///< Entity tag
     bool              m_alive = true;                                              ///< Entity state flag
 };

@@ -4,7 +4,7 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 #include "EntityManager.h"
-#include "systems/S2DPhysics.h"
+#include "systems/SBox2DPhysics.h"
 
 GameEngine::GameEngine(sf::RenderWindow* window, sf::Vector2f gravity, uint8_t subStepCount, float timeStep)
     : m_window(window), m_gravity(gravity), m_subStepCount(subStepCount), m_timeStep(timeStep)
@@ -36,14 +36,13 @@ GameEngine::GameEngine(sf::RenderWindow* window, sf::Vector2f gravity, uint8_t s
 
     m_gameRunning = true;
 
-    // Set up physics world bounds based on window size
-    sf::Vector2u windowSize = window->getSize();
-    Vec2         center(windowSize.x / 2.0f, windowSize.y / 2.0f);
-    Vec2         size(windowSize.x, windowSize.y);
-    S2DPhysics::instance().setWorldBounds(center, size);
-
-    // Set global gravity in physics system
-    S2DPhysics::instance().setGlobalGravity(Vec2(gravity.x, gravity.y));
+    // Configure physics system
+    auto& physics = SBox2DPhysics::instance();
+    physics.setGravity({gravity.x, gravity.y});  // Box2D uses Y-up convention
+    // Use the stored member values so the members are read/used and
+    // do not trigger "unused member" style warnings from static analyzers
+    physics.setSubStepCount(m_subStepCount);  // Set substep count for stability
+    physics.setTimeStep(m_timeStep);          // Set fixed timestep
 }
 
 GameEngine::~GameEngine()
@@ -84,11 +83,8 @@ void GameEngine::update(float deltaTime)
     // Process fixed timestep updates
     while (m_accumulator >= m_timeStep)
     {
-        // Run physics substeps
-        for (uint8_t i = 0; i < m_subStepCount; ++i)
-        {
-            S2DPhysics::instance().update(m_timeStep / m_subStepCount);
-        }
+        // Box2D physics update (handles its own sub-stepping)
+        SBox2DPhysics::instance().update(m_timeStep);
 
         m_accumulator -= m_timeStep;
     }

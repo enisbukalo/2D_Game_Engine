@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
-#include "CCircleCollider.h"
-#include "CGravity.h"
 #include "CName.h"
 #include "CTransform.h"
+#include "CPhysicsBody2D.h"
+#include "CCollider2D.h"
 #include "ComponentFactory.h"
 
 // Test helper component.
@@ -34,17 +34,17 @@ TEST(ComponentFactoryTest, CreateComponents)
     ASSERT_NE(transform, nullptr);
     EXPECT_EQ(transform->getType(), "Transform");
 
-    auto gravity = factory.createComponent("Gravity");
-    ASSERT_NE(gravity, nullptr);
-    EXPECT_EQ(gravity->getType(), "Gravity");
-
     auto name = factory.createComponent("Name");
     ASSERT_NE(name, nullptr);
     EXPECT_EQ(name->getType(), "Name");
 
-    auto circleCollider = factory.createComponent("CircleCollider");
-    ASSERT_NE(circleCollider, nullptr);
-    EXPECT_EQ(circleCollider->getType(), "CircleCollider");
+    auto physicsBody = factory.createComponent("PhysicsBody2D");
+    ASSERT_NE(physicsBody, nullptr);
+    EXPECT_EQ(physicsBody->getType(), "CPhysicsBody2D");
+
+    auto collider = factory.createComponent("Collider2D");
+    ASSERT_NE(collider, nullptr);
+    EXPECT_EQ(collider->getType(), "CCollider2D");
 
     // Test invalid component type
     auto invalid = factory.createComponent("InvalidType");
@@ -52,9 +52,9 @@ TEST(ComponentFactoryTest, CreateComponents)
 
     // Clean up
     delete transform;
-    delete gravity;
     delete name;
-    delete circleCollider;
+    delete physicsBody;
+    delete collider;
 }
 
 TEST(ComponentFactoryTest, RegisterCustomComponent)
@@ -62,17 +62,16 @@ TEST(ComponentFactoryTest, RegisterCustomComponent)
     auto& factory = ComponentFactory::instance();
 
     // Register a custom component creator
-    factory.registerComponent<CCircleCollider>("CircleCollider");
+    factory.registerComponent<CCollider2D>("CustomCollider");
 
     // Create the component and verify its properties
-    auto component = factory.createComponent("CircleCollider");
+    auto component = factory.createComponent("CustomCollider");
     ASSERT_NE(component, nullptr);
-    EXPECT_EQ(component->getType(), "CircleCollider");
+    EXPECT_EQ(component->getType(), "CCollider2D");
 
-    auto circleCollider = dynamic_cast<CCircleCollider*>(component);
-    ASSERT_NE(circleCollider, nullptr);
-    EXPECT_FLOAT_EQ(circleCollider->getRadius(), 1.0f);
-    EXPECT_FALSE(circleCollider->isTrigger());
+    auto collider2D = dynamic_cast<CCollider2D*>(component);
+    ASSERT_NE(collider2D, nullptr);
+    EXPECT_FALSE(collider2D->isSensor());
 
     delete component;
 }
@@ -113,8 +112,8 @@ TEST(ComponentFactoryTest, ComponentTypeCorrectness)
     EXPECT_NE(dynamic_cast<CName*>(name), nullptr);
     delete name;
 
-    auto gravity = factory.createComponent("Gravity");
-    ASSERT_NE(gravity, nullptr);
-    EXPECT_NE(dynamic_cast<CGravity*>(gravity), nullptr);
-    delete gravity;
+    auto physicsBody = factory.createComponent("PhysicsBody2D");
+    ASSERT_NE(physicsBody, nullptr);
+    EXPECT_NE(dynamic_cast<CPhysicsBody2D*>(physicsBody), nullptr);
+    delete physicsBody;
 }

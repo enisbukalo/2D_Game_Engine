@@ -103,8 +103,9 @@ cmake -B ${BUILD_DIR} \
     -G Ninja \
     -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN_FILE" \
     -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
-    -DCMAKE_PREFIX_PATH="$GAMEENGINE_DIR" \
-    -DGameEngine_DIR="$GAMEENGINE_DIR/lib/cmake/GameEngine" || {
+    -DCMAKE_PREFIX_PATH="$GAMEENGINE_DIR;$GAMEENGINE_DIR/lib/cmake" \
+    -DGameEngine_DIR="$GAMEENGINE_DIR/lib/cmake/GameEngine" \
+    -Dbox2d_DIR="$GAMEENGINE_DIR/lib/cmake/box2d" || {
         echo -e "${RED}Configuration failed!${NC}"
         exit 1
     }

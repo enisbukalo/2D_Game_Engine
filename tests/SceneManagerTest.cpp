@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 #include <filesystem>
-#include "CCircleCollider.h"
-#include "CGravity.h"
 #include "CName.h"
 #include "CTransform.h"
+#include "CPhysicsBody2D.h"
+#include "CCollider2D.h"
 #include "EntityManager.h"
 #include "SceneManager.h"
 #include "TestUtils.h"
@@ -38,14 +38,15 @@ protected:
     {
         auto& manager = EntityManager::instance();
 
-        // Create an entity with Transform, Gravity and CircleCollider
+        // Create an entity with Transform, PhysicsBody2D and Collider2D
         auto entity1    = manager.addEntity("physics_object");
         auto transform1 = entity1->addComponent<CTransform>();
         transform1->setPosition(Vec2(100.0f, 200.0f));
         transform1->setScale(Vec2(2.0f, 2.0f));
-        auto gravity1 = entity1->addComponent<CGravity>();
-        gravity1->setMultiplier(1.5f);
-        auto collider1 = entity1->addComponent<CCircleCollider>(3.0f);
+        auto physicsBody1 = entity1->addComponent<CPhysicsBody2D>();
+        physicsBody1->initialize({100.0f, 200.0f});
+        auto collider1 = entity1->addComponent<CCollider2D>();
+        collider1->createCircle(3.0f);
 
         // Create another entity with Transform and Name
         auto entity2    = manager.addEntity("named_object");
@@ -93,14 +94,13 @@ TEST_F(SceneManagerTest, SaveAndLoadScene)
     EXPECT_EQ(transform1->getPosition(), Vec2(100.0f, 200.0f));
     EXPECT_EQ(transform1->getScale(), Vec2(2.0f, 2.0f));
 
-    auto gravity1 = physicsEntity->getComponent<CGravity>();
-    ASSERT_NE(gravity1, nullptr);
-    EXPECT_FLOAT_EQ(gravity1->getMultiplier(), 1.5f);
+    auto physicsBody1 = physicsEntity->getComponent<CPhysicsBody2D>();
+    ASSERT_NE(physicsBody1, nullptr);
 
-    auto collider1 = physicsEntity->getComponent<CCircleCollider>();
+    auto collider1 = physicsEntity->getComponent<CCollider2D>();
     ASSERT_NE(collider1, nullptr);
-    EXPECT_FLOAT_EQ(collider1->getRadius(), 3.0f);
-    EXPECT_FALSE(collider1->isTrigger());
+    EXPECT_FLOAT_EQ(collider1->getCircleRadius(), 3.0f);
+    EXPECT_FALSE(collider1->isSensor());
 
     // Verify named_object
     auto namedObjects = EntityManager::instance().getEntitiesByTag("named_object");

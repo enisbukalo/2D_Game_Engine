@@ -1,7 +1,5 @@
 #include <gtest/gtest.h>
 #include <filesystem>
-#include "CCircleCollider.h"
-#include "CGravity.h"
 #include "CName.h"
 #include "CTransform.h"
 #include "Component.h"
@@ -9,6 +7,8 @@
 #include "EntityManager.h"
 #include "TestUtils.h"
 #include "Vec2.h"
+#include "CPhysicsBody2D.h"
+#include "CCollider2D.h"
 
 // Define the source directory path
 #ifndef SOURCE_DIR
@@ -72,22 +72,19 @@ TEST_F(EntityManagerTest, EntityComponentQuery)
 
     std::shared_ptr<Entity> entity1 = manager.addEntity("test1");
     entity1->addComponent<CTransform>();
-    entity1->addComponent<CCircleCollider>(2.0f);
+    entity1->addComponent<CName>();
 
     std::shared_ptr<Entity> entity2 = manager.addEntity("test2");
     entity2->addComponent<CTransform>();
-    entity2->addComponent<CGravity>();
-    entity2->addComponent<CCircleCollider>(3.0f);
+    entity2->addComponent<CName>();
 
     manager.update(0.0f);  // Process pending entities
 
     auto entitiesWithTransform = manager.getEntitiesWithComponent<CTransform>();
-    auto entitiesWithGravity   = manager.getEntitiesWithComponent<CGravity>();
-    auto entitiesWithCollider  = manager.getEntitiesWithComponent<CCircleCollider>();
+    auto entitiesWithName      = manager.getEntitiesWithComponent<CName>();
 
     EXPECT_EQ(entitiesWithTransform.size(), 2);
-    EXPECT_EQ(entitiesWithGravity.size(), 1);
-    EXPECT_EQ(entitiesWithCollider.size(), 2);
+    EXPECT_EQ(entitiesWithName.size(), 2);
 }
 
 TEST_F(EntityManagerTest, EntityUpdateSystem)
@@ -95,10 +92,9 @@ TEST_F(EntityManagerTest, EntityUpdateSystem)
     auto& manager   = EntityManager::instance();
     auto  entity    = manager.addEntity("test");
     auto  transform = entity->addComponent<CTransform>();
-    auto  gravity   = entity->addComponent<CGravity>();
+    auto  name      = entity->addComponent<CName>();
 
-    const float EPSILON = 0.0001f;  // Small value for floating point comparison
-    EXPECT_NEAR(gravity->getMultiplier(), 1.0f, EPSILON);  // Default multiplier is 1.0
+    EXPECT_NE(name, nullptr);
 
     // Test system update
     float deltaTime = 1.0f;
@@ -109,16 +105,12 @@ TEST_F(EntityManagerTest, EntitySerialization)
 {
     auto& manager = EntityManager::instance();
 
-    // Create first entity with Transform, Gravity and CircleCollider
-    auto entity1    = manager.addEntity("physics_object");
+    // Create first entity with Transform
+    auto entity1    = manager.addEntity("transform_object");
     auto transform1 = entity1->addComponent<CTransform>();
     transform1->setPosition(Vec2(100.0f, 200.0f));
     transform1->setScale(Vec2(2.0f, 2.0f));
     transform1->setRotation(45.0f);
-    auto gravity1 = entity1->addComponent<CGravity>();
-    gravity1->setMultiplier(1.5f);
-    auto collider1 = entity1->addComponent<CCircleCollider>(3.0f);
-    collider1->setTrigger(true);
 
     // Create second entity with Transform and Name
     auto entity2    = manager.addEntity("named_object");
@@ -127,16 +119,30 @@ TEST_F(EntityManagerTest, EntitySerialization)
     auto name2 = entity2->addComponent<CName>();
     name2->setName("TestObject");
 
-    // Create third entity with all components
+    // Create third entity with Transform and Name
     auto entity3    = manager.addEntity("complete_object");
     auto transform3 = entity3->addComponent<CTransform>();
     transform3->setPosition(Vec2(300.0f, -200.0f));
     transform3->setRotation(90.0f);
-    auto gravity3 = entity3->addComponent<CGravity>();
-    gravity3->setMultiplier(0.5f);
     auto name3 = entity3->addComponent<CName>();
     name3->setName("CompleteObject");
-    auto collider3 = entity3->addComponent<CCircleCollider>(5.0f);
+
+    // Create fourth entity with C2DPhysicsBody
+    auto entity4       = manager.addEntity("physics_object");
+    auto transform4    = entity4->addComponent<CTransform>();   
+    transform4->setPosition(Vec2(0.0f, 0.0f));
+    auto physicsBody4  = entity4->addComponent<CPhysicsBody2D>();
+    physicsBody4->initialize({0.0f, 0.0f});
+    physicsBody4->setBodyType(BodyType::Dynamic);
+    physicsBody4->setDensity(1.0f);
+    physicsBody4->setFriction(0.5f);
+    physicsBody4->setRestitution(0.2f);
+    physicsBody4->setFixedRotation(false);
+    physicsBody4->setLinearDamping(0.1f);
+    physicsBody4->setAngularDamping(0.1f);
+    physicsBody4->setGravityScale(1.0f);
+    auto collider4 = entity4->addComponent<CCollider2D>();
+    collider4->createCircle(5.0f);
 
     // Process pending entities
     manager.update(0.0f);
@@ -151,11 +157,11 @@ TEST_F(EntityManagerTest, EntitySerialization)
 
     // Test entities array
     const auto& entities = root["entities"].getArray();
-    ASSERT_EQ(entities.size(), 3);
+    ASSERT_EQ(entities.size(), 4);
 
-    // Find physics_object entity and verify its components
+    // Find transform_object entity and verify its components
     const auto& physics = entities[0];
-    EXPECT_EQ(physics["tag"].getString(), "physics_object");
+    EXPECT_EQ(physics["tag"].getString(), "transform_object");
     const auto& physicsComponents = physics["components"].getArray();
 
     // Find and verify Transform component
@@ -176,33 +182,6 @@ TEST_F(EntityManagerTest, EntitySerialization)
     EXPECT_TRUE(approxEqual(scale["x"].getNumber(), 2.0));
     EXPECT_TRUE(approxEqual(scale["y"].getNumber(), 2.0));
     EXPECT_TRUE(approxEqual((*transformData)["rotation"].getNumber(), 45.0));
-
-    // Find and verify Gravity component
-    const JsonValue* gravityData = nullptr;
-    for (const auto& comp : physicsComponents)
-    {
-        if (!comp["cGravity"].isNull())
-        {
-            gravityData = &comp["cGravity"];
-            break;
-        }
-    }
-    ASSERT_NE(gravityData, nullptr);
-    EXPECT_TRUE(approxEqual((*gravityData)["multiplier"].getNumber(), 1.5));
-
-    // Find and verify CircleCollider component
-    const JsonValue* colliderData = nullptr;
-    for (const auto& comp : physicsComponents)
-    {
-        if (!comp["cCircleCollider"].isNull())
-        {
-            colliderData = &comp["cCircleCollider"];
-            break;
-        }
-    }
-    ASSERT_NE(colliderData, nullptr);
-    EXPECT_TRUE(approxEqual((*colliderData)["radius"].getNumber(), 3.0f));
-    EXPECT_TRUE((*colliderData)["trigger"].getBool());
 
     // Find named_object entity
     const auto& named = entities[1];
@@ -258,19 +237,6 @@ TEST_F(EntityManagerTest, EntitySerialization)
     EXPECT_TRUE(approxEqual(pos3["y"].getNumber(), -200.0));
     EXPECT_TRUE(approxEqual((*transform3Data)["rotation"].getNumber(), 90.0));
 
-    // Find and verify Gravity component
-    const JsonValue* gravity3JsonData = nullptr;
-    for (const auto& comp : completeComponents)
-    {
-        if (!comp["cGravity"].isNull())
-        {
-            gravity3JsonData = &comp["cGravity"];
-            break;
-        }
-    }
-    ASSERT_NE(gravity3JsonData, nullptr);
-    EXPECT_TRUE(approxEqual((*gravity3JsonData)["multiplier"].getNumber(), 0.5));
-
     // Find and verify Name component
     const JsonValue* name3JsonData = nullptr;
     for (const auto& comp : completeComponents)
@@ -284,19 +250,41 @@ TEST_F(EntityManagerTest, EntitySerialization)
     ASSERT_NE(name3JsonData, nullptr);
     EXPECT_EQ((*name3JsonData)["name"].getString(), "CompleteObject");
 
-    // Find and verify CircleCollider component
-    const JsonValue* collider3JsonData = nullptr;
-    for (const auto& comp : completeComponents)
+    // Find and verify PhysicsBody2D component
+    const auto& physicsObject = entities[3];
+    EXPECT_EQ(physicsObject["tag"].getString(), "physics_object");
+    const auto& physicsObjectComponents = physicsObject["components"].getArray();
+    const JsonValue* physicsBody3JsonData = nullptr;
+    for (const auto& comp : physicsObjectComponents)
     {
-        if (!comp["cCircleCollider"].isNull())
+        if (!comp["cPhysicsBody2D"].isNull())
         {
-            collider3JsonData = &comp["cCircleCollider"];
+            physicsBody3JsonData = &comp["cPhysicsBody2D"];
             break;
         }
     }
-    ASSERT_NE(collider3JsonData, nullptr);
-    EXPECT_TRUE(approxEqual((*collider3JsonData)["radius"].getNumber(), 5.0f));
-    EXPECT_FALSE((*collider3JsonData)["trigger"].getBool());
+    ASSERT_NE(physicsBody3JsonData, nullptr);
+    EXPECT_EQ((*physicsBody3JsonData)["bodyType"].getString(), "Dynamic");
+    EXPECT_TRUE(approxEqual((*physicsBody3JsonData)["density"].getNumber(), 1.0f));
+    EXPECT_TRUE(approxEqual((*physicsBody3JsonData)["friction"].getNumber(), 0.5f));
+    EXPECT_TRUE(approxEqual((*physicsBody3JsonData)["restitution"].getNumber(), 0.2f));
+    EXPECT_FALSE((*physicsBody3JsonData)["fixedRotation"].getBool());   
+    EXPECT_TRUE(approxEqual((*physicsBody3JsonData)["linearDamping"].getNumber(), 0.1f));
+    EXPECT_TRUE(approxEqual((*physicsBody3JsonData)["angularDamping"].getNumber(), 0.1f));
+    EXPECT_TRUE(approxEqual((*physicsBody3JsonData)["gravityScale"].getNumber(), 1.0f));    
+
+    // Find and verify CircleCollider component from the PhysicsBody2D entity
+    const JsonValue* collider4JsonData = nullptr;
+    for (const auto& comp : physicsObjectComponents)
+    {
+        if (!comp["cCollider2D"].isNull())
+        {
+            collider4JsonData = &comp["cCollider2D"];
+            break;
+        }
+    }
+    ASSERT_NE(collider4JsonData, nullptr);
+    EXPECT_TRUE(approxEqual((*collider4JsonData)["radius"].getNumber(), 5.0f));
 
     // Clean up
     std::filesystem::remove(testFile);
@@ -313,8 +301,6 @@ TEST_F(EntityManagerTest, SaveAndLoadEntities)
     transform1->setVelocity(Vec2(10.0f, -5.0f));
     transform1->setScale(Vec2(2.0f, 2.0f));
     transform1->setRotation(45.0f);
-    auto gravity1 = entity1->addComponent<CGravity>();
-    gravity1->setMultiplier(1.5f);
 
     // Create second entity with Transform and Name
     auto entity2    = manager.addEntity("named_object");
@@ -350,10 +336,6 @@ TEST_F(EntityManagerTest, SaveAndLoadEntities)
     EXPECT_EQ(loadedTransform1->getVelocity(), Vec2(10.0f, -5.0f));
     EXPECT_EQ(loadedTransform1->getScale(), Vec2(2.0f, 2.0f));
     EXPECT_FLOAT_EQ(loadedTransform1->getRotation(), 45.0f);
-
-    auto loadedGravity1 = loadedPhysics->getComponent<CGravity>();
-    ASSERT_NE(loadedGravity1, nullptr);
-    EXPECT_FLOAT_EQ(loadedGravity1->getMultiplier(), 1.5f);
 
     // Find and verify named_object
     auto namedObjects = manager.getEntitiesByTag("named_object");

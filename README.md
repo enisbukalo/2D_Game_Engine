@@ -45,26 +45,35 @@ A modern C++ 2D game engine built with SFML, featuring an Entity Component Syste
 - **Component-Based Architecture**: Modular component system for easy extension
 - **Built-in Components**:
   - `CTransform`: Handles position, velocity, scale, and rotation data storage
-  - `CGravity`: Applies a multiplier to the global gravity (1.0 = normal, 0.0 = no gravity, 2.0 = double, -1.0 = upward/reverse)
+  - `CPhysicsBody2D`: Box2D physics body wrapper (Dynamic, Kinematic, or Static)
+  - `CCollider2D`: Box2D collision shape wrapper (Circle or Box)
   - `CName`: Provides naming functionality for entities
 
 ### Physics Scale Convention
-- **100 pixels = 1 meter**: This scale is used throughout the physics system
-- **Positive Y = Downward**: Following screen coordinates, positive Y values mean downward direction
-- **Default gravity**: 981 pixels/s² downward (equivalent to Earth's 9.81 m/s²)
+- **100 pixels = 1 meter**: Conversion scale for rendering Box2D physics
+- **Box2D Coordinates**: Y-up (positive Y = upward), units in meters
+- **Screen Coordinates**: Y-down (positive Y = downward), units in pixels
+- **Default gravity**: 9.81 m/s² downward in Box2D (equivalent to Earth's gravity)
 
 ### Physics System
-- **S2DPhysics**: Centralized physics system that handles all physics calculations
-  - Authoritative source for position and velocity updates
-  - Implements standard physics equations:
-    - Velocity: v = v0 + at
-    - Position: p = p0 + v0t + (1/2)at²
-  - **Global gravity system** with per-entity multipliers
-    - Set global gravity once via `setGlobalGravity(Vec2)`
-    - Entities use `CGravity` component to apply multipliers
-    - Easy to change gravity globally or per-entity
-  - Clear separation between data (`CTransform`, `CGravity`) and behavior (`S2DPhysics`)
-  - Efficient batch processing of physics entities
+- **SBox2DPhysics**: Box2D v3.0 integration with ECS architecture
+  - Industry-standard 2D physics engine with native API
+  - Manages Box2D world and physics simulation
+  - Automatic synchronization between Box2D and CTransform components
+  - **Physics Bodies** (`CPhysicsBody2D`):
+    - Dynamic: Affected by forces and gravity
+    - Kinematic: Controlled by velocity, not forces
+    - Static: Immovable objects (ground, walls)
+    - Properties: density, friction, restitution, damping, gravity scale
+  - **Collision Shapes** (`CCollider2D`):
+    - Circle shapes with configurable radius
+    - Box shapes with configurable width and height
+    - Material properties: density, friction, restitution
+  - **Forces and Impulses**:
+    - Apply forces: continuous acceleration
+    - Apply impulses: instant velocity changes
+    - Angular and linear control
+  - Clear separation between physics simulation (Box2D) and rendering (SFML)
 
 ### Serialization System
 - **JSON-based Serialization**: Full support for saving and loading game states
@@ -99,12 +108,16 @@ The codebase is organized using pragma regions for better readability:
   - Handle scene transitions
   - Error handling for scene operations
   - Scene state management
-- **2D Physics System**: Manages physics simulation and calculations
-  - Centralized physics processing
+  - Automatic component initialization after deserialization
+- **Box2D Physics System**: Manages physics simulation and calculations
+  - Centralized Box2D world management
   - Gravity and force application
-  - Velocity and position updates
+  - Collision detection and response
   - Component-based physics integration
+  - Automatic sync between Box2D and ECS components
 - **Component Factory**: Provides a factory pattern for component creation
+  - Registers all built-in components
+  - Supports custom component registration
 - **JSON System**:
   - `JsonBuilder`: Constructs JSON data structures
   - `JsonParser`: Parses JSON strings
@@ -120,6 +133,7 @@ The codebase is organized using pragma regions for better readability:
 
 ## Dependencies
 - SFML 2.6.1: Graphics and window management
+- Box2D v3.0: 2D physics engine
 - Dear ImGui 1.88: Immediate mode GUI
 - ImGui-SFML 2.6: SFML backend for Dear ImGui
 - C++17 or later
@@ -223,48 +237,60 @@ You will be required to link the dependencies manually in your project.
 
 ## Usage Example
 ```cpp
-// Get the scene manager instance
+// Get the physics system and entity manager
+auto& physics = SBox2DPhysics::instance();
+auto& entityManager = EntityManager::instance();
 auto& sceneManager = SceneManager::instance();
 
-// Create a new scene with a physics-enabled entity
-auto& entityManager = EntityManager::instance();
-auto& physics = S2DPhysics::instance();
+// Initialize Box2D world with gravity
+// Note: Box2D uses Y-up coordinates (positive Y = upward) and meters
+physics.initialize(b2Vec2(0.0f, -10.0f));  // Standard Earth gravity (9.81 m/s²)
 
-// Set global gravity (affects all entities with CGravity)
-// Scale: 100 pixels = 1 meter, so 9.81 m/s² = 981 px/s²
-// Positive Y = downward (screen coordinates)
-physics.setGlobalGravity(Vec2(0.0f, 981.0f));  // Standard Earth gravity
-
+// Create a dynamic physics entity (e.g., player)
 auto player = entityManager.addEntity("player");
 auto transform = player->addComponent<CTransform>();
-auto gravity = player->addComponent<CGravity>();  // Uses default 1.0 multiplier
+auto physicsBody = player->addComponent<CPhysicsBody2D>();
+auto collider = player->addComponent<CCollider2D>();
 
-// Configure initial conditions
-transform->setPosition(Vec2(100.0f, 200.0f));
-transform->setVelocity(Vec2(5.0f, 0.0f));  // Initial horizontal velocity
+// Initialize physics body at starting position (in meters)
+transform->setPosition(Vec2(5.0f, 10.0f));  // Position in meters
+physicsBody->initialize({5.0f, 10.0f}, BodyType::Dynamic);
 
-// Optional: Customize gravity for specific entities
-auto moon = entityManager.addEntity("moon");
-auto moonTransform = moon->addComponent<CTransform>();
-auto moonGravity = moon->addComponent<CGravity>();
-moonGravity->setMultiplier(0.166f);  // Moon has ~1/6 Earth's gravity
+// Add a circle collider (radius in meters)
+collider->createCircle(0.5f);  // 0.5 meter radius
+collider->setDensity(1.0f);    // 1 kg/m²
+collider->setFriction(0.3f);
+collider->setRestitution(0.5f); // 50% bounciness
+
+// Create a static ground platform
+auto ground = entityManager.addEntity("ground");
+auto groundTransform = ground->addComponent<CTransform>();
+auto groundBody = ground->addComponent<CPhysicsBody2D>();
+auto groundCollider = ground->addComponent<CCollider2D>();
+
+groundTransform->setPosition(Vec2(10.0f, 1.0f));
+groundBody->initialize({10.0f, 1.0f}, BodyType::Static);
+groundCollider->createBox(10.0f, 0.5f);  // 10m wide, 0.5m tall
+
+// Apply forces and impulses
+physicsBody->applyLinearImpulseToCenter({5.0f, 0.0f});  // Horizontal kick
+physicsBody->applyForceToCenter({0.0f, 100.0f});        // Upward force
+
+// Customize physics properties
+physicsBody->setGravityScale(0.5f);      // Half gravity
+physicsBody->setLinearDamping(0.1f);     // Air resistance
+physicsBody->setAngularDamping(0.1f);    // Rotation damping
 
 // Game loop
-float deltaTime = 1.0f / 60.0f;  // 60 FPS
-physics.update(deltaTime);        // Physics system updates positions and velocities
-entityManager.update(deltaTime);  // Entity system processes updates
+float deltaTime = 1.0f / 60.0f;
+physics.update(deltaTime);        // Step Box2D simulation
+entityManager.update(deltaTime);  // Update entities
 
-// Change gravity globally (e.g., zero gravity sequence)
-physics.setGlobalGravity(Vec2(0.0f, 0.0f));
-
-// Save the scene
+// Save the scene (includes all physics state)
 sceneManager.saveScene("level1.json");
 
-// Later, load the scene
+// Later, load the scene (automatically recreates Box2D bodies)
 sceneManager.loadScene("level1.json");
-
-// Save changes to current scene
-sceneManager.saveCurrentScene();
 
 // Clear the scene when done
 sceneManager.clearScene();
@@ -277,18 +303,21 @@ sceneManager.clearScene();
 │   ├── Entity.h
 │   ├── EntityManager.h
 │   ├── ComponentFactory.h
+│   ├── SceneManager.h
+│   ├── components/
+│   │   ├── CTransform.h
+│   │   ├── CPhysicsBody2D.h
+│   │   ├── CCollider2D.h
+│   │   └── CName.h
+│   ├── systems/
+│   │   ├── System.h
+│   │   ├── SBox2DPhysics.h
+│   │   └── Box2DContactListener.h
 │   └── utility/
 │       ├── FileUtilities.h
 │       ├── JsonBuilder.h
 │       ├── JsonParser.h
 │       └── JsonValue.h
-├── components/       # Component implementations
-│   ├── CTransform.h
-│   ├── CGravity.h
-│   └── CName.h
-├── systems/         # System implementations
-│   ├── System.h
-│   └── S2DPhysics.h
 └── src/            # Source files
 ```
 

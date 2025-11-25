@@ -1,9 +1,7 @@
 #include "ComponentFactory.h"
-#include "CBoxCollider.h"
-#include "CCircleCollider.h"
-#include "CGravity.h"
+#include "CCollider2D.h"
 #include "CName.h"
-#include "CRigidBody2D.h"
+#include "CPhysicsBody2D.h"
 #include "CTransform.h"
 
 ComponentFactory::ComponentFactory()
@@ -30,9 +28,11 @@ Component* ComponentFactory::createComponent(const std::string& type)
 void ComponentFactory::registerBuiltInComponents()
 {
     registerComponent<CTransform>("Transform");
-    registerComponent<CGravity>("Gravity");
-    registerComponent<CRigidBody2D>("RigidBody2D");
     registerComponent<CName>("Name");
-    registerComponent<CCircleCollider>("CircleCollider");
-    registerComponent<CBoxCollider>("BoxCollider");
+
+    // Box2D physics components
+    registerComponent<CPhysicsBody2D>("CPhysicsBody2D");
+    registerComponent<CPhysicsBody2D>("PhysicsBody2D");  // Alias for easier JSON usage
+    registerComponent<CCollider2D>("CCollider2D");
+    registerComponent<CCollider2D>("Collider2D");  // Alias for easier JSON usage
 }
