@@ -2,7 +2,6 @@
 #define SYSTEM_H
 
 #include <vector>
-#include "CGravity.h"
 #include "CName.h"
 #include "CTransform.h"
 #include "Component.h"

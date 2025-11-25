@@ -2,6 +2,7 @@
 #include "Entity.h"
 #include "EntityManager.h"
 #include "CTransform.h"
+#include "CPhysicsBody2D.h"
 #include "Vec2.h"
 
 SBox2DPhysics* SBox2DPhysics::s_instance = nullptr;
@@ -44,8 +45,18 @@ void SBox2DPhysics::update(float deltaTime) {
     // Step the Box2D world with fixed timestep
     b2World_Step(m_worldId, m_timeStep, m_subStepCount);
 
-    // Note: Syncing Box2D bodies to CTransform components will be done
-    // by CPhysicsBody2D component in Phase 2
+    // Sync Box2D bodies back to CTransform components
+    for (auto& pair : m_entityBodyMap) {
+        Entity* entity = reinterpret_cast<Entity*>(b2Body_GetUserData(pair.second));
+        if (!entity) continue;
+
+        auto physicsBody = entity->getComponent<CPhysicsBody2D>();
+        auto transform = entity->getComponent<CTransform>();
+
+        if (physicsBody && transform && physicsBody->isInitialized()) {
+            physicsBody->syncToTransform(transform);
+        }
+    }
 }
 
 void SBox2DPhysics::setGravity(const b2Vec2& gravity) {

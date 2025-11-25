@@ -155,16 +155,115 @@ float CCollider2D::getBoxHalfHeight() const {
 }
 
 void CCollider2D::serialize(JsonBuilder& builder) const {
-    // TODO: Implement full JSON serialization
     builder.beginObject();
     builder.addKey("cCollider2D");
     builder.beginObject();
+
+    // Shape type
+    builder.addKey("shapeType");
+    switch (m_shapeType) {
+        case ColliderShape::Circle:
+            builder.addString("Circle");
+            break;
+        case ColliderShape::Box:
+            builder.addString("Box");
+            break;
+        case ColliderShape::Polygon:
+            builder.addString("Polygon");
+            break;
+    }
+
+    // Shape data
+    if (m_shapeType == ColliderShape::Circle) {
+        builder.addKey("radius");
+        builder.addNumber(m_shapeData.circle.radius);
+        builder.addKey("centerX");
+        builder.addNumber(m_shapeData.circle.center.x);
+        builder.addKey("centerY");
+        builder.addNumber(m_shapeData.circle.center.y);
+    } else if (m_shapeType == ColliderShape::Box) {
+        builder.addKey("halfWidth");
+        builder.addNumber(m_shapeData.box.halfWidth);
+        builder.addKey("halfHeight");
+        builder.addNumber(m_shapeData.box.halfHeight);
+    }
+
+    // Fixture properties
+    builder.addKey("isSensor");
+    builder.addBool(m_isSensor);
+    builder.addKey("density");
+    builder.addNumber(m_density);
+    builder.addKey("friction");
+    builder.addNumber(m_friction);
+    builder.addKey("restitution");
+    builder.addNumber(m_restitution);
+
     builder.endObject();
     builder.endObject();
 }
 
 void CCollider2D::deserialize(const JsonValue& value) {
-    // TODO: Implement JSON deserialization
+    if (!value.isObject()) return;
+
+    const auto& collider = value["cCollider2D"];
+    if (!collider.isObject()) return;
+
+    // Shape type
+    const auto& shapeTypeValue = collider["shapeType"];
+    if (shapeTypeValue.isString()) {
+        std::string typeStr = shapeTypeValue.getString();
+        if (typeStr == "Circle") {
+            m_shapeType = ColliderShape::Circle;
+
+            const auto& radiusValue = collider["radius"];
+            if (radiusValue.isNumber()) {
+                m_shapeData.circle.radius = static_cast<float>(radiusValue.getNumber());
+            }
+
+            const auto& centerXValue = collider["centerX"];
+            if (centerXValue.isNumber()) {
+                m_shapeData.circle.center.x = static_cast<float>(centerXValue.getNumber());
+            }
+
+            const auto& centerYValue = collider["centerY"];
+            if (centerYValue.isNumber()) {
+                m_shapeData.circle.center.y = static_cast<float>(centerYValue.getNumber());
+            }
+        } else if (typeStr == "Box") {
+            m_shapeType = ColliderShape::Box;
+
+            const auto& halfWidthValue = collider["halfWidth"];
+            if (halfWidthValue.isNumber()) {
+                m_shapeData.box.halfWidth = static_cast<float>(halfWidthValue.getNumber());
+            }
+
+            const auto& halfHeightValue = collider["halfHeight"];
+            if (halfHeightValue.isNumber()) {
+                m_shapeData.box.halfHeight = static_cast<float>(halfHeightValue.getNumber());
+            }
+        }
+    }
+
+    // Fixture properties
+    const auto& isSensorValue = collider["isSensor"];
+    if (isSensorValue.isBool()) {
+        m_isSensor = isSensorValue.getBool();
+    }
+
+    const auto& densityValue = collider["density"];
+    if (densityValue.isNumber()) {
+        m_density = static_cast<float>(densityValue.getNumber());
+    }
+
+    const auto& frictionValue = collider["friction"];
+    if (frictionValue.isNumber()) {
+        m_friction = static_cast<float>(frictionValue.getNumber());
+    }
+
+    const auto& restitutionValue = collider["restitution"];
+    if (restitutionValue.isNumber()) {
+        m_restitution = static_cast<float>(restitutionValue.getNumber());
+    }
 }
 
 std::string CCollider2D::getType() const {
