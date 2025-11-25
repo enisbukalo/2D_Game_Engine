@@ -1,0 +1,126 @@
+#pragma once
+
+#include "System.h"
+#include "box2d/box2d.h"
+#include <memory>
+#include <unordered_map>
+
+class Entity;
+
+/**
+ * @brief Box2D Physics System - Manages the Box2D physics world and simulation
+ *
+ * This system wraps Box2D v3.0 and provides:
+ * - Physics world management
+ * - Body creation and destruction
+ * - Collision detection and response
+ * - Physics simulation stepping
+ * - Spatial queries (AABB, raycasting)
+ *
+ * Coordinate System: Y-up (positive Y = upward)
+ * Units: 1 unit = 1 meter
+ * Default Gravity: (0, -10) m/s²
+ */
+class SBox2DPhysics : public System {
+private:
+    static SBox2DPhysics* s_instance;
+
+    b2WorldId m_worldId;
+
+    // Entity to b2BodyId mapping
+    std::unordered_map<size_t, b2BodyId> m_entityBodyMap;
+
+    // Timestep settings
+    float m_timeStep;
+    int m_subStepCount;
+
+    SBox2DPhysics();
+
+public:
+    ~SBox2DPhysics();
+
+    /**
+     * @brief Get the singleton instance of the physics system
+     */
+    static SBox2DPhysics& instance();
+
+    /**
+     * @brief Update the physics simulation
+     * @param deltaTime Time elapsed since last update (not used - fixed timestep)
+     */
+    void update(float deltaTime) override;
+
+    /**
+     * @brief Get the Box2D world ID
+     */
+    b2WorldId getWorldId() const { return m_worldId; }
+
+    /**
+     * @brief Set world gravity
+     * @param gravity Gravity vector in m/s² (e.g., {0, -10} for standard Earth gravity)
+     */
+    void setGravity(const b2Vec2& gravity);
+
+    /**
+     * @brief Get world gravity
+     */
+    b2Vec2 getGravity() const;
+
+    /**
+     * @brief Set the fixed timestep for physics simulation
+     * @param timeStep Time step in seconds (default: 1/60)
+     */
+    void setTimeStep(float timeStep) { m_timeStep = timeStep; }
+
+    /**
+     * @brief Get the fixed timestep
+     */
+    float getTimeStep() const { return m_timeStep; }
+
+    /**
+     * @brief Set the number of sub-steps per physics update
+     * @param subStepCount Number of sub-steps (default: 4)
+     */
+    void setSubStepCount(int subStepCount) { m_subStepCount = subStepCount; }
+
+    /**
+     * @brief Get the number of sub-steps
+     */
+    int getSubStepCount() const { return m_subStepCount; }
+
+    /**
+     * @brief Create a Box2D body for an entity
+     * @param entity Entity to associate with the body
+     * @param bodyDef Body definition
+     * @return Box2D body ID
+     */
+    b2BodyId createBody(Entity* entity, const b2BodyDef& bodyDef);
+
+    /**
+     * @brief Destroy the Box2D body associated with an entity
+     * @param entity Entity whose body should be destroyed
+     */
+    void destroyBody(Entity* entity);
+
+    /**
+     * @brief Get the Box2D body associated with an entity
+     * @param entity Entity to query
+     * @return Body ID (invalid if entity has no body)
+     */
+    b2BodyId getBody(Entity* entity);
+
+    /**
+     * @brief Query the world for all bodies overlapping an AABB
+     * @param aabb Axis-aligned bounding box to query
+     * @param callback Callback function called for each overlapping body
+     */
+    void queryAABB(const b2AABB& aabb, b2OverlapResultFcn* callback, void* context);
+
+    /**
+     * @brief Cast a ray through the world
+     * @param origin Ray origin point
+     * @param translation Ray direction and length
+     * @param callback Callback function called for each hit
+     */
+    void rayCast(const b2Vec2& origin, const b2Vec2& translation, b2CastResultFcn* callback, void* context);
+};

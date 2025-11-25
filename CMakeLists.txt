@@ -64,6 +64,17 @@ FetchContent_Declare(SPDLOG
 
 FetchContent_MakeAvailable(SPDLOG)
 
+# Fetch Box2D (v3.0 for physics engine)
+set(BOX2D_BUILD_UNIT_TESTS OFF CACHE BOOL "" FORCE)
+set(BOX2D_BUILD_TESTBED OFF CACHE BOOL "" FORCE)
+set(BOX2D_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(box2d
+    GIT_REPOSITORY https://github.com/erincatto/box2d.git
+    GIT_TAG main
+    GIT_SHALLOW ON)
+
+FetchContent_MakeAvailable(box2d)
+
 # Fetch ImGui (v1.88 is compatible with ImGui-SFML v2.6)
 FetchContent_Declare(IMGUI
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
@@ -178,6 +189,7 @@ target_link_libraries(GameEngine
     sfml-system
     ImGui-SFML
     Threads::Threads
+    box2d
     PRIVATE
     spdlog::spdlog
 )
