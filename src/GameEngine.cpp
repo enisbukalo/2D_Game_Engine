@@ -39,8 +39,10 @@ GameEngine::GameEngine(sf::RenderWindow* window, sf::Vector2f gravity, uint8_t s
     // Configure physics system
     auto& physics = SBox2DPhysics::instance();
     physics.setGravity({gravity.x, gravity.y});  // Box2D uses Y-up convention
-    physics.setSubStepCount(subStepCount);       // Set substep count for stability
-    physics.setTimeStep(timeStep);               // Set fixed timestep
+    // Use the stored member values so the members are read/used and
+    // do not trigger "unused member" style warnings from static analyzers
+    physics.setSubStepCount(m_subStepCount);  // Set substep count for stability
+    physics.setTimeStep(m_timeStep);          // Set fixed timestep
 }
 
 GameEngine::~GameEngine()

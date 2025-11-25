@@ -34,11 +34,6 @@ public:
      * this method to provide specific system behavior.
      */
     virtual void update(float deltaTime) = 0;
-
-private:
-#pragma region Variables
-    std::unordered_map<uint8_t, std::unique_ptr<Component>> m_components;  ///< Map of components managed by this system
-#pragma endregion
 };
 
 #endif  // SYSTEM_H
