@@ -63,6 +63,23 @@ public:
     };
 
     /**
+     * @brief Gets all of the components attached to this entity
+     * @tparam T The type of components to get
+     * @return Vector of pointers to components of the specified type
+     * 
+     * This method retrieves all components of any type attached to this entity.
+     */
+    std::vector<Component*> getAllComponents()
+    {
+        std::vector<Component*> components;
+        for (const auto& pair : m_components)
+        {
+            components.push_back(pair.second.get());
+        }
+        return components;
+    };
+
+    /**
      * @brief Adds a component of the specified type with given arguments
      * @tparam T The type of component to add
      * @tparam Args Types of arguments to forward to the component constructor
