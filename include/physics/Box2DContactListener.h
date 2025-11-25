@@ -16,7 +16,8 @@ class Entity;
  * - PreSolve: Called before collision resolution (can modify contact)
  * - PostSolve: Called after collision resolution (can read impulses)
  */
-class Box2DContactListener {
+class Box2DContactListener
+{
 public:
     virtual ~Box2DContactListener() = default;
 

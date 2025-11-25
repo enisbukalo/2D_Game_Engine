@@ -1,8 +1,8 @@
 #include "ComponentFactory.h"
-#include "CName.h"
-#include "CTransform.h"
-#include "CPhysicsBody2D.h"
 #include "CCollider2D.h"
+#include "CName.h"
+#include "CPhysicsBody2D.h"
+#include "CTransform.h"
 
 ComponentFactory::ComponentFactory()
 {

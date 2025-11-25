@@ -1,9 +1,9 @@
 #pragma once
 
-#include "System.h"
-#include "box2d/box2d.h"
 #include <memory>
 #include <unordered_map>
+#include "System.h"
+#include "box2d/box2d.h"
 
 class Entity;
 
@@ -21,7 +21,8 @@ class Entity;
  * Units: 1 unit = 1 meter
  * Default Gravity: (0, -10) m/s²
  */
-class SBox2DPhysics : public System {
+class SBox2DPhysics : public System
+{
 private:
     static SBox2DPhysics* s_instance;
 
@@ -32,7 +33,7 @@ private:
 
     // Timestep settings
     float m_timeStep;
-    int m_subStepCount;
+    int   m_subStepCount;
 
     SBox2DPhysics();
 
@@ -53,7 +54,10 @@ public:
     /**
      * @brief Get the Box2D world ID
      */
-    b2WorldId getWorldId() const { return m_worldId; }
+    b2WorldId getWorldId() const
+    {
+        return m_worldId;
+    }
 
     /**
      * @brief Set world gravity
@@ -70,23 +74,35 @@ public:
      * @brief Set the fixed timestep for physics simulation
      * @param timeStep Time step in seconds (default: 1/60)
      */
-    void setTimeStep(float timeStep) { m_timeStep = timeStep; }
+    void setTimeStep(float timeStep)
+    {
+        m_timeStep = timeStep;
+    }
 
     /**
      * @brief Get the fixed timestep
      */
-    float getTimeStep() const { return m_timeStep; }
+    float getTimeStep() const
+    {
+        return m_timeStep;
+    }
 
     /**
      * @brief Set the number of sub-steps per physics update
      * @param subStepCount Number of sub-steps (default: 4)
      */
-    void setSubStepCount(int subStepCount) { m_subStepCount = subStepCount; }
+    void setSubStepCount(int subStepCount)
+    {
+        m_subStepCount = subStepCount;
+    }
 
     /**
      * @brief Get the number of sub-steps
      */
-    int getSubStepCount() const { return m_subStepCount; }
+    int getSubStepCount() const
+    {
+        return m_subStepCount;
+    }
 
     /**
      * @brief Create a Box2D body for an entity

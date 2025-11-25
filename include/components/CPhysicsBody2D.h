@@ -8,10 +8,11 @@ class CTransform;
 /**
  * @brief Body type enumeration for physics bodies
  */
-enum class BodyType {
-    Static,      // Zero mass, zero velocity, may be manually moved
-    Kinematic,   // Zero mass, non-zero velocity set by user, moved by solver
-    Dynamic      // Positive mass, non-zero velocity determined by forces, moved by solver
+enum class BodyType
+{
+    Static,     // Zero mass, zero velocity, may be manually moved
+    Kinematic,  // Zero mass, non-zero velocity set by user, moved by solver
+    Dynamic     // Positive mass, non-zero velocity determined by forces, moved by solver
 };
 
 /**
@@ -25,7 +26,8 @@ enum class BodyType {
  *
  * Note: The body must be initialized by calling initialize() after adding to entity.
  */
-class CPhysicsBody2D : public Component {
+class CPhysicsBody2D : public Component
+{
 private:
     b2BodyId m_bodyId;
     BodyType m_bodyType;
@@ -36,7 +38,7 @@ private:
     float m_restitution;
 
     // Body properties
-    bool m_fixedRotation;
+    bool  m_fixedRotation;
     float m_linearDamping;
     float m_angularDamping;
     float m_gravityScale;
@@ -57,12 +59,18 @@ public:
     /**
      * @brief Check if the body has been initialized
      */
-    bool isInitialized() const { return m_initialized; }
+    bool isInitialized() const
+    {
+        return m_initialized;
+    }
 
     /**
      * @brief Get the Box2D body ID
      */
-    b2BodyId getBodyId() const { return m_bodyId; }
+    b2BodyId getBodyId() const
+    {
+        return m_bodyId;
+    }
 
     /**
      * @brief Set the body type
@@ -72,37 +80,58 @@ public:
     /**
      * @brief Get the body type
      */
-    BodyType getBodyType() const { return m_bodyType; }
+    BodyType getBodyType() const
+    {
+        return m_bodyType;
+    }
 
     /**
      * @brief Set default density for fixtures
      */
-    void setDensity(float density) { m_density = density; }
+    void setDensity(float density)
+    {
+        m_density = density;
+    }
 
     /**
      * @brief Get default density
      */
-    float getDensity() const { return m_density; }
+    float getDensity() const
+    {
+        return m_density;
+    }
 
     /**
      * @brief Set default friction for fixtures
      */
-    void setFriction(float friction) { m_friction = friction; }
+    void setFriction(float friction)
+    {
+        m_friction = friction;
+    }
 
     /**
      * @brief Get default friction
      */
-    float getFriction() const { return m_friction; }
+    float getFriction() const
+    {
+        return m_friction;
+    }
 
     /**
      * @brief Set default restitution (bounciness) for fixtures
      */
-    void setRestitution(float restitution) { m_restitution = restitution; }
+    void setRestitution(float restitution)
+    {
+        m_restitution = restitution;
+    }
 
     /**
      * @brief Get default restitution
      */
-    float getRestitution() const { return m_restitution; }
+    float getRestitution() const
+    {
+        return m_restitution;
+    }
 
     /**
      * @brief Set whether rotation is fixed
@@ -112,7 +141,10 @@ public:
     /**
      * @brief Check if rotation is fixed
      */
-    bool isFixedRotation() const { return m_fixedRotation; }
+    bool isFixedRotation() const
+    {
+        return m_fixedRotation;
+    }
 
     /**
      * @brief Set linear damping (resistance to linear motion)
@@ -122,7 +154,10 @@ public:
     /**
      * @brief Get linear damping
      */
-    float getLinearDamping() const { return m_linearDamping; }
+    float getLinearDamping() const
+    {
+        return m_linearDamping;
+    }
 
     /**
      * @brief Set angular damping (resistance to rotation)
@@ -132,7 +167,10 @@ public:
     /**
      * @brief Get angular damping
      */
-    float getAngularDamping() const { return m_angularDamping; }
+    float getAngularDamping() const
+    {
+        return m_angularDamping;
+    }
 
     /**
      * @brief Set gravity scale (multiplier for world gravity)
@@ -142,7 +180,10 @@ public:
     /**
      * @brief Get gravity scale
      */
-    float getGravityScale() const { return m_gravityScale; }
+    float getGravityScale() const
+    {
+        return m_gravityScale;
+    }
 
     /**
      * @brief Apply a force at a world point
@@ -221,7 +262,8 @@ public:
     void syncFromTransform(const CTransform* transform);
 
     // Component interface
-    void serialize(JsonBuilder& builder) const override;
-    void deserialize(const JsonValue& value) override;
+    void        init() override;
+    void        serialize(JsonBuilder& builder) const override;
+    void        deserialize(const JsonValue& value) override;
     std::string getType() const override;
 };

@@ -8,7 +8,8 @@ class CPhysicsBody2D;
 /**
  * @brief Collider shape type enumeration
  */
-enum class ColliderShape {
+enum class ColliderShape
+{
     Circle,
     Box,
     Polygon
@@ -23,25 +24,29 @@ enum class ColliderShape {
  * The collider can be a sensor (trigger) or a solid collider.
  * Sensors detect collisions but do not generate collision responses.
  */
-class CCollider2D : public Component {
+class CCollider2D : public Component
+{
 private:
-    b2ShapeId m_shapeId;
+    b2ShapeId     m_shapeId;
     ColliderShape m_shapeType;
 
     // Shape parameters
-    union ShapeData {
-        struct {
+    union ShapeData
+    {
+        struct
+        {
             b2Vec2 center;
-            float radius;
+            float  radius;
         } circle;
-        struct {
+        struct
+        {
             float halfWidth;
             float halfHeight;
         } box;
     } m_shapeData;
 
     // Fixture properties
-    bool m_isSensor;
+    bool  m_isSensor;
     float m_density;
     float m_friction;
     float m_restitution;
@@ -69,17 +74,26 @@ public:
     /**
      * @brief Check if the collider has been initialized
      */
-    bool isInitialized() const { return m_initialized; }
+    bool isInitialized() const
+    {
+        return m_initialized;
+    }
 
     /**
      * @brief Get the Box2D shape ID
      */
-    b2ShapeId getShapeId() const { return m_shapeId; }
+    b2ShapeId getShapeId() const
+    {
+        return m_shapeId;
+    }
 
     /**
      * @brief Get the shape type
      */
-    ColliderShape getShapeType() const { return m_shapeType; }
+    ColliderShape getShapeType() const
+    {
+        return m_shapeType;
+    }
 
     /**
      * @brief Set whether this is a sensor (trigger)
@@ -90,7 +104,10 @@ public:
     /**
      * @brief Check if this is a sensor
      */
-    bool isSensor() const { return m_isSensor; }
+    bool isSensor() const
+    {
+        return m_isSensor;
+    }
 
     /**
      * @brief Set density (mass per area)
@@ -101,7 +118,10 @@ public:
     /**
      * @brief Get density
      */
-    float getDensity() const { return m_density; }
+    float getDensity() const
+    {
+        return m_density;
+    }
 
     /**
      * @brief Set friction coefficient
@@ -112,7 +132,10 @@ public:
     /**
      * @brief Get friction
      */
-    float getFriction() const { return m_friction; }
+    float getFriction() const
+    {
+        return m_friction;
+    }
 
     /**
      * @brief Set restitution (bounciness)
@@ -123,7 +146,10 @@ public:
     /**
      * @brief Get restitution
      */
-    float getRestitution() const { return m_restitution; }
+    float getRestitution() const
+    {
+        return m_restitution;
+    }
 
     /**
      * @brief Get circle radius (only valid for circle shapes)
@@ -146,8 +172,9 @@ public:
     float getBoxHalfHeight() const;
 
     // Component interface
-    void serialize(JsonBuilder& builder) const override;
-    void deserialize(const JsonValue& value) override;
+    void        init() override;
+    void        serialize(JsonBuilder& builder) const override;
+    void        deserialize(const JsonValue& value) override;
     std::string getType() const override;
 
 private:

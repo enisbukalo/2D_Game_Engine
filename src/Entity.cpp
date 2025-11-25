@@ -64,20 +64,30 @@ void Entity::deserialize(const JsonValue& value)
             type = obj.begin()->first;
             if (type == "cTransform")
                 type = "Transform";
-            else if (type == "cGravity")
-                type = "Gravity";
             else if (type == "cName")
                 type = "Name";
-            else if (type == "cCircleCollider")
-                type = "CircleCollider";
+            else if (type == "cPhysicsBody2D")
+                type = "CPhysicsBody2D";
+            else if (type == "cCollider2D")
+                type = "CCollider2D";
         }
 
         Component* comp = ComponentFactory::instance().createComponent(type);
         if (comp)
         {
             std::unique_ptr<Component> newComponent(comp);
+            newComponent->setOwner(this);
             newComponent->deserialize(component);
             m_components[std::type_index(typeid(*comp))] = std::move(newComponent);
+        }
+    }
+
+    // Initialize all components after deserialization
+    for (auto& [type, component] : m_components)
+    {
+        if (component)
+        {
+            component->init();
         }
     }
 }

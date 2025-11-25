@@ -45,26 +45,35 @@ A modern C++ 2D game engine built with SFML, featuring an Entity Component Syste
 - **Component-Based Architecture**: Modular component system for easy extension
 - **Built-in Components**:
   - `CTransform`: Handles position, velocity, scale, and rotation data storage
-  - `CGravity`: Applies a multiplier to the global gravity (1.0 = normal, 0.0 = no gravity, 2.0 = double, -1.0 = upward/reverse)
+  - `CPhysicsBody2D`: Box2D physics body wrapper (Dynamic, Kinematic, or Static)
+  - `CCollider2D`: Box2D collision shape wrapper (Circle or Box)
   - `CName`: Provides naming functionality for entities
 
 ### Physics Scale Convention
-- **100 pixels = 1 meter**: This scale is used throughout the physics system
-- **Positive Y = Downward**: Following screen coordinates, positive Y values mean downward direction
-- **Default gravity**: 981 pixels/s² downward (equivalent to Earth's 9.81 m/s²)
+- **100 pixels = 1 meter**: Conversion scale for rendering Box2D physics
+- **Box2D Coordinates**: Y-up (positive Y = upward), units in meters
+- **Screen Coordinates**: Y-down (positive Y = downward), units in pixels
+- **Default gravity**: 9.81 m/s² downward in Box2D (equivalent to Earth's gravity)
 
 ### Physics System
-- **S2DPhysics**: Centralized physics system that handles all physics calculations
-  - Authoritative source for position and velocity updates
-  - Implements standard physics equations:
-    - Velocity: v = v0 + at
-    - Position: p = p0 + v0t + (1/2)at²
-  - **Global gravity system** with per-entity multipliers
-    - Set global gravity once via `setGlobalGravity(Vec2)`
-    - Entities use `CGravity` component to apply multipliers
-    - Easy to change gravity globally or per-entity
-  - Clear separation between data (`CTransform`, `CGravity`) and behavior (`S2DPhysics`)
-  - Efficient batch processing of physics entities
+- **SBox2DPhysics**: Box2D v3.0 integration with ECS architecture
+  - Industry-standard 2D physics engine with native API
+  - Manages Box2D world and physics simulation
+  - Automatic synchronization between Box2D and CTransform components
+  - **Physics Bodies** (`CPhysicsBody2D`):
+    - Dynamic: Affected by forces and gravity
+    - Kinematic: Controlled by velocity, not forces
+    - Static: Immovable objects (ground, walls)
+    - Properties: density, friction, restitution, damping, gravity scale
+  - **Collision Shapes** (`CCollider2D`):
+    - Circle shapes with configurable radius
+    - Box shapes with configurable width and height
+    - Material properties: density, friction, restitution
+  - **Forces and Impulses**:
+    - Apply forces: continuous acceleration
+    - Apply impulses: instant velocity changes
+    - Angular and linear control
+  - Clear separation between physics simulation (Box2D) and rendering (SFML)
 
 ### Serialization System
 - **JSON-based Serialization**: Full support for saving and loading game states
@@ -99,12 +108,16 @@ The codebase is organized using pragma regions for better readability:
   - Handle scene transitions
   - Error handling for scene operations
   - Scene state management
-- **2D Physics System**: Manages physics simulation and calculations
-  - Centralized physics processing
+  - Automatic component initialization after deserialization
+- **Box2D Physics System**: Manages physics simulation and calculations
+  - Centralized Box2D world management
   - Gravity and force application
-  - Velocity and position updates
+  - Collision detection and response
   - Component-based physics integration
+  - Automatic sync between Box2D and ECS components
 - **Component Factory**: Provides a factory pattern for component creation
+  - Registers all built-in components
+  - Supports custom component registration
 - **JSON System**:
   - `JsonBuilder`: Constructs JSON data structures
   - `JsonParser`: Parses JSON strings
@@ -120,6 +133,7 @@ The codebase is organized using pragma regions for better readability:
 
 ## Dependencies
 - SFML 2.6.1: Graphics and window management
+- Box2D v3.0: 2D physics engine
 - Dear ImGui 1.88: Immediate mode GUI
 - ImGui-SFML 2.6: SFML backend for Dear ImGui
 - C++17 or later
