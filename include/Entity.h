@@ -2,6 +2,7 @@
 #define ENTITY_H
 
 #include <algorithm>
+#include <iterator>
 #include <map>
 #include <memory>
 #include <string>
@@ -72,10 +73,11 @@ public:
     std::vector<Component *> getAllComponents()
     {
         std::vector<Component *> components;
-        for (const auto &pair : m_components)
-        {
-            components.push_back(pair.second.get());
-        }
+        components.reserve(m_components.size());
+        std::transform(m_components.begin(),
+                       m_components.end(),
+                       std::back_inserter(components),
+                       [](const auto &pair) { return pair.second.get(); });
         return components;
     };
 

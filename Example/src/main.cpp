@@ -45,13 +45,6 @@ private:
         return sf::Vector2f(meters.x * PIXELS_PER_METER, SCREEN_HEIGHT - (meters.y * PIXELS_PER_METER));
     }
 
-    // Helper function to convert pixels to meters for physics
-    Vec2 pixelsToMeters(float x, float y) const
-    {
-        // Note: Y-flip from screen coordinates to Box2D coordinates
-        return Vec2(x / PIXELS_PER_METER, (SCREEN_HEIGHT - y) / PIXELS_PER_METER);
-    }
-
     // Helper function to generate random velocity in a symmetric range
     Vec2 getRandomVelocity() const
     {

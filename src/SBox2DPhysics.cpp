@@ -109,7 +109,7 @@ b2BodyId SBox2DPhysics::createBody(Entity* entity, const b2BodyDef& bodyDef)
     return bodyId;
 }
 
-void SBox2DPhysics::destroyBody(Entity* entity)
+void SBox2DPhysics::destroyBody(const Entity* entity)
 {
     if (!entity)
     {
@@ -127,7 +127,7 @@ void SBox2DPhysics::destroyBody(Entity* entity)
     }
 }
 
-b2BodyId SBox2DPhysics::getBody(Entity* entity)
+b2BodyId SBox2DPhysics::getBody(const Entity* entity)
 {
     if (!entity)
     {

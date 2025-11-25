@@ -116,14 +116,14 @@ public:
      * @brief Destroy the Box2D body associated with an entity
      * @param entity Entity whose body should be destroyed
      */
-    void destroyBody(Entity* entity);
+    void destroyBody(const Entity* entity);
 
     /**
      * @brief Get the Box2D body associated with an entity
      * @param entity Entity to query
      * @return Body ID (invalid if entity has no body)
      */
-    b2BodyId getBody(Entity* entity);
+    b2BodyId getBody(const Entity* entity);
 
     /**
      * @brief Query the world for all bodies overlapping an AABB
