@@ -263,7 +263,8 @@ if(GAMEENGINE_INSTALL)
         "# Find dependencies\n"
         "find_dependency(Threads)\n"
         "find_dependency(SFML 2.6 COMPONENTS graphics window system)\n"
-        "find_dependency(OpenGL)\n\n"
+        "find_dependency(OpenGL)\n"
+        "find_dependency(box2d)\n\n"
         "# Include the targets file\n"
         "include(\"\${CMAKE_CURRENT_LIST_DIR}/GameEngineTargets.cmake\")\n"
     )

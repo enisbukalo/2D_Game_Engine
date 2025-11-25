@@ -69,7 +69,7 @@ private:
 public:
     BounceGame()
         : m_window(sf::VideoMode(SCREEN_WIDTH, SCREEN_HEIGHT), "Bouncing Balls Example - Box2D"),
-          m_gameEngine(std::make_unique<GameEngine>(&m_window, TIME_STEP)),
+          m_gameEngine(std::make_unique<GameEngine>(&m_window, sf::Vector2f(0.0f, GRAVITY_FORCE), 4, TIME_STEP)),
           m_running(true),
           m_ballAmount(INITIAL_BALL_COUNT),
           m_fontLoaded(false),
@@ -94,7 +94,7 @@ public:
     {
         // Set up Box2D physics world
         auto& physics = SBox2DPhysics::instance();
-        physics.setGravity(b2Vec2(0.0f, m_gravityEnabled ? GRAVITY_FORCE : 0.0f));
+        physics.setGravity({0.0f, m_gravityEnabled ? GRAVITY_FORCE : 0.0f});
 
         createBoundaryColliders();
         createBalls();
@@ -193,19 +193,19 @@ public:
 
         // Create physics bodies and colliders
         auto* floorBody = floor->addComponent<CPhysicsBody2D>();
-        floorBody->initialize(b2Vec2(screenWidthMeters / 2.0f, BOUNDARY_THICKNESS_METERS / 2.0f), BodyType::Static);
+        floorBody->initialize({screenWidthMeters / 2.0f, BOUNDARY_THICKNESS_METERS / 2.0f}, BodyType::Static);
         floor->addComponent<CCollider2D>()->createBox(screenWidthMeters / 2.0f, BOUNDARY_THICKNESS_METERS / 2.0f);
 
         auto* rightBody = rightWall->addComponent<CPhysicsBody2D>();
-        rightBody->initialize(b2Vec2(screenWidthMeters - BOUNDARY_THICKNESS_METERS / 2.0f, screenHeightMeters / 2.0f), BodyType::Static);
+        rightBody->initialize({screenWidthMeters - BOUNDARY_THICKNESS_METERS / 2.0f, screenHeightMeters / 2.0f}, BodyType::Static);
         rightWall->addComponent<CCollider2D>()->createBox(BOUNDARY_THICKNESS_METERS / 2.0f, screenHeightMeters / 2.0f);
 
         auto* leftBody = leftWall->addComponent<CPhysicsBody2D>();
-        leftBody->initialize(b2Vec2(BOUNDARY_THICKNESS_METERS / 2.0f, screenHeightMeters / 2.0f), BodyType::Static);
+        leftBody->initialize({BOUNDARY_THICKNESS_METERS / 2.0f, screenHeightMeters / 2.0f}, BodyType::Static);
         leftWall->addComponent<CCollider2D>()->createBox(BOUNDARY_THICKNESS_METERS / 2.0f, screenHeightMeters / 2.0f);
 
         auto* topBody = topWall->addComponent<CPhysicsBody2D>();
-        topBody->initialize(b2Vec2(screenWidthMeters / 2.0f, screenHeightMeters - BOUNDARY_THICKNESS_METERS / 2.0f), BodyType::Static);
+        topBody->initialize({screenWidthMeters / 2.0f, screenHeightMeters - BOUNDARY_THICKNESS_METERS / 2.0f}, BodyType::Static);
         topWall->addComponent<CCollider2D>()->createBox(screenWidthMeters / 2.0f, BOUNDARY_THICKNESS_METERS / 2.0f);
     }
 
@@ -231,14 +231,14 @@ public:
             ball->addComponent<CTransform>(Vec2(randomX, randomY), Vec2(1.0f, 1.0f), 0.0f);
 
             auto* physicsBody = ball->addComponent<CPhysicsBody2D>();
-            physicsBody->initialize(b2Vec2(randomX, randomY), BodyType::Dynamic);
+            physicsBody->initialize({randomX, randomY}, BodyType::Dynamic);
 
             auto* collider = ball->addComponent<CCollider2D>();
             collider->createCircle(BALL_RADIUS_METERS);
             collider->setRestitution(RESTITUTION);
 
             // Randomize initial velocity
-            physicsBody->setLinearVelocity(b2Vec2(getRandomVelocity().x, getRandomVelocity().y));
+            physicsBody->setLinearVelocity({getRandomVelocity().x, getRandomVelocity().y});
         }
     }
 
@@ -250,11 +250,11 @@ public:
         auto& physics = SBox2DPhysics::instance();
         if (m_gravityEnabled)
         {
-            physics.setGravity(b2Vec2(0.0f, GRAVITY_FORCE));
+            physics.setGravity({0.0f, GRAVITY_FORCE});
         }
         else
         {
-            physics.setGravity(b2Vec2(0.0f, 0.0f));
+            physics.setGravity({0.0f, 0.0f});
         }
         std::cout << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << std::endl;
     }
@@ -291,14 +291,14 @@ public:
         ball->addComponent<CTransform>(Vec2(randomX, randomY), Vec2(1.0f, 1.0f), 0.0f);
 
         auto* physicsBody = ball->addComponent<CPhysicsBody2D>();
-        physicsBody->initialize(b2Vec2(randomX, randomY), BodyType::Dynamic);
+        physicsBody->initialize({randomX, randomY}, BodyType::Dynamic);
 
         auto* collider = ball->addComponent<CCollider2D>();
         collider->createCircle(BALL_RADIUS_METERS);
         collider->setRestitution(RESTITUTION);
 
         // Randomize initial velocity
-        physicsBody->setLinearVelocity(b2Vec2(getRandomVelocity().x, getRandomVelocity().y));
+        physicsBody->setLinearVelocity({getRandomVelocity().x, getRandomVelocity().y});
     }
 
     void removeRandomBall()
@@ -323,7 +323,7 @@ public:
 
         // Reset physics world
         auto& physics = SBox2DPhysics::instance();
-        physics.setGravity(b2Vec2(0.0f, m_gravityEnabled ? GRAVITY_FORCE : 0.0f));
+        physics.setGravity({0.0f, m_gravityEnabled ? GRAVITY_FORCE : 0.0f});
 
         // Recreate boundary colliders and balls
         createBoundaryColliders();

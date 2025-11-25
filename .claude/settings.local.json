@@ -20,7 +20,8 @@
       "Bash(git push:*)",
       "Bash(bash build.sh:*)",
       "Bash(bash build_tools/build.sh:*)",
-      "Bash(gh issue create:*)"
+      "Bash(gh issue create:*)",
+      "Bash(./build_tools/build.sh:*)"
     ],
     "deny": [],
     "ask": []
