@@ -14,7 +14,7 @@
 // Define Screen Size
 const int   SCREEN_WIDTH            = 1600;
 const int   SCREEN_HEIGHT           = 1000;
-const int   INITIAL_BALL_COUNT      = 125;
+const int   INITIAL_BALL_COUNT      = 500;
 const bool  INITIAL_GRAVITY_ENABLED = false;
 const float TIME_STEP               = 1.0f / 60.0f;  // 60 FPS
 const float GRAVITY_FORCE           = -10.0f;        // Box2D gravity (m/s²), negative = downward
@@ -69,7 +69,7 @@ private:
 public:
     BounceGame()
         : m_window(sf::VideoMode(SCREEN_WIDTH, SCREEN_HEIGHT), "Bouncing Balls Example - Box2D"),
-          m_gameEngine(std::make_unique<GameEngine>(&m_window, sf::Vector2f(0.0f, GRAVITY_FORCE), 4, TIME_STEP)),
+          m_gameEngine(std::make_unique<GameEngine>(&m_window, sf::Vector2f(0.0f, GRAVITY_FORCE))),
           m_running(true),
           m_ballAmount(INITIAL_BALL_COUNT),
           m_fontLoaded(false),
@@ -142,7 +142,7 @@ public:
                 }
                 else if (event.key.code == sf::Keyboard::Right)
                 {
-                    if (m_ballAmount < 500)
+                    if (m_ballAmount < 1000)
                     {
                         m_ballAmount++;
                         spawnRandomBall();

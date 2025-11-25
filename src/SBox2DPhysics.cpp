@@ -7,11 +7,16 @@
 
 SBox2DPhysics* SBox2DPhysics::s_instance = nullptr;
 
-SBox2DPhysics::SBox2DPhysics() : m_timeStep(1.0f / 60.0f), m_subStepCount(4)
+SBox2DPhysics::SBox2DPhysics() : m_timeStep(1.0f / 60.0f), m_subStepCount(6)
 {
     // Create Box2D world with default gravity (Y-up: negative Y = downward)
     b2WorldDef worldDef = b2DefaultWorldDef();
     worldDef.gravity    = {0.0f, -10.0f};
+
+    // Increase substep count for better stability with many bodies
+    // Box2D v3 uses substeps internally during b2World_Step
+    // Note: we also pass subStepCount to b2World_Step for additional substeps
+
     m_worldId           = b2CreateWorld(&worldDef);
 }
 

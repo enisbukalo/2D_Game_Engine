@@ -65,6 +65,10 @@ void CCollider2D::attachToBody()
     // Note: friction and restitution are set per-shape, not in shapeDef for Box2D v3
     shapeDef.enableSensorEvents = m_isSensor;
 
+    // Force contact creation for static bodies to ensure they collide with dynamic bodies
+    // even when created before many dynamic bodies exist
+    shapeDef.invokeContactCreation = true;
+
     // Create the appropriate shape
     switch (m_shapeType)
     {

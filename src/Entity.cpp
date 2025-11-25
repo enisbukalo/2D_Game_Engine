@@ -11,7 +11,7 @@ bool Entity::isAlive() const
     return m_alive;
 }
 
-uint8_t Entity::getId() const
+size_t Entity::getId() const
 {
     return m_id;
 }

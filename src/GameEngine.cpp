@@ -36,8 +36,11 @@ GameEngine::GameEngine(sf::RenderWindow* window, sf::Vector2f gravity, uint8_t s
 
     m_gameRunning = true;
 
-    // Set global gravity in physics system (Box2D uses Y-up convention, so negate Y)
-    SBox2DPhysics::instance().setGravity({gravity.x, gravity.y});
+    // Configure physics system
+    auto& physics = SBox2DPhysics::instance();
+    physics.setGravity({gravity.x, gravity.y});  // Box2D uses Y-up convention
+    physics.setSubStepCount(subStepCount);       // Set substep count for stability
+    physics.setTimeStep(timeStep);               // Set fixed timestep
 }
 
 GameEngine::~GameEngine()

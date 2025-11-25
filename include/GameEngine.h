@@ -21,10 +21,10 @@ public:
      * @brief Constructs a game engine instance
      * @param window Pointer to the SFML render window
      * @param gravity The global gravity vector
-     * @param subStepCount Number of physics sub-steps per update
+     * @param subStepCount Number of physics sub-steps per update (default: 6, increase for more stability with many bodies)
      * @param timeStep Fixed time step for physics updates
      */
-    GameEngine(sf::RenderWindow* window, sf::Vector2f gravity, uint8_t subStepCount, float timeStep);
+    GameEngine(sf::RenderWindow* window, sf::Vector2f gravity, uint8_t subStepCount = 6, float timeStep = 1.0f / 60.0f);
 
     /** @brief Destructor */
     ~GameEngine();
