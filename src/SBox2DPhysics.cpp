@@ -17,7 +17,7 @@ SBox2DPhysics::SBox2DPhysics() : m_timeStep(1.0f / 60.0f), m_subStepCount(6)
     // Box2D v3 uses substeps internally during b2World_Step
     // Note: we also pass subStepCount to b2World_Step for additional substeps
 
-    m_worldId           = b2CreateWorld(&worldDef);
+    m_worldId = b2CreateWorld(&worldDef);
 }
 
 SBox2DPhysics::~SBox2DPhysics()

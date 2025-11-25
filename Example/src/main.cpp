@@ -33,36 +33,32 @@ private:
     bool                        m_showColliders;
     bool                        m_showVectors;
 
-    const float RESTITUTION                 = 0.8f;    // Bounciness factor
-    const float BALL_RADIUS_METERS          = 0.1f;    // Radius in meters
-    const float BOUNDARY_THICKNESS_METERS   = 0.5f;    // Thickness in meters
-    const float RANDOM_VELOCITY_RANGE       = 2.0f;    // Random velocity range: -2 to +2 m/s
+    const float RESTITUTION               = 0.8f;  // Bounciness factor
+    const float BALL_RADIUS_METERS        = 0.1f;  // Radius in meters
+    const float BOUNDARY_THICKNESS_METERS = 0.5f;  // Thickness in meters
+    const float RANDOM_VELOCITY_RANGE     = 2.0f;  // Random velocity range: -2 to +2 m/s
 
     // Helper function to convert meters to pixels for rendering
     sf::Vector2f metersToPixels(const Vec2& meters) const
     {
         // Note: Y-flip for screen coordinates (Box2D Y-up -> Screen Y-down)
-        return sf::Vector2f(
-            meters.x * PIXELS_PER_METER,
-            SCREEN_HEIGHT - (meters.y * PIXELS_PER_METER)
-        );
+        return sf::Vector2f(meters.x * PIXELS_PER_METER, SCREEN_HEIGHT - (meters.y * PIXELS_PER_METER));
     }
 
     // Helper function to convert pixels to meters for physics
     Vec2 pixelsToMeters(float x, float y) const
     {
         // Note: Y-flip from screen coordinates to Box2D coordinates
-        return Vec2(
-            x / PIXELS_PER_METER,
-            (SCREEN_HEIGHT - y) / PIXELS_PER_METER
-        );
+        return Vec2(x / PIXELS_PER_METER, (SCREEN_HEIGHT - y) / PIXELS_PER_METER);
     }
 
     // Helper function to generate random velocity in a symmetric range
     Vec2 getRandomVelocity() const
     {
-        float velX = static_cast<float>((rand() % static_cast<int>(RANDOM_VELOCITY_RANGE * 2000 + 1)) - RANDOM_VELOCITY_RANGE * 1000) / 1000.0f;
-        float velY = static_cast<float>((rand() % static_cast<int>(RANDOM_VELOCITY_RANGE * 2000 + 1)) - RANDOM_VELOCITY_RANGE * 1000) / 1000.0f;
+        float velX = static_cast<float>((rand() % static_cast<int>(RANDOM_VELOCITY_RANGE * 2000 + 1)) - RANDOM_VELOCITY_RANGE * 1000)
+                     / 1000.0f;
+        float velY = static_cast<float>((rand() % static_cast<int>(RANDOM_VELOCITY_RANGE * 2000 + 1)) - RANDOM_VELOCITY_RANGE * 1000)
+                     / 1000.0f;
         return Vec2(velX, velY);
     }
 
@@ -176,7 +172,7 @@ public:
     void createBoundaryColliders()
     {
         // Screen dimensions in meters
-        const float screenWidthMeters = SCREEN_WIDTH / PIXELS_PER_METER;
+        const float screenWidthMeters  = SCREEN_WIDTH / PIXELS_PER_METER;
         const float screenHeightMeters = SCREEN_HEIGHT / PIXELS_PER_METER;
 
         // Create boundary collider entities
@@ -187,9 +183,13 @@ public:
 
         // Position the boundary colliders in meters (Box2D Y-up coordinates)
         floor->addComponent<CTransform>(Vec2(screenWidthMeters / 2.0f, BOUNDARY_THICKNESS_METERS / 2.0f), Vec2(1.0f, 1.0f), 0.0f);
-        rightWall->addComponent<CTransform>(Vec2(screenWidthMeters - BOUNDARY_THICKNESS_METERS / 2.0f, screenHeightMeters / 2.0f), Vec2(1.0f, 1.0f), 0.0f);
+        rightWall->addComponent<CTransform>(Vec2(screenWidthMeters - BOUNDARY_THICKNESS_METERS / 2.0f, screenHeightMeters / 2.0f),
+                                            Vec2(1.0f, 1.0f),
+                                            0.0f);
         leftWall->addComponent<CTransform>(Vec2(BOUNDARY_THICKNESS_METERS / 2.0f, screenHeightMeters / 2.0f), Vec2(1.0f, 1.0f), 0.0f);
-        topWall->addComponent<CTransform>(Vec2(screenWidthMeters / 2.0f, screenHeightMeters - BOUNDARY_THICKNESS_METERS / 2.0f), Vec2(1.0f, 1.0f), 0.0f);
+        topWall->addComponent<CTransform>(Vec2(screenWidthMeters / 2.0f, screenHeightMeters - BOUNDARY_THICKNESS_METERS / 2.0f),
+                                          Vec2(1.0f, 1.0f),
+                                          0.0f);
 
         // Create physics bodies and colliders
         auto* floorBody = floor->addComponent<CPhysicsBody2D>();
@@ -212,7 +212,7 @@ public:
     void createBalls()
     {
         // Screen dimensions in meters
-        const float screenWidthMeters = SCREEN_WIDTH / PIXELS_PER_METER;
+        const float screenWidthMeters  = SCREEN_WIDTH / PIXELS_PER_METER;
         const float screenHeightMeters = SCREEN_HEIGHT / PIXELS_PER_METER;
 
         // Calculate spawn boundaries accounting for boundary thickness and ball radius
@@ -274,7 +274,7 @@ public:
     void spawnRandomBall()
     {
         // Screen dimensions in meters
-        const float screenWidthMeters = SCREEN_WIDTH / PIXELS_PER_METER;
+        const float screenWidthMeters  = SCREEN_WIDTH / PIXELS_PER_METER;
         const float screenHeightMeters = SCREEN_HEIGHT / PIXELS_PER_METER;
 
         // Calculate spawn boundaries
@@ -342,7 +342,7 @@ public:
 
         // For vectors, we only need to scale and flip Y direction
         Vec2 scaledVector = vectorMeters * scale;
-        sf::Vector2f vectorPixels(scaledVector.x * PIXELS_PER_METER, -scaledVector.y * PIXELS_PER_METER); // Negative Y for screen
+        sf::Vector2f vectorPixels(scaledVector.x * PIXELS_PER_METER, -scaledVector.y * PIXELS_PER_METER);  // Negative Y for screen
         sf::Vector2f endPixels = startPixels + vectorPixels;
 
         // Draw line using VertexArray
@@ -381,10 +381,10 @@ public:
                 auto* transform = boundaryCollider->getComponent<CTransform>();
                 auto* collider  = boundaryCollider->getComponent<CCollider2D>();
 
-                Vec2 posMeters  = transform->getPosition();
+                Vec2         posMeters = transform->getPosition();
                 sf::Vector2f posPixels = metersToPixels(posMeters);
 
-                float halfWidth = collider->getBoxHalfWidth() * PIXELS_PER_METER;
+                float halfWidth  = collider->getBoxHalfWidth() * PIXELS_PER_METER;
                 float halfHeight = collider->getBoxHalfHeight() * PIXELS_PER_METER;
 
                 sf::RectangleShape shape(sf::Vector2f(halfWidth * 2, halfHeight * 2));
@@ -411,9 +411,9 @@ public:
             auto* transform = ball->getComponent<CTransform>();
             auto* collider  = ball->getComponent<CCollider2D>();
 
-            Vec2 posMeters  = transform->getPosition();
-            sf::Vector2f posPixels = metersToPixels(posMeters);
-            float radiusPixels = collider->getCircleRadius() * PIXELS_PER_METER;
+            Vec2         posMeters    = transform->getPosition();
+            sf::Vector2f posPixels    = metersToPixels(posMeters);
+            float        radiusPixels = collider->getCircleRadius() * PIXELS_PER_METER;
 
             sf::CircleShape ballShape(radiusPixels);
             ballShape.setOrigin(radiusPixels, radiusPixels);
@@ -458,14 +458,14 @@ public:
                 if (!ball->hasComponent<CTransform>() || !ball->hasComponent<CPhysicsBody2D>())
                     continue;
 
-                auto* transform = ball->getComponent<CTransform>();
+                auto* transform   = ball->getComponent<CTransform>();
                 auto* physicsBody = ball->getComponent<CPhysicsBody2D>();
 
                 Vec2 posMeters = transform->getPosition();
 
                 // Draw velocity vector (yellow)
                 b2Vec2 velocity = physicsBody->getLinearVelocity();
-                Vec2 velocityMeters(velocity.x, velocity.y);
+                Vec2   velocityMeters(velocity.x, velocity.y);
                 if (velocityMeters.length() > 0.01f)  // Only draw if velocity is non-negligible
                 {
                     drawVector(posMeters, velocityMeters, sf::Color::Yellow, 0.5f);
