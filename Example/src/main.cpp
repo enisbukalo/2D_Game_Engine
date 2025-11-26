@@ -1,14 +1,14 @@
 #include <Entity.h>
 #include <EntityManager.h>
 #include <GameEngine.h>
+#include <Input/MouseButton.h>
 #include <Vec2.h>
 #include <components/CCollider2D.h>
+#include <components/CInputController.h>
 #include <components/CPhysicsBody2D.h>
 #include <components/CTransform.h>
-#include <components/CInputController.h>
 #include <systems/SBox2DPhysics.h>
 #include <systems/SInputManager.h>
-#include <Input/MouseButton.h>
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <memory>
@@ -38,12 +38,12 @@ private:
     CPhysicsBody2D*             m_playerPhysics;
     std::shared_ptr<Entity>     m_player;
 
-    const float RESTITUTION               = 0.8f;  // Bounciness factor
-    const float BALL_RADIUS_METERS        = 0.1f;  // Radius in meters
-    const float BOUNDARY_THICKNESS_METERS = 0.5f;  // Thickness in meters
-    const float RANDOM_VELOCITY_RANGE     = 2.0f;  // Random velocity range: -2 to +2 m/s
-    const float PLAYER_SIZE_METERS        = 0.25f; // Player square half-width/height in meters
-    const float PLAYER_FORCE              = 5.0f; // Force applied for player movement
+    const float RESTITUTION               = 0.8f;   // Bounciness factor
+    const float BALL_RADIUS_METERS        = 0.1f;   // Radius in meters
+    const float BOUNDARY_THICKNESS_METERS = 0.5f;   // Thickness in meters
+    const float RANDOM_VELOCITY_RANGE     = 2.0f;   // Random velocity range: -2 to +2 m/s
+    const float PLAYER_SIZE_METERS        = 0.25f;  // Player square half-width/height in meters
+    const float PLAYER_FORCE              = 5.0f;   // Force applied for player movement
 
     // Helper function to convert meters to pixels for rendering
     sf::Vector2f metersToPixels(const Vec2& meters) const
@@ -208,33 +208,45 @@ public:
         inputController->bindAction("MoveRight", moveRightBinding);
 
         // Set callbacks for movement actions
-        inputController->setActionCallback("MoveUp", [this](ActionState state) {
-            if ((state == ActionState::Held || state == ActionState::Pressed) && m_playerPhysics && m_playerPhysics->isInitialized())
-            {
-                m_playerPhysics->applyForceToCenter({0.0f, PLAYER_FORCE});
-            }
-        });
+        inputController->setActionCallback("MoveUp",
+                                           [this](ActionState state)
+                                           {
+                                               if ((state == ActionState::Held || state == ActionState::Pressed)
+                                                   && m_playerPhysics && m_playerPhysics->isInitialized())
+                                               {
+                                                   m_playerPhysics->applyForceToCenter({0.0f, PLAYER_FORCE});
+                                               }
+                                           });
 
-        inputController->setActionCallback("MoveDown", [this](ActionState state) {
-            if ((state == ActionState::Held || state == ActionState::Pressed) && m_playerPhysics && m_playerPhysics->isInitialized())
-            {
-                m_playerPhysics->applyForceToCenter({0.0f, -PLAYER_FORCE});
-            }
-        });
+        inputController->setActionCallback("MoveDown",
+                                           [this](ActionState state)
+                                           {
+                                               if ((state == ActionState::Held || state == ActionState::Pressed)
+                                                   && m_playerPhysics && m_playerPhysics->isInitialized())
+                                               {
+                                                   m_playerPhysics->applyForceToCenter({0.0f, -PLAYER_FORCE});
+                                               }
+                                           });
 
-        inputController->setActionCallback("MoveLeft", [this](ActionState state) {
-            if ((state == ActionState::Held || state == ActionState::Pressed) && m_playerPhysics && m_playerPhysics->isInitialized())
-            {
-                m_playerPhysics->applyForceToCenter({-PLAYER_FORCE, 0.0f});
-            }
-        });
+        inputController->setActionCallback("MoveLeft",
+                                           [this](ActionState state)
+                                           {
+                                               if ((state == ActionState::Held || state == ActionState::Pressed)
+                                                   && m_playerPhysics && m_playerPhysics->isInitialized())
+                                               {
+                                                   m_playerPhysics->applyForceToCenter({-PLAYER_FORCE, 0.0f});
+                                               }
+                                           });
 
-        inputController->setActionCallback("MoveRight", [this](ActionState state) {
-            if ((state == ActionState::Held || state == ActionState::Pressed) && m_playerPhysics && m_playerPhysics->isInitialized())
-            {
-                m_playerPhysics->applyForceToCenter({PLAYER_FORCE, 0.0f});
-            }
-        });
+        inputController->setActionCallback("MoveRight",
+                                           [this](ActionState state)
+                                           {
+                                               if ((state == ActionState::Held || state == ActionState::Pressed)
+                                                   && m_playerPhysics && m_playerPhysics->isInitialized())
+                                               {
+                                                   m_playerPhysics->applyForceToCenter({PLAYER_FORCE, 0.0f});
+                                               }
+                                           });
     }
 
     void createBalls()
@@ -390,24 +402,25 @@ public:
         SInputManager::instance().update(dt);
 
         // Handle window controls and key actions via SInputManager (prevents double polling)
-        auto& im = SInputManager::instance();
+        const auto& im = SInputManager::instance();
 
         // Check for mouse clicks using abstracted MouseButton enum
-        if (im.wasMousePressed(MouseButton::Left))
+        if (im.wasMouseReleased(MouseButton::Left))
         {
             sf::Vector2i mousePos = im.getMousePositionWindow();
-            std::cout << "Left Click at: (" << mousePos.x << ", " << mousePos.y << ")" << std::endl;
+            std::cout << "Left Mouse Button Release At: (" << mousePos.x << ", " << mousePos.y << ")" << std::endl;
         }
-        if (im.wasMousePressed(MouseButton::Right))
+        if (im.wasMouseReleased(MouseButton::Right))
         {
             sf::Vector2i mousePos = im.getMousePositionWindow();
-            std::cout << "Right Click at: (" << mousePos.x << ", " << mousePos.y << ")" << std::endl;
+            std::cout << "Right Mouse Button Release At: (" << mousePos.x << ", " << mousePos.y << ")" << std::endl;
         }
+        if (im.wasWhe)
 
-        if (im.wasKeyPressed(KeyCode::Escape))
-        {
-            m_running = false;
-        }
+            if (im.wasKeyPressed(KeyCode::Escape))
+            {
+                m_running = false;
+            }
         if (im.wasKeyPressed(KeyCode::Left))
         {
             if (m_ballAmount > 1)

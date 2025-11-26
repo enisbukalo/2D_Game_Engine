@@ -14,8 +14,8 @@ enum class ActionTrigger
 
 struct ActionBinding
 {
-    std::vector<KeyCode>      keys;
-    std::vector<MouseButton>  mouseButtons;
-    ActionTrigger             trigger     = ActionTrigger::Pressed;
-    bool                      allowRepeat = false;
+    std::vector<KeyCode>     keys;
+    std::vector<MouseButton> mouseButtons;
+    ActionTrigger            trigger     = ActionTrigger::Pressed;
+    bool                     allowRepeat = false;
 };
