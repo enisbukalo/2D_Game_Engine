@@ -377,27 +377,21 @@ public:
 
         // Apply player movement forces based on WASD input
         if (m_playerPhysics && m_playerPhysics->isInitialized())
-        {
-            auto& inputManager = SInputManager::instance();
-            
-            if (inputManager.isKeyDown(KeyCode::W))
+        {   
+            if (im.isKeyDown(KeyCode::W))
             {
-                std::cout << "W key pressed" << std::endl;
                 m_playerPhysics->applyForceToCenter({0.0f, PLAYER_FORCE});
             }
-            if (inputManager.isKeyDown(KeyCode::S))
+            if (im.isKeyDown(KeyCode::S))
             {
-                std::cout << "S key pressed" << std::endl;
                 m_playerPhysics->applyForceToCenter({0.0f, -PLAYER_FORCE});
             }
-            if (inputManager.isKeyDown(KeyCode::A))
+            if (im.isKeyDown(KeyCode::A))
             {
-                std::cout << "A key pressed" << std::endl;
                 m_playerPhysics->applyForceToCenter({-PLAYER_FORCE, 0.0f});
             }
-            if (inputManager.isKeyDown(KeyCode::D))
+            if (im.isKeyDown(KeyCode::D))
             {
-                std::cout << "D key pressed" << std::endl;
                 m_playerPhysics->applyForceToCenter({PLAYER_FORCE, 0.0f});
             }
         }
