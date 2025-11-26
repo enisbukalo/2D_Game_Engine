@@ -9,7 +9,7 @@ CInputController::CInputController() {}
 CInputController::~CInputController()
 {
     // Unbind all registered global bindings
-    for (auto& kv : m_bindings)
+    for (const auto& kv : m_bindings)
     {
         const std::string& actionName = kv.first;
         for (const auto& lb : kv.second)

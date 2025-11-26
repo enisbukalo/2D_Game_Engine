@@ -148,8 +148,7 @@ BindingId SInputManager::bindAction(const std::string& actionName, const ActionB
 {
     BindingId id = m_nextBindingId++;
     m_actionBindings[actionName].push_back({id, binding});
-    if (m_actionStates.find(actionName) == m_actionStates.end())
-        m_actionStates[actionName] = ActionState::None;
+    m_actionStates.try_emplace(actionName, ActionState::None);
     return id;
 }
 
@@ -201,11 +200,8 @@ void SInputManager::processEvent(const sf::Event& event)
             if (m_passToImGui && imguiCaptured)
                 return;
 
-            m_keyDown[ke.key] = true;
-            if (ke.repeat)
-                m_keyRepeat[ke.key] = true;
-            else
-                m_keyPressed[ke.key] = true;
+            m_keyDown[ke.key]    = true;
+            m_keyPressed[ke.key] = true;
             break;
         }
         case sf::Event::KeyReleased:
@@ -374,10 +370,10 @@ void SInputManager::update(float /*deltaTime*/)
         processEvent(event);
 
     // Evaluate actions centrally
-    for (auto& kv : m_actionBindings)
+    for (const auto& actionKv : m_actionBindings)
     {
-        const std::string& name     = kv.first;
-        const auto&        bindings = kv.second;
+        const std::string& name     = actionKv.first;
+        const auto&        bindings = actionKv.second;
         ActionState        newState = ActionState::None;
 
         for (const auto& pr : bindings)
