@@ -9,6 +9,7 @@
 #include "Input/ActionBinding.h"
 #include "Input/IInputListener.h"
 #include "Input/InputEvents.h"
+#include "Input/MouseButton.h"
 #include "System.h"
 
 using ListenerId = size_t;
@@ -24,14 +25,14 @@ private:
     bool              m_passToImGui = true;
 
     // Key state maps: current down state and previous frame
-    std::unordered_map<KeyCode, bool>           m_keyDown;
-    std::unordered_map<KeyCode, bool>           m_keyPressed;
-    std::unordered_map<KeyCode, bool>           m_keyReleased;
-    std::unordered_map<KeyCode, bool>           m_keyRepeat;
-    std::unordered_map<sf::Mouse::Button, bool> m_mouseDown;
-    std::unordered_map<sf::Mouse::Button, bool> m_mousePressed;
-    std::unordered_map<sf::Mouse::Button, bool> m_mouseReleased;
-    sf::Vector2i                                m_mousePosition;
+    std::unordered_map<KeyCode, bool>      m_keyDown;
+    std::unordered_map<KeyCode, bool>      m_keyPressed;
+    std::unordered_map<KeyCode, bool>      m_keyReleased;
+    std::unordered_map<KeyCode, bool>      m_keyRepeat;
+    std::unordered_map<MouseButton, bool>  m_mouseDown;
+    std::unordered_map<MouseButton, bool>  m_mousePressed;
+    std::unordered_map<MouseButton, bool>  m_mouseReleased;
+    sf::Vector2i                           m_mousePosition;
 
     // Action bindings (per-action -> list of pairs(bindingId, binding))
     std::unordered_map<std::string, std::vector<std::pair<BindingId, ActionBinding>>> m_actionBindings;
@@ -63,7 +64,9 @@ public:
     bool         isKeyDown(KeyCode key) const;
     bool         wasKeyPressed(KeyCode key) const;
     bool         wasKeyReleased(KeyCode key) const;
-    bool         isMouseDown(sf::Mouse::Button button) const;
+    bool         isMouseDown(MouseButton button) const;
+    bool         wasMousePressed(MouseButton button) const;
+    bool         wasMouseReleased(MouseButton button) const;
     sf::Vector2i getMousePositionWindow() const;
 
     // Action binding

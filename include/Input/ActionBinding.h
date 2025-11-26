@@ -1,9 +1,9 @@
 #pragma once
 
-#include <SFML/Window/Mouse.hpp>
 #include <string>
 #include <vector>
 #include "Input/KeyCode.h"
+#include "Input/MouseButton.h"
 
 enum class ActionTrigger
 {
@@ -14,8 +14,8 @@ enum class ActionTrigger
 
 struct ActionBinding
 {
-    std::vector<KeyCode>           keys;
-    std::vector<sf::Mouse::Button> mouseButtons;
-    ActionTrigger                  trigger     = ActionTrigger::Pressed;
-    bool                           allowRepeat = false;
+    std::vector<KeyCode>      keys;
+    std::vector<MouseButton>  mouseButtons;
+    ActionTrigger             trigger     = ActionTrigger::Pressed;
+    bool                      allowRepeat = false;
 };

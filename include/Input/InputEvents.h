@@ -4,6 +4,7 @@
 #include <SFML/Window/Event.hpp>
 #include <string>
 #include "Input/KeyCode.h"
+#include "Input/MouseButton.h"
 
 enum class InputEventType
 {
@@ -31,9 +32,9 @@ struct KeyEvent
 
 struct MouseEvent
 {
-    sf::Mouse::Button button;
-    sf::Vector2i      position;
-    unsigned int      clickCount = 1;
+    MouseButton  button;
+    sf::Vector2i position;
+    unsigned int clickCount = 1;
 };
 
 struct MouseMoveEvent

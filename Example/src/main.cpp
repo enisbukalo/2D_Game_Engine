@@ -5,8 +5,10 @@
 #include <components/CCollider2D.h>
 #include <components/CPhysicsBody2D.h>
 #include <components/CTransform.h>
+#include <components/CInputController.h>
 #include <systems/SBox2DPhysics.h>
 #include <systems/SInputManager.h>
+#include <Input/MouseButton.h>
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <memory>
@@ -180,6 +182,59 @@ public:
         collider->setRestitution(0.3f);
         collider->setDensity(2.0f);
         collider->setFriction(0.5f);
+
+        // Add input controller with action bindings
+        auto* inputController = m_player->addComponent<CInputController>();
+
+        // Bind movement actions
+        ActionBinding moveUpBinding;
+        moveUpBinding.keys.push_back(KeyCode::W);
+        moveUpBinding.trigger = ActionTrigger::Held;
+        inputController->bindAction("MoveUp", moveUpBinding);
+
+        ActionBinding moveDownBinding;
+        moveDownBinding.keys.push_back(KeyCode::S);
+        moveDownBinding.trigger = ActionTrigger::Held;
+        inputController->bindAction("MoveDown", moveDownBinding);
+
+        ActionBinding moveLeftBinding;
+        moveLeftBinding.keys.push_back(KeyCode::A);
+        moveLeftBinding.trigger = ActionTrigger::Held;
+        inputController->bindAction("MoveLeft", moveLeftBinding);
+
+        ActionBinding moveRightBinding;
+        moveRightBinding.keys.push_back(KeyCode::D);
+        moveRightBinding.trigger = ActionTrigger::Held;
+        inputController->bindAction("MoveRight", moveRightBinding);
+
+        // Set callbacks for movement actions
+        inputController->setActionCallback("MoveUp", [this](ActionState state) {
+            if ((state == ActionState::Held || state == ActionState::Pressed) && m_playerPhysics && m_playerPhysics->isInitialized())
+            {
+                m_playerPhysics->applyForceToCenter({0.0f, PLAYER_FORCE});
+            }
+        });
+
+        inputController->setActionCallback("MoveDown", [this](ActionState state) {
+            if ((state == ActionState::Held || state == ActionState::Pressed) && m_playerPhysics && m_playerPhysics->isInitialized())
+            {
+                m_playerPhysics->applyForceToCenter({0.0f, -PLAYER_FORCE});
+            }
+        });
+
+        inputController->setActionCallback("MoveLeft", [this](ActionState state) {
+            if ((state == ActionState::Held || state == ActionState::Pressed) && m_playerPhysics && m_playerPhysics->isInitialized())
+            {
+                m_playerPhysics->applyForceToCenter({-PLAYER_FORCE, 0.0f});
+            }
+        });
+
+        inputController->setActionCallback("MoveRight", [this](ActionState state) {
+            if ((state == ActionState::Held || state == ActionState::Pressed) && m_playerPhysics && m_playerPhysics->isInitialized())
+            {
+                m_playerPhysics->applyForceToCenter({PLAYER_FORCE, 0.0f});
+            }
+        });
     }
 
     void createBalls()
@@ -336,6 +391,19 @@ public:
 
         // Handle window controls and key actions via SInputManager (prevents double polling)
         auto& im = SInputManager::instance();
+
+        // Check for mouse clicks using abstracted MouseButton enum
+        if (im.wasMousePressed(MouseButton::Left))
+        {
+            sf::Vector2i mousePos = im.getMousePositionWindow();
+            std::cout << "Left Click at: (" << mousePos.x << ", " << mousePos.y << ")" << std::endl;
+        }
+        if (im.wasMousePressed(MouseButton::Right))
+        {
+            sf::Vector2i mousePos = im.getMousePositionWindow();
+            std::cout << "Right Click at: (" << mousePos.x << ", " << mousePos.y << ")" << std::endl;
+        }
+
         if (im.wasKeyPressed(KeyCode::Escape))
         {
             m_running = false;
@@ -373,27 +441,6 @@ public:
         if (im.wasKeyPressed(KeyCode::V))
         {
             toggleVectors();
-        }
-
-        // Apply player movement forces based on WASD input
-        if (m_playerPhysics && m_playerPhysics->isInitialized())
-        {   
-            if (im.isKeyDown(KeyCode::W))
-            {
-                m_playerPhysics->applyForceToCenter({0.0f, PLAYER_FORCE});
-            }
-            if (im.isKeyDown(KeyCode::S))
-            {
-                m_playerPhysics->applyForceToCenter({0.0f, -PLAYER_FORCE});
-            }
-            if (im.isKeyDown(KeyCode::A))
-            {
-                m_playerPhysics->applyForceToCenter({-PLAYER_FORCE, 0.0f});
-            }
-            if (im.isKeyDown(KeyCode::D))
-            {
-                m_playerPhysics->applyForceToCenter({PLAYER_FORCE, 0.0f});
-            }
         }
 
         // Update Box2D physics

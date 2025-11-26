@@ -173,7 +173,7 @@ void CInputController::deserialize(const JsonValue& value)
         for (size_t j = 0; j < mouseArray.size(); ++j)
         {
             int m = static_cast<int>(mouseArray[j].getNumber());
-            binding.mouseButtons.push_back(static_cast<sf::Mouse::Button>(m));
+            binding.mouseButtons.push_back(static_cast<MouseButton>(m));
         }
 
         std::string trigger = obj["trigger"].getString();

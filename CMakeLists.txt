@@ -127,6 +127,7 @@ endif()
 set(ENGINE_SOURCES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set(ENGINE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include")
 set(ENGINE_COMPONENT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/components")
+set(ENGINE_ENTITIES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/entities")
 set(ENGINE_SYSTEM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/systems")
 set(ENGINE_UTILITY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/utility")
 set(ENGINE_PHYSICS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/physics")
@@ -170,11 +171,13 @@ target_include_directories(GameEngine
     PUBLIC
     $<BUILD_INTERFACE:${ENGINE_INCLUDE_DIR}>
     $<BUILD_INTERFACE:${ENGINE_COMPONENT_DIR}>
+    $<BUILD_INTERFACE:${ENGINE_ENTITIES_DIR}>
     $<BUILD_INTERFACE:${ENGINE_SYSTEM_DIR}>
     $<BUILD_INTERFACE:${ENGINE_UTILITY_DIR}>
     $<BUILD_INTERFACE:${ENGINE_PHYSICS_DIR}>
     $<INSTALL_INTERFACE:include/GameEngine/include>
     $<INSTALL_INTERFACE:include/GameEngine/components>
+    $<INSTALL_INTERFACE:include/GameEngine/entities>
     $<INSTALL_INTERFACE:include/GameEngine/systems>
     $<INSTALL_INTERFACE:include/GameEngine/utility>
     $<INSTALL_INTERFACE:include/GameEngine/physics>
@@ -224,6 +227,7 @@ if(GAMEENGINE_INSTALL)
     install(DIRECTORY
         ${ENGINE_INCLUDE_DIR}
         ${ENGINE_COMPONENT_DIR}
+        ${ENGINE_ENTITIES_DIR}
         ${ENGINE_SYSTEM_DIR}
         ${ENGINE_UTILITY_DIR}
         ${ENGINE_PHYSICS_DIR}

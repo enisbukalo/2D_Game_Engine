@@ -144,6 +144,25 @@ static KeyCode keyCodeFromSFML(sf::Keyboard::Key k)
     }
 }
 
+static MouseButton mouseButtonFromSFML(sf::Mouse::Button mb)
+{
+    switch (mb)
+    {
+        case sf::Mouse::Left:
+            return MouseButton::Left;
+        case sf::Mouse::Right:
+            return MouseButton::Right;
+        case sf::Mouse::Middle:
+            return MouseButton::Middle;
+        case sf::Mouse::XButton1:
+            return MouseButton::XButton1;
+        case sf::Mouse::XButton2:
+            return MouseButton::XButton2;
+        default:
+            return MouseButton::Unknown;
+    }
+}
+
 BindingId SInputManager::bindAction(const std::string& actionName, const ActionBinding& binding)
 {
     BindingId id = m_nextBindingId++;
@@ -227,7 +246,7 @@ void SInputManager::processEvent(const sf::Event& event)
         case sf::Event::MouseButtonPressed:
         {
             MouseEvent me{};
-            me.button        = event.mouseButton.button;
+            me.button        = mouseButtonFromSFML(event.mouseButton.button);
             me.position      = {(int)event.mouseButton.x, (int)event.mouseButton.y};
             inputEvent.type  = InputEventType::MouseButtonPressed;
             inputEvent.mouse = me;
@@ -241,7 +260,7 @@ void SInputManager::processEvent(const sf::Event& event)
         case sf::Event::MouseButtonReleased:
         {
             MouseEvent me{};
-            me.button        = event.mouseButton.button;
+            me.button        = mouseButtonFromSFML(event.mouseButton.button);
             me.position      = {(int)event.mouseButton.x, (int)event.mouseButton.y};
             inputEvent.type  = InputEventType::MouseButtonReleased;
             inputEvent.mouse = me;
@@ -517,10 +536,22 @@ bool SInputManager::wasKeyReleased(KeyCode key) const
     return (it != m_keyReleased.end()) && it->second;
 }
 
-bool SInputManager::isMouseDown(sf::Mouse::Button button) const
+bool SInputManager::isMouseDown(MouseButton button) const
 {
     auto it = m_mouseDown.find(button);
     return (it != m_mouseDown.end()) && it->second;
+}
+
+bool SInputManager::wasMousePressed(MouseButton button) const
+{
+    auto it = m_mousePressed.find(button);
+    return (it != m_mousePressed.end()) && it->second;
+}
+
+bool SInputManager::wasMouseReleased(MouseButton button) const
+{
+    auto it = m_mouseReleased.find(button);
+    return (it != m_mouseReleased.end()) && it->second;
 }
 
 sf::Vector2i SInputManager::getMousePositionWindow() const
