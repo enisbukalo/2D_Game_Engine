@@ -15,7 +15,7 @@
 // Define Screen Size
 const int   SCREEN_WIDTH            = 1600;
 const int   SCREEN_HEIGHT           = 1000;
-const int   INITIAL_BALL_COUNT      = 1;
+const int   INITIAL_BALL_COUNT      = 100;
 const bool  INITIAL_GRAVITY_ENABLED = false;
 const float TIME_STEP               = 1.0f / 60.0f;  // 60 FPS
 const float GRAVITY_FORCE           = -10.0f;        // Box2D gravity (m/s²), negative = downward
@@ -33,15 +33,15 @@ private:
     bool                        m_gravityEnabled;
     bool                        m_showColliders;
     bool                        m_showVectors;
-    std::shared_ptr<Entity>     m_player;
     CPhysicsBody2D*             m_playerPhysics;
+    std::shared_ptr<Entity>     m_player;
 
     const float RESTITUTION               = 0.8f;  // Bounciness factor
     const float BALL_RADIUS_METERS        = 0.1f;  // Radius in meters
     const float BOUNDARY_THICKNESS_METERS = 0.5f;  // Thickness in meters
     const float RANDOM_VELOCITY_RANGE     = 2.0f;  // Random velocity range: -2 to +2 m/s
     const float PLAYER_SIZE_METERS        = 0.25f; // Player square half-width/height in meters
-    const float PLAYER_FORCE              = 25.0f; // Force applied for player movement
+    const float PLAYER_FORCE              = 5.0f; // Force applied for player movement
 
     // Helper function to convert meters to pixels for rendering
     sf::Vector2f metersToPixels(const Vec2& meters) const
@@ -379,8 +379,6 @@ public:
         if (m_playerPhysics && m_playerPhysics->isInitialized())
         {
             auto& inputManager = SInputManager::instance();
-            std::cout << ( &inputManager == nullptr ) << std::endl;
-            std::cout << "Checking input for player movement" << std::endl;
             
             if (inputManager.isKeyDown(KeyCode::W))
             {
@@ -580,7 +578,6 @@ public:
         {
             float dt = clock.restart().asSeconds();
 
-            handleEvents();
             update(dt);
             render();
         }
