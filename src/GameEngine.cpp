@@ -5,6 +5,7 @@
 #include <spdlog/spdlog.h>
 #include "EntityManager.h"
 #include "systems/SBox2DPhysics.h"
+#include "systems/SInputManager.h"
 
 GameEngine::GameEngine(sf::RenderWindow* window, sf::Vector2f gravity, uint8_t subStepCount, float timeStep)
     : m_window(window), m_gravity(gravity), m_subStepCount(subStepCount), m_timeStep(timeStep)
@@ -43,10 +44,27 @@ GameEngine::GameEngine(sf::RenderWindow* window, sf::Vector2f gravity, uint8_t s
     // do not trigger "unused member" style warnings from static analyzers
     physics.setSubStepCount(m_subStepCount);  // Set substep count for stability
     physics.setTimeStep(m_timeStep);          // Set fixed timestep
+    // Initialize input manager and register window event handling
+    SInputManager::instance().initialize(m_window, true);
+    SInputManager::instance().subscribe(
+        [this](const InputEvent& ev)
+        {
+            if (ev.type == InputEventType::WindowClosed)
+            {
+                if (m_window)
+                {
+                    m_window->close();
+                }
+                m_gameRunning = false;
+            }
+        });
 }
 
 GameEngine::~GameEngine()
 {
+    // Shutdown input manager
+    SInputManager::instance().shutdown();
+
     if (auto logger = spdlog::get("GameEngine"))
     {
         logger->info("GameEngine shutting down");
@@ -57,19 +75,13 @@ GameEngine::~GameEngine()
 
 void GameEngine::readInputs()
 {
-    sf::Event event;
-    while (m_window->pollEvent(event))
-    {
-        if (event.type == sf::Event::Closed)
-        {
-            m_window->close();
-            m_gameRunning = false;
-        }
-    }
+    // Intentionally empty - SInputManager polls SFML events and dispatches them.
 }
 
 void GameEngine::update(float deltaTime)
 {
+    // Handle input events before any updates
+    SInputManager::instance().update(deltaTime);
     // Accumulate time for fixed timestep updates
     m_accumulator += deltaTime;
 

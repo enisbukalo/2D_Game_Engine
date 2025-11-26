@@ -3,6 +3,7 @@
 #include "CTransform.h"
 #include "CPhysicsBody2D.h"
 #include "CCollider2D.h"
+#include "CInputController.h"
 #include "ComponentFactory.h"
 
 // Test helper component.
@@ -46,6 +47,14 @@ TEST(ComponentFactoryTest, CreateComponents)
     ASSERT_NE(collider, nullptr);
     EXPECT_EQ(collider->getType(), "CCollider2D");
 
+    auto inputController = factory.createComponent("CInputController");
+    ASSERT_NE(inputController, nullptr);
+    EXPECT_EQ(inputController->getType(), "CInputController");
+
+    auto inputControllerAlias = factory.createComponent("InputController");
+    ASSERT_NE(inputControllerAlias, nullptr);
+    EXPECT_EQ(inputControllerAlias->getType(), "CInputController");
+
     // Test invalid component type
     auto invalid = factory.createComponent("InvalidType");
     EXPECT_EQ(invalid, nullptr);
@@ -55,6 +64,8 @@ TEST(ComponentFactoryTest, CreateComponents)
     delete name;
     delete physicsBody;
     delete collider;
+    delete inputController;
+    delete inputControllerAlias;
 }
 
 TEST(ComponentFactoryTest, RegisterCustomComponent)
@@ -116,4 +127,9 @@ TEST(ComponentFactoryTest, ComponentTypeCorrectness)
     ASSERT_NE(physicsBody, nullptr);
     EXPECT_NE(dynamic_cast<CPhysicsBody2D*>(physicsBody), nullptr);
     delete physicsBody;
+
+    auto inputController = factory.createComponent("CInputController");
+    ASSERT_NE(inputController, nullptr);
+    EXPECT_NE(dynamic_cast<CInputController*>(inputController), nullptr);
+    delete inputController;
 }
