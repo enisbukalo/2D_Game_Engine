@@ -150,7 +150,7 @@ TEST_F(CInputControllerTest, SerializeDeserializeRoundtrip)
 
     ActionBinding binding2;
     binding2.keys.push_back(KeyCode::Space);
-    binding2.mouseButtons.push_back(sf::Mouse::Left);
+    binding2.mouseButtons.push_back(MouseButton::Left);
     binding2.trigger = ActionTrigger::Released;
     binding2.allowRepeat = true;
 
@@ -437,8 +437,8 @@ TEST_F(CInputControllerTest, SerializeMouseButtons)
     controller.init();
 
     ActionBinding binding;
-    binding.mouseButtons.push_back(sf::Mouse::Left);
-    binding.mouseButtons.push_back(sf::Mouse::Right);
+    binding.mouseButtons.push_back(MouseButton::Left);
+    binding.mouseButtons.push_back(MouseButton::Right);
     binding.trigger = ActionTrigger::Pressed;
 
     controller.bindAction("Shoot", binding);

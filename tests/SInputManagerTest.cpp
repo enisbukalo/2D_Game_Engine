@@ -184,7 +184,7 @@ TEST_F(SInputManagerTest, MouseButtonPressAndRelease)
     sf::Event pressEvent = createMousePressedEvent(sf::Mouse::Left, 100, 200);
     manager.processEvent(pressEvent);
 
-    EXPECT_TRUE(manager.isMouseDown(sf::Mouse::Left));
+    EXPECT_TRUE(manager.isMouseDown(MouseButton::Left));
     sf::Vector2i mousePos = manager.getMousePositionWindow();
     EXPECT_EQ(mousePos.x, 100);
     EXPECT_EQ(mousePos.y, 200);
@@ -193,7 +193,7 @@ TEST_F(SInputManagerTest, MouseButtonPressAndRelease)
     sf::Event releaseEvent = createMouseReleasedEvent(sf::Mouse::Left, 150, 250);
     manager.processEvent(releaseEvent);
 
-    EXPECT_FALSE(manager.isMouseDown(sf::Mouse::Left));
+    EXPECT_FALSE(manager.isMouseDown(MouseButton::Left));
     mousePos = manager.getMousePositionWindow();
     EXPECT_EQ(mousePos.x, 150);
     EXPECT_EQ(mousePos.y, 250);
@@ -420,7 +420,7 @@ TEST_F(SInputManagerTest, MouseButtonInActionBinding)
     auto& manager = SInputManager::instance();
 
     ActionBinding binding;
-    binding.mouseButtons.push_back(sf::Mouse::Left);
+    binding.mouseButtons.push_back(MouseButton::Left);
     binding.trigger = ActionTrigger::Pressed;
 
     manager.bindAction("Fire", binding);
