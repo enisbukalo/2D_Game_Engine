@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Input/KeyCode.h"
-#include <SFML/Window/Event.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <SFML/Window/Event.hpp>
 #include <string>
+#include "Input/KeyCode.h"
 
 enum class InputEventType
 {
@@ -21,12 +21,12 @@ enum class InputEventType
 
 struct KeyEvent
 {
-    KeyCode      key;
-    bool         alt;
-    bool         ctrl;
-    bool         shift;
-    bool         system;
-    bool         repeat;
+    KeyCode key;
+    bool    alt;
+    bool    ctrl;
+    bool    shift;
+    bool    system;
+    bool    repeat;
 };
 
 struct MouseEvent
@@ -43,7 +43,7 @@ struct MouseMoveEvent
 
 struct WheelEvent
 {
-    float delta;
+    float        delta;
     sf::Vector2i position;
 };
 
@@ -75,14 +75,13 @@ struct ActionEvent
 struct InputEvent
 {
     InputEventType type;
-    union
-    {
-        KeyEvent      key;
-        MouseEvent    mouse;
-        MouseMoveEvent mouseMove;
-        WheelEvent    wheel;
-        TextEvent     text;
-        WindowEvent   window;
-        ActionEvent   action;
-    } data;
+    // Instead of union, use separate fields
+    // Only one will be valid based on 'type'
+    KeyEvent       key{};
+    MouseEvent     mouse{};
+    MouseMoveEvent mouseMove{};
+    WheelEvent     wheel{};
+    TextEvent      text{};
+    WindowEvent    window{};
+    ActionEvent    action{};
 };

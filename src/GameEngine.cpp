@@ -46,21 +46,25 @@ GameEngine::GameEngine(sf::RenderWindow* window, sf::Vector2f gravity, uint8_t s
     physics.setTimeStep(m_timeStep);          // Set fixed timestep
     // Initialize input manager and register window event handling
     SInputManager::instance().initialize(m_window, true);
-    SInputManager::instance().subscribe([this](const InputEvent& ev)
-    {
-        if (ev.type == InputEventType::WindowClosed)
+    SInputManager::instance().subscribe(
+        [this](const InputEvent& ev)
         {
-            if (m_window)
+            if (ev.type == InputEventType::WindowClosed)
             {
-                m_window->close();
+                if (m_window)
+                {
+                    m_window->close();
+                }
+                m_gameRunning = false;
             }
-            m_gameRunning = false;
-        }
-    });
+        });
 }
 
 GameEngine::~GameEngine()
 {
+    // Shutdown input manager
+    SInputManager::instance().shutdown();
+
     if (auto logger = spdlog::get("GameEngine"))
     {
         logger->info("GameEngine shutting down");
@@ -68,8 +72,6 @@ GameEngine::~GameEngine()
     // Note: Don't drop the logger or shutdown thread pool here since the logger
     // may be reused if another GameEngine instance is created
 }
-    // Shutdown input manager
-    SInputManager::instance().shutdown();
 
 void GameEngine::readInputs()
 {

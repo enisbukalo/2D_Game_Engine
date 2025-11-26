@@ -1,13 +1,13 @@
 #pragma once
 
-#include "Component.h"
-#include "Input/IInputListener.h"
-#include "Input/ActionBinding.h"
-#include "Input/InputEvents.h"
+#include <functional>
 #include <string>
 #include <unordered_map>
-#include <functional>
 #include <vector>
+#include "Component.h"
+#include "Input/ActionBinding.h"
+#include "Input/IInputListener.h"
+#include "Input/InputEvents.h"
 
 class CInputController : public Component, public IInputListener
 {
@@ -42,9 +42,9 @@ private:
     struct LocalBinding
     {
         ActionBinding binding;
-        size_t bindingId{0};
+        size_t        bindingId{0};
     };
-    std::unordered_map<std::string, std::vector<LocalBinding>> m_bindings;
+    std::unordered_map<std::string, std::vector<LocalBinding>>        m_bindings;
     std::unordered_map<std::string, std::function<void(ActionState)>> m_callbacks;
-    std::unordered_map<std::string, ActionState> m_localActionState;
+    std::unordered_map<std::string, ActionState>                      m_localActionState;
 };

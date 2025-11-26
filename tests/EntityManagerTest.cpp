@@ -9,6 +9,9 @@
 #include "Vec2.h"
 #include "CPhysicsBody2D.h"
 #include "CCollider2D.h"
+#include "components/CInputController.h"
+#include "Input/KeyCode.h"
+#include "systems/SInputManager.h"
 
 // Define the source directory path
 #ifndef SOURCE_DIR
@@ -23,9 +26,16 @@ protected:
     {
         // Clear the EntityManager before each test
         EntityManager::instance().clear();
+        // Initialize SInputManager for components that rely on it (e.g., CInputController)
+        SInputManager::instance().shutdown();
+        SInputManager::instance().initialize(nullptr, false);
     }
 
-    void TearDown() override {}
+    void TearDown() override
+    {
+        // Shutdown SInputManager after tests
+        SInputManager::instance().shutdown();
+    }
 };
 
 TEST_F(EntityManagerTest, EntityCreation)
@@ -144,6 +154,17 @@ TEST_F(EntityManagerTest, EntitySerialization)
     auto collider4 = entity4->addComponent<CCollider2D>();
     collider4->createCircle(5.0f);
 
+    // Create fifth entity with CInputController and test action binding serialization
+    auto entity5       = manager.addEntity("controller_object");
+    auto transform5    = entity5->addComponent<CTransform>();
+    transform5->setPosition(Vec2(0.0f, 0.0f));
+    auto controller5   = entity5->addComponent<CInputController>();
+    controller5->init();
+    ActionBinding controllerBinding;
+    controllerBinding.keys.push_back(KeyCode::Space);
+    controllerBinding.trigger = ActionTrigger::Pressed;
+    controller5->bindAction("Jump", controllerBinding);
+
     // Process pending entities
     manager.update(0.0f);
 
@@ -157,7 +178,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
 
     // Test entities array
     const auto& entities = root["entities"].getArray();
-    ASSERT_EQ(entities.size(), 4);
+    ASSERT_EQ(entities.size(), 5);
 
     // Find transform_object entity and verify its components
     const auto& physics = entities[0];
@@ -285,6 +306,34 @@ TEST_F(EntityManagerTest, EntitySerialization)
     }
     ASSERT_NE(collider4JsonData, nullptr);
     EXPECT_TRUE(approxEqual((*collider4JsonData)["radius"].getNumber(), 5.0f));
+
+    // Find controller entity and verify it has cInputController
+    const JsonValue* controllerJsonData = nullptr;
+    for (const auto& ent : entities)
+    {
+        if (ent["tag"].getString() == "controller_object")
+        {
+            const auto& comps = ent["components"].getArray();
+            for (const auto& comp : comps)
+            {
+                if (!comp["cInputController"].isNull())
+                {
+                    controllerJsonData = &comp["cInputController"];
+                    break;
+                }
+            }
+            break;
+        }
+    }
+    ASSERT_NE(controllerJsonData, nullptr);
+    // Check that it contains an action named "Jump"
+    const auto& actionsArray = (*controllerJsonData)["actions"].getArray();
+    bool foundJump = false;
+    for (const auto& actionObj : actionsArray)
+    {
+        if (actionObj["action"].getString() == "Jump") { foundJump = true; break; }
+    }
+    EXPECT_TRUE(foundJump);
 
     // Clean up
     std::filesystem::remove(testFile);

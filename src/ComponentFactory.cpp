@@ -1,9 +1,9 @@
 #include "ComponentFactory.h"
 #include "CCollider2D.h"
+#include "CInputController.h"
 #include "CName.h"
 #include "CPhysicsBody2D.h"
 #include "CTransform.h"
-#include "CInputController.h"
 
 ComponentFactory::ComponentFactory()
 {

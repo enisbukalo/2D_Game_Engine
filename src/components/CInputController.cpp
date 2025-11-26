@@ -1,12 +1,10 @@
 #include "components/CInputController.h"
+#include <spdlog/spdlog.h>
+#include "systems/SInputManager.h"
 #include "utility/JsonBuilder.h"
 #include "utility/JsonValue.h"
-#include "systems/SInputManager.h"
-#include <spdlog/spdlog.h>
 
-CInputController::CInputController()
-{
-}
+CInputController::CInputController() {}
 
 CInputController::~CInputController()
 {
@@ -38,7 +36,7 @@ std::string CInputController::getType() const
 void CInputController::bindAction(const std::string& actionName, const ActionBinding& binding)
 {
     LocalBinding lb;
-    lb.binding = binding;
+    lb.binding   = binding;
     lb.bindingId = SInputManager::instance().bindAction(actionName, binding);
     m_bindings[actionName].push_back(lb);
 }
@@ -46,7 +44,8 @@ void CInputController::bindAction(const std::string& actionName, const ActionBin
 void CInputController::unbindAction(const std::string& actionName)
 {
     auto it = m_bindings.find(actionName);
-    if (it == m_bindings.end()) return;
+    if (it == m_bindings.end())
+        return;
     for (const auto& lb : it->second)
     {
         if (lb.bindingId != 0)
@@ -102,7 +101,7 @@ void CInputController::serialize(JsonBuilder& builder) const
     for (const auto& kv : m_bindings)
     {
         const std::string& actionName = kv.first;
-        const auto& bindings = kv.second;
+        const auto&        bindings   = kv.second;
         for (const auto& binding : bindings)
         {
             builder.beginObject();
@@ -111,7 +110,7 @@ void CInputController::serialize(JsonBuilder& builder) const
 
             builder.addKey("keys");
             builder.beginArray();
-            for (auto k : binding.keys)
+            for (auto k : binding.binding.keys)
             {
                 builder.addString(std::to_string(static_cast<int>(k)));
             }
@@ -119,22 +118,28 @@ void CInputController::serialize(JsonBuilder& builder) const
 
             builder.addKey("mouse");
             builder.beginArray();
-            for (auto m : binding.mouseButtons)
+            for (auto m : binding.binding.mouseButtons)
             {
                 builder.addNumber(static_cast<int>(m));
             }
             builder.endArray();
 
             builder.addKey("trigger");
-            switch (binding.trigger)
+            switch (binding.binding.trigger)
             {
-                case ActionTrigger::Pressed: builder.addString("Pressed"); break;
-                case ActionTrigger::Held:    builder.addString("Held");    break;
-                case ActionTrigger::Released: builder.addString("Released"); break;
+                case ActionTrigger::Pressed:
+                    builder.addString("Pressed");
+                    break;
+                case ActionTrigger::Held:
+                    builder.addString("Held");
+                    break;
+                case ActionTrigger::Released:
+                    builder.addString("Released");
+                    break;
             }
 
             builder.addKey("allowRepeat");
-            builder.addBool(binding.allowRepeat);
+            builder.addBool(binding.binding.allowRepeat);
             builder.endObject();
         }
     }
@@ -147,19 +152,20 @@ void CInputController::serialize(JsonBuilder& builder) const
 void CInputController::deserialize(const JsonValue& value)
 {
     const auto& comp = value["cInputController"];
-    if (comp.isNull()) return;
+    if (comp.isNull())
+        return;
     const auto& actions = comp["actions"].getArray();
     for (size_t i = 0; i < actions.size(); ++i)
     {
-        const auto& obj = actions[i];
+        const auto& obj        = actions[i];
         std::string actionName = obj["action"].getString();
 
         ActionBinding binding;
-        const auto& keysArray = obj["keys"].getArray();
+        const auto&   keysArray = obj["keys"].getArray();
         for (size_t j = 0; j < keysArray.size(); ++j)
         {
             std::string kstr = keysArray[j].getString();
-            int kint = std::stoi(kstr);
+            int         kint = std::stoi(kstr);
             binding.keys.push_back(static_cast<KeyCode>(kint));
         }
 
@@ -171,9 +177,12 @@ void CInputController::deserialize(const JsonValue& value)
         }
 
         std::string trigger = obj["trigger"].getString();
-        if (trigger == "Pressed") binding.trigger = ActionTrigger::Pressed;
-        else if (trigger == "Held") binding.trigger = ActionTrigger::Held;
-        else if (trigger == "Released") binding.trigger = ActionTrigger::Released;
+        if (trigger == "Pressed")
+            binding.trigger = ActionTrigger::Pressed;
+        else if (trigger == "Held")
+            binding.trigger = ActionTrigger::Held;
+        else if (trigger == "Released")
+            binding.trigger = ActionTrigger::Released;
 
         binding.allowRepeat = obj["allowRepeat"].getBool(false);
 
