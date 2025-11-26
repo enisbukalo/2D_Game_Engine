@@ -6,6 +6,7 @@
 #include <components/CPhysicsBody2D.h>
 #include <components/CTransform.h>
 #include <systems/SBox2DPhysics.h>
+#include <systems/SInputManager.h>
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <memory>
@@ -14,7 +15,7 @@
 // Define Screen Size
 const int   SCREEN_WIDTH            = 1600;
 const int   SCREEN_HEIGHT           = 1000;
-const int   INITIAL_BALL_COUNT      = 500;
+const int   INITIAL_BALL_COUNT      = 1;
 const bool  INITIAL_GRAVITY_ENABLED = false;
 const float TIME_STEP               = 1.0f / 60.0f;  // 60 FPS
 const float GRAVITY_FORCE           = -10.0f;        // Box2D gravity (m/s²), negative = downward
@@ -32,11 +33,15 @@ private:
     bool                        m_gravityEnabled;
     bool                        m_showColliders;
     bool                        m_showVectors;
+    std::shared_ptr<Entity>     m_player;
+    CPhysicsBody2D*             m_playerPhysics;
 
     const float RESTITUTION               = 0.8f;  // Bounciness factor
     const float BALL_RADIUS_METERS        = 0.1f;  // Radius in meters
     const float BOUNDARY_THICKNESS_METERS = 0.5f;  // Thickness in meters
     const float RANDOM_VELOCITY_RANGE     = 2.0f;  // Random velocity range: -2 to +2 m/s
+    const float PLAYER_SIZE_METERS        = 0.25f; // Player square half-width/height in meters
+    const float PLAYER_FORCE              = 25.0f; // Force applied for player movement
 
     // Helper function to convert meters to pixels for rendering
     sf::Vector2f metersToPixels(const Vec2& meters) const
@@ -64,7 +69,9 @@ public:
           m_fontLoaded(false),
           m_gravityEnabled(INITIAL_GRAVITY_ENABLED),
           m_showColliders(true),
-          m_showVectors(false)
+          m_showVectors(false),
+          m_player(nullptr),
+          m_playerPhysics(nullptr)
     {
         m_window.setFramerateLimit(60);
 
@@ -81,11 +88,15 @@ public:
 
     void init()
     {
+        // Input Manager is already initialized by GameEngine - just disable ImGui passthrough
+        SInputManager::instance().setPassToImGui(false);
+
         // Set up Box2D physics world
         auto& physics = SBox2DPhysics::instance();
         physics.setGravity({0.0f, m_gravityEnabled ? GRAVITY_FORCE : 0.0f});
 
         createBoundaryColliders();
+        createPlayer();
         createBalls();
 
         // Force EntityManager to process pending entities
@@ -94,6 +105,7 @@ public:
         std::cout << "Game initialized!" << std::endl;
         std::cout << "Physics: Box2D v3.0 (1 unit = 1 meter, Y-up)" << std::endl;
         std::cout << "Controls:" << std::endl;
+        std::cout << "  WASD            : Move player square" << std::endl;
         std::cout << "  Left/Right      : Adjust ball count" << std::endl;
         std::cout << "  R               : Restart scenario" << std::endl;
         std::cout << "  G               : Toggle gravity" << std::endl;
@@ -102,64 +114,6 @@ public:
         std::cout << "  Escape          : Exit" << std::endl;
         std::cout << "Number of balls: " << m_ballAmount << std::endl;
         std::cout << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << std::endl;
-    }
-
-    void handleEvents()
-    {
-        sf::Event event;
-        while (m_window.pollEvent(event))
-        {
-            if (event.type == sf::Event::Closed)
-            {
-                m_running = false;
-            }
-            if (event.type == sf::Event::KeyPressed)
-            {
-                if (event.key.code == sf::Keyboard::Escape)
-                {
-                    m_running = false;
-                }
-                // Adjust ball count with Left/Right arrows
-                else if (event.key.code == sf::Keyboard::Left)
-                {
-                    if (m_ballAmount > 1)
-                    {
-                        m_ballAmount--;
-                        removeRandomBall();
-                        std::cout << "Ball count: " << m_ballAmount << std::endl;
-                    }
-                }
-                else if (event.key.code == sf::Keyboard::Right)
-                {
-                    if (m_ballAmount < 1000)
-                    {
-                        m_ballAmount++;
-                        spawnRandomBall();
-                        std::cout << "Ball count: " << m_ballAmount << std::endl;
-                    }
-                }
-                // Restart scenario with R key
-                else if (event.key.code == sf::Keyboard::R)
-                {
-                    restart();
-                }
-                // Toggle gravity with G key
-                else if (event.key.code == sf::Keyboard::G)
-                {
-                    toggleGravity();
-                }
-                // Toggle collider visibility with C key
-                else if (event.key.code == sf::Keyboard::C)
-                {
-                    toggleColliders();
-                }
-                // Toggle vector visualization with V key
-                else if (event.key.code == sf::Keyboard::V)
-                {
-                    toggleVectors();
-                }
-            }
-        }
     }
 
     void createBoundaryColliders()
@@ -200,6 +154,32 @@ public:
         auto* topBody = topWall->addComponent<CPhysicsBody2D>();
         topBody->initialize({screenWidthMeters / 2.0f, screenHeightMeters - BOUNDARY_THICKNESS_METERS / 2.0f}, BodyType::Static);
         topWall->addComponent<CCollider2D>()->createBox(screenWidthMeters / 2.0f, BOUNDARY_THICKNESS_METERS / 2.0f);
+    }
+
+    void createPlayer()
+    {
+        // Screen dimensions in meters
+        const float screenWidthMeters  = SCREEN_WIDTH / PIXELS_PER_METER;
+        const float screenHeightMeters = SCREEN_HEIGHT / PIXELS_PER_METER;
+
+        // Calculate center position
+        const float centerX = screenWidthMeters / 2.0f;
+        const float centerY = screenHeightMeters / 2.0f;
+
+        // Create player entity
+        m_player = EntityManager::instance().addEntity("player");
+        m_player->addComponent<CTransform>(Vec2(centerX, centerY), Vec2(1.0f, 1.0f), 0.0f);
+
+        // Add physics body
+        m_playerPhysics = m_player->addComponent<CPhysicsBody2D>();
+        m_playerPhysics->initialize({centerX, centerY}, BodyType::Dynamic);
+
+        // Add box collider
+        auto* collider = m_player->addComponent<CCollider2D>();
+        collider->createBox(PLAYER_SIZE_METERS, PLAYER_SIZE_METERS);
+        collider->setRestitution(0.3f);
+        collider->setDensity(2.0f);
+        collider->setFriction(0.5f);
     }
 
     void createBalls()
@@ -318,8 +298,9 @@ public:
         auto& physics = SBox2DPhysics::instance();
         physics.setGravity({0.0f, m_gravityEnabled ? GRAVITY_FORCE : 0.0f});
 
-        // Recreate boundary colliders and balls
+        // Recreate boundary colliders, player, and balls
         createBoundaryColliders();
+        createPlayer();
         createBalls();
 
         // Force EntityManager to process pending entities
@@ -350,6 +331,79 @@ public:
 
     void update(float dt)
     {
+        // Update Input Manager
+        SInputManager::instance().update(dt);
+
+        // Handle window controls and key actions via SInputManager (prevents double polling)
+        auto& im = SInputManager::instance();
+        if (im.wasKeyPressed(KeyCode::Escape))
+        {
+            m_running = false;
+        }
+        if (im.wasKeyPressed(KeyCode::Left))
+        {
+            if (m_ballAmount > 1)
+            {
+                m_ballAmount--;
+                removeRandomBall();
+                std::cout << "Ball count: " << m_ballAmount << std::endl;
+            }
+        }
+        if (im.wasKeyPressed(KeyCode::Right))
+        {
+            if (m_ballAmount < 1000)
+            {
+                m_ballAmount++;
+                spawnRandomBall();
+                std::cout << "Ball count: " << m_ballAmount << std::endl;
+            }
+        }
+        if (im.wasKeyPressed(KeyCode::R))
+        {
+            restart();
+        }
+        if (im.wasKeyPressed(KeyCode::G))
+        {
+            toggleGravity();
+        }
+        if (im.wasKeyPressed(KeyCode::C))
+        {
+            toggleColliders();
+        }
+        if (im.wasKeyPressed(KeyCode::V))
+        {
+            toggleVectors();
+        }
+
+        // Apply player movement forces based on WASD input
+        if (m_playerPhysics && m_playerPhysics->isInitialized())
+        {
+            auto& inputManager = SInputManager::instance();
+            std::cout << ( &inputManager == nullptr ) << std::endl;
+            std::cout << "Checking input for player movement" << std::endl;
+            
+            if (inputManager.isKeyDown(KeyCode::W))
+            {
+                std::cout << "W key pressed" << std::endl;
+                m_playerPhysics->applyForceToCenter({0.0f, PLAYER_FORCE});
+            }
+            if (inputManager.isKeyDown(KeyCode::S))
+            {
+                std::cout << "S key pressed" << std::endl;
+                m_playerPhysics->applyForceToCenter({0.0f, -PLAYER_FORCE});
+            }
+            if (inputManager.isKeyDown(KeyCode::A))
+            {
+                std::cout << "A key pressed" << std::endl;
+                m_playerPhysics->applyForceToCenter({-PLAYER_FORCE, 0.0f});
+            }
+            if (inputManager.isKeyDown(KeyCode::D))
+            {
+                std::cout << "D key pressed" << std::endl;
+                m_playerPhysics->applyForceToCenter({PLAYER_FORCE, 0.0f});
+            }
+        }
+
         // Update Box2D physics
         SBox2DPhysics::instance().update(dt);
 
@@ -441,6 +495,34 @@ public:
 
             m_window.draw(ballShape);
             ballIndex++;
+        }
+
+        // Draw player square
+        auto players = EntityManager::instance().getEntitiesByTag("player");
+        for (auto& player : players)
+        {
+            if (!player->hasComponent<CTransform>() || !player->hasComponent<CCollider2D>())
+                continue;
+
+            auto* transform = player->getComponent<CTransform>();
+            auto* collider  = player->getComponent<CCollider2D>();
+
+            Vec2         posMeters = transform->getPosition();
+            sf::Vector2f posPixels = metersToPixels(posMeters);
+
+            float halfWidth  = collider->getBoxHalfWidth() * PIXELS_PER_METER;
+            float halfHeight = collider->getBoxHalfHeight() * PIXELS_PER_METER;
+
+            sf::RectangleShape playerShape(sf::Vector2f(halfWidth * 2, halfHeight * 2));
+            playerShape.setOrigin(halfWidth, halfHeight);
+            playerShape.setPosition(posPixels);
+            playerShape.setFillColor(sf::Color::White);  // White square for player
+            if (m_showColliders)
+            {
+                playerShape.setOutlineColor(sf::Color::Magenta);  // Magenta outline for player
+                playerShape.setOutlineThickness(3.0f);
+            }
+            m_window.draw(playerShape);
         }
 
         // Draw velocity vectors
