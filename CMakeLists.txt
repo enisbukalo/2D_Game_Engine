@@ -64,13 +64,13 @@ FetchContent_Declare(SPDLOG
 
 FetchContent_MakeAvailable(SPDLOG)
 
-# Fetch Box2D (v3.0 for physics engine)
+# Fetch Box2D (v3.1 for physics engine)
 set(BOX2D_BUILD_UNIT_TESTS OFF CACHE BOOL "" FORCE)
 set(BOX2D_BUILD_TESTBED OFF CACHE BOOL "" FORCE)
 set(BOX2D_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(box2d
     GIT_REPOSITORY https://github.com/erincatto/box2d.git
-    GIT_TAG main
+    GIT_TAG v3.1.1
     GIT_SHALLOW ON)
 
 FetchContent_MakeAvailable(box2d)

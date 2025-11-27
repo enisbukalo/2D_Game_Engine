@@ -56,7 +56,7 @@ A modern C++ 2D game engine built with SFML, featuring an Entity Component Syste
 - **Default gravity**: 9.81 m/s² downward in Box2D (equivalent to Earth's gravity)
 
 ### Physics System
-- **SBox2DPhysics**: Box2D v3.0 integration with ECS architecture
+- **SBox2DPhysics**: Box2D v3.1.1 integration with ECS architecture
   - Industry-standard 2D physics engine with native API
   - Manages Box2D world and physics simulation
   - Automatic synchronization between Box2D and CTransform components
@@ -133,7 +133,7 @@ The codebase is organized using pragma regions for better readability:
 
 ## Dependencies
 - SFML 2.6.1: Graphics and window management
-- Box2D v3.0: 2D physics engine
+- Box2D v3.1.1: 2D physics engine
 - Dear ImGui 1.88: Immediate mode GUI
 - ImGui-SFML 2.6: SFML backend for Dear ImGui
 - C++17 or later

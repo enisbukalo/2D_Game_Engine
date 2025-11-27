@@ -9,10 +9,10 @@ CPhysicsBody2D::CPhysicsBody2D()
       m_bodyType(BodyType::Dynamic),
       m_density(1.0f),
       m_friction(0.3f),
-      m_restitution(0.0f),
+      m_restitution(0.15f),
       m_fixedRotation(false),
-      m_linearDamping(0.0f),
-      m_angularDamping(0.0f),
+      m_linearDamping(0.25f),
+      m_angularDamping(0.10f),
       m_gravityScale(1.0f),
       m_initialized(false)
 {
@@ -64,8 +64,14 @@ void CPhysicsBody2D::initialize(const b2Vec2& position, BodyType type)
     m_bodyId      = SBox2DPhysics::instance().createBody(getOwner(), bodyDef);
     m_initialized = true;
 
-    // TODO: Box2D v3 doesn't support fixedRotation in the same way as v2
-    // This will need to be implemented differently or removed
+    // Apply persisted properties after body creation
+    if (b2Body_IsValid(m_bodyId))
+    {
+        if (m_fixedRotation)
+        {
+            b2Body_SetFixedRotation(m_bodyId, true);
+        }
+    }
 }
 
 void CPhysicsBody2D::setBodyType(BodyType type)
@@ -91,8 +97,10 @@ void CPhysicsBody2D::setBodyType(BodyType type)
 void CPhysicsBody2D::setFixedRotation(bool fixed)
 {
     m_fixedRotation = fixed;
-    // TODO: Box2D v3 doesn't support fixedRotation in the same way as v2
-    // This will need to be implemented differently or removed
+    if (b2Body_IsValid(m_bodyId))
+    {
+        b2Body_SetFixedRotation(m_bodyId, fixed);
+    }
 }
 
 void CPhysicsBody2D::setLinearDamping(float damping)
@@ -162,6 +170,14 @@ void CPhysicsBody2D::applyAngularImpulse(float impulse)
     }
 }
 
+void CPhysicsBody2D::applyTorque(float torque)
+{
+    if (m_initialized && b2Body_IsValid(m_bodyId))
+    {
+        b2Body_ApplyTorque(m_bodyId, torque, true);
+    }
+}
+
 void CPhysicsBody2D::setLinearVelocity(const b2Vec2& velocity)
 {
     if (m_initialized && b2Body_IsValid(m_bodyId))
@@ -213,6 +229,26 @@ float CPhysicsBody2D::getRotation() const
         return b2Rot_GetAngle(rot);
     }
     return 0.0f;
+}
+
+b2Vec2 CPhysicsBody2D::getForwardVector() const
+{
+    if (m_initialized && b2Body_IsValid(m_bodyId))
+    {
+        b2Rot rot = b2Body_GetRotation(m_bodyId);
+        return b2Rot_GetYAxis(rot);  // Y-axis is forward in Box2D
+    }
+    return {0.0f, 1.0f};  // Default forward is up
+}
+
+b2Vec2 CPhysicsBody2D::getRightVector() const
+{
+    if (m_initialized && b2Body_IsValid(m_bodyId))
+    {
+        b2Rot rot = b2Body_GetRotation(m_bodyId);
+        return b2Rot_GetXAxis(rot);  // X-axis is right in Box2D
+    }
+    return {1.0f, 0.0f};  // Default right is to the right
 }
 
 void CPhysicsBody2D::syncToTransform(CTransform* transform)
