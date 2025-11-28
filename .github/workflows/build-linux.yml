@@ -54,12 +54,12 @@ jobs:
           sudo ./cmake-3.28.0-linux-x86_64.sh --skip-license --prefix=/usr/local
           rm cmake-3.28.0-linux-x86_64.sh
 
-      - name: Cache Dependencies
+      - name: Cache Dependencies (Box2D, spdlog, ImGui, etc.)
         uses: actions/cache@v4
         with:
           path: |
-            deps_cache
-            build/_deps
+            deps_cache_linux
+            build_linux/_deps
           key: ${{ runner.os }}-deps-${{ hashFiles('**/CMakeLists.txt') }}
           restore-keys: |
             ${{ runner.os }}-deps-
