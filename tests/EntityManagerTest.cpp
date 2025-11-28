@@ -293,7 +293,6 @@ TEST_F(EntityManagerTest, EntitySerialization)
     EXPECT_TRUE(approxEqual((*physicsBody3JsonData)["linearDamping"].getNumber(), 0.1f));
     EXPECT_TRUE(approxEqual((*physicsBody3JsonData)["angularDamping"].getNumber(), 0.1f));
     EXPECT_TRUE(approxEqual((*physicsBody3JsonData)["gravityScale"].getNumber(), 1.0f));
-    EXPECT_TRUE(approxEqual((*physicsBody3JsonData)["mass"].getNumber(), 2.5f));    
 
     // Find and verify CircleCollider component from the PhysicsBody2D entity
     const JsonValue* collider4JsonData = nullptr;

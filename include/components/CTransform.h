@@ -25,7 +25,7 @@ public:
      * @param scl Initial scale
      * @param rot Initial rotation in radians
      */
-    CTransform(const Vec2& pos, const Vec2& scl, float rot) : m_position(pos), m_scale(scl), m_rotation(rot) {}
+    CTransform(const Vec2& pos, const Vec2& scl, float rot) : m_localPosition(pos), m_localScale(scl), m_localRotation(rot) {}
 
     /**
      * @brief Gets the type identifier for this component
@@ -169,10 +169,7 @@ private:
     Vec2  m_localScale    = Vec2(1.0f, 1.0f);  ///< Scale relative to parent (or world if no parent)
     float m_localRotation = 0.0f;              ///< Rotation relative to parent (or world if no parent)
 
-    // Legacy members kept for backward compatibility - now alias to local transforms
-    Vec2& m_position = m_localPosition;  ///< Alias to m_localPosition for backward compatibility
-    Vec2& m_scale    = m_localScale;     ///< Alias to m_localScale for backward compatibility
-    float& m_rotation = m_localRotation; ///< Alias to m_localRotation for backward compatibility
+    // Remove legacy reference aliases - maintain explicit local transform storage
 };
 
 #endif  // CTRANSFORM_H

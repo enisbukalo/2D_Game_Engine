@@ -193,6 +193,21 @@ target_include_directories(GameEngine
     $<INSTALL_INTERFACE:include>
 )
 
+# Allow setting AVX2 (or the platform equivalent) only for the Guid translation unit which
+# uses the header-only uuid_v4 implementation with AVX intrinsics.
+include(CheckCXXCompilerFlag)
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    check_cxx_compiler_flag("-mavx2" COMPILER_SUPPORTS_MAVX2)
+    if (COMPILER_SUPPORTS_MAVX2)
+        set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/src/utility/Guid.cpp PROPERTIES COMPILE_FLAGS "-mavx2")
+    endif()
+elseif (MSVC)
+    check_cxx_compiler_flag("/arch:AVX2" COMPILER_SUPPORTS_ARCH_AVX2)
+    if (COMPILER_SUPPORTS_ARCH_AVX2)
+        set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/src/utility/Guid.cpp PROPERTIES COMPILE_FLAGS "/arch:AVX2")
+    endif()
+endif()
+
 # Link against dependencies
 target_link_libraries(GameEngine
     PUBLIC

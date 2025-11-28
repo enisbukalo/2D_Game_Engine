@@ -14,6 +14,18 @@ void CTransform::serialize(JsonBuilder& builder) const
     builder.beginObject();
     builder.addKey("cTransform");
     builder.beginObject();
+    // Write both world position and local position for compatibility
+    // Write world position under "position"
+    Vec2 worldPos = getWorldPosition();
+    builder.addKey("position");
+    builder.beginObject();
+    builder.addKey("x");
+    builder.addNumber(worldPos.x);
+    builder.addKey("y");
+    builder.addNumber(worldPos.y);
+    builder.endObject();
+
+    // Also write local position under "localPosition"
     builder.addKey("localPosition");
     builder.beginObject();
     builder.addKey("x");
@@ -28,6 +40,17 @@ void CTransform::serialize(JsonBuilder& builder) const
     builder.addKey("y");
     builder.addNumber(m_velocity.y);
     builder.endObject();
+    // Write world scale under "scale"
+    Vec2 worldScale = getWorldScale();
+    builder.addKey("scale");
+    builder.beginObject();
+    builder.addKey("x");
+    builder.addNumber(worldScale.x);
+    builder.addKey("y");
+    builder.addNumber(worldScale.y);
+    builder.endObject();
+
+    // Also write local scale under "localScale"
     builder.addKey("localScale");
     builder.beginObject();
     builder.addKey("x");
@@ -35,6 +58,11 @@ void CTransform::serialize(JsonBuilder& builder) const
     builder.addKey("y");
     builder.addNumber(m_localScale.y);
     builder.endObject();
+    // Write world rotation under "rotation"
+    builder.addKey("rotation");
+    builder.addNumber(getWorldRotation());
+
+    // Also write local rotation under "localRotation"
     builder.addKey("localRotation");
     builder.addNumber(m_localRotation);
     builder.endObject();
@@ -56,8 +84,8 @@ void CTransform::deserialize(const JsonValue& value)
     else if (transform.hasKey("position"))
     {
         const auto& pos = transform["position"];
-        m_localPosition.x = pos["x"].getNumber();
-        m_localPosition.y = pos["y"].getNumber();
+        // Position is provided as world position; convert to local position
+        setWorldPosition(Vec2(pos["x"].getNumber(), pos["y"].getNumber()));
     }
 
     // Deserialize velocity
@@ -76,8 +104,8 @@ void CTransform::deserialize(const JsonValue& value)
     else if (transform.hasKey("scale"))
     {
         const auto& scale = transform["scale"];
-        m_localScale.x = scale["x"].getNumber();
-        m_localScale.y = scale["y"].getNumber();
+        // Scale provided as world scale; convert to local scale
+        setWorldScale(Vec2(scale["x"].getNumber(), scale["y"].getNumber()));
     }
 
     // Try to load local rotation first (new format)
@@ -88,7 +116,8 @@ void CTransform::deserialize(const JsonValue& value)
     // Fall back to old rotation format for backward compatibility
     else if (transform.hasKey("rotation"))
     {
-        m_localRotation = transform["rotation"].getNumber();
+        // Rotation provided as world rotation; convert to local rotation
+        setWorldRotation(transform["rotation"].getNumber());
     }
 }
 
@@ -135,11 +164,6 @@ Vec2 CTransform::getWorldPosition() const
                           scaledLocalPos.x * sinRot + scaledLocalPos.y * cosRot);
 
     return Vec2(parentWorldPos.x + rotatedPos.x, parentWorldPos.y + rotatedPos.y);
-}
-
-void CTransform::setPosition(const Vec2& position)
-{
-    setWorldPosition(position);
 }
 
 void CTransform::setPosition(const Vec2& position)
