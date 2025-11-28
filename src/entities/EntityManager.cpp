@@ -16,6 +16,7 @@ void EntityManager::update(float deltaTime)
     {
         m_entities.push_back(entity);
         m_entityMap[entity->getTag()].push_back(entity);
+        m_guidMap[entity->getGuid()] = entity;
     }
     m_entitiesToAdd.clear();
 
@@ -41,6 +42,43 @@ std::shared_ptr<Entity> EntityManager::addEntity(const std::string& tag)
 
 void EntityManager::removeEntity(std::shared_ptr<Entity> entity)
 {
+    destroyEntityAndChildren(entity);
+}
+
+std::shared_ptr<Entity> EntityManager::getEntityByGuid(const std::string& guid)
+{
+    auto it = m_guidMap.find(guid);
+    if (it != m_guidMap.end())
+    {
+        return it->second;
+    }
+    return nullptr;
+}
+
+void EntityManager::removeEntityByGuid(const std::string& guid)
+{
+    auto entity = getEntityByGuid(guid);
+    if (entity)
+    {
+        destroyEntityAndChildren(entity);
+    }
+}
+
+void EntityManager::destroyEntityAndChildren(std::shared_ptr<Entity> entity)
+{
+    if (!entity)
+    {
+        return;
+    }
+
+    // Recursively destroy all children first
+    auto children = entity->getChildren();
+    for (auto& child : children)
+    {
+        destroyEntityAndChildren(child);
+    }
+
+    // Mark this entity for destruction
     entity->destroy();
 }
 
@@ -93,10 +131,39 @@ void EntityManager::loadFromFile(const std::string& filename)
     }
 
     const auto& entities = root["entities"].getArray();
-    for (const auto& entity : entities)
+
+    // Two-pass loading:
+    // Pass 1: Create all entities and register them by GUID
+    std::unordered_map<std::string, std::string> parentGuidMap;  // child GUID -> parent GUID
+
+    for (const auto& entityData : entities)
     {
-        std::shared_ptr<Entity> newEntity = addEntity(entity["tag"].getString());
-        newEntity->deserialize(entity);
+        std::shared_ptr<Entity> newEntity = addEntity(entityData["tag"].getString());
+        newEntity->deserialize(entityData);
+
+        // Store parent relationship for second pass
+        if (entityData.hasKey("parentGuid"))
+        {
+            parentGuidMap[newEntity->getGuid()] = entityData["parentGuid"].getString();
+        }
+    }
+
+    // Flush pending entities to guidMap
+    for (auto& entity : m_entitiesToAdd)
+    {
+        m_guidMap[entity->getGuid()] = entity;
+    }
+
+    // Pass 2: Resolve parent relationships
+    for (const auto& [childGuid, parentGuid] : parentGuidMap)
+    {
+        auto child = getEntityByGuid(childGuid);
+        auto parent = getEntityByGuid(parentGuid);
+
+        if (child && parent)
+        {
+            child->setParent(parent);
+        }
     }
 }
 
@@ -105,11 +172,25 @@ void EntityManager::clear()
     m_entities.clear();
     m_entitiesToAdd.clear();
     m_entityMap.clear();
+    m_guidMap.clear();
     m_totalEntities = 0;
 }
 
 void EntityManager::removeDeadEntities()
 {
+    // Remove from GUID map first
+    for (auto it = m_guidMap.begin(); it != m_guidMap.end();)
+    {
+        if (!it->second->isAlive())
+        {
+            it = m_guidMap.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+
     // Remove from main entity vector
     m_entities.erase(std::remove_if(m_entities.begin(),
                                     m_entities.end(),

@@ -100,8 +100,11 @@ b2BodyId SBox2DPhysics::createBody(Entity* entity, const b2BodyDef& bodyDef)
     // Create new body
     b2BodyId bodyId = b2CreateBody(m_worldId, &bodyDef);
 
-    // Store entity pointer in body user data
-    b2Body_SetUserData(bodyId, entity);
+    // Find the physics root owner (highest ancestor with CPhysicsBody2D)
+    Entity* physicsRoot = CPhysicsBody2D::getPhysicsRootOwner(entity);
+
+    // Store physics root owner pointer in body user data
+    b2Body_SetUserData(bodyId, physicsRoot);
 
     // Map entity to body
     m_entityBodyMap[entity->getId()] = bodyId;
@@ -141,6 +144,31 @@ b2BodyId SBox2DPhysics::getBody(const Entity* entity)
     }
 
     return b2_nullBodyId;
+}
+
+void SBox2DPhysics::updatePhysicsRootOwners(Entity* entity)
+{
+    if (!entity)
+    {
+        return;
+    }
+
+    // Update this entity's body if it has one
+    if (entity->hasComponent<CPhysicsBody2D>())
+    {
+        auto bodyId = getBody(entity);
+        if (b2Body_IsValid(bodyId))
+        {
+            Entity* physicsRoot = CPhysicsBody2D::getPhysicsRootOwner(entity);
+            b2Body_SetUserData(bodyId, physicsRoot);
+        }
+    }
+
+    // Recursively update all children
+    for (auto child : entity->getChildren())
+    {
+        updatePhysicsRootOwners(child.get());
+    }
 }
 
 void SBox2DPhysics::queryAABB(const b2AABB& aabb, b2OverlapResultFcn* callback, void* context)

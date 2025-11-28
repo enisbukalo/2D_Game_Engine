@@ -75,6 +75,14 @@ FetchContent_Declare(box2d
 
 FetchContent_MakeAvailable(box2d)
 
+# Fetch uuid_v4 (header-only UUID v4 generator)
+FetchContent_Declare(uuid_v4
+    GIT_REPOSITORY https://github.com/crashoz/uuid_v4.git
+    GIT_TAG master
+    GIT_SHALLOW ON)
+
+FetchContent_MakeAvailable(uuid_v4)
+
 # Fetch ImGui (v1.88 is compatible with ImGui-SFML v2.6)
 FetchContent_Declare(IMGUI
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
@@ -175,6 +183,7 @@ target_include_directories(GameEngine
     $<BUILD_INTERFACE:${ENGINE_SYSTEM_DIR}>
     $<BUILD_INTERFACE:${ENGINE_UTILITY_DIR}>
     $<BUILD_INTERFACE:${ENGINE_PHYSICS_DIR}>
+    $<BUILD_INTERFACE:${uuid_v4_SOURCE_DIR}>
     $<INSTALL_INTERFACE:include/GameEngine/include>
     $<INSTALL_INTERFACE:include/GameEngine/components>
     $<INSTALL_INTERFACE:include/GameEngine/entities>

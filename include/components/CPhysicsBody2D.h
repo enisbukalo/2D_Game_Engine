@@ -279,6 +279,13 @@ public:
      */
     void syncFromTransform(const CTransform* transform);
 
+    /**
+     * @brief Get the physics root owner entity (highest ancestor with CPhysicsBody2D)
+     * @param entity Entity to start search from
+     * @return Pointer to the physics root owner, or the entity itself if it has physics
+     */
+    static Entity* getPhysicsRootOwner(Entity* entity);
+
     // Component interface
     void        init() override;
     void        serialize(JsonBuilder& builder) const override;

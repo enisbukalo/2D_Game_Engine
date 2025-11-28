@@ -157,6 +157,12 @@ public:
     size_t getId() const;
 
     /**
+     * @brief Gets the entity's unique GUID
+     * @return The entity's GUID string
+     */
+    const std::string &getGuid() const;
+
+    /**
      * @brief Gets the entity's tag
      * @return The entity's tag string
      */
@@ -178,19 +184,61 @@ public:
      */
     void deserialize(const JsonValue &value);
 
+    /**
+     * @brief Sets the parent of this entity
+     * @param parent Shared pointer to the parent entity (can be nullptr to clear parent)
+     * @return true if successful, false if would create a cycle
+     */
+    bool setParent(std::shared_ptr<Entity> parent);
+
+    /**
+     * @brief Gets the parent of this entity
+     * @return Shared pointer to parent entity, or nullptr if no parent
+     */
+    std::shared_ptr<Entity> getParent() const;
+
+    /**
+     * @brief Adds a child to this entity
+     * @param child Shared pointer to the child entity
+     * @return true if successful, false if would create a cycle
+     */
+    bool addChild(std::shared_ptr<Entity> child);
+
+    /**
+     * @brief Removes a child from this entity
+     * @param child Shared pointer to the child entity to remove
+     */
+    void removeChild(std::shared_ptr<Entity> child);
+
+    /**
+     * @brief Gets all children of this entity
+     * @return Vector of shared pointers to child entities
+     */
+    std::vector<std::shared_ptr<Entity>> getChildren() const;
+
 protected:
     /**
      * @brief Constructs an entity with a tag and ID
      * @param tag The entity's tag for identification and grouping
      * @param id Unique identifier for the entity
      */
-    Entity(const std::string &tag, size_t id) : m_tag(tag), m_id(id) {}
+    Entity(const std::string &tag, size_t id);
 
 private:
+    /**
+     * @brief Checks if the given entity is a descendant of this entity
+     * @param entity Entity to check
+     * @return true if entity is a descendant, false otherwise
+     */
+    bool isDescendant(std::shared_ptr<Entity> entity) const;
+
     std::unordered_map<std::type_index, std::unique_ptr<Component>> m_components;  ///< Map of components indexed by type
-    size_t            m_id    = 0;                                                 ///< Unique identifier
-    const std::string m_tag   = "Default";                                         ///< Entity tag
-    bool              m_alive = true;                                              ///< Entity state flag
+    size_t                                 m_id    = 0;              ///< Unique numeric identifier
+    std::string                            m_guid;                   ///< Unique GUID identifier
+    const std::string                      m_tag   = "Default";      ///< Entity tag
+    bool                                   m_alive = true;           ///< Entity state flag
+    std::weak_ptr<Entity>                  m_parent;                 ///< Parent entity (weak to avoid circular references)
+    std::vector<std::weak_ptr<Entity>>     m_children;               ///< Child entities (weak to avoid circular references)
 };
 
 #endif  // ENTITY_H

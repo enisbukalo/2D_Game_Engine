@@ -418,3 +418,29 @@ std::string CPhysicsBody2D::getType() const
 {
     return "CPhysicsBody2D";
 }
+
+Entity* CPhysicsBody2D::getPhysicsRootOwner(Entity* entity)
+{
+    if (!entity)
+    {
+        return nullptr;
+    }
+
+    Entity* physicsOwner = nullptr;
+
+    // Traverse up the hierarchy to find the highest entity with a physics body
+    Entity* current = entity;
+    while (current)
+    {
+        if (current->hasComponent<CPhysicsBody2D>())
+        {
+            physicsOwner = current;
+        }
+
+        auto parent = current->getParent();
+        current = parent.get();
+    }
+
+    // If no physics body found in hierarchy, return the entity itself
+    return physicsOwner ? physicsOwner : entity;
+}

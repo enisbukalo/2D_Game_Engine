@@ -63,6 +63,19 @@ public:
     std::vector<std::shared_ptr<Entity>> getEntitiesByTag(const std::string& tag);
 
     /**
+     * @brief Gets an entity by its GUID
+     * @param guid The GUID to search for
+     * @return Shared pointer to the entity, or nullptr if not found
+     */
+    std::shared_ptr<Entity> getEntityByGuid(const std::string& guid);
+
+    /**
+     * @brief Removes an entity by its GUID (with cascade delete of children)
+     * @param guid The GUID of the entity to remove
+     */
+    void removeEntityByGuid(const std::string& guid);
+
+    /**
      * @brief Gets all entities that have a specific component type
      * @tparam T The component type to search for
      * @return Vector of pointers to entities with the specified component
@@ -131,9 +144,16 @@ private:
      */
     void removeDeadEntities();
 
+    /**
+     * @brief Recursively marks an entity and all its children for destruction
+     * @param entity Entity to destroy with its children
+     */
+    void destroyEntityAndChildren(std::shared_ptr<Entity> entity);
+
     std::vector<std::shared_ptr<Entity>> m_entities;       ///< List of all active entities
     std::vector<std::shared_ptr<Entity>> m_entitiesToAdd;  ///< Queue of entities to be added
     std::unordered_map<std::string, std::vector<std::shared_ptr<Entity>>> m_entityMap;  ///< Map of entities by tag
+    std::unordered_map<std::string, std::shared_ptr<Entity>> m_guidMap;  ///< Map of entities by GUID
     size_t m_totalEntities = 0;  ///< Counter for generating unique entity IDs
 };
 

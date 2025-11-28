@@ -126,6 +126,12 @@ public:
     b2BodyId getBody(const Entity* entity);
 
     /**
+     * @brief Update the physics root owner userData for all bodies in an entity hierarchy
+     * @param entity Root entity of the hierarchy to update
+     */
+    void updatePhysicsRootOwners(Entity* entity);
+
+    /**
      * @brief Query the world for all bodies overlapping an AABB
      * @param aabb Axis-aligned bounding box to query
      * @param callback Callback function called for each overlapping body
