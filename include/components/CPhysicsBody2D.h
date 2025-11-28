@@ -218,6 +218,12 @@ public:
     void applyAngularImpulse(float impulse);
 
     /**
+     * @brief Apply a torque (continuous rotational force)
+     * @param torque Torque in N*m
+     */
+    void applyTorque(float torque);
+
+    /**
      * @brief Set linear velocity
      * @param velocity Velocity in m/s
      */
@@ -248,6 +254,18 @@ public:
      * @brief Get body rotation (angle)
      */
     float getRotation() const;
+
+    /**
+     * @brief Get the forward direction vector (Y-axis) based on current rotation
+     * @return Forward direction as b2Vec2
+     */
+    b2Vec2 getForwardVector() const;
+
+    /**
+     * @brief Get the right direction vector (X-axis) based on current rotation
+     * @return Right direction as b2Vec2
+     */
+    b2Vec2 getRightVector() const;
 
     /**
      * @brief Sync Box2D body state to CTransform component

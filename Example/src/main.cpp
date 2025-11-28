@@ -15,13 +15,20 @@
 #include <sstream>
 
 // Define Screen Size
-const int   SCREEN_WIDTH            = 1600;
-const int   SCREEN_HEIGHT           = 1000;
-const int   INITIAL_BALL_COUNT      = 100;
-const bool  INITIAL_GRAVITY_ENABLED = false;
-const float TIME_STEP               = 1.0f / 60.0f;  // 60 FPS
-const float GRAVITY_FORCE           = -10.0f;        // Box2D gravity (m/s²), negative = downward
-const float PIXELS_PER_METER        = 100.0f;        // Rendering scale: 100 pixels = 1 meter
+const int   SCREEN_WIDTH              = 1600;
+const int   SCREEN_HEIGHT             = 1000;
+const int   INITIAL_BALL_COUNT        = 100;
+const bool  INITIAL_GRAVITY_ENABLED   = false;
+const float TIME_STEP                 = 1.0f / 60.0f;  // 60 FPS
+const float GRAVITY_FORCE             = -10.0f;        // Box2D gravity (m/s²), negative = downward
+const float PIXELS_PER_METER          = 100.0f;        // Rendering scale: 100 pixels = 1 meter
+const float RESTITUTION               = 0.5f;   // Bounciness factor (lowered from 0.8 to reduce collision energy)
+const float BALL_RADIUS_METERS        = 0.1f;   // Radius in meters
+const float BOUNDARY_THICKNESS_METERS = 0.5f;   // Thickness in meters
+const float RANDOM_VELOCITY_RANGE     = 2.0f;   // Random velocity range: -2 to +2 m/s
+const float PLAYER_SIZE_METERS        = 0.25f;  // Player square half-width/height in meters
+const float PLAYER_FORCE              = 5.0f;   // Force applied for player movement
+const float PLAYER_TURNING_FORCE      = 0.5f;   // Torque applied for player rotation
 
 class BounceGame
 {
@@ -37,13 +44,6 @@ private:
     bool                        m_showVectors;
     CPhysicsBody2D*             m_playerPhysics;
     std::shared_ptr<Entity>     m_player;
-
-    const float RESTITUTION               = 0.8f;   // Bounciness factor
-    const float BALL_RADIUS_METERS        = 0.1f;   // Radius in meters
-    const float BOUNDARY_THICKNESS_METERS = 0.5f;   // Thickness in meters
-    const float RANDOM_VELOCITY_RANGE     = 2.0f;   // Random velocity range: -2 to +2 m/s
-    const float PLAYER_SIZE_METERS        = 0.25f;  // Player square half-width/height in meters
-    const float PLAYER_FORCE              = 5.0f;   // Force applied for player movement
 
     // Helper function to convert meters to pixels for rendering
     sf::Vector2f metersToPixels(const Vec2& meters) const
@@ -105,7 +105,7 @@ public:
         EntityManager::instance().update(0.0f);
 
         std::cout << "Game initialized!" << std::endl;
-        std::cout << "Physics: Box2D v3.0 (1 unit = 1 meter, Y-up)" << std::endl;
+        std::cout << "Physics: Box2D v3.1.1 (1 unit = 1 meter, Y-up)" << std::endl;
         std::cout << "Controls:" << std::endl;
         std::cout << "  WASD            : Move player square" << std::endl;
         std::cout << "  Left/Right      : Adjust ball count" << std::endl;
@@ -179,72 +179,78 @@ public:
         // Add box collider
         auto* collider = m_player->addComponent<CCollider2D>();
         collider->createBox(PLAYER_SIZE_METERS, PLAYER_SIZE_METERS);
-        collider->setRestitution(0.3f);
-        collider->setDensity(2.0f);
-        collider->setFriction(0.5f);
+        collider->setRestitution(0.2f);  // Lower restitution to reduce bounce
+        collider->setDensity(5.0f);      // Higher density makes player heavier
+        collider->setFriction(0.5f);     // Some friction for better control
 
         // Add input controller with action bindings
         auto* inputController = m_player->addComponent<CInputController>();
 
         // Bind movement actions
-        ActionBinding moveUpBinding;
-        moveUpBinding.keys.push_back(KeyCode::W);
-        moveUpBinding.trigger = ActionTrigger::Held;
-        inputController->bindAction("MoveUp", moveUpBinding);
+        ActionBinding moveForwardBinding;
+        moveForwardBinding.keys.push_back(KeyCode::W);
+        moveForwardBinding.trigger = ActionTrigger::Held;
+        inputController->bindAction("MoveForward", moveForwardBinding);
 
-        ActionBinding moveDownBinding;
-        moveDownBinding.keys.push_back(KeyCode::S);
-        moveDownBinding.trigger = ActionTrigger::Held;
-        inputController->bindAction("MoveDown", moveDownBinding);
+        ActionBinding moveBackwardBinding;
+        moveBackwardBinding.keys.push_back(KeyCode::S);
+        moveBackwardBinding.trigger = ActionTrigger::Held;
+        inputController->bindAction("MoveBackward", moveBackwardBinding);
 
-        ActionBinding moveLeftBinding;
-        moveLeftBinding.keys.push_back(KeyCode::A);
-        moveLeftBinding.trigger = ActionTrigger::Held;
-        inputController->bindAction("MoveLeft", moveLeftBinding);
+        ActionBinding rotateLeftBinding;
+        rotateLeftBinding.keys.push_back(KeyCode::A);
+        rotateLeftBinding.trigger = ActionTrigger::Held;
+        inputController->bindAction("RotateLeft", rotateLeftBinding);
 
-        ActionBinding moveRightBinding;
-        moveRightBinding.keys.push_back(KeyCode::D);
-        moveRightBinding.trigger = ActionTrigger::Held;
-        inputController->bindAction("MoveRight", moveRightBinding);
+        ActionBinding rotateRightBinding;
+        rotateRightBinding.keys.push_back(KeyCode::D);
+        rotateRightBinding.trigger = ActionTrigger::Held;
+        inputController->bindAction("RotateRight", rotateRightBinding);
 
         // Set callbacks for movement actions
-        inputController->setActionCallback("MoveUp",
+        inputController->setActionCallback("MoveForward",
                                            [this](ActionState state)
                                            {
                                                if ((state == ActionState::Held || state == ActionState::Pressed)
                                                    && m_playerPhysics && m_playerPhysics->isInitialized())
                                                {
-                                                   m_playerPhysics->applyForceToCenter({0.0f, PLAYER_FORCE});
+                                                   // Get the forward direction based on current rotation
+                                                   b2Vec2 forward = m_playerPhysics->getForwardVector();
+                                                   b2Vec2 force = {forward.x * PLAYER_FORCE, forward.y * PLAYER_FORCE};
+                                                   m_playerPhysics->applyForceToCenter(force);
                                                }
                                            });
 
-        inputController->setActionCallback("MoveDown",
+        inputController->setActionCallback("MoveBackward",
                                            [this](ActionState state)
                                            {
                                                if ((state == ActionState::Held || state == ActionState::Pressed)
                                                    && m_playerPhysics && m_playerPhysics->isInitialized())
                                                {
-                                                   m_playerPhysics->applyForceToCenter({0.0f, -PLAYER_FORCE});
+                                                   // Get the forward direction and move backward (negative)
+                                                   b2Vec2 forward = m_playerPhysics->getForwardVector();
+                                                   b2Vec2 force = {-forward.x * PLAYER_FORCE, -forward.y * PLAYER_FORCE};
+                                                   m_playerPhysics->applyForceToCenter(force);
                                                }
                                            });
 
-        inputController->setActionCallback("MoveLeft",
+        inputController->setActionCallback("RotateLeft",
                                            [this](ActionState state)
                                            {
                                                if ((state == ActionState::Held || state == ActionState::Pressed)
                                                    && m_playerPhysics && m_playerPhysics->isInitialized())
                                                {
-                                                   m_playerPhysics->applyForceToCenter({-PLAYER_FORCE, 0.0f});
+                                                   m_playerPhysics->applyTorque(PLAYER_TURNING_FORCE);
                                                }
                                            });
 
-        inputController->setActionCallback("MoveRight",
+        inputController->setActionCallback("RotateRight",
                                            [this](ActionState state)
                                            {
                                                if ((state == ActionState::Held || state == ActionState::Pressed)
                                                    && m_playerPhysics && m_playerPhysics->isInitialized())
                                                {
-                                                   m_playerPhysics->applyForceToCenter({PLAYER_FORCE, 0.0f});
+                                                   m_playerPhysics->applyTorque(-PLAYER_TURNING_FORCE);
                                                }
                                            });
     }
@@ -276,6 +282,10 @@ public:
             auto* collider = ball->addComponent<CCollider2D>();
             collider->createCircle(BALL_RADIUS_METERS);
             collider->setRestitution(RESTITUTION);
+            collider->setDensity(1.0f);  // Set ball density (lighter than player)
+
+            // Add damping to gradually reduce velocity (prevents balls from maintaining excessive speeds)
+            physicsBody->setLinearDamping(0.2f);
 
             // Randomize initial velocity
             physicsBody->setLinearVelocity({getRandomVelocity().x, getRandomVelocity().y});
@@ -336,6 +346,10 @@ public:
         auto* collider = ball->addComponent<CCollider2D>();
         collider->createCircle(BALL_RADIUS_METERS);
         collider->setRestitution(RESTITUTION);
+        collider->setDensity(1.0f);  // Set ball density (lighter than player)
+
+        // Add damping to gradually reduce velocity (prevents balls from maintaining excessive speeds)
+        physicsBody->setLinearDamping(0.2f);
 
         // Randomize initial velocity
         physicsBody->setLinearVelocity({getRandomVelocity().x, getRandomVelocity().y});
@@ -415,12 +429,11 @@ public:
             sf::Vector2i mousePos = im.getMousePositionWindow();
             std::cout << "Right Mouse Button Release At: (" << mousePos.x << ", " << mousePos.y << ")" << std::endl;
         }
-        if (im.wasWhe)
 
-            if (im.wasKeyPressed(KeyCode::Escape))
-            {
-                m_running = false;
-            }
+        if (im.wasKeyPressed(KeyCode::Escape))
+        {
+            m_running = false;
+        }
         if (im.wasKeyPressed(KeyCode::Left))
         {
             if (m_ballAmount > 1)
@@ -561,6 +574,7 @@ public:
 
             Vec2         posMeters = transform->getPosition();
             sf::Vector2f posPixels = metersToPixels(posMeters);
+            float        rotation  = transform->getRotation();  // Get rotation in radians
 
             float halfWidth  = collider->getBoxHalfWidth() * PIXELS_PER_METER;
             float halfHeight = collider->getBoxHalfHeight() * PIXELS_PER_METER;
@@ -568,7 +582,8 @@ public:
             sf::RectangleShape playerShape(sf::Vector2f(halfWidth * 2, halfHeight * 2));
             playerShape.setOrigin(halfWidth, halfHeight);
             playerShape.setPosition(posPixels);
-            playerShape.setFillColor(sf::Color::White);  // White square for player
+            playerShape.setRotation(-rotation * 180.0f / 3.14159265f);  // Negate: Box2D is CCW, SFML is CW
+            playerShape.setFillColor(sf::Color::White);                 // White square for player
             if (m_showColliders)
             {
                 playerShape.setOutlineColor(sf::Color::Magenta);  // Magenta outline for player

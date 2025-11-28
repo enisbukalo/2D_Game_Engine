@@ -10,7 +10,7 @@ class Entity;
 /**
  * @brief Box2D Physics System - Manages the Box2D physics world and simulation
  *
- * This system wraps Box2D v3.0 and provides:
+ * This system wraps Box2D v3.1.1 and provides:
  * - Physics world management
  * - Body creation and destruction
  * - Collision detection and response
