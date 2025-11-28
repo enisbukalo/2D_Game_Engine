@@ -44,6 +44,7 @@ private:
     bool                        m_showVectors;
     CPhysicsBody2D*             m_playerPhysics;
     std::shared_ptr<Entity>     m_player;
+    std::vector<std::shared_ptr<Entity>> m_playerChildren;  // Keep children alive with strong refs
 
     // Helper function to convert meters to pixels for rendering
     sf::Vector2f metersToPixels(const Vec2& meters) const
@@ -253,6 +254,40 @@ public:
                                                    m_playerPhysics->applyTorque(-PLAYER_TURNING_FORCE);
                                                }
                                            });
+
+        // Create 4 visual child squares around the player (N, S, E, W)
+        // These are hierarchical children (transforms are local) and will follow the player's transform/rotation.
+        // Note: currently these child entities are visual only (no separate physics bodies attached).
+        const float childOffset = PLAYER_SIZE_METERS * 2.0f; // distance from player center in meters
+        struct ChildDef
+        {
+            const char* name;
+            Vec2 localPos;
+        } children[4] = {
+            {"player_child_north", Vec2(0.0f, childOffset)},
+            {"player_child_south", Vec2(0.0f, -childOffset)},
+            {"player_child_east", Vec2(childOffset, 0.0f)},
+            {"player_child_west", Vec2(-childOffset, 0.0f)},
+        };
+
+        for (const auto &cd : children)
+        {
+            auto child = EntityManager::instance().addEntity(cd.name);
+            // Create local transform (local position relative to parent)
+            child->addComponent<CTransform>(cd.localPos, Vec2(1.0f, 1.0f), 0.0f);
+            // Parent to the player so they follow movement/rotation
+            m_player->addChild(child);
+            // Store strong reference to keep child alive
+            m_playerChildren.push_back(child);
+            
+            std::cout << "Created child '" << cd.name << "' at local offset (" 
+                      << cd.localPos.x << ", " << cd.localPos.y << ")" << std::endl;
+        }
+        
+        // Force EntityManager to process pending entities so children are added
+        EntityManager::instance().update(0.0f);
+        
+        std::cout << "Player has " << m_player->getChildren().size() << " children" << std::endl;
     }
 
     void createBalls()
@@ -372,8 +407,11 @@ public:
         std::cout << "Ball count: " << m_ballAmount << std::endl;
         std::cout << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << std::endl;
 
-        // Clear all entities
+        // Clear all entities and child references
         EntityManager::instance().clear();
+        m_playerChildren.clear();
+        m_player = nullptr;
+        m_playerPhysics = nullptr;
 
         // Reset physics world
         auto& physics = SBox2DPhysics::instance();
@@ -590,6 +628,71 @@ public:
                 playerShape.setOutlineThickness(3.0f);
             }
             m_window.draw(playerShape);
+            
+            // Draw child squares using getChildren()
+            auto children = player->getChildren();
+            static bool debugPrinted = false;
+            if (!debugPrinted)
+            {
+                std::cout << "Render: Player has " << children.size() << " children" << std::endl;
+                for (size_t i = 0; i < children.size(); ++i)
+                {
+                    auto& child = children[i];
+                    if (child && child->hasComponent<CTransform>())
+                    {
+                        auto* childTransform = child->getComponent<CTransform>();
+                        Vec2 pos = childTransform->getPosition();
+                        Vec2 localPos = childTransform->getLocalPosition();
+                        auto childParent = child->getParent();
+                        std::cout << "  Child " << i << ": localPos=(" << localPos.x << ", " << localPos.y 
+                                  << "), worldPos=(" << pos.x << ", " << pos.y 
+                                  << "), hasParent=" << (childParent ? "yes" : "no") << std::endl;
+                    }
+                }
+                debugPrinted = true;
+            }
+            
+            for (auto& child : children)
+            {
+                if (!child)
+                {
+                    std::cout << "Child ptr is null" << std::endl;
+                    continue;
+                }
+                
+                if (!child->hasComponent<CTransform>())
+                {
+                    std::cout << "Child has no CTransform" << std::endl;
+                    continue;
+                }
+
+                auto* childTransform = child->getComponent<CTransform>();
+                Vec2 childLocalPos = childTransform->getLocalPosition();
+                
+                // Manually compute world position: rotate local offset by player's rotation and add player position
+                float playerRot = transform->getRotation();
+                float cosR = std::cos(playerRot);
+                float sinR = std::sin(playerRot);
+                Vec2 rotatedOffset(
+                    childLocalPos.x * cosR - childLocalPos.y * sinR,
+                    childLocalPos.x * sinR + childLocalPos.y * cosR
+                );
+                Vec2 childWorldPos = Vec2(posMeters.x + rotatedOffset.x, posMeters.y + rotatedOffset.y);
+                sf::Vector2f childPosPixels = metersToPixels(childWorldPos);
+
+                float childHalf = PLAYER_SIZE_METERS * PIXELS_PER_METER;
+                sf::RectangleShape childShape(sf::Vector2f(childHalf * 2, childHalf * 2));
+                childShape.setOrigin(childHalf, childHalf);
+                childShape.setPosition(childPosPixels);
+                childShape.setRotation(-rotation * 180.0f / 3.14159265f);
+                childShape.setFillColor(sf::Color(200, 200, 200));
+                if (m_showColliders)
+                {
+                    childShape.setOutlineColor(sf::Color::Blue);
+                    childShape.setOutlineThickness(2.0f);
+                }
+                m_window.draw(childShape);
+            }
         }
 
         // Draw velocity vectors
@@ -602,6 +705,26 @@ public:
 
                 auto* transform   = ball->getComponent<CTransform>();
                 auto* physicsBody = ball->getComponent<CPhysicsBody2D>();
+
+                Vec2 posMeters = transform->getPosition();
+
+                // Draw velocity vector (yellow)
+                b2Vec2 velocity = physicsBody->getLinearVelocity();
+                Vec2   velocityMeters(velocity.x, velocity.y);
+                if (velocityMeters.length() > 0.01f)  // Only draw if velocity is non-negligible
+                {
+                    drawVector(posMeters, velocityMeters, sf::Color::Yellow, 0.5f);
+                }
+            }
+
+            // Draw player velocity vector
+            for (auto& player : players)
+            {
+                if (!player->hasComponent<CTransform>() || !player->hasComponent<CPhysicsBody2D>())
+                    continue;
+
+                auto* transform   = player->getComponent<CTransform>();
+                auto* physicsBody = player->getComponent<CPhysicsBody2D>();
 
                 Vec2 posMeters = transform->getPosition();
 

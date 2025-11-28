@@ -247,15 +247,35 @@ if(GAMEENGINE_INSTALL)
         INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/GameEngine
     )
 
-    # Install headers
+    # Install headers (install directory contents, not the directories themselves)
     install(DIRECTORY
-        ${ENGINE_INCLUDE_DIR}
-        ${ENGINE_COMPONENT_DIR}
-        ${ENGINE_ENTITIES_DIR}
-        ${ENGINE_SYSTEM_DIR}
-        ${ENGINE_UTILITY_DIR}
-        ${ENGINE_PHYSICS_DIR}
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/GameEngine
+        ${ENGINE_INCLUDE_DIR}/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/GameEngine/include
+        FILES_MATCHING PATTERN "*.h"
+    )
+    install(DIRECTORY
+        ${ENGINE_COMPONENT_DIR}/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/GameEngine/components
+        FILES_MATCHING PATTERN "*.h"
+    )
+    install(DIRECTORY
+        ${ENGINE_ENTITIES_DIR}/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/GameEngine/entities
+        FILES_MATCHING PATTERN "*.h"
+    )
+    install(DIRECTORY
+        ${ENGINE_SYSTEM_DIR}/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/GameEngine/systems
+        FILES_MATCHING PATTERN "*.h"
+    )
+    install(DIRECTORY
+        ${ENGINE_UTILITY_DIR}/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/GameEngine/utility
+        FILES_MATCHING PATTERN "*.h"
+    )
+    install(DIRECTORY
+        ${ENGINE_PHYSICS_DIR}/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/GameEngine/physics
         FILES_MATCHING PATTERN "*.h"
     )
 
