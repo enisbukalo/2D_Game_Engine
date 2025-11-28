@@ -123,6 +123,13 @@ public:
     const JsonValue& operator[](size_t index) const;
 
     /**
+     * @brief Checks whether the given key exists in the object
+     * @param key Key to search for
+     * @return true if the object contains the key, false otherwise
+     */
+    bool hasKey(const std::string& key) const;
+
+    /**
      * @brief Static helper methods for parsing JSON structures
      */
     static JsonValue parse(JsonParser& parser);

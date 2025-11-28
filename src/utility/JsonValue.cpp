@@ -187,3 +187,11 @@ JsonValue::Object JsonValue::parseObject(JsonParser& parser)
 
     throw std::runtime_error("Unterminated object");
 }
+
+bool JsonValue::hasKey(const std::string& key) const
+{
+    if (!isObject())
+        return false;
+    const auto& obj = getObject();
+    return obj.find(key) != obj.end();
+}

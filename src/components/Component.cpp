@@ -1,4 +1,7 @@
 #include "Component.h"
+#include "Guid.h"
+
+Component::Component() : m_guid(Guid::generate()) {}
 
 bool Component::isActive() const
 {
@@ -18,4 +21,9 @@ void Component::setOwner(Entity* owner)
 void Component::setActive(bool active)
 {
     m_active = active;
+}
+
+const std::string& Component::getGuid() const
+{
+    return m_guid;
 }
