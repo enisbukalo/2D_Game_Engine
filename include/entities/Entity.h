@@ -194,7 +194,7 @@ protected:
 
 private:
     std::unordered_map<std::type_index, std::unique_ptr<Component>> m_components;  ///< Map of components indexed by type
-    size_t            m_id    = 0;                                                 ///< Unique numeric identifier
+    size_t            m_id = 0;                                                    ///< Unique numeric identifier
     std::string       m_guid;                                                      ///< Unique GUID identifier
     const std::string m_tag   = "Default";                                         ///< Entity tag
     bool              m_alive = true;                                              ///< Entity state flag

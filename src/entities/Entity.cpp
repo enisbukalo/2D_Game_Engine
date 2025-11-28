@@ -2,9 +2,7 @@
 #include "ComponentFactory.h"
 #include "Guid.h"
 
-Entity::Entity(const std::string &tag, size_t id) : m_tag(tag), m_id(id), m_guid(Guid::generate())
-{
-}
+Entity::Entity(const std::string& tag, size_t id) : m_tag(tag), m_id(id), m_guid(Guid::generate()) {}
 
 void Entity::destroy()
 {
@@ -59,7 +57,7 @@ void Entity::serialize(JsonBuilder& builder) const
         builder.addKey("guid");
         builder.addString(component->getGuid());
         builder.endObject();
-        
+
         component->serialize(builder);
     }
     builder.endArray();

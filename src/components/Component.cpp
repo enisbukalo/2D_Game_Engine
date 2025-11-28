@@ -1,9 +1,7 @@
 #include "Component.h"
 #include "Guid.h"
 
-Component::Component() : m_guid(Guid::generate())
-{
-}
+Component::Component() : m_guid(Guid::generate()) {}
 
 bool Component::isActive() const
 {

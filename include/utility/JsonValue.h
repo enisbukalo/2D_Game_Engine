@@ -121,7 +121,7 @@ public:
      */
     const JsonValue& operator[](const std::string& key) const;
     const JsonValue& operator[](size_t index) const;
-    
+
     /**
      * @brief Checks whether the given key exists in the object
      * @param key Key to search for

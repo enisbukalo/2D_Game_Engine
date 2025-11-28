@@ -176,14 +176,14 @@ public:
         m_playerPhysics = m_player->addComponent<CPhysicsBody2D>();
         m_playerPhysics->initialize({centerX, centerY}, BodyType::Dynamic);
         m_playerPhysics->setAngularDamping(0.75f);  // Damping to reduce spin over time
-        m_playerPhysics->setLinearDamping(0.75f);    // Some linear damping for better control
+        m_playerPhysics->setLinearDamping(0.75f);   // Some linear damping for better control
 
         // Add box collider
         auto* collider = m_player->addComponent<CCollider2D>();
         collider->createBox(PLAYER_SIZE_METERS, PLAYER_SIZE_METERS);
         collider->setRestitution(0.125f);  // Lower restitution to reduce bounce
-        collider->setDensity(5.0f);      // Higher density makes player heavier
-        collider->setFriction(0.5f);     // Some friction for better control
+        collider->setDensity(5.0f);        // Higher density makes player heavier
+        collider->setFriction(0.5f);       // Some friction for better control
 
         // Add input controller with action bindings
         auto* inputController = m_player->addComponent<CInputController>();
