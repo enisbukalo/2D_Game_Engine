@@ -55,12 +55,14 @@ jobs:
           sudo ./cmake-3.28.0-linux-x86_64.sh --skip-license --prefix=/usr/local
           rm cmake-3.28.0-linux-x86_64.sh
 
-      - name: Cache SFML Windows
+      - name: Cache SFML Windows (2.6.1)
         id: cache-sfml
         uses: actions/cache@v4
         with:
           path: /opt/sfml-windows
           key: sfml-2.6.1-windows-gcc-13.1.0-mingw
+          restore-keys: |
+            sfml-2.6.1-windows-
 
       - name: Download SFML for Windows
         if: steps.cache-sfml.outputs.cache-hit != 'true'
@@ -72,12 +74,12 @@ jobs:
           sudo mv SFML-2.6.1 sfml
           sudo rm SFML-2.6.1-windows-gcc-13.1.0-mingw-64-bit.zip
 
-      - name: Cache Dependencies
+      - name: Cache Dependencies (Box2D, spdlog, ImGui, etc.)
         uses: actions/cache@v4
         with:
           path: |
             deps_cache_windows
-            build-windows/_deps
+            build_windows/_deps
           key: ${{ runner.os }}-mingw-deps-${{ hashFiles('**/CMakeLists.txt') }}
           restore-keys: |
             ${{ runner.os }}-mingw-deps-
