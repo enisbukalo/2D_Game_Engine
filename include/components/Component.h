@@ -15,12 +15,12 @@ class Entity;  // Forward declaration
  * represent individual aspects of game objects (entities) such as physics,
  * rendering, or behavior. The class provides a common interface for initialization,
  * updates, serialization, and type identification. Components can be enabled or
- * disabled at runtime.
+ * disabled at runtime. Each component has a unique GUID for identification.
  */
 class Component
 {
 public:
-    Component() = default;
+    Component();
 
     /** @brief Virtual destructor for proper cleanup of derived classes */
     virtual ~Component() = default;
@@ -83,9 +83,16 @@ public:
      */
     void setActive(bool active);
 
+    /**
+     * @brief Gets the unique GUID of this component
+     * @return The component's GUID string
+     */
+    const std::string& getGuid() const;
+
 private:
-    Entity* m_owner  = nullptr;  ///< Pointer to the entity that owns this component
-    bool    m_active = true;     ///< Flag indicating if the component is active
+    Entity*     m_owner  = nullptr;  ///< Pointer to the entity that owns this component
+    bool        m_active = true;     ///< Flag indicating if the component is active
+    std::string m_guid;              ///< Unique identifier for this component
 };
 
 #endif  // COMPONENT_H

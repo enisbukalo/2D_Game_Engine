@@ -157,6 +157,12 @@ public:
     size_t getId() const;
 
     /**
+     * @brief Gets the entity's unique GUID
+     * @return The entity's GUID string
+     */
+    const std::string &getGuid() const;
+
+    /**
      * @brief Gets the entity's tag
      * @return The entity's tag string
      */
@@ -184,11 +190,12 @@ protected:
      * @param tag The entity's tag for identification and grouping
      * @param id Unique identifier for the entity
      */
-    Entity(const std::string &tag, size_t id) : m_tag(tag), m_id(id) {}
+    Entity(const std::string &tag, size_t id);
 
 private:
     std::unordered_map<std::type_index, std::unique_ptr<Component>> m_components;  ///< Map of components indexed by type
-    size_t            m_id    = 0;                                                 ///< Unique identifier
+    size_t            m_id    = 0;                                                 ///< Unique numeric identifier
+    std::string       m_guid;                                                      ///< Unique GUID identifier
     const std::string m_tag   = "Default";                                         ///< Entity tag
     bool              m_alive = true;                                              ///< Entity state flag
 };

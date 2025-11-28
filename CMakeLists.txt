@@ -75,6 +75,14 @@ FetchContent_Declare(box2d
 
 FetchContent_MakeAvailable(box2d)
 
+# Fetch uuid_v4 (header-only UUID v4 generator)
+FetchContent_Declare(uuid_v4
+    GIT_REPOSITORY https://github.com/crashoz/uuid_v4.git
+    GIT_TAG master
+    GIT_SHALLOW ON)
+
+FetchContent_MakeAvailable(uuid_v4)
+
 # Fetch ImGui (v1.88 is compatible with ImGui-SFML v2.6)
 FetchContent_Declare(IMGUI
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
@@ -175,6 +183,7 @@ target_include_directories(GameEngine
     $<BUILD_INTERFACE:${ENGINE_SYSTEM_DIR}>
     $<BUILD_INTERFACE:${ENGINE_UTILITY_DIR}>
     $<BUILD_INTERFACE:${ENGINE_PHYSICS_DIR}>
+    $<BUILD_INTERFACE:${uuid_v4_SOURCE_DIR}>
     $<INSTALL_INTERFACE:include/GameEngine/include>
     $<INSTALL_INTERFACE:include/GameEngine/components>
     $<INSTALL_INTERFACE:include/GameEngine/entities>
@@ -183,6 +192,21 @@ target_include_directories(GameEngine
     $<INSTALL_INTERFACE:include/GameEngine/physics>
     $<INSTALL_INTERFACE:include>
 )
+
+# Allow setting AVX2 (or the platform equivalent) only for the Guid translation unit which
+# uses the header-only uuid_v4 implementation with AVX intrinsics.
+include(CheckCXXCompilerFlag)
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    check_cxx_compiler_flag("-mavx2" COMPILER_SUPPORTS_MAVX2)
+    if (COMPILER_SUPPORTS_MAVX2)
+        set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/src/utility/Guid.cpp PROPERTIES COMPILE_FLAGS "-mavx2")
+    endif()
+elseif (MSVC)
+    check_cxx_compiler_flag("/arch:AVX2" COMPILER_SUPPORTS_ARCH_AVX2)
+    if (COMPILER_SUPPORTS_ARCH_AVX2)
+        set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/src/utility/Guid.cpp PROPERTIES COMPILE_FLAGS "/arch:AVX2")
+    endif()
+endif()
 
 # Link against dependencies
 target_link_libraries(GameEngine

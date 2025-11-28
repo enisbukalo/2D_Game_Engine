@@ -1,5 +1,10 @@
 #include "Entity.h"
 #include "ComponentFactory.h"
+#include "Guid.h"
+
+Entity::Entity(const std::string &tag, size_t id) : m_tag(tag), m_id(id), m_guid(Guid::generate())
+{
+}
 
 void Entity::destroy()
 {
@@ -14,6 +19,11 @@ bool Entity::isAlive() const
 size_t Entity::getId() const
 {
     return m_id;
+}
+
+const std::string& Entity::getGuid() const
+{
+    return m_guid;
 }
 
 const std::string& Entity::getTag() const
@@ -35,6 +45,8 @@ void Entity::update(float deltaTime)
 void Entity::serialize(JsonBuilder& builder) const
 {
     builder.beginObject();
+    builder.addKey("guid");
+    builder.addString(m_guid);
     builder.addKey("tag");
     builder.addString(m_tag);
     builder.addKey("id");
@@ -43,6 +55,11 @@ void Entity::serialize(JsonBuilder& builder) const
     builder.beginArray();
     for (auto& [type, component] : m_components)
     {
+        builder.beginObject();
+        builder.addKey("guid");
+        builder.addString(component->getGuid());
+        builder.endObject();
+        
         component->serialize(builder);
     }
     builder.endArray();
@@ -52,6 +69,12 @@ void Entity::serialize(JsonBuilder& builder) const
 void Entity::deserialize(const JsonValue& value)
 {
     m_id = value["id"].getNumber();
+
+    // Deserialize GUID if present
+    if (value.hasKey("guid"))
+    {
+        m_guid = value["guid"].getString();
+    }
 
     const auto& components = value["components"].getArray();
     for (const auto& component : components)
