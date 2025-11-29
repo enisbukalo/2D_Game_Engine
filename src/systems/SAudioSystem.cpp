@@ -2,7 +2,11 @@
 #include <SFML/Audio.hpp>
 #include <algorithm>
 #include <spdlog/spdlog.h>
-#include <cstdio>
+
+#ifndef _WIN32
+    #include <unistd.h>
+    #include <fcntl.h>
+#endif
 
 SAudioSystem::SAudioSystem(size_t poolSize) : m_soundPool(poolSize) {}
 
@@ -28,12 +32,16 @@ bool SAudioSystem::initialize()
     spdlog::info("Initializing SFML audio system with pool size: {}", m_soundPool.size());
 
     // Suppress ALSA/OpenAL errors in headless environments
-    FILE* devNull = std::fopen("/dev/null", "w");
-    FILE* oldStderr = stderr;
-    if (devNull)
+#ifndef _WIN32
+    int oldStderr = -1;
+    int devNull = open("/dev/null", O_WRONLY);
+    if (devNull != -1)
     {
-        stderr = devNull;
+        oldStderr = dup(STDERR_FILENO);
+        dup2(devNull, STDERR_FILENO);
+        close(devNull);
     }
+#endif
 
     // Initialize all sound slots
     for (auto& slot : m_soundPool)
@@ -48,11 +56,13 @@ bool SAudioSystem::initialize()
     sf::Listener::setUpVector(0.0f, 1.0f, 0.0f);
 
     // Restore stderr
-    if (devNull)
+#ifndef _WIN32
+    if (oldStderr != -1)
     {
-        stderr = oldStderr;
-        std::fclose(devNull);
+        dup2(oldStderr, STDERR_FILENO);
+        close(oldStderr);
     }
+#endif
 
     m_initialized = true;
     spdlog::info("Audio system initialized successfully");
@@ -112,22 +122,28 @@ bool SAudioSystem::loadSound(const std::string& id, const std::string& filepath,
         }
 
         // Suppress ALSA errors during loading in headless environment
-        FILE* devNull = std::fopen("/dev/null", "w");
-        FILE* oldStderr = stderr;
-        if (devNull)
+#ifndef _WIN32
+        int oldStderr = -1;
+        int devNull = open("/dev/null", O_WRONLY);
+        if (devNull != -1)
         {
-            stderr = devNull;
+            oldStderr = dup(STDERR_FILENO);
+            dup2(devNull, STDERR_FILENO);
+            close(devNull);
         }
+#endif
 
         sf::SoundBuffer buffer;
         bool success = buffer.loadFromFile(filepath);
 
         // Restore stderr
-        if (devNull)
+#ifndef _WIN32
+        if (oldStderr != -1)
         {
-            stderr = oldStderr;
-            std::fclose(devNull);
+            dup2(oldStderr, STDERR_FILENO);
+            close(oldStderr);
         }
+#endif
 
         if (!success)
         {
@@ -353,12 +369,16 @@ bool SAudioSystem::playMusic(const std::string& id, bool loop, float volume)
     }
 
     // Suppress ALSA errors during music loading in headless environment
-    FILE* devNull = std::fopen("/dev/null", "w");
-    FILE* oldStderr = stderr;
-    if (devNull)
+#ifndef _WIN32
+    int oldStderr = -1;
+    int devNull = open("/dev/null", O_WRONLY);
+    if (devNull != -1)
     {
-        stderr = devNull;
+        oldStderr = dup(STDERR_FILENO);
+        dup2(devNull, STDERR_FILENO);
+        close(devNull);
     }
+#endif
 
     // Create new music object
     m_currentMusic = std::make_unique<sf::Music>();
@@ -373,11 +393,13 @@ bool SAudioSystem::playMusic(const std::string& id, bool loop, float volume)
     }
 
     // Restore stderr
-    if (devNull)
+#ifndef _WIN32
+    if (oldStderr != -1)
     {
-        stderr = oldStderr;
-        std::fclose(devNull);
+        dup2(oldStderr, STDERR_FILENO);
+        close(oldStderr);
     }
+#endif
 
     if (!success)
     {
