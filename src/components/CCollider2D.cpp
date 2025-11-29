@@ -13,6 +13,7 @@ CCollider2D::CCollider2D()
 {
     m_shapeData.circle.center = {0.0f, 0.0f};
     m_shapeData.circle.radius = 0.5f;
+    // Polygon data will be initialized when createPolygon is called
 }
 
 CCollider2D::~CCollider2D()
@@ -33,6 +34,73 @@ void CCollider2D::createBox(float halfWidth, float halfHeight)
     m_shapeType                = ColliderShape::Box;
     m_shapeData.box.halfWidth  = halfWidth;
     m_shapeData.box.halfHeight = halfHeight;
+    attachToBody();
+}
+
+void CCollider2D::createPolygon(const b2Vec2* vertices, int count, float radius)
+{
+    if (!vertices || count < 3 || count > B2_MAX_POLYGON_VERTICES)
+    {
+        // Invalid input, cannot create polygon
+        return;
+    }
+
+    // Compute convex hull from input vertices
+    b2Hull hull = b2ComputeHull(vertices, count);
+
+    if (hull.count < 3)
+    {
+        // Hull computation failed
+        return;
+    }
+
+    createPolygonFromHull(hull, radius);
+}
+
+void CCollider2D::createPolygonFromHull(const b2Hull& hull, float radius)
+{
+    if (hull.count < 3 || hull.count > B2_MAX_POLYGON_VERTICES)
+    {
+        return;
+    }
+
+    m_shapeType = ColliderShape::Polygon;
+
+    // Store hull data
+    m_shapeData.polygon.vertexCount = hull.count;
+    m_shapeData.polygon.radius      = radius;
+    for (int i = 0; i < hull.count; ++i)
+    {
+        m_shapeData.polygon.vertices[i] = hull.points[i];
+    }
+
+    attachToBody();
+}
+
+void CCollider2D::createOffsetPolygon(const b2Hull& hull, const b2Vec2& position, float rotation,
+                                      float radius)
+{
+    if (hull.count < 3 || hull.count > B2_MAX_POLYGON_VERTICES)
+    {
+        return;
+    }
+
+    m_shapeType = ColliderShape::Polygon;
+
+    // Create offset polygon using Box2D function
+    b2Rot rot = b2MakeRot(rotation);
+    b2Polygon offsetPoly =
+        radius > 0.0f ? b2MakeOffsetRoundedPolygon(&hull, position, rot, radius)
+                      : b2MakeOffsetPolygon(&hull, position, rot);
+
+    // Store the transformed vertices
+    m_shapeData.polygon.vertexCount = offsetPoly.count;
+    m_shapeData.polygon.radius      = offsetPoly.radius;
+    for (int i = 0; i < offsetPoly.count; ++i)
+    {
+        m_shapeData.polygon.vertices[i] = offsetPoly.vertices[i];
+    }
+
     attachToBody();
 }
 
@@ -89,8 +157,20 @@ void CCollider2D::attachToBody()
         }
 
         case ColliderShape::Polygon:
-            // TODO: Support arbitrary polygons in future
+        {
+            // Reconstruct hull from stored vertices
+            b2Hull hull;
+            hull.count = m_shapeData.polygon.vertexCount;
+            for (int i = 0; i < hull.count; ++i)
+            {
+                hull.points[i] = m_shapeData.polygon.vertices[i];
+            }
+
+            // Create polygon from hull
+            b2Polygon polygon = b2MakePolygon(&hull, m_shapeData.polygon.radius);
+            m_shapeId         = b2CreatePolygonShape(bodyId, &shapeDef, &polygon);
             break;
+        }
     }
 
     m_initialized = b2Shape_IsValid(m_shapeId);
@@ -187,6 +267,33 @@ float CCollider2D::getBoxHalfHeight() const
     return 0.0f;
 }
 
+const b2Vec2* CCollider2D::getPolygonVertices() const
+{
+    if (m_shapeType == ColliderShape::Polygon)
+    {
+        return m_shapeData.polygon.vertices;
+    }
+    return nullptr;
+}
+
+int CCollider2D::getPolygonVertexCount() const
+{
+    if (m_shapeType == ColliderShape::Polygon)
+    {
+        return m_shapeData.polygon.vertexCount;
+    }
+    return 0;
+}
+
+float CCollider2D::getPolygonRadius() const
+{
+    if (m_shapeType == ColliderShape::Polygon)
+    {
+        return m_shapeData.polygon.radius;
+    }
+    return 0.0f;
+}
+
 void CCollider2D::serialize(JsonBuilder& builder) const
 {
     builder.beginObject();
@@ -224,6 +331,25 @@ void CCollider2D::serialize(JsonBuilder& builder) const
         builder.addNumber(m_shapeData.box.halfWidth);
         builder.addKey("halfHeight");
         builder.addNumber(m_shapeData.box.halfHeight);
+    }
+    else if (m_shapeType == ColliderShape::Polygon)
+    {
+        builder.addKey("vertexCount");
+        builder.addNumber(m_shapeData.polygon.vertexCount);
+        builder.addKey("radius");
+        builder.addNumber(m_shapeData.polygon.radius);
+        builder.addKey("vertices");
+        builder.beginArray();
+        for (int i = 0; i < m_shapeData.polygon.vertexCount; ++i)
+        {
+            builder.beginObject();
+            builder.addKey("x");
+            builder.addNumber(m_shapeData.polygon.vertices[i].x);
+            builder.addKey("y");
+            builder.addNumber(m_shapeData.polygon.vertices[i].y);
+            builder.endObject();
+        }
+        builder.endArray();
     }
 
     // Fixture properties
@@ -300,6 +426,45 @@ void CCollider2D::deserialize(const JsonValue& value)
             if (halfHeightValue.isNumber())
             {
                 m_shapeData.box.halfHeight = static_cast<float>(halfHeightValue.getNumber());
+            }
+        }
+        else if (typeStr == "Polygon")
+        {
+            m_shapeType = ColliderShape::Polygon;
+
+            const auto& vertexCountValue = collider["vertexCount"];
+            if (vertexCountValue.isNumber())
+            {
+                m_shapeData.polygon.vertexCount = static_cast<int>(vertexCountValue.getNumber());
+            }
+
+            const auto& radiusValue = collider["radius"];
+            if (radiusValue.isNumber())
+            {
+                m_shapeData.polygon.radius = static_cast<float>(radiusValue.getNumber());
+            }
+
+            const auto& verticesValue = collider["vertices"];
+            if (verticesValue.isArray())
+            {
+                const auto& vertices = verticesValue.getArray();
+                int count = std::min(static_cast<int>(vertices.size()),
+                                     static_cast<int>(B2_MAX_POLYGON_VERTICES));
+                for (int i = 0; i < count; ++i)
+                {
+                    if (vertices[i].isObject())
+                    {
+                        const auto& xValue = vertices[i]["x"];
+                        const auto& yValue = vertices[i]["y"];
+                        if (xValue.isNumber() && yValue.isNumber())
+                        {
+                            m_shapeData.polygon.vertices[i].x =
+                                static_cast<float>(xValue.getNumber());
+                            m_shapeData.polygon.vertices[i].y =
+                                static_cast<float>(yValue.getNumber());
+                        }
+                    }
+                }
             }
         }
     }

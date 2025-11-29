@@ -107,7 +107,7 @@ public:
         std::cout << "Game initialized!" << std::endl;
         std::cout << "Physics: Box2D v3.1.1 (1 unit = 1 meter, Y-up)" << std::endl;
         std::cout << "Controls:" << std::endl;
-        std::cout << "  WASD            : Move player square" << std::endl;
+        std::cout << "  WASD            : Move player boat (W=forward, S=backward, A/D=turn)" << std::endl;
         std::cout << "  Left/Right      : Adjust ball count" << std::endl;
         std::cout << "  R               : Restart scenario" << std::endl;
         std::cout << "  G               : Toggle gravity" << std::endl;
@@ -178,9 +178,31 @@ public:
         m_playerPhysics->setAngularDamping(0.75f);  // Damping to reduce spin over time
         m_playerPhysics->setLinearDamping(0.75f);   // Some linear damping for better control
 
-        // Add box collider
+        // Create boat shape with curved bow
+        // Boat points from stern (back) to bow (front), with Y-axis as forward
+        const float boatLength = PLAYER_SIZE_METERS * 3.0f;  // Total length
+        const float boatWidth = PLAYER_SIZE_METERS * 1.5f;   // Width at widest point
+        
+        b2Vec2 boatVertices[7] = {
+            // Stern (back) - flat end
+            {-boatWidth * 0.5f, -boatLength * 0.4f},  // Back left corner
+            {boatWidth * 0.5f, -boatLength * 0.4f},   // Back right corner
+            
+            // Widest part of boat
+            {boatWidth * 0.5f, 0.0f},                 // Right side middle
+            
+            // Bow (front) - curved/pointed
+            {boatWidth * 0.3f, boatLength * 0.3f},    // Right front curve
+            {0.0f, boatLength * 0.6f},                // Bow point (front tip)
+            {-boatWidth * 0.3f, boatLength * 0.3f},   // Left front curve
+            
+            // Back to stern
+            {-boatWidth * 0.5f, 0.0f}                 // Left side middle
+        };
+
+        // Add polygon collider for boat shape
         auto* collider = m_player->addComponent<CCollider2D>();
-        collider->createBox(PLAYER_SIZE_METERS, PLAYER_SIZE_METERS);
+        collider->createPolygon(boatVertices, 7, 0.02f);  // Small radius for smooth edges
         collider->setRestitution(0.125f);  // Lower restitution to reduce bounce
         collider->setDensity(5.0f);        // Higher density makes player heavier
         collider->setFriction(0.5f);       // Some friction for better control
@@ -564,7 +586,7 @@ public:
             ballIndex++;
         }
 
-        // Draw player square
+        // Draw player boat
         auto players = EntityManager::instance().getEntitiesByTag("player");
         for (auto& player : players)
         {
@@ -578,20 +600,42 @@ public:
             sf::Vector2f posPixels = metersToPixels(posMeters);
             float        rotation  = transform->getRotation();  // Get rotation in radians
 
-            float halfWidth  = collider->getBoxHalfWidth() * PIXELS_PER_METER;
-            float halfHeight = collider->getBoxHalfHeight() * PIXELS_PER_METER;
-
-            sf::RectangleShape playerShape(sf::Vector2f(halfWidth * 2, halfHeight * 2));
-            playerShape.setOrigin(halfWidth, halfHeight);
-            playerShape.setPosition(posPixels);
-            playerShape.setRotation(-rotation * 180.0f / 3.14159265f);  // Negate: Box2D is CCW, SFML is CW
-            playerShape.setFillColor(sf::Color::White);                 // White square for player
-            if (m_showColliders)
+            // Draw boat polygon
+            if (collider->getShapeType() == ColliderShape::Polygon)
             {
-                playerShape.setOutlineColor(sf::Color::Magenta);  // Magenta outline for player
-                playerShape.setOutlineThickness(3.0f);
+                const b2Vec2* vertices = collider->getPolygonVertices();
+                int vertexCount = collider->getPolygonVertexCount();
+                
+                if (vertices && vertexCount > 0)
+                {
+                    sf::ConvexShape boatShape(vertexCount);
+                    
+                    // Transform and set each vertex
+                    for (int i = 0; i < vertexCount; ++i)
+                    {
+                        // Rotate vertex around origin
+                        float cosR = std::cos(rotation);
+                        float sinR = std::sin(rotation);
+                        float rotatedX = vertices[i].x * cosR - vertices[i].y * sinR;
+                        float rotatedY = vertices[i].x * sinR + vertices[i].y * cosR;
+                        
+                        // Convert to pixels (note: Y-flip for screen coordinates)
+                        float pixelX = rotatedX * PIXELS_PER_METER;
+                        float pixelY = -rotatedY * PIXELS_PER_METER;  // Negative for screen Y-down
+                        
+                        boatShape.setPoint(i, sf::Vector2f(pixelX, pixelY));
+                    }
+                    
+                    boatShape.setPosition(posPixels);
+                    boatShape.setFillColor(sf::Color(200, 150, 100));  // Brownish color for boat
+                    if (m_showColliders)
+                    {
+                        boatShape.setOutlineColor(sf::Color::Magenta);  // Magenta outline for player
+                        boatShape.setOutlineThickness(3.0f);
+                    }
+                    m_window.draw(boatShape);
+                }
             }
-            m_window.draw(playerShape);
         }
 
         // Draw velocity vectors

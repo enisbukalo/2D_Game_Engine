@@ -43,6 +43,12 @@ private:
             float halfWidth;
             float halfHeight;
         } box;
+        struct
+        {
+            b2Vec2 vertices[B2_MAX_POLYGON_VERTICES];
+            int    vertexCount;
+            float  radius;
+        } polygon;
     } m_shapeData;
 
     // Fixture properties
@@ -70,6 +76,32 @@ public:
      * @param halfHeight Half-height of the box in meters
      */
     void createBox(float halfWidth, float halfHeight);
+
+    /**
+     * @brief Create a polygon collider from arbitrary vertices
+     * @param vertices Array of vertices (will compute convex hull)
+     * @param count Number of vertices
+     * @param radius Skin radius for the polygon (default: 0.0f)
+     * @note Vertices will be automatically sorted to form a convex hull
+     */
+    void createPolygon(const b2Vec2* vertices, int count, float radius = 0.0f);
+
+    /**
+     * @brief Create a polygon collider from a pre-computed hull
+     * @param hull Pre-computed convex hull
+     * @param radius Skin radius for the polygon (default: 0.0f)
+     */
+    void createPolygonFromHull(const b2Hull& hull, float radius = 0.0f);
+
+    /**
+     * @brief Create an offset polygon collider
+     * @param hull Pre-computed convex hull
+     * @param position Local position offset
+     * @param rotation Rotation offset in radians
+     * @param radius Skin radius for the polygon (default: 0.0f)
+     */
+    void createOffsetPolygon(const b2Hull& hull, const b2Vec2& position, float rotation,
+                             float radius = 0.0f);
 
     /**
      * @brief Check if the collider has been initialized
@@ -170,6 +202,24 @@ public:
      * @brief Get box half-height (only valid for box shapes)
      */
     float getBoxHalfHeight() const;
+
+    /**
+     * @brief Get polygon vertices (only valid for polygon shapes)
+     * @return Pointer to vertex array (nullptr if not a polygon)
+     */
+    const b2Vec2* getPolygonVertices() const;
+
+    /**
+     * @brief Get polygon vertex count (only valid for polygon shapes)
+     * @return Number of vertices (0 if not a polygon)
+     */
+    int getPolygonVertexCount() const;
+
+    /**
+     * @brief Get polygon radius/skin (only valid for polygon shapes)
+     * @return Radius value (0.0f if not a polygon)
+     */
+    float getPolygonRadius() const;
 
     // Component interface
     void        init() override;
