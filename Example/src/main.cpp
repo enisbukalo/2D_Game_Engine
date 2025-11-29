@@ -4,12 +4,8 @@
 #include <CPhysicsBody2D.h>
 #include <CTransform.h>
 #include <Entity.h>
-#include <EntityManager.h>
 #include <GameEngine.h>
 #include <Input/MouseButton.h>
-#include <SAudioSystem.h>
-#include <SBox2DPhysics.h>
-#include <SInputManager.h>
 #include <Vec2.h>
 #include <SFML/Graphics.hpp>
 #include <iostream>

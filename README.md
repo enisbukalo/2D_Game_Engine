@@ -17,20 +17,14 @@ A modern C++ 2D game engine built with SFML, featuring an Entity Component Syste
   - [Dependencies](#dependencies)
   - [Building the Project](#building-the-project)
     - [Docker Build (Recommended)](#docker-build-recommended)
-- [Build and run tests](#build-and-run-tests)
-- [Build without tests](#build-without-tests)
-- [Clean build](#clean-build)
-- [Build for Windows](#build-for-windows)
     - [Build Options](#build-options)
     - [Examples](#examples)
-- [Clean build with tests:](#clean-build-with-tests)
-- [Release build without tests:](#release-build-without-tests)
-- [Build as shared library:](#build-as-shared-library)
     - [Build Output](#build-output)
     - [Building Example Project](#building-example-project)
-      - [NOTE!!!: YOU MUST RUN THE BUILD.SH SCRIPT IN THE ROOT DIRECTORY FIRST.](#note-you-must-run-the-buildsh-script-in-the-root-directory-first)
     - [Dependencies](#dependencies-1)
-  - [Usage Example](#usage-example)
+  - [API Usage](#api-usage)
+    - [Accessing Engine Systems](#accessing-engine-systems)
+    - [Simplified Include Paths](#simplified-include-paths)
   - [Project Structure](#project-structure)
   - [Audio Attribution](#audio-attribution)
   - [Contributing](#contributing)
@@ -90,20 +84,7 @@ A modern C++ 2D game engine built with SFML, featuring an Entity Component Syste
   - Error handling for file operations
 
 ### Code Organization
-The codebase is organized using pragma regions for better readability:
-```cpp
-#pragma region Variables
-// Variables are grouped here
-#pragma endregion
-
-#pragma region Methods
-// Methods are grouped here
-#pragma endregion
-
-#pragma region Templates
-// Template implementations are grouped here
-#pragma endregion
-```
+The codebase is organized using pragma regions for better readability with sections for Variables, Methods, and Templates.
 
 ### Core Systems
 - **Entity Manager**: Handles entity lifecycle, querying, and component management
@@ -171,30 +152,13 @@ The project supports building both for **Linux** (native) and **Windows** (cross
 **Prerequisites:**
 - Docker
 - Docker Compose
-- Run Docker Container
-- - ```docker-compose up -d```
 
-**Linux Build (Development/Testing):**
-
-# Build and run tests
-```docker-compose exec dev ./build_linux.sh```
-
-# Build without tests
-```docker-compose exec dev ./build_linux.sh --no-tests```
-
-# Clean build
-```docker-compose exec dev ./build_linux.sh --clean```
-
-
-**Windows Build (Cross-compilation):**
-
-# Build for Windows
-```docker-compose exec dev ./build_windows.sh```
-
-
-**Enter Development Environment:**
-
-```docker-compose exec dev /bin/bash```
+**Build Commands:**
+- Linux build (with tests): `docker-compose exec dev ./build_linux.sh`
+- Linux build (without tests): `docker-compose exec dev ./build_linux.sh --no-tests`
+- Clean build: `docker-compose exec dev ./build_linux.sh --clean`
+- Windows cross-compilation: `docker-compose exec dev ./build_windows.sh`
+- Enter development environment: `docker-compose exec dev /bin/bash`
 
 
 ### Build Options
@@ -210,19 +174,9 @@ The build script (`build.sh`) provides several options:
 
 ### Examples
 
-# Clean build with tests:
-
-```./build.sh --clean```
-
-
-# Release build without tests:
-
-```./build.sh -t Release --no-tests```
-
-
-# Build as shared library:
-
-```./build.sh -s```
+- Clean build with tests: `./build.sh --clean`
+- Release build without tests: `./build.sh -t Release --no-tests`
+- Build as shared library: `./build.sh -s`
 
 
 ### Build Output
@@ -241,12 +195,9 @@ The build script will:
 
 ### Building Example Project
 
-There is a build script in the example project that will build the GameEngine package and copy it to the example project.
-``` bash
-cd example_project
-./build_example.sh
-```
-#### <u><b>NOTE!!!: YOU MUST RUN THE BUILD.SH SCRIPT IN THE ROOT DIRECTORY FIRST.</b></u>
+There is a build script in the example project that will build the GameEngine package and copy it to the example project. Run `./build_example.sh` from the example_project directory.
+
+**NOTE: YOU MUST RUN THE BUILD.SH SCRIPT IN THE ROOT DIRECTORY FIRST.**
 
 ### Dependencies
 The build script automatically handles the following dependencies:
@@ -261,167 +212,26 @@ You will be required to link the dependencies manually in your project.
 
 ### Accessing Engine Systems
 
-The GameEngine class provides the recommended public API for accessing all engine systems and managers. Instead of directly calling singleton `instance()` methods, use the GameEngine accessor methods:
-
-```cpp
-GameEngine gameEngine(&window, sf::Vector2f(0.0f, -9.81f));
-
-// Access systems through GameEngine (recommended)
-auto& entityManager = gameEngine.getEntityManager();
-auto& physics = gameEngine.getPhysics();
-auto& audioSystem = gameEngine.getAudioSystem();
-auto& inputManager = gameEngine.getInputManager();
-auto& sceneManager = gameEngine.getSceneManager();
-auto& componentFactory = gameEngine.getComponentFactory();
-```
+The GameEngine class provides the public API for accessing all engine systems and managers:
+- `getEntityManager()` - Entity lifecycle and component management
+- `getPhysics()` - Box2D physics system
+- `getAudioSystem()` - Audio playback and control
+- `getInputManager()` - Keyboard and mouse input
+- `getSceneManager()` - Scene loading and saving
+- `getComponentFactory()` - Component creation
 
 ### Simplified Include Paths
 
-The engine uses a flat include structure. You can include headers directly without subdirectory prefixes:
-
-```cpp
-// Components - no "components/" prefix needed
-#include <CTransform.h>
-#include <CPhysicsBody2D.h>
-#include <CCollider2D.h>
-#include <CInputController.h>
-#include <CAudioSource.h>
-
-// Systems - no "systems/" prefix needed
-#include <SBox2DPhysics.h>
-#include <SAudioSystem.h>
-#include <SInputManager.h>
-
-// Entities and Managers
-#include <Entity.h>
-#include <EntityManager.h>
-#include <SceneManager.h>
-
-// Utilities
-#include <Vec2.h>
-#include <JsonBuilder.h>
-```
-
-## Usage Example
-```cpp
-#include <GameEngine.h>
-#include <Entity.h>
-#include <CTransform.h>
-#include <CPhysicsBody2D.h>
-#include <CCollider2D.h>
-#include <Vec2.h>
-#include <SFML/Graphics.hpp>
-
-int main()
-{
-    // Create window
-    sf::RenderWindow window(sf::VideoMode(800, 600), "Game");
-    
-    // Create game engine with gravity
-    GameEngine gameEngine(&window, sf::Vector2f(0.0f, -9.81f));
-    
-    // Access systems through GameEngine (recommended API)
-    auto& entityManager = gameEngine.getEntityManager();
-    auto& physics = gameEngine.getPhysics();
-    auto& sceneManager = gameEngine.getSceneManager();
-    auto& audioSystem = gameEngine.getAudioSystem();
-
-    // Initialize Box2D world with gravity
-    // Note: Box2D uses Y-up coordinates (positive Y = upward) and meters
-    physics.setGravity({0.0f, -10.0f});  // Standard Earth gravity (9.81 m/s²)
-
-    // Create a dynamic physics entity (e.g., player)
-    auto player = entityManager.addEntity("player");
-    auto transform = player->addComponent<CTransform>();
-    auto physicsBody = player->addComponent<CPhysicsBody2D>();
-    auto collider = player->addComponent<CCollider2D>();
-
-    // Initialize physics body at starting position (in meters)
-    transform->setPosition(Vec2(5.0f, 10.0f));  // Position in meters
-    physicsBody->initialize({5.0f, 10.0f}, BodyType::Dynamic);
-
-    // Add a circle collider (radius in meters)
-    collider->createCircle(0.5f);  // 0.5 meter radius
-    collider->setDensity(1.0f);    // 1 kg/m²
-    collider->setFriction(0.3f);
-    collider->setRestitution(0.5f); // 50% bounciness
-
-    // Create a static ground platform
-    auto ground = entityManager.addEntity("ground");
-    auto groundTransform = ground->addComponent<CTransform>();
-    auto groundBody = ground->addComponent<CPhysicsBody2D>();
-    auto groundCollider = ground->addComponent<CCollider2D>();
-
-    groundTransform->setPosition(Vec2(10.0f, 1.0f));
-    groundBody->initialize({10.0f, 1.0f}, BodyType::Static);
-    groundCollider->createBox(10.0f, 0.5f);  // 10m wide, 0.5m tall
-
-    // Apply forces and impulses
-    physicsBody->applyLinearImpulseToCenter({5.0f, 0.0f});  // Horizontal kick
-    physicsBody->applyForceToCenter({0.0f, 100.0f});        // Upward force
-
-    // Customize physics properties
-    physicsBody->setGravityScale(0.5f);      // Half gravity
-    physicsBody->setLinearDamping(0.1f);     // Air resistance
-    physicsBody->setAngularDamping(0.1f);    // Rotation damping
-
-    // Initialize audio system and load sounds
-    audioSystem.initialize();
-    audioSystem.loadSound("background_music", "assets/music.mp3", AudioType::Music);
-    audioSystem.loadSound("jump_sfx", "assets/jump.wav", AudioType::SFX);
-    
-    // Play background music with looping
-    audioSystem.playMusic("background_music", true, 0.7f);
-    
-    // Play sound effect with fade-in
-    FadeConfig fadeIn = FadeConfig::linear(1.0f, true);
-    AudioHandle jumpHandle = audioSystem.playSFXWithFade("jump_sfx", 1.0f, 1.0f, false, fadeIn);
-
-    // Game loop
-    float deltaTime = 1.0f / 60.0f;
-    while (window.isOpen())
-    {
-        gameEngine.update(deltaTime);
-        gameEngine.render();
-    }
-
-    // Save the scene (includes all physics state)
-    sceneManager.saveScene("level1.json");
-
-    // Later, load the scene (automatically recreates Box2D bodies)
-    sceneManager.loadScene("level1.json");
-
-    // Clear the scene when done
-    sceneManager.clearScene();
-    
-    return 0;
-}
-```
+The engine uses a flat include structure. Headers can be included directly without subdirectory prefixes (e.g., `#include <CTransform.h>` instead of `#include <components/CTransform.h>`).
 
 ## Project Structure
-```
-2D_Game_Engine/
-├── include/          # Public headers
-│   ├── Entity.h
-│   ├── EntityManager.h
-│   ├── ComponentFactory.h
-│   ├── SceneManager.h
-│   ├── components/
-│   │   ├── CTransform.h
-│   │   ├── CPhysicsBody2D.h
-│   │   ├── CCollider2D.h
-│   │   └── CName.h
-│   ├── systems/
-│   │   ├── System.h
-│   │   ├── SBox2DPhysics.h
-│   │   └── Box2DContactListener.h
-│   └── utility/
-│       ├── FileUtilities.h
-│       ├── JsonBuilder.h
-│       ├── JsonParser.h
-│       └── JsonValue.h
-└── src/            # Source files
-```
+
+The project is organized with:
+- `include/` - Public headers for entities, components, systems, and utilities
+- `src/` - Implementation source files
+- `tests/` - Unit tests
+- `Example/` - Example game project
+- `build_tools/` - Build scripts for different platforms
 
 ## Audio Attribution
 

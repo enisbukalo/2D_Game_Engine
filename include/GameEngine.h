@@ -6,12 +6,12 @@
 #include <memory>
 
 // Include system and manager headers
-#include <EntityManager.h>
-#include <SceneManager.h>
 #include <ComponentFactory.h>
+#include <EntityManager.h>
+#include <SAudioSystem.h>
 #include <SBox2DPhysics.h>
 #include <SInputManager.h>
-#include <SAudioSystem.h>
+#include <SceneManager.h>
 
 /**
  * @brief Main game engine class handling core game loop and systems
