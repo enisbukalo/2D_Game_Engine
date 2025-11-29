@@ -50,11 +50,11 @@ public:
     AudioHandle playSFX(const std::string& id, float volume = 1.0f, float pitch = 1.0f, bool loop = false) override;
     AudioHandle playSpatialSFX(const std::string& id,
                                const Vec2&        position,
-                               float              volume       = 1.0f,
-                               float              pitch        = 1.0f,
-                               bool               loop         = false,
-                               float              minDistance  = AudioConstants::DEFAULT_MIN_DISTANCE,
-                               float              attenuation  = AudioConstants::DEFAULT_ATTENUATION) override;
+                               float              volume      = 1.0f,
+                               float              pitch       = 1.0f,
+                               bool               loop        = false,
+                               float              minDistance = AudioConstants::DEFAULT_MIN_DISTANCE,
+                               float              attenuation = AudioConstants::DEFAULT_ATTENUATION) override;
 
     void stopSFX(AudioHandle handle) override;
     void pauseSFX(AudioHandle handle) override;
@@ -95,6 +95,7 @@ private:
         sf::Sound sound;
         uint32_t  generation = 0;
         bool      inUse      = false;
+        float     baseVolume = 1.0f;  // Store base volume before master/category multipliers
     };
 
     /**
@@ -124,12 +125,13 @@ private:
      */
     float calculateEffectiveMusicVolume(float baseVolume) const;
 
-    bool                                               m_initialized = false;
-    std::vector<SoundSlot>                             m_soundPool;
-    std::unordered_map<std::string, sf::SoundBuffer>   m_soundBuffers;
-    std::unordered_map<std::string, std::string>       m_musicPaths;  ///< Map music IDs to file paths
-    std::unique_ptr<sf::Music>                         m_currentMusic;
-    std::string                                        m_currentMusicId;
+    bool                                             m_initialized = false;
+    std::vector<SoundSlot>                           m_soundPool;
+    std::unordered_map<std::string, sf::SoundBuffer> m_soundBuffers;
+    std::unordered_map<std::string, std::string>     m_musicPaths;  ///< Map music IDs to file paths
+    std::unique_ptr<sf::Music>                       m_currentMusic;
+    std::string                                      m_currentMusicId;
+    float m_currentMusicBaseVolume = 1.0f;  ///< Base volume for current music
 
     float m_masterVolume = AudioConstants::DEFAULT_MASTER_VOLUME;
     float m_sfxVolume    = AudioConstants::DEFAULT_SFX_VOLUME;

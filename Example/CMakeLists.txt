@@ -113,6 +113,30 @@ if(WIN32 OR MINGW)
             "$<TARGET_FILE_DIR:BounceGame>/assets"
         COMMENT "Copying assets to output directory"
     )
+    
+    # Flatten build directory: move everything from bin to build root and clean up
+    add_custom_command(TARGET BounceGame POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E echo "Flattening build directory..."
+        # Copy everything from bin to build root
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_BINARY_DIR}/bin"
+            "${CMAKE_BINARY_DIR}"
+        # Remove bin directory
+        COMMAND ${CMAKE_COMMAND} -E rm -rf "${CMAKE_BINARY_DIR}/bin"
+        # Remove lib directory
+        COMMAND ${CMAKE_COMMAND} -E rm -rf "${CMAKE_BINARY_DIR}/lib"
+        # Remove CMake files and directories
+        COMMAND ${CMAKE_COMMAND} -E rm -rf "${CMAKE_BINARY_DIR}/CMakeFiles"
+        COMMAND ${CMAKE_COMMAND} -E rm -f "${CMAKE_BINARY_DIR}/cmake_install.cmake"
+        COMMAND ${CMAKE_COMMAND} -E rm -f "${CMAKE_BINARY_DIR}/CMakeCache.txt"
+        COMMAND ${CMAKE_COMMAND} -E rm -f "${CMAKE_BINARY_DIR}/Makefile"
+        COMMAND ${CMAKE_COMMAND} -E rm -f "${CMAKE_BINARY_DIR}/build.ninja"
+        COMMAND ${CMAKE_COMMAND} -E rm -f "${CMAKE_BINARY_DIR}/rules.ninja"
+        COMMAND ${CMAKE_COMMAND} -E rm -f "${CMAKE_BINARY_DIR}/.ninja_deps"
+        COMMAND ${CMAKE_COMMAND} -E rm -f "${CMAKE_BINARY_DIR}/.ninja_log"
+        COMMAND ${CMAKE_COMMAND} -E echo "Build directory flattened successfully"
+        COMMENT "Flattening build directory structure"
+    )
 endif()
 
 # Print configuration info

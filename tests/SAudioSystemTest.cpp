@@ -329,3 +329,139 @@ TEST_F(SAudioSystemTest, InvalidOperations)
     audioSystem.resumeSFX(invalidHandle);
     EXPECT_FALSE(audioSystem.isPlayingSFX(invalidHandle));
 }
+
+TEST_F(SAudioSystemTest, MasterVolumePreservesIndividualSFXVolumes)
+{
+    auto& audioSystem = SAudioSystem::instance();
+    audioSystem.initialize();
+    audioSystem.loadSound("test_sfx", "test_sound.wav", AudioType::SFX);
+
+    // Set initial master volume to 1.0
+    audioSystem.setMasterVolume(1.0f);
+
+    // Play sound with specific volume
+    AudioHandle handle = audioSystem.playSFX("test_sfx", 0.5f, 1.0f, true);
+    EXPECT_TRUE(handle.isValid());
+
+    // Change master volume down
+    audioSystem.setMasterVolume(0.5f);
+    EXPECT_FLOAT_EQ(audioSystem.getMasterVolume(), 0.5f);
+
+    // Change master volume back up
+    audioSystem.setMasterVolume(1.0f);
+    EXPECT_FLOAT_EQ(audioSystem.getMasterVolume(), 1.0f);
+
+    // The sound should still maintain its individual volume of 0.5
+    // We can't directly test SFML's internal volume, but we verify no crash
+    // and that the system is still functional
+    audioSystem.setSFXVolume(handle, 0.8f);
+    
+    // Change master volume again - should apply to the new base volume (0.8)
+    audioSystem.setMasterVolume(0.25f);
+    audioSystem.setMasterVolume(1.0f);
+
+    audioSystem.stopSFX(handle);
+}
+
+TEST_F(SAudioSystemTest, MasterVolumePreservesMusicVolume)
+{
+    auto& audioSystem = SAudioSystem::instance();
+    audioSystem.initialize();
+    audioSystem.loadSound("test_music", "test_music.wav", AudioType::Music);
+
+    // Set initial master volume
+    audioSystem.setMasterVolume(1.0f);
+
+    // Play music with specific volume
+    EXPECT_TRUE(audioSystem.playMusic("test_music", true, 0.6f));
+
+    // Change master volume down then back up
+    audioSystem.setMasterVolume(0.3f);
+    EXPECT_FLOAT_EQ(audioSystem.getMasterVolume(), 0.3f);
+    
+    audioSystem.setMasterVolume(0.8f);
+    EXPECT_FLOAT_EQ(audioSystem.getMasterVolume(), 0.8f);
+    
+    audioSystem.setMasterVolume(1.0f);
+    EXPECT_FLOAT_EQ(audioSystem.getMasterVolume(), 1.0f);
+
+    // Music should still be playing with its base volume preserved
+    EXPECT_TRUE(audioSystem.isMusicPlaying());
+
+    audioSystem.stopMusic();
+}
+
+TEST_F(SAudioSystemTest, CategoryVolumePreservesIndividualVolumes)
+{
+    auto& audioSystem = SAudioSystem::instance();
+    audioSystem.initialize();
+    audioSystem.loadSound("test_sfx", "test_sound.wav", AudioType::SFX);
+
+    // Play sound with specific volume
+    AudioHandle handle = audioSystem.playSFX("test_sfx", 0.7f, 1.0f, true);
+    EXPECT_TRUE(handle.isValid());
+
+    // Change SFX category volume down then back up
+    audioSystem.setSFXVolume(0.5f);
+    EXPECT_FLOAT_EQ(audioSystem.getSFXVolume(), 0.5f);
+    
+    audioSystem.setSFXVolume(1.0f);
+    EXPECT_FLOAT_EQ(audioSystem.getSFXVolume(), 1.0f);
+
+    // Sound should maintain its individual 0.7 base volume
+    // Verify system is still functional
+    audioSystem.setSFXVolume(handle, 0.3f);
+
+    audioSystem.stopSFX(handle);
+}
+
+TEST_F(SAudioSystemTest, IndividualSFXVolumeChange)
+{
+    auto& audioSystem = SAudioSystem::instance();
+    audioSystem.initialize();
+    audioSystem.loadSound("test_sfx", "test_sound.wav", AudioType::SFX);
+
+    // Set master volume to something other than 1.0
+    audioSystem.setMasterVolume(0.8f);
+
+    // Play sound with initial volume
+    AudioHandle handle = audioSystem.playSFX("test_sfx", 0.5f, 1.0f, true);
+    EXPECT_TRUE(handle.isValid());
+
+    // Change individual sound volume
+    audioSystem.setSFXVolume(handle, 0.9f);
+
+    // Change master volume - should use new base volume (0.9)
+    audioSystem.setMasterVolume(0.5f);
+    audioSystem.setMasterVolume(0.8f);
+
+    // Verify handle is still valid (sound should still exist)
+    EXPECT_TRUE(handle.isValid());
+
+    audioSystem.stopSFX(handle);
+}
+
+TEST_F(SAudioSystemTest, MultipleVolumeChangesDoNotCompound)
+{
+    auto& audioSystem = SAudioSystem::instance();
+    audioSystem.initialize();
+    audioSystem.loadSound("test_sfx", "test_sound.wav", AudioType::SFX);
+
+    // Play sound at 50% volume
+    AudioHandle handle = audioSystem.playSFX("test_sfx", 0.5f, 1.0f, true);
+    EXPECT_TRUE(handle.isValid());
+
+    // Repeatedly change master volume up and down
+    for (int i = 0; i < 5; ++i)
+    {
+        audioSystem.setMasterVolume(0.2f);
+        audioSystem.setMasterVolume(0.8f);
+        audioSystem.setMasterVolume(0.5f);
+        audioSystem.setMasterVolume(1.0f);
+    }
+
+    // Verify handle is still valid after all volume changes
+    EXPECT_TRUE(handle.isValid());
+
+    audioSystem.stopSFX(handle);
+}

@@ -1,8 +1,8 @@
 #include "CAudioListener.h"
+#include <spdlog/spdlog.h>
 #include "CTransform.h"
 #include "Entity.h"
 #include "SAudioSystem.h"
-#include <spdlog/spdlog.h>
 
 CAudioListener::CAudioListener() {}
 
@@ -145,7 +145,7 @@ void CAudioListener::deserialize(const JsonValue& value)
             if (sourceValue.hasKey("audioType"))
             {
                 std::string typeStr = sourceValue["audioType"].getString();
-                config.type = (typeStr == "music") ? AudioType::Music : AudioType::SFX;
+                config.type         = (typeStr == "music") ? AudioType::Music : AudioType::SFX;
             }
 
             if (sourceValue.hasKey("volume"))
@@ -234,9 +234,10 @@ bool CAudioListener::play(const std::string& name)
         // Play spatial or non-spatial SFX
         if (config.spatial)
         {
-            auto* transform = getOwner()->getComponent<CTransform>();
-            Vec2  position  = transform ? transform->getPosition() : Vec2(0.0f, 0.0f);
-            config.playHandle = audioSystem.playSpatialSFX(config.clipId, position, config.volume, config.pitch, config.loop, config.minDistance, config.attenuation);
+            auto* transform   = getOwner()->getComponent<CTransform>();
+            Vec2  position    = transform ? transform->getPosition() : Vec2(0.0f, 0.0f);
+            config.playHandle = audioSystem.playSpatialSFX(
+                config.clipId, position, config.volume, config.pitch, config.loop, config.minDistance, config.attenuation);
         }
         else
         {
@@ -303,7 +304,7 @@ bool CAudioListener::isPlaying(const std::string& name) const
     }
 
     const auto& config      = it->second;
-    auto&       audioSystem = SAudioSystem::instance();
+    const auto& audioSystem = SAudioSystem::instance();
 
     if (config.type == AudioType::SFX)
     {

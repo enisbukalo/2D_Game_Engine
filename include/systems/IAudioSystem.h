@@ -73,11 +73,11 @@ public:
      */
     virtual AudioHandle playSpatialSFX(const std::string& id,
                                        const Vec2&        position,
-                                       float              volume       = 1.0f,
-                                       float              pitch        = 1.0f,
-                                       bool               loop         = false,
-                                       float              minDistance  = AudioConstants::DEFAULT_MIN_DISTANCE,
-                                       float              attenuation  = AudioConstants::DEFAULT_ATTENUATION) = 0;
+                                       float              volume      = 1.0f,
+                                       float              pitch       = 1.0f,
+                                       bool               loop        = false,
+                                       float              minDistance = AudioConstants::DEFAULT_MIN_DISTANCE,
+                                       float              attenuation = AudioConstants::DEFAULT_ATTENUATION) = 0;
 
     /**
      * @brief Stop a playing sound effect

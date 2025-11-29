@@ -1,18 +1,19 @@
 #include "SAudioSystem.h"
+#include <spdlog/spdlog.h>
 #include <SFML/Audio.hpp>
 #include <algorithm>
-#include <spdlog/spdlog.h>
 
 #ifndef _WIN32
-    #include <unistd.h>
-    #include <fcntl.h>
+#include <fcntl.h>
+#include <unistd.h>
 #endif
 
 SAudioSystem::SAudioSystem(size_t poolSize) : m_soundPool(poolSize) {}
 
 SAudioSystem::~SAudioSystem()
 {
-    shutdown();
+    // Call shutdown directly without virtual dispatch
+    SAudioSystem::shutdown();
 }
 
 SAudioSystem& SAudioSystem::instance()
@@ -34,7 +35,7 @@ bool SAudioSystem::initialize()
     // Suppress ALSA/OpenAL errors in headless environments
 #ifndef _WIN32
     int oldStderr = -1;
-    int devNull = open("/dev/null", O_WRONLY);
+    int devNull   = open("/dev/null", O_WRONLY);
     if (devNull != -1)
     {
         oldStderr = dup(STDERR_FILENO);
@@ -124,7 +125,7 @@ bool SAudioSystem::loadSound(const std::string& id, const std::string& filepath,
         // Suppress ALSA errors during loading in headless environment
 #ifndef _WIN32
         int oldStderr = -1;
-        int devNull = open("/dev/null", O_WRONLY);
+        int devNull   = open("/dev/null", O_WRONLY);
         if (devNull != -1)
         {
             oldStderr = dup(STDERR_FILENO);
@@ -134,7 +135,7 @@ bool SAudioSystem::loadSound(const std::string& id, const std::string& filepath,
 #endif
 
         sf::SoundBuffer buffer;
-        bool success = buffer.loadFromFile(filepath);
+        bool            success = buffer.loadFromFile(filepath);
 
         // Restore stderr
 #ifndef _WIN32
@@ -223,7 +224,8 @@ AudioHandle SAudioSystem::playSFX(const std::string& id, float volume, float pit
 
     auto& slot = m_soundPool[slotIndex];
     slot.sound.setBuffer(it->second);
-    slot.sound.setVolume(calculateEffectiveSFXVolume(volume) * 100.0f);  // SFML uses 0-100
+    slot.baseVolume = std::clamp(volume, 0.0f, 1.0f);                             // Store base volume
+    slot.sound.setVolume(calculateEffectiveSFXVolume(slot.baseVolume) * 100.0f);  // SFML uses 0-100
     slot.sound.setPitch(pitch);
     slot.sound.setLoop(loop);
     slot.sound.setRelativeToListener(true);  // Non-spatial by default
@@ -239,13 +241,8 @@ AudioHandle SAudioSystem::playSFX(const std::string& id, float volume, float pit
     return handle;
 }
 
-AudioHandle SAudioSystem::playSpatialSFX(const std::string& id,
-                                         const Vec2&        position,
-                                         float              volume,
-                                         float              pitch,
-                                         bool               loop,
-                                         float              minDistance,
-                                         float              attenuation)
+AudioHandle
+SAudioSystem::playSpatialSFX(const std::string& id, const Vec2& position, float volume, float pitch, bool loop, float minDistance, float attenuation)
 {
     if (!m_initialized)
     {
@@ -271,7 +268,8 @@ AudioHandle SAudioSystem::playSpatialSFX(const std::string& id,
 
     auto& slot = m_soundPool[slotIndex];
     slot.sound.setBuffer(it->second);
-    slot.sound.setVolume(calculateEffectiveSFXVolume(volume) * 100.0f);  // SFML uses 0-100
+    slot.baseVolume = std::clamp(volume, 0.0f, 1.0f);                             // Store base volume
+    slot.sound.setVolume(calculateEffectiveSFXVolume(slot.baseVolume) * 100.0f);  // SFML uses 0-100
     slot.sound.setPitch(pitch);
     slot.sound.setLoop(loop);
     slot.sound.setRelativeToListener(false);  // Spatial audio
@@ -353,8 +351,9 @@ void SAudioSystem::setSFXVolume(AudioHandle handle, float volume)
         return;
     }
 
-    // Clamp and apply volume with master and category multipliers
-    volume = std::clamp(volume, 0.0f, 1.0f);
+    // Clamp and store base volume, then apply with master and category multipliers
+    volume                               = std::clamp(volume, 0.0f, 1.0f);
+    m_soundPool[handle.index].baseVolume = volume;
     m_soundPool[handle.index].sound.setVolume(calculateEffectiveSFXVolume(volume) * 100.0f);
 }
 
@@ -383,7 +382,7 @@ bool SAudioSystem::playMusic(const std::string& id, bool loop, float volume)
     // Suppress ALSA errors during music loading in headless environment
 #ifndef _WIN32
     int oldStderr = -1;
-    int devNull = open("/dev/null", O_WRONLY);
+    int devNull   = open("/dev/null", O_WRONLY);
     if (devNull != -1)
     {
         oldStderr = dup(STDERR_FILENO);
@@ -394,12 +393,13 @@ bool SAudioSystem::playMusic(const std::string& id, bool loop, float volume)
 
     // Create new music object
     m_currentMusic = std::make_unique<sf::Music>();
-    bool success = m_currentMusic->openFromFile(it->second);
+    bool success   = m_currentMusic->openFromFile(it->second);
 
     if (success)
     {
+        m_currentMusicBaseVolume = std::clamp(volume, 0.0f, 1.0f);  // Store base volume
         m_currentMusic->setLoop(loop);
-        m_currentMusic->setVolume(calculateEffectiveMusicVolume(volume) * 100.0f);  // SFML uses 0-100
+        m_currentMusic->setVolume(calculateEffectiveMusicVolume(m_currentMusicBaseVolume) * 100.0f);  // SFML uses 0-100
         m_currentMusic->play();
         m_currentMusicId = id;
     }
@@ -462,21 +462,19 @@ void SAudioSystem::setMasterVolume(float volume)
 {
     m_masterVolume = std::clamp(volume, AudioConstants::MIN_VOLUME, AudioConstants::MAX_VOLUME);
 
-    // Update all active sounds
+    // Update all active sounds using their stored base volumes
     for (auto& slot : m_soundPool)
     {
         if (slot.inUse)
         {
-            float currentVolume = slot.sound.getVolume() / 100.0f;
-            slot.sound.setVolume(calculateEffectiveSFXVolume(currentVolume) * 100.0f);
+            slot.sound.setVolume(calculateEffectiveSFXVolume(slot.baseVolume) * 100.0f);
         }
     }
 
-    // Update music
+    // Update music using its stored base volume
     if (m_currentMusic)
     {
-        float currentVolume = m_currentMusic->getVolume() / 100.0f;
-        m_currentMusic->setVolume(calculateEffectiveMusicVolume(currentVolume) * 100.0f);
+        m_currentMusic->setVolume(calculateEffectiveMusicVolume(m_currentMusicBaseVolume) * 100.0f);
     }
 
     spdlog::debug("Master volume set to {}", m_masterVolume);
@@ -486,13 +484,12 @@ void SAudioSystem::setSFXVolume(float volume)
 {
     m_sfxVolume = std::clamp(volume, AudioConstants::MIN_VOLUME, AudioConstants::MAX_VOLUME);
 
-    // Update all active sounds
+    // Update all active sounds using their stored base volumes
     for (auto& slot : m_soundPool)
     {
         if (slot.inUse)
         {
-            float currentVolume = slot.sound.getVolume() / 100.0f;
-            slot.sound.setVolume(calculateEffectiveSFXVolume(currentVolume) * 100.0f);
+            slot.sound.setVolume(calculateEffectiveSFXVolume(slot.baseVolume) * 100.0f);
         }
     }
 
@@ -503,11 +500,10 @@ void SAudioSystem::setMusicVolume(float volume)
 {
     m_musicVolume = std::clamp(volume, AudioConstants::MIN_VOLUME, AudioConstants::MAX_VOLUME);
 
-    // Update music
+    // Update music using stored base volume
     if (m_currentMusic)
     {
-        float currentVolume = m_currentMusic->getVolume() / 100.0f;
-        m_currentMusic->setVolume(calculateEffectiveMusicVolume(currentVolume) * 100.0f);
+        m_currentMusic->setVolume(calculateEffectiveMusicVolume(m_currentMusicBaseVolume) * 100.0f);
     }
 
     spdlog::debug("Music volume set to {}", m_musicVolume);

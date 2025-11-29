@@ -30,9 +30,11 @@ const float RANDOM_VELOCITY_RANGE     = 2.0f;   // Random velocity range: -2 to 
 const float PLAYER_SIZE_METERS        = 0.25f;  // Player square half-width/height in meters
 const float PLAYER_FORCE              = 5.0f;   // Force applied for player movement
 const float PLAYER_TURNING_FORCE      = 0.5f;   // Torque applied for player rotation
-const float                 MOTOR_FADE_DURATION = 2.0f;  // 2 second fade-in
-const float                 MOTOR_MAX_VOLUME = 0.6f;     // 60% max volume
-const float MAX_MUSIC_VOLUME    = 0.80f;     // 80% max volume
+const float MOTOR_FADE_DURATION       = 2.0f;   // 2 second fade-in & fade-out
+const float MOTOR_MAX_VOLUME          = 0.45f;  // 45% max volume
+const float MAX_MUSIC_VOLUME          = 0.80f;  // 80% max volume
+const float VOLUME_ADJUSTMENT_STEP    = 0.05f;  // Volume change per key press (5%)
+const float INITIAL_VOLUME            = 0.5f;   // 50% initial volume
 
 class BounceGame
 {
@@ -50,10 +52,10 @@ private:
     std::shared_ptr<Entity>     m_player;
 
     // Audio state
-    AudioHandle                 m_motorBoatHandle;
-    bool                        m_motorBoatPlaying;
-    float                       m_motorBoatVolume;
-    float                       m_motorBoatFadeSpeed;  // Volume increase per second
+    AudioHandle m_motorBoatHandle;
+    bool        m_motorBoatPlaying;
+    float       m_motorBoatVolume;
+    float       m_motorBoatFadeSpeed;  // Volume increase per second
 
     // Helper function to convert meters to pixels for rendering
     sf::Vector2f metersToPixels(const Vec2& meters) const
@@ -113,6 +115,9 @@ public:
         // Initialize audio system
         auto& audioSystem = SAudioSystem::instance();
         audioSystem.initialize();
+
+        // Set initial master volume
+        audioSystem.setMasterVolume(INITIAL_VOLUME);
 
         // Load audio assets
         audioSystem.loadSound("background_music", "assets/audio/rainyday.mp3", AudioType::Music);
@@ -415,30 +420,29 @@ public:
     void startMotorBoat()
     {
         auto& audioSystem = SAudioSystem::instance();
-        
+
         if (!m_motorBoatPlaying)
         {
             // Start motor boat sound with 0 volume
-            m_motorBoatHandle = audioSystem.playSFX("motor_boat", 0.0f, 1.0f, true);
+            m_motorBoatHandle  = audioSystem.playSFX("motor_boat", 0.0f, 1.0f, true);
             m_motorBoatPlaying = true;
-            m_motorBoatVolume = 0.0f;
+            m_motorBoatVolume  = 0.0f;
         }
     }
 
     void checkStopMotorBoat()
     {
         // Check if any movement key is still being held
-        auto& inputManager = SInputManager::instance();
-        bool anyMovementKeyHeld = inputManager.isKeyDown(KeyCode::W) ||
-                                   inputManager.isKeyDown(KeyCode::A) ||
+        auto& inputManager       = SInputManager::instance();
+        bool  anyMovementKeyHeld = inputManager.isKeyDown(KeyCode::W) || inputManager.isKeyDown(KeyCode::A);
 
         if (!anyMovementKeyHeld && m_motorBoatPlaying)
         {
-            // Stop motor boat sound
+            // Stop motor boat sound with fade-out
             auto& audioSystem = SAudioSystem::instance();
             audioSystem.stopSFX(m_motorBoatHandle);
             m_motorBoatPlaying = false;
-            m_motorBoatVolume = 0.0f;
+            m_motorBoatVolume  = 0.0f;
         }
     }
 
@@ -516,7 +520,7 @@ public:
         {
             SAudioSystem::instance().stopSFX(m_motorBoatHandle);
             m_motorBoatPlaying = false;
-            m_motorBoatVolume = 0.0f;
+            m_motorBoatVolume  = 0.0f;
         }
 
         // Clear all entities
@@ -617,6 +621,22 @@ public:
         if (im.wasKeyPressed(KeyCode::V))
         {
             toggleVectors();
+        }
+        if (im.wasKeyPressed(KeyCode::Up))
+        {
+            auto& audioSystem   = SAudioSystem::instance();
+            float currentVolume = audioSystem.getMasterVolume();
+            float newVolume     = std::min(currentVolume + VOLUME_ADJUSTMENT_STEP, 1.0f);
+            audioSystem.setMasterVolume(newVolume);
+            std::cout << "Master Volume: " << static_cast<int>(newVolume * 100.0f) << "%" << std::endl;
+        }
+        if (im.wasKeyPressed(KeyCode::Down))
+        {
+            auto& audioSystem   = SAudioSystem::instance();
+            float currentVolume = audioSystem.getMasterVolume();
+            float newVolume     = std::max(currentVolume - VOLUME_ADJUSTMENT_STEP, 0.0f);
+            audioSystem.setMasterVolume(newVolume);
+            std::cout << "Master Volume: " << static_cast<int>(newVolume * 100.0f) << "%" << std::endl;
         }
 
         // Update Box2D physics
@@ -839,7 +859,7 @@ public:
             // Combine balls and players into one itertable list
             auto allEntities = balls;
             allEntities.push_back(player);
-            
+
             for (auto& entity : allEntities)
             {
                 if (!entity->hasComponent<CTransform>() || !entity->hasComponent<CPhysicsBody2D>())
@@ -859,17 +879,20 @@ public:
                 }
             }
         }
-        
 
         // Draw UI text showing current status
         if (m_fontLoaded)
         {
+            const auto& audioSystem   = SAudioSystem::instance();
+            float       currentVolume = audioSystem.getMasterVolume();
+
             std::ostringstream oss;
             oss << "Box2D Physics (1 unit = 1 meter, Y-up)\n";
             oss << "Ball Count: " << m_ballAmount << " (Use Left/Right to add/remove)\n";
             oss << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << " (Press G to toggle)\n";
             oss << "Colliders: " << (m_showColliders ? "ON" : "OFF") << " (Press C to toggle)\n";
-            oss << "Vectors: " << (m_showVectors ? "ON" : "OFF") << " (Press V to toggle)";
+            oss << "Vectors: " << (m_showVectors ? "ON" : "OFF") << " (Press V to toggle)\n";
+            oss << "Master Volume: " << static_cast<int>(currentVolume * 100.0f) << "% (Use Up/Down to adjust)";
 
             sf::Text text;
             text.setFont(m_font);

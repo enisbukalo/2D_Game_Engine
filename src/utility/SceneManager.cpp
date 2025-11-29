@@ -1,4 +1,5 @@
 #include "SceneManager.h"
+#include <spdlog/spdlog.h>
 #include <filesystem>
 #include <stdexcept>
 #include "EntityManager.h"
@@ -6,7 +7,6 @@
 #include "JsonParser.h"
 #include "JsonValue.h"
 #include "SAudioSystem.h"
-#include <spdlog/spdlog.h>
 
 void SceneManager::loadScene(const std::string& scenePath)
 {

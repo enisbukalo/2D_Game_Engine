@@ -1,8 +1,8 @@
 #include "CAudioSource.h"
+#include <spdlog/spdlog.h>
 #include "CTransform.h"
 #include "Entity.h"
 #include "SAudioSystem.h"
-#include <spdlog/spdlog.h>
 
 CAudioSource::CAudioSource() {}
 
@@ -101,7 +101,7 @@ void CAudioSource::deserialize(const JsonValue& value)
     if (data.hasKey("audioType"))
     {
         std::string typeStr = data["audioType"].getString();
-        m_type = (typeStr == "music") ? AudioType::Music : AudioType::SFX;
+        m_type              = (typeStr == "music") ? AudioType::Music : AudioType::SFX;
     }
 
     if (data.hasKey("volume"))
@@ -163,7 +163,7 @@ bool CAudioSource::play()
         {
             auto* transform = getOwner()->getComponent<CTransform>();
             Vec2  position  = transform ? transform->getPosition() : Vec2(0.0f, 0.0f);
-            m_playHandle    = audioSystem.playSpatialSFX(m_clipId, position, m_volume, m_pitch, m_loop, m_minDistance, m_attenuation);
+            m_playHandle = audioSystem.playSpatialSFX(m_clipId, position, m_volume, m_pitch, m_loop, m_minDistance, m_attenuation);
         }
         else
         {
@@ -209,7 +209,7 @@ void CAudioSource::stop()
 
 bool CAudioSource::isPlaying() const
 {
-    auto& audioSystem = SAudioSystem::instance();
+    const auto& audioSystem = SAudioSystem::instance();
 
     if (m_type == AudioType::SFX)
     {

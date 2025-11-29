@@ -2,8 +2,8 @@
 #define CAUDIOSOURCE_H
 
 #include <string>
-#include "Component.h"
 #include "AudioTypes.h"
+#include "Component.h"
 
 /**
  * @brief Component for audio playback on an entity
@@ -27,11 +27,14 @@ public:
     CAudioSource();
     ~CAudioSource() override = default;
 
-    void init() override;
-    void update(float deltaTime) override;
-    void serialize(JsonBuilder& builder) const override;
-    void deserialize(const JsonValue& value) override;
-    std::string getType() const override { return "AudioSource"; }
+    void        init() override;
+    void        update(float deltaTime) override;
+    void        serialize(JsonBuilder& builder) const override;
+    void        deserialize(const JsonValue& value) override;
+    std::string getType() const override
+    {
+        return "AudioSource";
+    }
 
     /**
      * @brief Play the audio clip
@@ -77,73 +80,103 @@ public:
      * @brief Set the audio clip ID to play
      * @param clipId Identifier of the loaded audio clip
      */
-    void setClipId(const std::string& clipId) { m_clipId = clipId; }
+    void setClipId(const std::string& clipId)
+    {
+        m_clipId = clipId;
+    }
 
     /**
      * @brief Get the audio clip ID
      * @return The clip identifier
      */
-    const std::string& getClipId() const { return m_clipId; }
+    const std::string& getClipId() const
+    {
+        return m_clipId;
+    }
 
     /**
      * @brief Set the audio type (SFX or Music)
      * @param type Audio type
      */
-    void setAudioType(AudioType type) { m_type = type; }
+    void setAudioType(AudioType type)
+    {
+        m_type = type;
+    }
 
     /**
      * @brief Get the audio type
      * @return Audio type (SFX or Music)
      */
-    AudioType getAudioType() const { return m_type; }
+    AudioType getAudioType() const
+    {
+        return m_type;
+    }
 
     /**
      * @brief Set whether this is a spatial audio source
      * @param spatial true for 3D spatial audio, false for 2D
      */
-    void setSpatial(bool spatial) { m_spatial = spatial; }
+    void setSpatial(bool spatial)
+    {
+        m_spatial = spatial;
+    }
 
     /**
      * @brief Check if this is a spatial audio source
      * @return true if spatial audio is enabled
      */
-    bool isSpatial() const { return m_spatial; }
+    bool isSpatial() const
+    {
+        return m_spatial;
+    }
 
     /**
      * @brief Set whether audio should play automatically on init
      * @param playOnAwake true to auto-play
      */
-    void setPlayOnAwake(bool playOnAwake) { m_playOnAwake = playOnAwake; }
+    void setPlayOnAwake(bool playOnAwake)
+    {
+        m_playOnAwake = playOnAwake;
+    }
 
     /**
      * @brief Get the current volume
      * @return Volume level (0.0 to 1.0)
      */
-    float getVolume() const { return m_volume; }
+    float getVolume() const
+    {
+        return m_volume;
+    }
 
     /**
      * @brief Get the current pitch
      * @return Pitch multiplier
      */
-    float getPitch() const { return m_pitch; }
+    float getPitch() const
+    {
+        return m_pitch;
+    }
 
     /**
      * @brief Check if audio is set to loop
      * @return true if looping is enabled
      */
-    bool isLooping() const { return m_loop; }
+    bool isLooping() const
+    {
+        return m_loop;
+    }
 
 private:
-    std::string m_clipId;                                           ///< Audio clip identifier
-    AudioType   m_type         = AudioType::SFX;                    ///< Type of audio (SFX or Music)
-    float       m_volume       = AudioConstants::DEFAULT_SFX_VOLUME;
-    float       m_pitch        = AudioConstants::DEFAULT_AUDIO_PITCH;
-    bool        m_loop         = false;
-    bool        m_spatial      = false;                             ///< Enable 3D spatial audio
-    bool        m_playOnAwake  = false;                             ///< Auto-play on initialization
-    float       m_minDistance  = AudioConstants::DEFAULT_MIN_DISTANCE;
-    float       m_attenuation  = AudioConstants::DEFAULT_ATTENUATION;
-    AudioHandle m_playHandle   = AudioHandle::invalid();            ///< Handle to active sound
+    std::string m_clipId;                        ///< Audio clip identifier
+    AudioType   m_type        = AudioType::SFX;  ///< Type of audio (SFX or Music)
+    float       m_volume      = AudioConstants::DEFAULT_SFX_VOLUME;
+    float       m_pitch       = AudioConstants::DEFAULT_AUDIO_PITCH;
+    bool        m_loop        = false;
+    bool        m_spatial     = false;  ///< Enable 3D spatial audio
+    bool        m_playOnAwake = false;  ///< Auto-play on initialization
+    float       m_minDistance = AudioConstants::DEFAULT_MIN_DISTANCE;
+    float       m_attenuation = AudioConstants::DEFAULT_ATTENUATION;
+    AudioHandle m_playHandle  = AudioHandle::invalid();  ///< Handle to active sound
 };
 
 #endif  // CAUDIOSOURCE_H

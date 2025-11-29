@@ -3,8 +3,8 @@
 
 #include <string>
 #include <unordered_map>
-#include "Component.h"
 #include "AudioTypes.h"
+#include "Component.h"
 
 /**
  * @brief Component for audio listener (typically attached to camera or player)
@@ -29,37 +29,46 @@ public:
      */
     struct AudioSourceConfig
     {
-        std::string clipId;                                          ///< Audio clip identifier
-        AudioType   type         = AudioType::SFX;                   ///< Type of audio
-        float       volume       = AudioConstants::DEFAULT_SFX_VOLUME;
-        float       pitch        = AudioConstants::DEFAULT_AUDIO_PITCH;
-        bool        loop         = false;
-        bool        spatial      = false;                            ///< Enable 3D spatial audio
-        float       minDistance  = AudioConstants::DEFAULT_MIN_DISTANCE;
-        float       attenuation  = AudioConstants::DEFAULT_ATTENUATION;
-        AudioHandle playHandle   = AudioHandle::invalid();           ///< Active playback handle (SFX only)
+        std::string clipId;                        ///< Audio clip identifier
+        AudioType   type        = AudioType::SFX;  ///< Type of audio
+        float       volume      = AudioConstants::DEFAULT_SFX_VOLUME;
+        float       pitch       = AudioConstants::DEFAULT_AUDIO_PITCH;
+        bool        loop        = false;
+        bool        spatial     = false;  ///< Enable 3D spatial audio
+        float       minDistance = AudioConstants::DEFAULT_MIN_DISTANCE;
+        float       attenuation = AudioConstants::DEFAULT_ATTENUATION;
+        AudioHandle playHandle  = AudioHandle::invalid();  ///< Active playback handle (SFX only)
     };
 
     CAudioListener();
     ~CAudioListener() override = default;
 
-    void init() override;
-    void update(float deltaTime) override;
-    void serialize(JsonBuilder& builder) const override;
-    void deserialize(const JsonValue& value) override;
-    std::string getType() const override { return "AudioListener"; }
+    void        init() override;
+    void        update(float deltaTime) override;
+    void        serialize(JsonBuilder& builder) const override;
+    void        deserialize(const JsonValue& value) override;
+    std::string getType() const override
+    {
+        return "AudioListener";
+    }
 
     /**
      * @brief Set whether this is the default (active) listener
      * @param isDefault true to make this the default listener
      */
-    void setDefaultListener(bool isDefault) { m_isDefaultListener = isDefault; }
+    void setDefaultListener(bool isDefault)
+    {
+        m_isDefaultListener = isDefault;
+    }
 
     /**
      * @brief Check if this is the default listener
      * @return true if this is the default listener
      */
-    bool isDefaultListener() const { return m_isDefaultListener; }
+    bool isDefaultListener() const
+    {
+        return m_isDefaultListener;
+    }
 
     /**
      * @brief Add a named audio source configuration
@@ -104,10 +113,13 @@ public:
      * @brief Get all named audio sources
      * @return Map of audio source configurations
      */
-    const std::unordered_map<std::string, AudioSourceConfig>& getAudioSources() const { return m_audioSources; }
+    const std::unordered_map<std::string, AudioSourceConfig>& getAudioSources() const
+    {
+        return m_audioSources;
+    }
 
 private:
-    bool m_isDefaultListener = true;  ///< Whether this is the active listener
+    bool m_isDefaultListener = true;                                    ///< Whether this is the active listener
     std::unordered_map<std::string, AudioSourceConfig> m_audioSources;  ///< Named audio sources
 };
 

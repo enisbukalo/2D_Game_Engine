@@ -17,8 +17,8 @@
  */
 enum class AudioType
 {
-    SFX,    ///< Sound effects - loaded into memory, pooled playback
-    Music   ///< Music - streamed from disk
+    SFX,   ///< Sound effects - loaded into memory, pooled playback
+    Music  ///< Music - streamed from disk
 };
 
 /**
@@ -39,13 +39,19 @@ struct AudioHandle
      * @brief Check if the handle is valid
      * @return true if handle points to a potentially valid sound
      */
-    bool isValid() const { return index != INVALID_INDEX; }
+    bool isValid() const
+    {
+        return index != INVALID_INDEX;
+    }
 
     /**
      * @brief Create an invalid handle
      * @return AudioHandle with invalid index
      */
-    static AudioHandle invalid() { return AudioHandle{INVALID_INDEX, 0}; }
+    static AudioHandle invalid()
+    {
+        return AudioHandle{INVALID_INDEX, 0};
+    }
 };
 
 /**
@@ -53,15 +59,15 @@ struct AudioHandle
  */
 namespace AudioConstants
 {
-constexpr size_t DEFAULT_SFX_POOL_SIZE    = 32;    ///< Default number of simultaneous sound effects
-constexpr float  DEFAULT_MASTER_VOLUME    = 1.0f;
-constexpr float  DEFAULT_SFX_VOLUME       = 1.0f;
-constexpr float  DEFAULT_MUSIC_VOLUME     = 1.0f;
-constexpr float  DEFAULT_MIN_DISTANCE     = 1.0f;  ///< Minimum distance for 3D audio attenuation
-constexpr float  DEFAULT_ATTENUATION      = 1.0f;  ///< Attenuation factor for 3D audio
-constexpr float  DEFAULT_AUDIO_PITCH      = 1.0f;
-constexpr float  MIN_VOLUME               = 0.0f;
-constexpr float  MAX_VOLUME               = 1.0f;
+constexpr size_t DEFAULT_SFX_POOL_SIZE = 32;  ///< Default number of simultaneous sound effects
+constexpr float  DEFAULT_MASTER_VOLUME = 1.0f;
+constexpr float  DEFAULT_SFX_VOLUME    = 1.0f;
+constexpr float  DEFAULT_MUSIC_VOLUME  = 1.0f;
+constexpr float  DEFAULT_MIN_DISTANCE  = 1.0f;  ///< Minimum distance for 3D audio attenuation
+constexpr float  DEFAULT_ATTENUATION   = 1.0f;  ///< Attenuation factor for 3D audio
+constexpr float  DEFAULT_AUDIO_PITCH   = 1.0f;
+constexpr float  MIN_VOLUME            = 0.0f;
+constexpr float  MAX_VOLUME            = 1.0f;
 }  // namespace AudioConstants
 
 #endif  // AUDIOTYPES_H
