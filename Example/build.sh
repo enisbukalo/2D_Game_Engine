@@ -117,6 +117,28 @@ cmake --build ${BUILD_DIR} --config $BUILD_TYPE -j8 || {
     exit 1
 }
 
+# Flatten build directory: move everything from bin to build root and clean up
+echo -e "${GREEN}Flattening build directory...${NC}"
+if [ -d "${BUILD_DIR}/bin" ]; then
+    # Copy everything from bin to build root
+    cp -r ${BUILD_DIR}/bin/* ${BUILD_DIR}/
+    # Remove bin directory
+    rm -rf ${BUILD_DIR}/bin
+fi
+
+# Remove lib directory
+rm -rf ${BUILD_DIR}/lib
+
+# Remove CMake files and directories
+rm -rf ${BUILD_DIR}/CMakeFiles
+rm -f ${BUILD_DIR}/cmake_install.cmake
+rm -f ${BUILD_DIR}/CMakeCache.txt
+rm -f ${BUILD_DIR}/Makefile
+rm -f ${BUILD_DIR}/build.ninja
+rm -f ${BUILD_DIR}/rules.ninja
+rm -f ${BUILD_DIR}/.ninja_deps
+rm -f ${BUILD_DIR}/.ninja_log
+
 echo -e "${GREEN}Build completed successfully!${NC}"
-echo -e "${GREEN}Executable location: ${BUILD_DIR}/bin/BounceGame.exe${NC}"
+echo -e "${GREEN}Executable location: ${BUILD_DIR}/BounceGame.exe${NC}"
 echo -e "${GREEN}All required DLLs have been copied to the build directory${NC}"
