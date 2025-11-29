@@ -536,18 +536,32 @@ void SAudioSystem::update(float deltaTime)
         return;
     }
 
-    // Free finished sounds from the pool
+    // Update fade states for all active sounds
     for (auto& slot : m_soundPool)
     {
         if (slot.inUse)
         {
+            // Update fade if active
+            if (slot.fadeState != FadeState::None)
+            {
+                updateSoundFade(slot, deltaTime);
+            }
+            
+            // Check if sound has finished playing
             sf::Sound::Status status = slot.sound.getStatus();
             if (status == sf::Sound::Stopped)
             {
                 slot.inUse = false;
                 slot.generation++;
+                slot.fadeState = FadeState::None;
             }
         }
+    }
+
+    // Update music fade if active
+    if (m_currentMusic && m_musicFadeState != FadeState::None)
+    {
+        updateMusicFade(deltaTime);
     }
 }
 
@@ -583,3 +597,382 @@ float SAudioSystem::calculateEffectiveMusicVolume(float baseVolume) const
 {
     return std::clamp(baseVolume * m_musicVolume * m_masterVolume, AudioConstants::MIN_VOLUME, AudioConstants::MAX_VOLUME);
 }
+
+AudioHandle SAudioSystem::playSFXWithFade(const std::string& id, float volume, float pitch, bool loop, const FadeConfig& fadeConfig)
+{
+    // Start at 0 volume if fading in, otherwise use target volume
+    float startVolume = (fadeConfig.duration > 0.0f) ? 0.0f : volume;
+    AudioHandle handle = playSFX(id, startVolume, pitch, loop);
+
+    if (!handle.isValid() || fadeConfig.duration <= 0.0f)
+    {
+        return handle;
+    }
+
+    // Set up fade-in
+    auto& slot = m_soundPool[handle.index];
+    slot.fadeState = FadeState::FadingIn;
+    slot.startVolume = startVolume;
+    slot.targetVolume = volume;
+    slot.fadeDuration = fadeConfig.duration;
+    slot.fadeElapsed = 0.0f;
+    slot.fadeCurve = fadeConfig.curve;
+    slot.allowInterrupt = fadeConfig.allowInterrupt;
+    slot.onFadeComplete = fadeConfig.onComplete;
+    slot.stopAfterFade = false;
+
+    return handle;
+}
+
+AudioHandle SAudioSystem::playSpatialSFXWithFade(const std::string& id,
+                                                  const Vec2& position,
+                                                  float volume,
+                                                  float pitch,
+                                                  bool loop,
+                                                  float minDistance,
+                                                  float attenuation,
+                                                  const FadeConfig& fadeConfig)
+{
+    // Start at 0 volume if fading in, otherwise use target volume
+    float startVolume = (fadeConfig.duration > 0.0f) ? 0.0f : volume;
+    AudioHandle handle = playSpatialSFX(id, position, startVolume, pitch, loop, minDistance, attenuation);
+
+    if (!handle.isValid() || fadeConfig.duration <= 0.0f)
+    {
+        return handle;
+    }
+
+    // Set up fade-in
+    auto& slot = m_soundPool[handle.index];
+    slot.fadeState = FadeState::FadingIn;
+    slot.startVolume = startVolume;
+    slot.targetVolume = volume;
+    slot.fadeDuration = fadeConfig.duration;
+    slot.fadeElapsed = 0.0f;
+    slot.fadeCurve = fadeConfig.curve;
+    slot.allowInterrupt = fadeConfig.allowInterrupt;
+    slot.onFadeComplete = fadeConfig.onComplete;
+    slot.stopAfterFade = false;
+
+    return handle;
+}
+
+bool SAudioSystem::fadeSFX(AudioHandle handle, float targetVolume, const FadeConfig& fadeConfig)
+{
+    if (!isHandleValid(handle))
+    {
+        return false;
+    }
+
+    auto& slot = m_soundPool[handle.index];
+
+    // Check if current fade can be interrupted
+    if (slot.fadeState != FadeState::None && !slot.allowInterrupt)
+    {
+        spdlog::warn("Cannot interrupt non-interruptible fade on sound in slot {}", handle.index);
+        return false;
+    }
+
+    targetVolume = std::clamp(targetVolume, 0.0f, 1.0f);
+
+    // Instant fade
+    if (fadeConfig.duration <= 0.0f)
+    {
+        slot.baseVolume = targetVolume;
+        slot.sound.setVolume(calculateEffectiveSFXVolume(targetVolume) * 100.0f);
+        slot.fadeState = FadeState::None;
+        if (fadeConfig.onComplete)
+        {
+            fadeConfig.onComplete();
+        }
+        return true;
+    }
+
+    // Set up fade
+    slot.fadeState = (targetVolume > slot.baseVolume) ? FadeState::FadingIn : FadeState::FadingOut;
+    slot.startVolume = slot.baseVolume;
+    slot.targetVolume = targetVolume;
+    slot.fadeDuration = fadeConfig.duration;
+    slot.fadeElapsed = 0.0f;
+    slot.fadeCurve = fadeConfig.curve;
+    slot.allowInterrupt = fadeConfig.allowInterrupt;
+    slot.onFadeComplete = fadeConfig.onComplete;
+    slot.stopAfterFade = false;
+
+    return true;
+}
+
+void SAudioSystem::stopSFXWithFade(AudioHandle handle, const FadeConfig& fadeConfig)
+{
+    if (!isHandleValid(handle))
+    {
+        return;
+    }
+
+    // Instant stop
+    if (fadeConfig.duration <= 0.0f)
+    {
+        stopSFX(handle);
+        if (fadeConfig.onComplete)
+        {
+            fadeConfig.onComplete();
+        }
+        return;
+    }
+
+    auto& slot = m_soundPool[handle.index];
+
+    // Check if current fade can be interrupted
+    if (slot.fadeState != FadeState::None && !slot.allowInterrupt)
+    {
+        spdlog::warn("Cannot interrupt non-interruptible fade on sound in slot {}", handle.index);
+        return;
+    }
+
+    // Set up fade-out to stop
+    slot.fadeState = FadeState::FadingOut;
+    slot.startVolume = slot.baseVolume;
+    slot.targetVolume = 0.0f;
+    slot.fadeDuration = fadeConfig.duration;
+    slot.fadeElapsed = 0.0f;
+    slot.fadeCurve = fadeConfig.curve;
+    slot.allowInterrupt = fadeConfig.allowInterrupt;
+    slot.onFadeComplete = fadeConfig.onComplete;
+    slot.stopAfterFade = true;
+}
+
+void SAudioSystem::cancelFade(AudioHandle handle)
+{
+    if (!isHandleValid(handle))
+    {
+        return;
+    }
+
+    auto& slot = m_soundPool[handle.index];
+    slot.fadeState = FadeState::None;
+    slot.onFadeComplete = nullptr;
+    slot.stopAfterFade = false;
+}
+
+bool SAudioSystem::playMusicWithFade(const std::string& id, bool loop, float volume, const FadeConfig& fadeConfig)
+{
+    // Start at 0 volume if fading in, otherwise use target volume
+    float startVolume = (fadeConfig.duration > 0.0f) ? 0.0f : volume;
+    bool success = playMusic(id, loop, startVolume);
+
+    if (!success || fadeConfig.duration <= 0.0f)
+    {
+        return success;
+    }
+
+    // Set up fade-in
+    m_musicFadeState = FadeState::FadingIn;
+    m_musicStartVolume = startVolume;
+    m_musicTargetVolume = volume;
+    m_musicFadeDuration = fadeConfig.duration;
+    m_musicFadeElapsed = 0.0f;
+    m_musicFadeCurve = fadeConfig.curve;
+    m_musicAllowInterrupt = fadeConfig.allowInterrupt;
+    m_musicOnFadeComplete = fadeConfig.onComplete;
+    m_musicStopAfterFade = false;
+
+    return true;
+}
+
+bool SAudioSystem::fadeMusic(float targetVolume, const FadeConfig& fadeConfig)
+{
+    if (!m_currentMusic)
+    {
+        return false;
+    }
+
+    // Check if current fade can be interrupted
+    if (m_musicFadeState != FadeState::None && !m_musicAllowInterrupt)
+    {
+        spdlog::warn("Cannot interrupt non-interruptible music fade");
+        return false;
+    }
+
+    targetVolume = std::clamp(targetVolume, 0.0f, 1.0f);
+
+    // Instant fade
+    if (fadeConfig.duration <= 0.0f)
+    {
+        m_currentMusicBaseVolume = targetVolume;
+        m_currentMusic->setVolume(calculateEffectiveMusicVolume(targetVolume) * 100.0f);
+        m_musicFadeState = FadeState::None;
+        if (fadeConfig.onComplete)
+        {
+            fadeConfig.onComplete();
+        }
+        return true;
+    }
+
+    // Set up fade
+    m_musicFadeState = (targetVolume > m_currentMusicBaseVolume) ? FadeState::FadingIn : FadeState::FadingOut;
+    m_musicStartVolume = m_currentMusicBaseVolume;
+    m_musicTargetVolume = targetVolume;
+    m_musicFadeDuration = fadeConfig.duration;
+    m_musicFadeElapsed = 0.0f;
+    m_musicFadeCurve = fadeConfig.curve;
+    m_musicAllowInterrupt = fadeConfig.allowInterrupt;
+    m_musicOnFadeComplete = fadeConfig.onComplete;
+    m_musicStopAfterFade = false;
+
+    return true;
+}
+
+void SAudioSystem::stopMusicWithFade(const FadeConfig& fadeConfig)
+{
+    if (!m_currentMusic)
+    {
+        return;
+    }
+
+    // Instant stop
+    if (fadeConfig.duration <= 0.0f)
+    {
+        stopMusic();
+        if (fadeConfig.onComplete)
+        {
+            fadeConfig.onComplete();
+        }
+        return;
+    }
+
+    // Check if current fade can be interrupted
+    if (m_musicFadeState != FadeState::None && !m_musicAllowInterrupt)
+    {
+        spdlog::warn("Cannot interrupt non-interruptible music fade");
+        return;
+    }
+
+    // Set up fade-out to stop
+    m_musicFadeState = FadeState::FadingOut;
+    m_musicStartVolume = m_currentMusicBaseVolume;
+    m_musicTargetVolume = 0.0f;
+    m_musicFadeDuration = fadeConfig.duration;
+    m_musicFadeElapsed = 0.0f;
+    m_musicFadeCurve = fadeConfig.curve;
+    m_musicAllowInterrupt = fadeConfig.allowInterrupt;
+    m_musicOnFadeComplete = fadeConfig.onComplete;
+    m_musicStopAfterFade = true;
+}
+
+void SAudioSystem::cancelMusicFade()
+{
+    m_musicFadeState = FadeState::None;
+    m_musicOnFadeComplete = nullptr;
+    m_musicStopAfterFade = false;
+}
+
+float SAudioSystem::applyFadeCurve(float t, FadeCurve curve) const
+{
+    t = std::clamp(t, 0.0f, 1.0f);
+
+    switch (curve)
+    {
+        case FadeCurve::Linear:
+            return t;
+
+        case FadeCurve::EaseIn:
+            // Quadratic ease-in: slow start, fast end
+            return t * t;
+
+        case FadeCurve::EaseOut:
+            // Quadratic ease-out: fast start, slow end
+            return t * (2.0f - t);
+
+        case FadeCurve::EaseInOut:
+            // Smoothstep: slow start and end, fast middle
+            return t * t * (3.0f - 2.0f * t);
+
+        default:
+            return t;
+    }
+}
+
+void SAudioSystem::updateSoundFade(SoundSlot& slot, float deltaTime)
+{
+    slot.fadeElapsed += deltaTime;
+
+    // Calculate normalized time (0.0 to 1.0)
+    float t = (slot.fadeDuration > 0.0f) ? (slot.fadeElapsed / slot.fadeDuration) : 1.0f;
+
+    if (t >= 1.0f)
+    {
+        // Fade complete
+        slot.baseVolume = slot.targetVolume;
+        slot.sound.setVolume(calculateEffectiveSFXVolume(slot.targetVolume) * 100.0f);
+        slot.fadeState = FadeState::None;
+
+        // Invoke callback
+        if (slot.onFadeComplete)
+        {
+            auto callback = slot.onFadeComplete;
+            slot.onFadeComplete = nullptr;
+            callback();
+        }
+
+        // Stop if requested
+        if (slot.stopAfterFade)
+        {
+            slot.sound.stop();
+            slot.inUse = false;
+            slot.generation++;
+        }
+    }
+    else
+    {
+        // Interpolate volume with curve
+        float curvedT = applyFadeCurve(t, slot.fadeCurve);
+        float newVolume = slot.startVolume + (slot.targetVolume - slot.startVolume) * curvedT;
+        slot.baseVolume = newVolume;
+        slot.sound.setVolume(calculateEffectiveSFXVolume(newVolume) * 100.0f);
+    }
+}
+
+void SAudioSystem::updateMusicFade(float deltaTime)
+{
+    m_musicFadeElapsed += deltaTime;
+
+    // Calculate normalized time (0.0 to 1.0)
+    float t = (m_musicFadeDuration > 0.0f) ? (m_musicFadeElapsed / m_musicFadeDuration) : 1.0f;
+
+    if (t >= 1.0f)
+    {
+        // Fade complete
+        m_currentMusicBaseVolume = m_musicTargetVolume;
+        if (m_currentMusic)
+        {
+            m_currentMusic->setVolume(calculateEffectiveMusicVolume(m_musicTargetVolume) * 100.0f);
+        }
+        m_musicFadeState = FadeState::None;
+
+        // Invoke callback
+        if (m_musicOnFadeComplete)
+        {
+            auto callback = m_musicOnFadeComplete;
+            m_musicOnFadeComplete = nullptr;
+            callback();
+        }
+
+        // Stop if requested
+        if (m_musicStopAfterFade)
+        {
+            stopMusic();
+        }
+    }
+    else
+    {
+        // Interpolate volume with curve
+        float curvedT = applyFadeCurve(t, m_musicFadeCurve);
+        float newVolume = m_musicStartVolume + (m_musicTargetVolume - m_musicStartVolume) * curvedT;
+        m_currentMusicBaseVolume = newVolume;
+        if (m_currentMusic)
+        {
+            m_currentMusic->setVolume(calculateEffectiveMusicVolume(newVolume) * 100.0f);
+        }
+    }
+}
+

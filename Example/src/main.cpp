@@ -7,6 +7,7 @@
 #include <components/CInputController.h>
 #include <components/CPhysicsBody2D.h>
 #include <components/CTransform.h>
+#include <systems/AudioTypes.h>
 #include <systems/SAudioSystem.h>
 #include <systems/SBox2DPhysics.h>
 #include <systems/SInputManager.h>
@@ -53,10 +54,6 @@ private:
 
     // Audio state
     AudioHandle m_motorBoatHandle;
-    bool        m_motorBoatPlaying;
-    bool        m_motorBoatFadingOut;
-    float       m_motorBoatVolume;
-    float       m_motorBoatFadeSpeed;  // Volume change per second (for both fade in and out)
 
     // Helper function to convert meters to pixels for rendering
     sf::Vector2f metersToPixels(const Vec2& meters) const
@@ -87,11 +84,7 @@ public:
           m_showVectors(false),
           m_player(nullptr),
           m_playerPhysics(nullptr),
-          m_motorBoatHandle(AudioHandle::invalid()),
-          m_motorBoatPlaying(false),
-          m_motorBoatFadingOut(false),
-          m_motorBoatVolume(0.0f),
-          m_motorBoatFadeSpeed(MOTOR_MAX_VOLUME / MOTOR_FADE_DURATION)
+          m_motorBoatHandle(AudioHandle::invalid())
     {
         m_window.setFramerateLimit(60);
 
@@ -425,19 +418,18 @@ public:
     {
         auto& audioSystem = SAudioSystem::instance();
 
-        if (!m_motorBoatPlaying)
+        // Check if motor boat is already playing
+        if (audioSystem.isPlayingSFX(m_motorBoatHandle))
         {
-            // Start motor boat sound with 0 volume
-            m_motorBoatHandle    = audioSystem.playSFX("motor_boat", 0.0f, 1.0f, true);
-            m_motorBoatPlaying   = true;
-            m_motorBoatFadingOut = false;
-            m_motorBoatVolume    = 0.0f;
+            // If fading out, fade back in to target volume
+            FadeConfig fadeIn = FadeConfig::linear(MOTOR_FADE_DURATION, true);
+            audioSystem.fadeSFX(m_motorBoatHandle, MOTOR_MAX_VOLUME, fadeIn);
+            return;
         }
-        else if (m_motorBoatFadingOut)
-        {
-            // Cancel fade-out if user starts moving again
-            m_motorBoatFadingOut = false;
-        }
+
+        // Start motor boat with fade-in
+        FadeConfig fadeIn = FadeConfig::linear(MOTOR_FADE_DURATION, true);
+        m_motorBoatHandle = audioSystem.playSFXWithFade("motor_boat", MOTOR_MAX_VOLUME, 1.0f, true, fadeIn);
     }
 
     void checkStopMotorBoat()
@@ -446,50 +438,11 @@ public:
         auto& inputManager       = SInputManager::instance();
         bool  anyMovementKeyHeld = inputManager.isKeyDown(KeyCode::W) || inputManager.isKeyDown(KeyCode::S);
 
-        if (!anyMovementKeyHeld && m_motorBoatPlaying && !m_motorBoatFadingOut)
+        if (!anyMovementKeyHeld && SAudioSystem::instance().isPlayingSFX(m_motorBoatHandle))
         {
-            // Initiate fade-out
-            m_motorBoatFadingOut = true;
-        }
-        else if (anyMovementKeyHeld && m_motorBoatFadingOut)
-        {
-            // Cancel fade-out if user starts moving again
-            m_motorBoatFadingOut = false;
-        }
-    }
-
-    void updateMotorBoatVolume(float dt)
-    {
-        if (!m_motorBoatPlaying)
-        {
-            return;
-        }
-
-        auto& audioSystem = SAudioSystem::instance();
-
-        if (m_motorBoatFadingOut)
-        {
-            // Fade out motor boat volume over time
-            m_motorBoatVolume -= m_motorBoatFadeSpeed * dt;
-            if (m_motorBoatVolume <= 0.0f)
-            {
-                // Volume reached zero, stop the sound
-                m_motorBoatVolume = 0.0f;
-                audioSystem.stopSFX(m_motorBoatHandle);
-                m_motorBoatPlaying   = false;
-                m_motorBoatFadingOut = false;
-            }
-            else
-            {
-                audioSystem.setSFXVolume(m_motorBoatHandle, m_motorBoatVolume);
-            }
-        }
-        else if (m_motorBoatVolume < MOTOR_MAX_VOLUME)
-        {
-            // Fade in motor boat volume over time
-            m_motorBoatVolume += m_motorBoatFadeSpeed * dt;
-            m_motorBoatVolume = std::min(m_motorBoatVolume, MOTOR_MAX_VOLUME);
-            audioSystem.setSFXVolume(m_motorBoatHandle, m_motorBoatVolume);
+            // Stop with fade-out
+            FadeConfig fadeOut = FadeConfig::linear(MOTOR_FADE_DURATION, true);
+            SAudioSystem::instance().stopSFXWithFade(m_motorBoatHandle, fadeOut);
         }
     }
 
@@ -545,12 +498,11 @@ public:
         std::cout << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << std::endl;
 
         // Stop motor boat if playing
-        if (m_motorBoatPlaying)
+        auto& audioSystem = SAudioSystem::instance();
+        if (audioSystem.isPlayingSFX(m_motorBoatHandle))
         {
-            SAudioSystem::instance().stopSFX(m_motorBoatHandle);
-            m_motorBoatPlaying   = false;
-            m_motorBoatFadingOut = false;
-            m_motorBoatVolume    = 0.0f;
+            audioSystem.stopSFX(m_motorBoatHandle);
+            m_motorBoatHandle = AudioHandle::invalid();
         }
 
         // Clear all entities
@@ -595,9 +547,6 @@ public:
     {
         // Update Input Manager
         SInputManager::instance().update(dt);
-
-        // Update motor boat volume fade
-        updateMotorBoatVolume(dt);
 
         // Handle window controls and key actions via SInputManager (prevents double polling)
         const auto& im = SInputManager::instance();
