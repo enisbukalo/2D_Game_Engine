@@ -41,6 +41,7 @@ target_link_libraries(unit_tests PRIVATE
     sfml-graphics
     sfml-window
     sfml-system
+    sfml-audio
     ImGui-SFML
 )
 
@@ -75,6 +76,9 @@ if(WIN32)
             $<TARGET_FILE_DIR:unit_tests>
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             $<TARGET_FILE:sfml-graphics>
+            $<TARGET_FILE_DIR:unit_tests>
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:sfml-audio>
             $<TARGET_FILE_DIR:unit_tests>
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             $<TARGET_FILE:ImGui-SFML>

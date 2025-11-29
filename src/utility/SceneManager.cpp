@@ -1,8 +1,12 @@
 #include "SceneManager.h"
+#include <spdlog/spdlog.h>
 #include <filesystem>
 #include <stdexcept>
 #include "EntityManager.h"
 #include "FileUtilities.h"
+#include "JsonParser.h"
+#include "JsonValue.h"
+#include "SAudioSystem.h"
 
 void SceneManager::loadScene(const std::string& scenePath)
 {
@@ -16,6 +20,42 @@ void SceneManager::loadScene(const std::string& scenePath)
     {
         EntityManager::instance().clear();  // Clear existing entities
         EntityManager::instance().loadFromFile(scenePath);
+
+        // Load scene-level audio settings
+        std::string json = FileUtilities::readFile(scenePath);
+        JsonParser  parser(json);
+        JsonValue   root = JsonValue::parse(parser);
+
+        if (root.isObject() && root.hasKey("settings"))
+        {
+            const auto& settings = root["settings"];
+
+            // Load and play scene music if specified
+            if (settings.hasKey("music"))
+            {
+                std::string musicId = settings["music"].getString();
+                if (!musicId.empty())
+                {
+                    auto& audioSystem = SAudioSystem::instance();
+
+                    // For now, assume music files are in a default location or use the ID as path
+                    // In a production system, you'd use an asset manifest to map IDs to paths
+                    std::string musicPath = "assets/music/" + musicId + ".ogg";
+
+                    // Try to load and play the music
+                    if (audioSystem.loadSound(musicId, musicPath, AudioType::Music))
+                    {
+                        audioSystem.playMusic(musicId, true);  // Loop by default
+                        spdlog::info("Scene music '{}' loaded and playing", musicId);
+                    }
+                    else
+                    {
+                        spdlog::warn("Failed to load scene music: {}", musicPath);
+                    }
+                }
+            }
+        }
+
         m_currentScene = scenePath;  // Only set current scene if load succeeds
     }
     catch (const std::exception& e)
@@ -69,6 +109,9 @@ const std::string& SceneManager::getCurrentScenePath() const
 
 void SceneManager::clearScene()
 {
+    // Stop any playing music
+    SAudioSystem::instance().stopMusic();
+
     EntityManager::instance().clear();
     m_currentScene = "";
 }

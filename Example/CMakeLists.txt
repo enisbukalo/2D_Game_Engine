@@ -25,7 +25,7 @@ endif()
 # Note: CMAKE_PREFIX_PATH and GameEngine_DIR are set by the build script
 
 # Find SFML (required by GameEngine)
-find_package(SFML 2.6 REQUIRED COMPONENTS graphics window system)
+find_package(SFML 2.6 REQUIRED COMPONENTS graphics window system audio)
 
 # Find OpenGL (required by ImGui-SFML)
 find_package(OpenGL REQUIRED)
@@ -45,6 +45,7 @@ target_link_libraries(BounceGame
     sfml-graphics
     sfml-window
     sfml-system
+    sfml-audio
     OpenGL::GL
 )
 
@@ -73,7 +74,7 @@ if(WIN32 OR MINGW)
 
     # Copy SFML DLLs from container's SFML installation
     if(DEFINED ENV{SFML_WINDOWS_ROOT})
-        foreach(component graphics window system)
+        foreach(component graphics window system audio)
             add_custom_command(TARGET BounceGame POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different
                     "$ENV{SFML_WINDOWS_ROOT}/bin/sfml-${component}${DLL_SUFFIX}-2.dll"
@@ -81,6 +82,14 @@ if(WIN32 OR MINGW)
                 COMMENT "Copying SFML ${component} DLL"
             )
         endforeach()
+        
+        # Copy OpenAL DLL (required by SFML audio)
+        add_custom_command(TARGET BounceGame POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "$ENV{SFML_WINDOWS_ROOT}/bin/openal32.dll"
+                "$<TARGET_FILE_DIR:BounceGame>"
+            COMMENT "Copying OpenAL DLL"
+        )
     endif()
 
     # Copy MinGW runtime DLLs
@@ -95,6 +104,14 @@ if(WIN32 OR MINGW)
             "/usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll"
             "$<TARGET_FILE_DIR:BounceGame>"
         COMMENT "Copying MinGW runtime DLLs"
+    )
+    
+    # Copy assets folder to output directory
+    add_custom_command(TARGET BounceGame POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/assets"
+            "$<TARGET_FILE_DIR:BounceGame>/assets"
+        COMMENT "Copying assets to output directory"
     )
 endif()
 
