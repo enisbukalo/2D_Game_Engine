@@ -789,7 +789,8 @@ void CCollider2D::deserialize(const JsonValue& value)
                 continue;
 
             ShapeFixture fixture;
-            fixture.shapeId = b2_nullShapeId;
+            fixture.shapeId   = b2_nullShapeId;
+            fixture.shapeType = ColliderShape::Circle;  // Default value
 
             // Shape type
             const auto& shapeTypeValue = fixtureValue["shapeType"];
@@ -963,6 +964,7 @@ void CCollider2D::deserialize(const JsonValue& value)
         {
             ShapeFixture fixture;
             fixture.shapeId     = b2_nullShapeId;
+            fixture.shapeType   = ColliderShape::Circle;  // Default value
             std::string typeStr = shapeTypeValue.getString();
 
             if (typeStr == "Circle")
