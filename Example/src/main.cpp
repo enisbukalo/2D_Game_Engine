@@ -107,7 +107,7 @@ public:
         std::cout << "Game initialized!" << std::endl;
         std::cout << "Physics: Box2D v3.1.1 (1 unit = 1 meter, Y-up)" << std::endl;
         std::cout << "Controls:" << std::endl;
-        std::cout << "  WASD            : Move player square" << std::endl;
+        std::cout << "  WASD            : Move player boat (W=forward, S=backward, A/D=turn)" << std::endl;
         std::cout << "  Left/Right      : Adjust ball count" << std::endl;
         std::cout << "  R               : Restart scenario" << std::endl;
         std::cout << "  G               : Toggle gravity" << std::endl;
@@ -178,12 +178,60 @@ public:
         m_playerPhysics->setAngularDamping(0.75f);  // Damping to reduce spin over time
         m_playerPhysics->setLinearDamping(0.75f);   // Some linear damping for better control
 
-        // Add box collider
+        // Create boat shape with curved bow using multiple polygon segments
+        // Boat points from stern (back) to bow (front), with Y-axis as forward
+        const float boatLength = PLAYER_SIZE_METERS * 3.5f;  // Total length (increased)
+        const float boatWidth  = PLAYER_SIZE_METERS * 1.8f;  // Width at widest point (increased)
+
+        // Create single collider that will hold multiple polygon fixtures
         auto* collider = m_player->addComponent<CCollider2D>();
-        collider->createBox(PLAYER_SIZE_METERS, PLAYER_SIZE_METERS);
-        collider->setRestitution(0.125f);  // Lower restitution to reduce bounce
-        collider->setDensity(5.0f);        // Higher density makes player heavier
-        collider->setFriction(0.5f);       // Some friction for better control
+
+        // 1. Create main hull body (trapezoidal section narrowing toward stern)
+        {
+            std::vector<b2Vec2> hullVertices;
+            hullVertices.push_back({-boatWidth * 0.35f, -boatLength * 0.45f});  // Back left (narrower)
+            hullVertices.push_back({boatWidth * 0.35f, -boatLength * 0.45f});   // Back right (narrower)
+            hullVertices.push_back({boatWidth * 0.5f, -boatLength * 0.1f});     // Mid-back right
+            hullVertices.push_back({boatWidth * 0.5f, 0.0f});                   // Front right (widest)
+            hullVertices.push_back({-boatWidth * 0.5f, 0.0f});                  // Front left (widest)
+            hullVertices.push_back({-boatWidth * 0.5f, -boatLength * 0.1f});    // Mid-back left
+
+            collider->createPolygon(hullVertices.data(), hullVertices.size(), 0.02f);
+            collider->setRestitution(0.125f);
+            collider->setDensity(5.0f);
+            collider->setFriction(0.5f);
+        }
+
+        // 2. Create curved bow using multiple small polygon segments
+        // More segments = smoother curve
+        const int   numBowSegments = 12;                  // Increased for smoother curve
+        const float bowLength      = boatLength * 0.55f;  // Length of bow section
+
+        // Create bow segments arranged in a smooth parabolic curve
+        for (int i = 0; i < numBowSegments; ++i)
+        {
+            // Calculate normalized position along the bow (0 to 1)
+            float t1 = static_cast<float>(i) / static_cast<float>(numBowSegments);
+            float t2 = static_cast<float>(i + 1) / static_cast<float>(numBowSegments);
+
+            // Use parabolic curve for natural boat bow shape
+            // Width decreases more gradually at first, then rapidly near the tip
+            float width1 = boatWidth * 0.5f * (1.0f - t1 * t1);  // Parabolic taper
+            float width2 = boatWidth * 0.5f * (1.0f - t2 * t2);
+
+            float y1 = t1 * bowLength;
+            float y2 = t2 * bowLength;
+
+            // Create quad segments for smoother appearance
+            std::vector<b2Vec2> sliceVertices;
+            sliceVertices.push_back({-width1, y1});  // Left side at segment start
+            sliceVertices.push_back({width1, y1});   // Right side at segment start
+            sliceVertices.push_back({width2, y2});   // Right side at segment end
+            sliceVertices.push_back({-width2, y2});  // Left side at segment end
+
+            // Add this polygon as an additional fixture
+            collider->addPolygon(sliceVertices.data(), sliceVertices.size(), 0.02f);
+        }
 
         // Add input controller with action bindings
         auto* inputController = m_player->addComponent<CInputController>();
@@ -564,7 +612,7 @@ public:
             ballIndex++;
         }
 
-        // Draw player square
+        // Draw player boat
         auto players = EntityManager::instance().getEntitiesByTag("player");
         for (auto& player : players)
         {
@@ -578,20 +626,104 @@ public:
             sf::Vector2f posPixels = metersToPixels(posMeters);
             float        rotation  = transform->getRotation();  // Get rotation in radians
 
-            float halfWidth  = collider->getBoxHalfWidth() * PIXELS_PER_METER;
-            float halfHeight = collider->getBoxHalfHeight() * PIXELS_PER_METER;
-
-            sf::RectangleShape playerShape(sf::Vector2f(halfWidth * 2, halfHeight * 2));
-            playerShape.setOrigin(halfWidth, halfHeight);
-            playerShape.setPosition(posPixels);
-            playerShape.setRotation(-rotation * 180.0f / 3.14159265f);  // Negate: Box2D is CCW, SFML is CW
-            playerShape.setFillColor(sf::Color::White);                 // White square for player
-            if (m_showColliders)
+            // Draw all polygon fixtures in the collider
+            const auto& fixtures = collider->getFixtures();
+            for (size_t fixtureIdx = 0; fixtureIdx < fixtures.size(); ++fixtureIdx)
             {
-                playerShape.setOutlineColor(sf::Color::Magenta);  // Magenta outline for player
-                playerShape.setOutlineThickness(3.0f);
+                const auto& fixture = fixtures[fixtureIdx];
+
+                if (fixture.shapeType == ColliderShape::Polygon)
+                {
+                    const b2Vec2* vertices    = collider->getPolygonVertices(fixtureIdx);
+                    int           vertexCount = collider->getPolygonVertexCount(fixtureIdx);
+
+                    if (vertices && vertexCount > 0)
+                    {
+                        sf::ConvexShape boatShape(vertexCount);
+
+                        // Transform and set each vertex
+                        for (int i = 0; i < vertexCount; ++i)
+                        {
+                            // Rotate vertex around origin
+                            float cosR     = std::cos(rotation);
+                            float sinR     = std::sin(rotation);
+                            float rotatedX = vertices[i].x * cosR - vertices[i].y * sinR;
+                            float rotatedY = vertices[i].x * sinR + vertices[i].y * cosR;
+
+                            // Convert to pixels (note: Y-flip for screen coordinates)
+                            float pixelX = rotatedX * PIXELS_PER_METER;
+                            float pixelY = -rotatedY * PIXELS_PER_METER;  // Negative for screen Y-down
+
+                            boatShape.setPoint(i, sf::Vector2f(pixelX, pixelY));
+                        }
+
+                        boatShape.setPosition(posPixels);
+                        boatShape.setFillColor(sf::Color(200, 150, 100));  // Brownish color for boat
+                        if (m_showColliders)
+                        {
+                            boatShape.setOutlineColor(sf::Color::Magenta);  // Magenta outline for player
+                            boatShape.setOutlineThickness(3.0f);
+                        }
+                        m_window.draw(boatShape);
+                    }
+                }
+                else if (fixture.shapeType == ColliderShape::Segment || fixture.shapeType == ColliderShape::ChainSegment)
+                {
+                    // Get segment endpoints
+                    b2Vec2 p1, p2;
+                    if (fixture.shapeType == ColliderShape::Segment)
+                    {
+                        p1 = fixture.shapeData.segment.point1;
+                        p2 = fixture.shapeData.segment.point2;
+                    }
+                    else  // ChainSegment
+                    {
+                        p1 = fixture.shapeData.chainSegment.point1;
+                        p2 = fixture.shapeData.chainSegment.point2;
+                    }
+
+                    // Rotate endpoints around origin
+                    float cosR = std::cos(rotation);
+                    float sinR = std::sin(rotation);
+
+                    float rotatedX1 = p1.x * cosR - p1.y * sinR;
+                    float rotatedY1 = p1.x * sinR + p1.y * cosR;
+                    float rotatedX2 = p2.x * cosR - p2.y * sinR;
+                    float rotatedY2 = p2.x * sinR + p2.y * cosR;
+
+                    // Convert to pixels
+                    float pixelX1 = rotatedX1 * PIXELS_PER_METER;
+                    float pixelY1 = -rotatedY1 * PIXELS_PER_METER;
+                    float pixelX2 = rotatedX2 * PIXELS_PER_METER;
+                    float pixelY2 = -rotatedY2 * PIXELS_PER_METER;
+
+                    // Draw line segment
+                    sf::Vertex line[] = {sf::Vertex(sf::Vector2f(posPixels.x + pixelX1, posPixels.y + pixelY1),
+                                                    sf::Color(200, 150, 100)),
+                                         sf::Vertex(sf::Vector2f(posPixels.x + pixelX2, posPixels.y + pixelY2),
+                                                    sf::Color(200, 150, 100))};
+                    m_window.draw(line, 2, sf::Lines);
+
+                    // Draw thicker line if colliders are shown
+                    if (m_showColliders)
+                    {
+                        sf::Vertex thickLine[] = {sf::Vertex(sf::Vector2f(posPixels.x + pixelX1, posPixels.y + pixelY1),
+                                                             sf::Color::Magenta),
+                                                  sf::Vertex(sf::Vector2f(posPixels.x + pixelX2, posPixels.y + pixelY2),
+                                                             sf::Color::Magenta)};
+                        // Draw multiple times for thickness
+                        for (int offset = -1; offset <= 1; ++offset)
+                        {
+                            thickLine[0].position.x += offset;
+                            thickLine[1].position.x += offset;
+                            m_window.draw(thickLine, 2, sf::Lines);
+                            thickLine[0].position.y += offset;
+                            thickLine[1].position.y += offset;
+                            m_window.draw(thickLine, 2, sf::Lines);
+                        }
+                    }
+                }
             }
-            m_window.draw(playerShape);
         }
 
         // Draw velocity vectors

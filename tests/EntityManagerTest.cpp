@@ -305,7 +305,13 @@ TEST_F(EntityManagerTest, EntitySerialization)
         }
     }
     ASSERT_NE(collider4JsonData, nullptr);
-    EXPECT_TRUE(approxEqual((*collider4JsonData)["radius"].getNumber(), 5.0f));
+    // Check the new fixtures array format
+    ASSERT_TRUE((*collider4JsonData)["fixtures"].isArray());
+    const auto& fixtures = (*collider4JsonData)["fixtures"].getArray();
+    ASSERT_GT(fixtures.size(), 0);
+    // Verify first fixture is a circle with radius 5.0
+    EXPECT_EQ(fixtures[0]["shapeType"].getString(), "Circle");
+    EXPECT_TRUE(approxEqual(fixtures[0]["radius"].getNumber(), 5.0f));
 
     // Find controller entity and verify it has cInputController
     const JsonValue* controllerJsonData = nullptr;

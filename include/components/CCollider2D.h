@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include "Component.h"
 #include "box2d/box2d.h"
 
@@ -12,7 +13,9 @@ enum class ColliderShape
 {
     Circle,
     Box,
-    Polygon
+    Polygon,
+    Segment,
+    ChainSegment
 };
 
 /**
@@ -24,11 +27,13 @@ enum class ColliderShape
  * The collider can be a sensor (trigger) or a solid collider.
  * Sensors detect collisions but do not generate collision responses.
  */
-class CCollider2D : public Component
+/**
+ * @brief Structure to hold data for a single shape/fixture
+ */
+struct ShapeFixture
 {
-private:
-    b2ShapeId     m_shapeId;
-    ColliderShape m_shapeType;
+    b2ShapeId     shapeId;
+    ColliderShape shapeType;
 
     // Shape parameters
     union ShapeData
@@ -43,9 +48,33 @@ private:
             float halfWidth;
             float halfHeight;
         } box;
-    } m_shapeData;
+        struct
+        {
+            b2Vec2 vertices[B2_MAX_POLYGON_VERTICES];
+            int    vertexCount;
+            float  radius;
+        } polygon;
+        struct
+        {
+            b2Vec2 point1;
+            b2Vec2 point2;
+        } segment;
+        struct
+        {
+            b2Vec2 ghost1;
+            b2Vec2 point1;
+            b2Vec2 point2;
+            b2Vec2 ghost2;
+        } chainSegment;
+    } shapeData;
+};
 
-    // Fixture properties
+class CCollider2D : public Component
+{
+private:
+    std::vector<ShapeFixture> m_fixtures;
+
+    // Fixture properties (default for all fixtures)
     bool  m_isSensor;
     float m_density;
     float m_friction;
@@ -72,6 +101,72 @@ public:
     void createBox(float halfWidth, float halfHeight);
 
     /**
+     * @brief Create a polygon collider from arbitrary vertices
+     * @param vertices Array of vertices (will compute convex hull)
+     * @param count Number of vertices
+     * @param radius Skin radius for the polygon (default: 0.0f)
+     * @note Vertices will be automatically sorted to form a convex hull
+     */
+    void createPolygon(const b2Vec2* vertices, int count, float radius = 0.0f);
+
+    /**
+     * @brief Add an additional polygon shape to this collider
+     * @param vertices Array of vertices (will compute convex hull)
+     * @param count Number of vertices
+     * @param radius Skin radius for the polygon (default: 0.0f)
+     * @note This adds another fixture to the same physics body
+     */
+    void addPolygon(const b2Vec2* vertices, int count, float radius = 0.0f);
+
+    /**
+     * @brief Create a segment (line) collider
+     * @param point1 First endpoint
+     * @param point2 Second endpoint
+     */
+    void createSegment(const b2Vec2& point1, const b2Vec2& point2);
+
+    /**
+     * @brief Add an additional segment to this collider
+     * @param point1 First endpoint
+     * @param point2 Second endpoint
+     */
+    void addSegment(const b2Vec2& point1, const b2Vec2& point2);
+
+    /**
+     * @brief Create a chain segment with ghost vertices to prevent ghost collisions
+     * @param ghost1 Ghost vertex before point1
+     * @param point1 First endpoint
+     * @param point2 Second endpoint
+     * @param ghost2 Ghost vertex after point2
+     */
+    void createChainSegment(const b2Vec2& ghost1, const b2Vec2& point1, const b2Vec2& point2, const b2Vec2& ghost2);
+
+    /**
+     * @brief Add an additional chain segment to this collider
+     * @param ghost1 Ghost vertex before point1
+     * @param point1 First endpoint
+     * @param point2 Second endpoint
+     * @param ghost2 Ghost vertex after point2
+     */
+    void addChainSegment(const b2Vec2& ghost1, const b2Vec2& point1, const b2Vec2& point2, const b2Vec2& ghost2);
+
+    /**
+     * @brief Create a polygon collider from a pre-computed hull
+     * @param hull Pre-computed convex hull
+     * @param radius Skin radius for the polygon (default: 0.0f)
+     */
+    void createPolygonFromHull(const b2Hull& hull, float radius = 0.0f);
+
+    /**
+     * @brief Create an offset polygon collider
+     * @param hull Pre-computed convex hull
+     * @param position Local position offset
+     * @param rotation Rotation offset in radians
+     * @param radius Skin radius for the polygon (default: 0.0f)
+     */
+    void createOffsetPolygon(const b2Hull& hull, const b2Vec2& position, float rotation, float radius = 0.0f);
+
+    /**
      * @brief Check if the collider has been initialized
      */
     bool isInitialized() const
@@ -80,19 +175,35 @@ public:
     }
 
     /**
-     * @brief Get the Box2D shape ID
+     * @brief Get the Box2D shape ID of the first fixture
      */
     b2ShapeId getShapeId() const
     {
-        return m_shapeId;
+        return m_fixtures.empty() ? b2_nullShapeId : m_fixtures[0].shapeId;
     }
 
     /**
-     * @brief Get the shape type
+     * @brief Get the shape type of the first fixture
      */
     ColliderShape getShapeType() const
     {
-        return m_shapeType;
+        return m_fixtures.empty() ? ColliderShape::Box : m_fixtures[0].shapeType;
+    }
+
+    /**
+     * @brief Get all fixtures in this collider
+     */
+    const std::vector<ShapeFixture>& getFixtures() const
+    {
+        return m_fixtures;
+    }
+
+    /**
+     * @brief Get the number of fixtures in this collider
+     */
+    size_t getFixtureCount() const
+    {
+        return m_fixtures.size();
     }
 
     /**
@@ -170,6 +281,27 @@ public:
      * @brief Get box half-height (only valid for box shapes)
      */
     float getBoxHalfHeight() const;
+
+    /**
+     * @brief Get polygon vertices for a specific fixture (only valid for polygon shapes)
+     * @param fixtureIndex Index of the fixture (default: 0)
+     * @return Pointer to vertex array (nullptr if not a polygon)
+     */
+    const b2Vec2* getPolygonVertices(size_t fixtureIndex = 0) const;
+
+    /**
+     * @brief Get polygon vertex count for a specific fixture (only valid for polygon shapes)
+     * @param fixtureIndex Index of the fixture (default: 0)
+     * @return Number of vertices (0 if not a polygon)
+     */
+    int getPolygonVertexCount(size_t fixtureIndex = 0) const;
+
+    /**
+     * @brief Get polygon radius/skin for a specific fixture (only valid for polygon shapes)
+     * @param fixtureIndex Index of the fixture (default: 0)
+     * @return Radius value (0.0f if not a polygon)
+     */
+    float getPolygonRadius(size_t fixtureIndex = 0) const;
 
     // Component interface
     void        init() override;
