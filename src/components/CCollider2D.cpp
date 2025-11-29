@@ -221,6 +221,147 @@ void CCollider2D::createOffsetPolygon(const b2Hull& hull, const b2Vec2& position
     attachToBody();
 }
 
+void CCollider2D::createSegment(const b2Vec2& point1, const b2Vec2& point2)
+{
+    // Clear existing fixtures
+    destroyShape();
+    m_fixtures.clear();
+    
+    ShapeFixture fixture;
+    fixture.shapeType = ColliderShape::Segment;
+    fixture.shapeData.segment.point1 = point1;
+    fixture.shapeData.segment.point2 = point2;
+    fixture.shapeId = b2_nullShapeId;
+    
+    m_fixtures.push_back(fixture);
+    attachToBody();
+}
+
+void CCollider2D::addSegment(const b2Vec2& point1, const b2Vec2& point2)
+{
+    // Add additional segment fixture
+    ShapeFixture fixture;
+    fixture.shapeType = ColliderShape::Segment;
+    fixture.shapeData.segment.point1 = point1;
+    fixture.shapeData.segment.point2 = point2;
+    fixture.shapeId = b2_nullShapeId;
+    
+    m_fixtures.push_back(fixture);
+    
+    // Attach only the new fixture to body
+    if (!getOwner())
+    {
+        return;
+    }
+
+    auto physicsBody = getOwner()->getComponent<CPhysicsBody2D>();
+    if (!physicsBody || !physicsBody->isInitialized())
+    {
+        return;
+    }
+
+    b2BodyId bodyId = physicsBody->getBodyId();
+    if (!b2Body_IsValid(bodyId))
+    {
+        return;
+    }
+
+    // Create shape for the new fixture
+    b2ShapeDef shapeDef = b2DefaultShapeDef();
+    shapeDef.density = m_density;
+    shapeDef.enableSensorEvents = m_isSensor;
+    shapeDef.invokeContactCreation = true;
+
+    b2Segment segment = {fixture.shapeData.segment.point1, fixture.shapeData.segment.point2};
+    b2ShapeId newShapeId = b2CreateSegmentShape(bodyId, &shapeDef, &segment);
+
+    // Update the fixture's shape ID
+    m_fixtures.back().shapeId = newShapeId;
+    m_initialized = true;
+
+    // Set friction and restitution
+    if (b2Shape_IsValid(newShapeId))
+    {
+        b2Shape_SetFriction(newShapeId, m_friction);
+        b2Shape_SetRestitution(newShapeId, m_restitution);
+    }
+}
+
+void CCollider2D::createChainSegment(const b2Vec2& ghost1, const b2Vec2& point1, const b2Vec2& point2, const b2Vec2& ghost2)
+{
+    // Clear existing fixtures
+    destroyShape();
+    m_fixtures.clear();
+    
+    ShapeFixture fixture;
+    fixture.shapeType = ColliderShape::ChainSegment;
+    fixture.shapeData.chainSegment.ghost1 = ghost1;
+    fixture.shapeData.chainSegment.point1 = point1;
+    fixture.shapeData.chainSegment.point2 = point2;
+    fixture.shapeData.chainSegment.ghost2 = ghost2;
+    fixture.shapeId = b2_nullShapeId;
+    
+    m_fixtures.push_back(fixture);
+    attachToBody();
+}
+
+void CCollider2D::addChainSegment(const b2Vec2& ghost1, const b2Vec2& point1, const b2Vec2& point2, const b2Vec2& ghost2)
+{
+    // Add additional chain segment fixture
+    ShapeFixture fixture;
+    fixture.shapeType = ColliderShape::ChainSegment;
+    fixture.shapeData.chainSegment.ghost1 = ghost1;
+    fixture.shapeData.chainSegment.point1 = point1;
+    fixture.shapeData.chainSegment.point2 = point2;
+    fixture.shapeData.chainSegment.ghost2 = ghost2;
+    fixture.shapeId = b2_nullShapeId;
+    
+    m_fixtures.push_back(fixture);
+    
+    // Attach only the new fixture to body
+    if (!getOwner())
+    {
+        return;
+    }
+
+    auto physicsBody = getOwner()->getComponent<CPhysicsBody2D>();
+    if (!physicsBody || !physicsBody->isInitialized())
+    {
+        return;
+    }
+
+    b2BodyId bodyId = physicsBody->getBodyId();
+    if (!b2Body_IsValid(bodyId))
+    {
+        return;
+    }
+
+    // Create shape for the new fixture
+    b2ShapeDef shapeDef = b2DefaultShapeDef();
+    shapeDef.density = m_density;
+    shapeDef.enableSensorEvents = m_isSensor;
+    shapeDef.invokeContactCreation = true;
+
+    b2ChainSegment chainSeg;
+    chainSeg.ghost1 = fixture.shapeData.chainSegment.ghost1;
+    chainSeg.segment.point1 = fixture.shapeData.chainSegment.point1;
+    chainSeg.segment.point2 = fixture.shapeData.chainSegment.point2;
+    chainSeg.ghost2 = fixture.shapeData.chainSegment.ghost2;
+    
+    b2ShapeId newShapeId = b2CreateSegmentShape(bodyId, &shapeDef, &chainSeg.segment);
+
+    // Update the fixture's shape ID
+    m_fixtures.back().shapeId = newShapeId;
+    m_initialized = true;
+
+    // Set friction and restitution
+    if (b2Shape_IsValid(newShapeId))
+    {
+        b2Shape_SetFriction(newShapeId, m_friction);
+        b2Shape_SetRestitution(newShapeId, m_restitution);
+    }
+}
+
 void CCollider2D::attachToBody()
 {
     if (!getOwner())
@@ -283,6 +424,26 @@ void CCollider2D::attachToBody()
                 // Create polygon from hull
                 b2Polygon polygon = b2MakePolygon(&hull, fixture.shapeData.polygon.radius);
                 shapeId = b2CreatePolygonShape(bodyId, &shapeDef, &polygon);
+                break;
+            }
+
+            case ColliderShape::Segment:
+            {
+                b2Segment segment;
+                segment.point1 = fixture.shapeData.segment.point1;
+                segment.point2 = fixture.shapeData.segment.point2;
+                shapeId = b2CreateSegmentShape(bodyId, &shapeDef, &segment);
+                break;
+            }
+
+            case ColliderShape::ChainSegment:
+            {
+                b2ChainSegment chainSeg;
+                chainSeg.ghost1 = fixture.shapeData.chainSegment.ghost1;
+                chainSeg.segment.point1 = fixture.shapeData.chainSegment.point1;
+                chainSeg.segment.point2 = fixture.shapeData.chainSegment.point2;
+                chainSeg.ghost2 = fixture.shapeData.chainSegment.ghost2;
+                shapeId = b2CreateSegmentShape(bodyId, &shapeDef, &chainSeg.segment);
                 break;
             }
         }
@@ -472,6 +633,12 @@ void CCollider2D::serialize(JsonBuilder& builder) const
             case ColliderShape::Polygon:
                 builder.addString("Polygon");
                 break;
+            case ColliderShape::Segment:
+                builder.addString("Segment");
+                break;
+            case ColliderShape::ChainSegment:
+                builder.addString("ChainSegment");
+                break;
         }
 
         // Shape data
@@ -509,6 +676,58 @@ void CCollider2D::serialize(JsonBuilder& builder) const
                 builder.endObject();
             }
             builder.endArray();
+        }
+        else if (fixture.shapeType == ColliderShape::Segment)
+        {
+            builder.addKey("point1");
+            builder.beginObject();
+            builder.addKey("x");
+            builder.addNumber(fixture.shapeData.segment.point1.x);
+            builder.addKey("y");
+            builder.addNumber(fixture.shapeData.segment.point1.y);
+            builder.endObject();
+            
+            builder.addKey("point2");
+            builder.beginObject();
+            builder.addKey("x");
+            builder.addNumber(fixture.shapeData.segment.point2.x);
+            builder.addKey("y");
+            builder.addNumber(fixture.shapeData.segment.point2.y);
+            builder.endObject();
+        }
+        else if (fixture.shapeType == ColliderShape::ChainSegment)
+        {
+            builder.addKey("ghost1");
+            builder.beginObject();
+            builder.addKey("x");
+            builder.addNumber(fixture.shapeData.chainSegment.ghost1.x);
+            builder.addKey("y");
+            builder.addNumber(fixture.shapeData.chainSegment.ghost1.y);
+            builder.endObject();
+            
+            builder.addKey("point1");
+            builder.beginObject();
+            builder.addKey("x");
+            builder.addNumber(fixture.shapeData.chainSegment.point1.x);
+            builder.addKey("y");
+            builder.addNumber(fixture.shapeData.chainSegment.point1.y);
+            builder.endObject();
+            
+            builder.addKey("point2");
+            builder.beginObject();
+            builder.addKey("x");
+            builder.addNumber(fixture.shapeData.chainSegment.point2.x);
+            builder.addKey("y");
+            builder.addNumber(fixture.shapeData.chainSegment.point2.y);
+            builder.endObject();
+            
+            builder.addKey("ghost2");
+            builder.beginObject();
+            builder.addKey("x");
+            builder.addNumber(fixture.shapeData.chainSegment.ghost2.x);
+            builder.addKey("y");
+            builder.addNumber(fixture.shapeData.chainSegment.ghost2.y);
+            builder.endObject();
         }
         
         builder.endObject();
@@ -657,6 +876,86 @@ void CCollider2D::deserialize(const JsonValue& value)
                                         static_cast<float>(yValue.getNumber());
                                 }
                             }
+                        }
+                    }
+                }
+                else if (typeStr == "Segment")
+                {
+                    fixture.shapeType = ColliderShape::Segment;
+
+                    const auto& point1Value = fixtureValue["point1"];
+                    if (point1Value.isObject())
+                    {
+                        const auto& x = point1Value["x"];
+                        const auto& y = point1Value["y"];
+                        if (x.isNumber() && y.isNumber())
+                        {
+                            fixture.shapeData.segment.point1.x = static_cast<float>(x.getNumber());
+                            fixture.shapeData.segment.point1.y = static_cast<float>(y.getNumber());
+                        }
+                    }
+
+                    const auto& point2Value = fixtureValue["point2"];
+                    if (point2Value.isObject())
+                    {
+                        const auto& x = point2Value["x"];
+                        const auto& y = point2Value["y"];
+                        if (x.isNumber() && y.isNumber())
+                        {
+                            fixture.shapeData.segment.point2.x = static_cast<float>(x.getNumber());
+                            fixture.shapeData.segment.point2.y = static_cast<float>(y.getNumber());
+                        }
+                    }
+                }
+                else if (typeStr == "ChainSegment")
+                {
+                    fixture.shapeType = ColliderShape::ChainSegment;
+
+                    const auto& ghost1Value = fixtureValue["ghost1"];
+                    if (ghost1Value.isObject())
+                    {
+                        const auto& x = ghost1Value["x"];
+                        const auto& y = ghost1Value["y"];
+                        if (x.isNumber() && y.isNumber())
+                        {
+                            fixture.shapeData.chainSegment.ghost1.x = static_cast<float>(x.getNumber());
+                            fixture.shapeData.chainSegment.ghost1.y = static_cast<float>(y.getNumber());
+                        }
+                    }
+
+                    const auto& point1Value = fixtureValue["point1"];
+                    if (point1Value.isObject())
+                    {
+                        const auto& x = point1Value["x"];
+                        const auto& y = point1Value["y"];
+                        if (x.isNumber() && y.isNumber())
+                        {
+                            fixture.shapeData.chainSegment.point1.x = static_cast<float>(x.getNumber());
+                            fixture.shapeData.chainSegment.point1.y = static_cast<float>(y.getNumber());
+                        }
+                    }
+
+                    const auto& point2Value = fixtureValue["point2"];
+                    if (point2Value.isObject())
+                    {
+                        const auto& x = point2Value["x"];
+                        const auto& y = point2Value["y"];
+                        if (x.isNumber() && y.isNumber())
+                        {
+                            fixture.shapeData.chainSegment.point2.x = static_cast<float>(x.getNumber());
+                            fixture.shapeData.chainSegment.point2.y = static_cast<float>(y.getNumber());
+                        }
+                    }
+
+                    const auto& ghost2Value = fixtureValue["ghost2"];
+                    if (ghost2Value.isObject())
+                    {
+                        const auto& x = ghost2Value["x"];
+                        const auto& y = ghost2Value["y"];
+                        if (x.isNumber() && y.isNumber())
+                        {
+                            fixture.shapeData.chainSegment.ghost2.x = static_cast<float>(x.getNumber());
+                            fixture.shapeData.chainSegment.ghost2.y = static_cast<float>(y.getNumber());
                         }
                     }
                 }

@@ -180,19 +180,21 @@ public:
 
         // Create boat shape with curved bow using multiple polygon segments
         // Boat points from stern (back) to bow (front), with Y-axis as forward
-        const float boatLength = PLAYER_SIZE_METERS * 3.0f;  // Total length
-        const float boatWidth = PLAYER_SIZE_METERS * 1.5f;   // Width at widest point
+        const float boatLength = PLAYER_SIZE_METERS * 3.5f;  // Total length (increased)
+        const float boatWidth = PLAYER_SIZE_METERS * 1.8f;   // Width at widest point (increased)
         
         // Create single collider that will hold multiple polygon fixtures
         auto* collider = m_player->addComponent<CCollider2D>();
         
-        // 1. Create main hull body (rectangular section with flat stern)
+        // 1. Create main hull body (trapezoidal section narrowing toward stern)
         {
             std::vector<b2Vec2> hullVertices;
-            hullVertices.push_back({-boatWidth * 0.5f, -boatLength * 0.4f});  // Back left
-            hullVertices.push_back({boatWidth * 0.5f, -boatLength * 0.4f});   // Back right
-            hullVertices.push_back({boatWidth * 0.5f, 0.0f});                 // Front right
-            hullVertices.push_back({-boatWidth * 0.5f, 0.0f});                // Front left
+            hullVertices.push_back({-boatWidth * 0.35f, -boatLength * 0.45f});  // Back left (narrower)
+            hullVertices.push_back({boatWidth * 0.35f, -boatLength * 0.45f});   // Back right (narrower)
+            hullVertices.push_back({boatWidth * 0.5f, -boatLength * 0.1f});     // Mid-back right
+            hullVertices.push_back({boatWidth * 0.5f, 0.0f});                   // Front right (widest)
+            hullVertices.push_back({-boatWidth * 0.5f, 0.0f});                  // Front left (widest)
+            hullVertices.push_back({-boatWidth * 0.5f, -boatLength * 0.1f});    // Mid-back left
             
             collider->createPolygon(hullVertices.data(), hullVertices.size(), 0.02f);
             collider->setRestitution(0.125f);
@@ -200,43 +202,73 @@ public:
             collider->setFriction(0.5f);
         }
         
-        // 2. Create curved bow using multiple "pizza slice" polygon segments
-        // Each slice is a small triangle forming part of the semicircular bow
-        const int numBowSegments = 8;  // Number of slices for smooth curve
-        const float bowRadius = boatWidth * 0.6f;  // Radius of the bow curve
-        const float bowCenterY = 0.0f;  // Where the arc starts (at widest point)
-        const float bowTipY = boatLength * 0.6f;   // How far forward the bow extends
+        // 2. Create curved bow outline using segment edges (not filled polygons)
+        // More segments = smoother curve
+        const int numBowSegments = 16;  // Increased for very smooth curve
+        const float bowLength = boatLength * 0.55f;  // Length of bow section
         
-        // Create pizza slices arranged in semicircle from right to left
-        for (int i = 0; i < numBowSegments; ++i)
+        // Create left and right bow edges as connected segments
+        std::vector<b2Vec2> leftBowPoints;
+        std::vector<b2Vec2> rightBowPoints;
+        
+        // Generate points along parabolic curve
+        for (int i = 0; i <= numBowSegments; ++i)
         {
-            // Calculate angles for this segment (from -PI/2 to +PI/2, right to left)
-            float startAngle = -B2_PI * 0.5f + (B2_PI / numBowSegments) * i;
-            float endAngle = -B2_PI * 0.5f + (B2_PI / numBowSegments) * (i + 1);
+            // Calculate normalized position along the bow (0 to 1)
+            float t = static_cast<float>(i) / static_cast<float>(numBowSegments);
             
-            // Each slice is a triangle: center point, start point, end point
-            std::vector<b2Vec2> sliceVertices;
+            // Use parabolic curve for natural boat bow shape
+            // Stop before width becomes too small to avoid zero-length segments
+            float width = boatWidth * 0.5f * (1.0f - t * t);
+            float y = t * bowLength;
             
-            // Center point (on the hull's front edge)
-            float centerX = 0.0f;
-            float centerY = bowCenterY;
+            // Only add points if width is significant enough
+            if (width > 0.05f || i == 0)  // Allow first point even if narrow
+            {
+                leftBowPoints.push_back({-width, y});
+                rightBowPoints.push_back({width, y});
+            }
+        }
+        
+        // Create left bow edge as connected segments
+        for (size_t i = 0; i < leftBowPoints.size() - 1; ++i)
+        {
+            // Verify segment length is valid
+            b2Vec2 delta = {leftBowPoints[i + 1].x - leftBowPoints[i].x,
+                           leftBowPoints[i + 1].y - leftBowPoints[i].y};
+            float lengthSqr = delta.x * delta.x + delta.y * delta.y;
+            if (lengthSqr > 0.0001f)  // Minimum length threshold
+            {
+                collider->addSegment(leftBowPoints[i], leftBowPoints[i + 1]);
+            }
+        }
+        
+        // Create right bow edge as connected segments
+        for (size_t i = 0; i < rightBowPoints.size() - 1; ++i)
+        {
+            // Verify segment length is valid
+            b2Vec2 delta = {rightBowPoints[i + 1].x - rightBowPoints[i].x,
+                           rightBowPoints[i + 1].y - rightBowPoints[i].y};
+            float lengthSqr = delta.x * delta.x + delta.y * delta.y;
+            if (lengthSqr > 0.0001f)  // Minimum length threshold
+            {
+                collider->addSegment(rightBowPoints[i], rightBowPoints[i + 1]);
+            }
+        }
+        
+        // Connect the tip of the bow (left to right) - only if wide enough
+        if (leftBowPoints.size() > 0 && rightBowPoints.size() > 0)
+        {
+            b2Vec2 tipLeft = leftBowPoints.back();
+            b2Vec2 tipRight = rightBowPoints.back();
             
-            // Arc points at the start and end of this segment
-            float startX = bowRadius * std::cos(startAngle);
-            float startY = bowCenterY + (bowTipY - bowCenterY) * (0.5f + 0.5f * std::sin(startAngle)) 
-                          + bowRadius * std::sin(startAngle) * 0.4f;
-            
-            float endX = bowRadius * std::cos(endAngle);
-            float endY = bowCenterY + (bowTipY - bowCenterY) * (0.5f + 0.5f * std::sin(endAngle))
-                        + bowRadius * std::sin(endAngle) * 0.4f;
-            
-            // Create triangular slice
-            sliceVertices.push_back({centerX, centerY});
-            sliceVertices.push_back({startX, startY});
-            sliceVertices.push_back({endX, endY});
-            
-            // Add this polygon as an additional fixture
-            collider->addPolygon(sliceVertices.data(), sliceVertices.size(), 0.02f);
+            // Check if tip segment is long enough
+            b2Vec2 tipDelta = {tipRight.x - tipLeft.x, tipRight.y - tipLeft.y};
+            float tipLengthSqr = tipDelta.x * tipDelta.x + tipDelta.y * tipDelta.y;
+            if (tipLengthSqr > 0.0001f)
+            {
+                collider->addSegment(tipLeft, tipRight);
+            }
         }
 
         // Add input controller with action bindings
@@ -671,6 +703,62 @@ public:
                             boatShape.setOutlineThickness(3.0f);
                         }
                         m_window.draw(boatShape);
+                    }
+                }
+                else if (fixture.shapeType == ColliderShape::Segment || fixture.shapeType == ColliderShape::ChainSegment)
+                {
+                    // Get segment endpoints
+                    b2Vec2 p1, p2;
+                    if (fixture.shapeType == ColliderShape::Segment)
+                    {
+                        p1 = fixture.shapeData.segment.point1;
+                        p2 = fixture.shapeData.segment.point2;
+                    }
+                    else  // ChainSegment
+                    {
+                        p1 = fixture.shapeData.chainSegment.point1;
+                        p2 = fixture.shapeData.chainSegment.point2;
+                    }
+                    
+                    // Rotate endpoints around origin
+                    float cosR = std::cos(rotation);
+                    float sinR = std::sin(rotation);
+                    
+                    float rotatedX1 = p1.x * cosR - p1.y * sinR;
+                    float rotatedY1 = p1.x * sinR + p1.y * cosR;
+                    float rotatedX2 = p2.x * cosR - p2.y * sinR;
+                    float rotatedY2 = p2.x * sinR + p2.y * cosR;
+                    
+                    // Convert to pixels
+                    float pixelX1 = rotatedX1 * PIXELS_PER_METER;
+                    float pixelY1 = -rotatedY1 * PIXELS_PER_METER;
+                    float pixelX2 = rotatedX2 * PIXELS_PER_METER;
+                    float pixelY2 = -rotatedY2 * PIXELS_PER_METER;
+                    
+                    // Draw line segment
+                    sf::Vertex line[] = {
+                        sf::Vertex(sf::Vector2f(posPixels.x + pixelX1, posPixels.y + pixelY1), sf::Color(200, 150, 100)),
+                        sf::Vertex(sf::Vector2f(posPixels.x + pixelX2, posPixels.y + pixelY2), sf::Color(200, 150, 100))
+                    };
+                    m_window.draw(line, 2, sf::Lines);
+                    
+                    // Draw thicker line if colliders are shown
+                    if (m_showColliders)
+                    {
+                        sf::Vertex thickLine[] = {
+                            sf::Vertex(sf::Vector2f(posPixels.x + pixelX1, posPixels.y + pixelY1), sf::Color::Magenta),
+                            sf::Vertex(sf::Vector2f(posPixels.x + pixelX2, posPixels.y + pixelY2), sf::Color::Magenta)
+                        };
+                        // Draw multiple times for thickness
+                        for (int offset = -1; offset <= 1; ++offset)
+                        {
+                            thickLine[0].position.x += offset;
+                            thickLine[1].position.x += offset;
+                            m_window.draw(thickLine, 2, sf::Lines);
+                            thickLine[0].position.y += offset;
+                            thickLine[1].position.y += offset;
+                            m_window.draw(thickLine, 2, sf::Lines);
+                        }
                     }
                 }
             }

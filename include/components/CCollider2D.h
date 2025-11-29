@@ -13,7 +13,9 @@ enum class ColliderShape
 {
     Circle,
     Box,
-    Polygon
+    Polygon,
+    Segment,
+    ChainSegment
 };
 
 /**
@@ -52,6 +54,18 @@ struct ShapeFixture
             int    vertexCount;
             float  radius;
         } polygon;
+        struct
+        {
+            b2Vec2 point1;
+            b2Vec2 point2;
+        } segment;
+        struct
+        {
+            b2Vec2 ghost1;
+            b2Vec2 point1;
+            b2Vec2 point2;
+            b2Vec2 ghost2;
+        } chainSegment;
     } shapeData;
 };
 
@@ -103,6 +117,38 @@ public:
      * @note This adds another fixture to the same physics body
      */
     void addPolygon(const b2Vec2* vertices, int count, float radius = 0.0f);
+
+    /**
+     * @brief Create a segment (line) collider
+     * @param point1 First endpoint
+     * @param point2 Second endpoint
+     */
+    void createSegment(const b2Vec2& point1, const b2Vec2& point2);
+
+    /**
+     * @brief Add an additional segment to this collider
+     * @param point1 First endpoint
+     * @param point2 Second endpoint
+     */
+    void addSegment(const b2Vec2& point1, const b2Vec2& point2);
+
+    /**
+     * @brief Create a chain segment with ghost vertices to prevent ghost collisions
+     * @param ghost1 Ghost vertex before point1
+     * @param point1 First endpoint
+     * @param point2 Second endpoint
+     * @param ghost2 Ghost vertex after point2
+     */
+    void createChainSegment(const b2Vec2& ghost1, const b2Vec2& point1, const b2Vec2& point2, const b2Vec2& ghost2);
+
+    /**
+     * @brief Add an additional chain segment to this collider
+     * @param ghost1 Ghost vertex before point1
+     * @param point1 First endpoint
+     * @param point2 Second endpoint
+     * @param ghost2 Ghost vertex after point2
+     */
+    void addChainSegment(const b2Vec2& ghost1, const b2Vec2& point1, const b2Vec2& point2, const b2Vec2& ghost2);
 
     /**
      * @brief Create a polygon collider from a pre-computed hull
