@@ -435,8 +435,8 @@ public:
     void checkStopMotorBoat()
     {
         // Check if any movement key is still being held
-        auto& inputManager       = SInputManager::instance();
-        bool  anyMovementKeyHeld = inputManager.isKeyDown(KeyCode::W) || inputManager.isKeyDown(KeyCode::S);
+        const auto& inputManager       = SInputManager::instance();
+        bool        anyMovementKeyHeld = inputManager.isKeyDown(KeyCode::W) || inputManager.isKeyDown(KeyCode::S);
 
         if (!anyMovementKeyHeld && SAudioSystem::instance().isPlayingSFX(m_motorBoatHandle))
         {
@@ -832,11 +832,11 @@ public:
         if (m_showVectors)
         {
             // Get all entities and check all entities have CTransform and CPhysicsBody2D
-            auto player = EntityManager::instance().getEntitiesByTag("player")[0];
-            auto balls  = EntityManager::instance().getEntitiesByTag("ball");
+            auto player   = EntityManager::instance().getEntitiesByTag("player")[0];
+            auto allBalls = EntityManager::instance().getEntitiesByTag("ball");
 
             // Combine balls and players into one itertable list
-            auto allEntities = balls;
+            auto allEntities = allBalls;
             allEntities.push_back(player);
 
             for (auto& entity : allEntities)

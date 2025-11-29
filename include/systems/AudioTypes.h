@@ -38,9 +38,9 @@ enum class FadeCurve
  */
 enum class FadeState
 {
-    None,       ///< Not fading
-    FadingIn,   ///< Fading in (volume increasing)
-    FadingOut   ///< Fading out (volume decreasing)
+    None,      ///< Not fading
+    FadingIn,  ///< Fading in (volume increasing)
+    FadingOut  ///< Fading out (volume decreasing)
 };
 
 /**
@@ -101,10 +101,10 @@ constexpr float  MAX_VOLUME            = 1.0f;
  */
 struct FadeConfig
 {
-    float                      duration        = 0.0f;           ///< Fade duration in seconds (0.0f = instant)
-    FadeCurve                  curve           = FadeCurve::Linear;  ///< Interpolation curve type
-    bool                       allowInterrupt  = true;           ///< Whether this fade can be interrupted by another
-    std::function<void()>      onComplete      = nullptr;        ///< Callback when fade completes (optional)
+    float                 duration       = 0.0f;               ///< Fade duration in seconds (0.0f = instant)
+    FadeCurve             curve          = FadeCurve::Linear;  ///< Interpolation curve type
+    bool                  allowInterrupt = true;               ///< Whether this fade can be interrupted by another
+    std::function<void()> onComplete     = nullptr;            ///< Callback when fade completes (optional)
 
     /**
      * @brief Create an instant fade configuration (no interpolation)

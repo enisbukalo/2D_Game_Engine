@@ -72,11 +72,11 @@ public:
      * @param fadeConfig Fade configuration (default: instant)
      * @return Handle to the playing sound
      */
-    AudioHandle playSFXWithFade(const std::string& id, 
-                                float volume = 1.0f, 
-                                float pitch = 1.0f, 
-                                bool loop = false,
-                                const FadeConfig& fadeConfig = FadeConfig::instant());
+    AudioHandle playSFXWithFade(const std::string& id,
+                                float              volume     = 1.0f,
+                                float              pitch      = 1.0f,
+                                bool               loop       = false,
+                                const FadeConfig&  fadeConfig = FadeConfig::instant());
 
     /**
      * @brief Play a spatial sound effect with optional fade-in
@@ -91,13 +91,13 @@ public:
      * @return Handle to the playing sound
      */
     AudioHandle playSpatialSFXWithFade(const std::string& id,
-                                       const Vec2& position,
-                                       float volume = 1.0f,
-                                       float pitch = 1.0f,
-                                       bool loop = false,
-                                       float minDistance = AudioConstants::DEFAULT_MIN_DISTANCE,
-                                       float attenuation = AudioConstants::DEFAULT_ATTENUATION,
-                                       const FadeConfig& fadeConfig = FadeConfig::instant());
+                                       const Vec2&        position,
+                                       float              volume      = 1.0f,
+                                       float              pitch       = 1.0f,
+                                       bool               loop        = false,
+                                       float              minDistance = AudioConstants::DEFAULT_MIN_DISTANCE,
+                                       float              attenuation = AudioConstants::DEFAULT_ATTENUATION,
+                                       const FadeConfig&  fadeConfig  = FadeConfig::instant());
 
     /**
      * @brief Fade a playing sound to a target volume
@@ -135,10 +135,7 @@ public:
      * @param fadeConfig Fade configuration (default: instant)
      * @return true if music started successfully
      */
-    bool playMusicWithFade(const std::string& id, 
-                          bool loop = true, 
-                          float volume = 1.0f,
-                          const FadeConfig& fadeConfig = FadeConfig::instant());
+    bool playMusicWithFade(const std::string& id, bool loop = true, float volume = 1.0f, const FadeConfig& fadeConfig = FadeConfig::instant());
 
     /**
      * @brief Fade music to a target volume
@@ -182,21 +179,21 @@ private:
      */
     struct SoundSlot
     {
-        sf::Sound                sound;
-        uint32_t                 generation  = 0;
-        bool                     inUse       = false;
-        float                    baseVolume  = 1.0f;  // Store base volume before master/category multipliers
-        
+        sf::Sound sound;
+        uint32_t  generation = 0;
+        bool      inUse      = false;
+        float     baseVolume = 1.0f;  // Store base volume before master/category multipliers
+
         // Fade state tracking
-        FadeState                fadeState     = FadeState::None;
-        float                    targetVolume  = 1.0f;  ///< Target volume for fade
-        float                    startVolume   = 1.0f;  ///< Starting volume for fade
-        float                    fadeDuration  = 0.0f;  ///< Total fade duration
-        float                    fadeElapsed   = 0.0f;  ///< Time elapsed in current fade
-        FadeCurve                fadeCurve     = FadeCurve::Linear;
-        bool                     allowInterrupt = true;  ///< Can this fade be interrupted
-        std::function<void()>    onFadeComplete = nullptr;  ///< Callback when fade completes
-        bool                     stopAfterFade  = false;  ///< Stop the sound after fade completes
+        FadeState             fadeState      = FadeState::None;
+        float                 targetVolume   = 1.0f;  ///< Target volume for fade
+        float                 startVolume    = 1.0f;  ///< Starting volume for fade
+        float                 fadeDuration   = 0.0f;  ///< Total fade duration
+        float                 fadeElapsed    = 0.0f;  ///< Time elapsed in current fade
+        FadeCurve             fadeCurve      = FadeCurve::Linear;
+        bool                  allowInterrupt = true;     ///< Can this fade be interrupted
+        std::function<void()> onFadeComplete = nullptr;  ///< Callback when fade completes
+        bool                  stopAfterFade  = false;    ///< Stop the sound after fade completes
     };
 
     /**
@@ -256,12 +253,12 @@ private:
     float m_currentMusicBaseVolume = 1.0f;  ///< Base volume for current music
 
     // Music fade state
-    FadeState             m_musicFadeState     = FadeState::None;
-    float                 m_musicTargetVolume  = 1.0f;
-    float                 m_musicStartVolume   = 1.0f;
-    float                 m_musicFadeDuration  = 0.0f;
-    float                 m_musicFadeElapsed   = 0.0f;
-    FadeCurve             m_musicFadeCurve     = FadeCurve::Linear;
+    FadeState             m_musicFadeState      = FadeState::None;
+    float                 m_musicTargetVolume   = 1.0f;
+    float                 m_musicStartVolume    = 1.0f;
+    float                 m_musicFadeDuration   = 0.0f;
+    float                 m_musicFadeElapsed    = 0.0f;
+    FadeCurve             m_musicFadeCurve      = FadeCurve::Linear;
     bool                  m_musicAllowInterrupt = true;
     std::function<void()> m_musicOnFadeComplete = nullptr;
     bool                  m_musicStopAfterFade  = false;
