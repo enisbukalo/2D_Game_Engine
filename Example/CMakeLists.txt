@@ -63,12 +63,12 @@ if(WIN32 OR MINGW)
         set(DLL_SUFFIX "-d")
     endif()
 
-    # Copy GameEngine DLL from package_windows
+    # Copy GameEngine shared library to output directory using the imported target's file
     add_custom_command(TARGET BounceGame POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_CURRENT_SOURCE_DIR}/../package_windows/bin/libGameEngine${DLL_SUFFIX}.dll"
+            "$<TARGET_FILE:GameEngine::GameEngine>"
             "$<TARGET_FILE_DIR:BounceGame>"
-        COMMENT "Copying GameEngine DLL to output directory"
+        COMMENT "Copying GameEngine runtime library to output directory"
     )
 
     # Copy SFML DLLs from container's SFML installation
