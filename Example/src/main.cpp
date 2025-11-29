@@ -428,9 +428,15 @@ public:
         if (!m_motorBoatPlaying)
         {
             // Start motor boat sound with 0 volume
-            m_motorBoatHandle  = audioSystem.playSFX("motor_boat", 0.0f, 1.0f, true);
-            m_motorBoatPlaying = true;
-            m_motorBoatVolume  = 0.0f;
+            m_motorBoatHandle    = audioSystem.playSFX("motor_boat", 0.0f, 1.0f, true);
+            m_motorBoatPlaying   = true;
+            m_motorBoatFadingOut = false;
+            m_motorBoatVolume    = 0.0f;
+        }
+        else if (m_motorBoatFadingOut)
+        {
+            // Cancel fade-out if user starts moving again
+            m_motorBoatFadingOut = false;
         }
     }
 
