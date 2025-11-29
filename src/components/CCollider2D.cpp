@@ -3,17 +3,13 @@
 #include "Entity.h"
 
 CCollider2D::CCollider2D()
-    : m_shapeId(b2_nullShapeId),
-      m_shapeType(ColliderShape::Circle),
-      m_isSensor(false),
+    : m_isSensor(false),
       m_density(1.0f),
       m_friction(0.3f),
       m_restitution(0.0f),
       m_initialized(false)
 {
-    m_shapeData.circle.center = {0.0f, 0.0f};
-    m_shapeData.circle.radius = 0.5f;
-    // Polygon data will be initialized when createPolygon is called
+    // Fixtures vector starts empty
 }
 
 CCollider2D::~CCollider2D()
@@ -23,17 +19,33 @@ CCollider2D::~CCollider2D()
 
 void CCollider2D::createCircle(float radius, const b2Vec2& center)
 {
-    m_shapeType               = ColliderShape::Circle;
-    m_shapeData.circle.center = center;
-    m_shapeData.circle.radius = radius;
+    // Clear existing fixtures
+    destroyShape();
+    m_fixtures.clear();
+    
+    ShapeFixture fixture;
+    fixture.shapeType = ColliderShape::Circle;
+    fixture.shapeData.circle.center = center;
+    fixture.shapeData.circle.radius = radius;
+    fixture.shapeId = b2_nullShapeId;
+    
+    m_fixtures.push_back(fixture);
     attachToBody();
 }
 
 void CCollider2D::createBox(float halfWidth, float halfHeight)
 {
-    m_shapeType                = ColliderShape::Box;
-    m_shapeData.box.halfWidth  = halfWidth;
-    m_shapeData.box.halfHeight = halfHeight;
+    // Clear existing fixtures
+    destroyShape();
+    m_fixtures.clear();
+    
+    ShapeFixture fixture;
+    fixture.shapeType = ColliderShape::Box;
+    fixture.shapeData.box.halfWidth = halfWidth;
+    fixture.shapeData.box.halfHeight = halfHeight;
+    fixture.shapeId = b2_nullShapeId;
+    
+    m_fixtures.push_back(fixture);
     attachToBody();
 }
 
@@ -54,7 +66,101 @@ void CCollider2D::createPolygon(const b2Vec2* vertices, int count, float radius)
         return;
     }
 
-    createPolygonFromHull(hull, radius);
+    // Clear existing fixtures
+    destroyShape();
+    m_fixtures.clear();
+    
+    // Create first fixture with this polygon
+    ShapeFixture fixture;
+    fixture.shapeType = ColliderShape::Polygon;
+    fixture.shapeData.polygon.vertexCount = hull.count;
+    fixture.shapeData.polygon.radius = radius;
+    for (int i = 0; i < hull.count; ++i)
+    {
+        fixture.shapeData.polygon.vertices[i] = hull.points[i];
+    }
+    fixture.shapeId = b2_nullShapeId;
+    
+    m_fixtures.push_back(fixture);
+    attachToBody();
+}
+
+void CCollider2D::addPolygon(const b2Vec2* vertices, int count, float radius)
+{
+    if (!vertices || count < 3 || count > B2_MAX_POLYGON_VERTICES)
+    {
+        // Invalid input, cannot create polygon
+        return;
+    }
+
+    // Compute convex hull from input vertices
+    b2Hull hull = b2ComputeHull(vertices, count);
+
+    if (hull.count < 3)
+    {
+        // Hull computation failed
+        return;
+    }
+
+    // Add additional fixture
+    ShapeFixture fixture;
+    fixture.shapeType = ColliderShape::Polygon;
+    fixture.shapeData.polygon.vertexCount = hull.count;
+    fixture.shapeData.polygon.radius = radius;
+    for (int i = 0; i < hull.count; ++i)
+    {
+        fixture.shapeData.polygon.vertices[i] = hull.points[i];
+    }
+    fixture.shapeId = b2_nullShapeId;
+    
+    m_fixtures.push_back(fixture);
+    
+    // Attach only the new fixture to body
+    if (!getOwner())
+    {
+        return;
+    }
+
+    auto physicsBody = getOwner()->getComponent<CPhysicsBody2D>();
+    if (!physicsBody || !physicsBody->isInitialized())
+    {
+        return;
+    }
+
+    b2BodyId bodyId = physicsBody->getBodyId();
+    if (!b2Body_IsValid(bodyId))
+    {
+        return;
+    }
+
+    // Create shape for the new fixture
+    b2ShapeDef shapeDef = b2DefaultShapeDef();
+    shapeDef.density = m_density;
+    shapeDef.enableSensorEvents = m_isSensor;
+    shapeDef.invokeContactCreation = true;
+
+    // Reconstruct hull from stored vertices
+    b2Hull newHull;
+    newHull.count = fixture.shapeData.polygon.vertexCount;
+    for (int i = 0; i < newHull.count; ++i)
+    {
+        newHull.points[i] = fixture.shapeData.polygon.vertices[i];
+    }
+
+    // Create polygon from hull
+    b2Polygon polygon = b2MakePolygon(&newHull, fixture.shapeData.polygon.radius);
+    b2ShapeId newShapeId = b2CreatePolygonShape(bodyId, &shapeDef, &polygon);
+
+    // Update the fixture's shape ID
+    m_fixtures.back().shapeId = newShapeId;
+    m_initialized = true;
+
+    // Set friction and restitution
+    if (b2Shape_IsValid(newShapeId))
+    {
+        b2Shape_SetFriction(newShapeId, m_friction);
+        b2Shape_SetRestitution(newShapeId, m_restitution);
+    }
 }
 
 void CCollider2D::createPolygonFromHull(const b2Hull& hull, float radius)
@@ -64,16 +170,21 @@ void CCollider2D::createPolygonFromHull(const b2Hull& hull, float radius)
         return;
     }
 
-    m_shapeType = ColliderShape::Polygon;
-
-    // Store hull data
-    m_shapeData.polygon.vertexCount = hull.count;
-    m_shapeData.polygon.radius      = radius;
+    // Clear existing fixtures
+    destroyShape();
+    m_fixtures.clear();
+    
+    ShapeFixture fixture;
+    fixture.shapeType = ColliderShape::Polygon;
+    fixture.shapeData.polygon.vertexCount = hull.count;
+    fixture.shapeData.polygon.radius = radius;
     for (int i = 0; i < hull.count; ++i)
     {
-        m_shapeData.polygon.vertices[i] = hull.points[i];
+        fixture.shapeData.polygon.vertices[i] = hull.points[i];
     }
-
+    fixture.shapeId = b2_nullShapeId;
+    
+    m_fixtures.push_back(fixture);
     attachToBody();
 }
 
@@ -85,7 +196,9 @@ void CCollider2D::createOffsetPolygon(const b2Hull& hull, const b2Vec2& position
         return;
     }
 
-    m_shapeType = ColliderShape::Polygon;
+    // Clear existing fixtures
+    destroyShape();
+    m_fixtures.clear();
 
     // Create offset polygon using Box2D function
     b2Rot rot = b2MakeRot(rotation);
@@ -94,13 +207,17 @@ void CCollider2D::createOffsetPolygon(const b2Hull& hull, const b2Vec2& position
                       : b2MakeOffsetPolygon(&hull, position, rot);
 
     // Store the transformed vertices
-    m_shapeData.polygon.vertexCount = offsetPoly.count;
-    m_shapeData.polygon.radius      = offsetPoly.radius;
+    ShapeFixture fixture;
+    fixture.shapeType = ColliderShape::Polygon;
+    fixture.shapeData.polygon.vertexCount = offsetPoly.count;
+    fixture.shapeData.polygon.radius = offsetPoly.radius;
     for (int i = 0; i < offsetPoly.count; ++i)
     {
-        m_shapeData.polygon.vertices[i] = offsetPoly.vertices[i];
+        fixture.shapeData.polygon.vertices[i] = offsetPoly.vertices[i];
     }
-
+    fixture.shapeId = b2_nullShapeId;
+    
+    m_fixtures.push_back(fixture);
     attachToBody();
 }
 
@@ -124,172 +241,197 @@ void CCollider2D::attachToBody()
         return;
     }
 
-    // Destroy old shape if exists
-    destroyShape();
-
     // Create shape definition
     b2ShapeDef shapeDef = b2DefaultShapeDef();
     shapeDef.density    = m_density;
-    // Note: friction and restitution are set per-shape, not in shapeDef for Box2D v3
     shapeDef.enableSensorEvents = m_isSensor;
-
-    // Force contact creation for static bodies to ensure they collide with dynamic bodies
-    // even when created before many dynamic bodies exist
     shapeDef.invokeContactCreation = true;
 
-    // Create the appropriate shape
-    switch (m_shapeType)
+    // Create shapes for all fixtures
+    for (auto& fixture : m_fixtures)
     {
-        case ColliderShape::Circle:
+        b2ShapeId shapeId = b2_nullShapeId;
+        
+        switch (fixture.shapeType)
         {
-            b2Circle circle;
-            circle.center = m_shapeData.circle.center;
-            circle.radius = m_shapeData.circle.radius;
-            m_shapeId     = b2CreateCircleShape(bodyId, &shapeDef, &circle);
-            break;
-        }
-
-        case ColliderShape::Box:
-        {
-            b2Polygon box = b2MakeBox(m_shapeData.box.halfWidth, m_shapeData.box.halfHeight);
-            m_shapeId     = b2CreatePolygonShape(bodyId, &shapeDef, &box);
-            break;
-        }
-
-        case ColliderShape::Polygon:
-        {
-            // Reconstruct hull from stored vertices
-            b2Hull hull;
-            hull.count = m_shapeData.polygon.vertexCount;
-            for (int i = 0; i < hull.count; ++i)
+            case ColliderShape::Circle:
             {
-                hull.points[i] = m_shapeData.polygon.vertices[i];
+                b2Circle circle;
+                circle.center = fixture.shapeData.circle.center;
+                circle.radius = fixture.shapeData.circle.radius;
+                shapeId = b2CreateCircleShape(bodyId, &shapeDef, &circle);
+                break;
             }
 
-            // Create polygon from hull
-            b2Polygon polygon = b2MakePolygon(&hull, m_shapeData.polygon.radius);
-            m_shapeId         = b2CreatePolygonShape(bodyId, &shapeDef, &polygon);
-            break;
+            case ColliderShape::Box:
+            {
+                b2Polygon box = b2MakeBox(fixture.shapeData.box.halfWidth, fixture.shapeData.box.halfHeight);
+                shapeId = b2CreatePolygonShape(bodyId, &shapeDef, &box);
+                break;
+            }
+
+            case ColliderShape::Polygon:
+            {
+                // Reconstruct hull from stored vertices
+                b2Hull hull;
+                hull.count = fixture.shapeData.polygon.vertexCount;
+                for (int i = 0; i < hull.count; ++i)
+                {
+                    hull.points[i] = fixture.shapeData.polygon.vertices[i];
+                }
+
+                // Create polygon from hull
+                b2Polygon polygon = b2MakePolygon(&hull, fixture.shapeData.polygon.radius);
+                shapeId = b2CreatePolygonShape(bodyId, &shapeDef, &polygon);
+                break;
+            }
+        }
+
+        fixture.shapeId = shapeId;
+        
+        // Set friction and restitution after creation
+        if (b2Shape_IsValid(shapeId))
+        {
+            b2Shape_SetFriction(shapeId, m_friction);
+            b2Shape_SetRestitution(shapeId, m_restitution);
         }
     }
 
-    m_initialized = b2Shape_IsValid(m_shapeId);
-
-    // Set friction and restitution after creation
-    if (m_initialized)
-    {
-        b2Shape_SetFriction(m_shapeId, m_friction);
-        b2Shape_SetRestitution(m_shapeId, m_restitution);
-    }
+    m_initialized = !m_fixtures.empty();
 }
 
 void CCollider2D::destroyShape()
 {
-    if (m_initialized && b2Shape_IsValid(m_shapeId))
+    for (auto& fixture : m_fixtures)
     {
-        b2DestroyShape(m_shapeId, true);
-        m_shapeId     = b2_nullShapeId;
-        m_initialized = false;
+        if (b2Shape_IsValid(fixture.shapeId))
+        {
+            b2DestroyShape(fixture.shapeId, true);
+            fixture.shapeId = b2_nullShapeId;
+        }
     }
+    m_initialized = false;
 }
 
 void CCollider2D::setIsSensor(bool isSensor)
 {
     m_isSensor = isSensor;
-    if (m_initialized && b2Shape_IsValid(m_shapeId))
+    if (m_initialized)
     {
-        b2Shape_EnableSensorEvents(m_shapeId, isSensor);
+        for (auto& fixture : m_fixtures)
+        {
+            if (b2Shape_IsValid(fixture.shapeId))
+            {
+                b2Shape_EnableSensorEvents(fixture.shapeId, isSensor);
+            }
+        }
     }
 }
 
 void CCollider2D::setDensity(float density)
 {
     m_density = density;
-    if (m_initialized && b2Shape_IsValid(m_shapeId))
+    if (m_initialized)
     {
-        b2Shape_SetDensity(m_shapeId, density, true);
-
-        // Note: updateBodyMass parameter in SetDensity already updates mass
+        for (auto& fixture : m_fixtures)
+        {
+            if (b2Shape_IsValid(fixture.shapeId))
+            {
+                b2Shape_SetDensity(fixture.shapeId, density, true);
+            }
+        }
     }
 }
 
 void CCollider2D::setFriction(float friction)
 {
     m_friction = friction;
-    if (m_initialized && b2Shape_IsValid(m_shapeId))
+    if (m_initialized)
     {
-        b2Shape_SetFriction(m_shapeId, friction);
+        for (auto& fixture : m_fixtures)
+        {
+            if (b2Shape_IsValid(fixture.shapeId))
+            {
+                b2Shape_SetFriction(fixture.shapeId, friction);
+            }
+        }
     }
 }
 
 void CCollider2D::setRestitution(float restitution)
 {
     m_restitution = restitution;
-    if (m_initialized && b2Shape_IsValid(m_shapeId))
+    if (m_initialized)
     {
-        b2Shape_SetRestitution(m_shapeId, restitution);
+        for (auto& fixture : m_fixtures)
+        {
+            if (b2Shape_IsValid(fixture.shapeId))
+            {
+                b2Shape_SetRestitution(fixture.shapeId, restitution);
+            }
+        }
     }
 }
 
 float CCollider2D::getCircleRadius() const
 {
-    if (m_shapeType == ColliderShape::Circle)
+    if (!m_fixtures.empty() && m_fixtures[0].shapeType == ColliderShape::Circle)
     {
-        return m_shapeData.circle.radius;
+        return m_fixtures[0].shapeData.circle.radius;
     }
     return 0.0f;
 }
 
 b2Vec2 CCollider2D::getCircleCenter() const
 {
-    if (m_shapeType == ColliderShape::Circle)
+    if (!m_fixtures.empty() && m_fixtures[0].shapeType == ColliderShape::Circle)
     {
-        return m_shapeData.circle.center;
+        return m_fixtures[0].shapeData.circle.center;
     }
     return {0.0f, 0.0f};
 }
 
 float CCollider2D::getBoxHalfWidth() const
 {
-    if (m_shapeType == ColliderShape::Box)
+    if (!m_fixtures.empty() && m_fixtures[0].shapeType == ColliderShape::Box)
     {
-        return m_shapeData.box.halfWidth;
+        return m_fixtures[0].shapeData.box.halfWidth;
     }
     return 0.0f;
 }
 
 float CCollider2D::getBoxHalfHeight() const
 {
-    if (m_shapeType == ColliderShape::Box)
+    if (!m_fixtures.empty() && m_fixtures[0].shapeType == ColliderShape::Box)
     {
-        return m_shapeData.box.halfHeight;
+        return m_fixtures[0].shapeData.box.halfHeight;
     }
     return 0.0f;
 }
 
-const b2Vec2* CCollider2D::getPolygonVertices() const
+const b2Vec2* CCollider2D::getPolygonVertices(size_t fixtureIndex) const
 {
-    if (m_shapeType == ColliderShape::Polygon)
+    if (fixtureIndex < m_fixtures.size() && m_fixtures[fixtureIndex].shapeType == ColliderShape::Polygon)
     {
-        return m_shapeData.polygon.vertices;
+        return m_fixtures[fixtureIndex].shapeData.polygon.vertices;
     }
     return nullptr;
 }
 
-int CCollider2D::getPolygonVertexCount() const
+int CCollider2D::getPolygonVertexCount(size_t fixtureIndex) const
 {
-    if (m_shapeType == ColliderShape::Polygon)
+    if (fixtureIndex < m_fixtures.size() && m_fixtures[fixtureIndex].shapeType == ColliderShape::Polygon)
     {
-        return m_shapeData.polygon.vertexCount;
+        return m_fixtures[fixtureIndex].shapeData.polygon.vertexCount;
     }
     return 0;
 }
 
-float CCollider2D::getPolygonRadius() const
+float CCollider2D::getPolygonRadius(size_t fixtureIndex) const
 {
-    if (m_shapeType == ColliderShape::Polygon)
+    if (fixtureIndex < m_fixtures.size() && m_fixtures[fixtureIndex].shapeType == ColliderShape::Polygon)
     {
-        return m_shapeData.polygon.radius;
+        return m_fixtures[fixtureIndex].shapeData.polygon.radius;
     }
     return 0.0f;
 }
@@ -300,59 +442,7 @@ void CCollider2D::serialize(JsonBuilder& builder) const
     builder.addKey("cCollider2D");
     builder.beginObject();
 
-    // Shape type
-    builder.addKey("shapeType");
-    switch (m_shapeType)
-    {
-        case ColliderShape::Circle:
-            builder.addString("Circle");
-            break;
-        case ColliderShape::Box:
-            builder.addString("Box");
-            break;
-        case ColliderShape::Polygon:
-            builder.addString("Polygon");
-            break;
-    }
-
-    // Shape data
-    if (m_shapeType == ColliderShape::Circle)
-    {
-        builder.addKey("radius");
-        builder.addNumber(m_shapeData.circle.radius);
-        builder.addKey("centerX");
-        builder.addNumber(m_shapeData.circle.center.x);
-        builder.addKey("centerY");
-        builder.addNumber(m_shapeData.circle.center.y);
-    }
-    else if (m_shapeType == ColliderShape::Box)
-    {
-        builder.addKey("halfWidth");
-        builder.addNumber(m_shapeData.box.halfWidth);
-        builder.addKey("halfHeight");
-        builder.addNumber(m_shapeData.box.halfHeight);
-    }
-    else if (m_shapeType == ColliderShape::Polygon)
-    {
-        builder.addKey("vertexCount");
-        builder.addNumber(m_shapeData.polygon.vertexCount);
-        builder.addKey("radius");
-        builder.addNumber(m_shapeData.polygon.radius);
-        builder.addKey("vertices");
-        builder.beginArray();
-        for (int i = 0; i < m_shapeData.polygon.vertexCount; ++i)
-        {
-            builder.beginObject();
-            builder.addKey("x");
-            builder.addNumber(m_shapeData.polygon.vertices[i].x);
-            builder.addKey("y");
-            builder.addNumber(m_shapeData.polygon.vertices[i].y);
-            builder.endObject();
-        }
-        builder.endArray();
-    }
-
-    // Fixture properties
+    // Serialize fixture properties
     builder.addKey("isSensor");
     builder.addBool(m_isSensor);
     builder.addKey("density");
@@ -361,6 +451,69 @@ void CCollider2D::serialize(JsonBuilder& builder) const
     builder.addNumber(m_friction);
     builder.addKey("restitution");
     builder.addNumber(m_restitution);
+
+    // Serialize all fixtures
+    builder.addKey("fixtures");
+    builder.beginArray();
+    for (const auto& fixture : m_fixtures)
+    {
+        builder.beginObject();
+        
+        // Shape type
+        builder.addKey("shapeType");
+        switch (fixture.shapeType)
+        {
+            case ColliderShape::Circle:
+                builder.addString("Circle");
+                break;
+            case ColliderShape::Box:
+                builder.addString("Box");
+                break;
+            case ColliderShape::Polygon:
+                builder.addString("Polygon");
+                break;
+        }
+
+        // Shape data
+        if (fixture.shapeType == ColliderShape::Circle)
+        {
+            builder.addKey("radius");
+            builder.addNumber(fixture.shapeData.circle.radius);
+            builder.addKey("centerX");
+            builder.addNumber(fixture.shapeData.circle.center.x);
+            builder.addKey("centerY");
+            builder.addNumber(fixture.shapeData.circle.center.y);
+        }
+        else if (fixture.shapeType == ColliderShape::Box)
+        {
+            builder.addKey("halfWidth");
+            builder.addNumber(fixture.shapeData.box.halfWidth);
+            builder.addKey("halfHeight");
+            builder.addNumber(fixture.shapeData.box.halfHeight);
+        }
+        else if (fixture.shapeType == ColliderShape::Polygon)
+        {
+            builder.addKey("vertexCount");
+            builder.addNumber(fixture.shapeData.polygon.vertexCount);
+            builder.addKey("radius");
+            builder.addNumber(fixture.shapeData.polygon.radius);
+            builder.addKey("vertices");
+            builder.beginArray();
+            for (int i = 0; i < fixture.shapeData.polygon.vertexCount; ++i)
+            {
+                builder.beginObject();
+                builder.addKey("x");
+                builder.addNumber(fixture.shapeData.polygon.vertices[i].x);
+                builder.addKey("y");
+                builder.addNumber(fixture.shapeData.polygon.vertices[i].y);
+                builder.endObject();
+            }
+            builder.endArray();
+        }
+        
+        builder.endObject();
+    }
+    builder.endArray();
 
     builder.endObject();
     builder.endObject();
@@ -385,90 +538,6 @@ void CCollider2D::deserialize(const JsonValue& value)
     if (!collider.isObject())
         return;
 
-    // Shape type
-    const auto& shapeTypeValue = collider["shapeType"];
-    if (shapeTypeValue.isString())
-    {
-        std::string typeStr = shapeTypeValue.getString();
-        if (typeStr == "Circle")
-        {
-            m_shapeType = ColliderShape::Circle;
-
-            const auto& radiusValue = collider["radius"];
-            if (radiusValue.isNumber())
-            {
-                m_shapeData.circle.radius = static_cast<float>(radiusValue.getNumber());
-            }
-
-            const auto& centerXValue = collider["centerX"];
-            if (centerXValue.isNumber())
-            {
-                m_shapeData.circle.center.x = static_cast<float>(centerXValue.getNumber());
-            }
-
-            const auto& centerYValue = collider["centerY"];
-            if (centerYValue.isNumber())
-            {
-                m_shapeData.circle.center.y = static_cast<float>(centerYValue.getNumber());
-            }
-        }
-        else if (typeStr == "Box")
-        {
-            m_shapeType = ColliderShape::Box;
-
-            const auto& halfWidthValue = collider["halfWidth"];
-            if (halfWidthValue.isNumber())
-            {
-                m_shapeData.box.halfWidth = static_cast<float>(halfWidthValue.getNumber());
-            }
-
-            const auto& halfHeightValue = collider["halfHeight"];
-            if (halfHeightValue.isNumber())
-            {
-                m_shapeData.box.halfHeight = static_cast<float>(halfHeightValue.getNumber());
-            }
-        }
-        else if (typeStr == "Polygon")
-        {
-            m_shapeType = ColliderShape::Polygon;
-
-            const auto& vertexCountValue = collider["vertexCount"];
-            if (vertexCountValue.isNumber())
-            {
-                m_shapeData.polygon.vertexCount = static_cast<int>(vertexCountValue.getNumber());
-            }
-
-            const auto& radiusValue = collider["radius"];
-            if (radiusValue.isNumber())
-            {
-                m_shapeData.polygon.radius = static_cast<float>(radiusValue.getNumber());
-            }
-
-            const auto& verticesValue = collider["vertices"];
-            if (verticesValue.isArray())
-            {
-                const auto& vertices = verticesValue.getArray();
-                int count = std::min(static_cast<int>(vertices.size()),
-                                     static_cast<int>(B2_MAX_POLYGON_VERTICES));
-                for (int i = 0; i < count; ++i)
-                {
-                    if (vertices[i].isObject())
-                    {
-                        const auto& xValue = vertices[i]["x"];
-                        const auto& yValue = vertices[i]["y"];
-                        if (xValue.isNumber() && yValue.isNumber())
-                        {
-                            m_shapeData.polygon.vertices[i].x =
-                                static_cast<float>(xValue.getNumber());
-                            m_shapeData.polygon.vertices[i].y =
-                                static_cast<float>(yValue.getNumber());
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     // Fixture properties
     const auto& isSensorValue = collider["isSensor"];
     if (isSensorValue.isBool())
@@ -492,6 +561,192 @@ void CCollider2D::deserialize(const JsonValue& value)
     if (restitutionValue.isNumber())
     {
         m_restitution = static_cast<float>(restitutionValue.getNumber());
+    }
+
+    // Deserialize fixtures
+    const auto& fixturesValue = collider["fixtures"];
+    if (fixturesValue.isArray())
+    {
+        const auto& fixturesArray = fixturesValue.getArray();
+        m_fixtures.clear();
+        
+        for (const auto& fixtureValue : fixturesArray)
+        {
+            if (!fixtureValue.isObject())
+                continue;
+                
+            ShapeFixture fixture;
+            fixture.shapeId = b2_nullShapeId;
+            
+            // Shape type
+            const auto& shapeTypeValue = fixtureValue["shapeType"];
+            if (shapeTypeValue.isString())
+            {
+                std::string typeStr = shapeTypeValue.getString();
+                if (typeStr == "Circle")
+                {
+                    fixture.shapeType = ColliderShape::Circle;
+
+                    const auto& radiusValue = fixtureValue["radius"];
+                    if (radiusValue.isNumber())
+                    {
+                        fixture.shapeData.circle.radius = static_cast<float>(radiusValue.getNumber());
+                    }
+
+                    const auto& centerXValue = fixtureValue["centerX"];
+                    if (centerXValue.isNumber())
+                    {
+                        fixture.shapeData.circle.center.x = static_cast<float>(centerXValue.getNumber());
+                    }
+
+                    const auto& centerYValue = fixtureValue["centerY"];
+                    if (centerYValue.isNumber())
+                    {
+                        fixture.shapeData.circle.center.y = static_cast<float>(centerYValue.getNumber());
+                    }
+                }
+                else if (typeStr == "Box")
+                {
+                    fixture.shapeType = ColliderShape::Box;
+
+                    const auto& halfWidthValue = fixtureValue["halfWidth"];
+                    if (halfWidthValue.isNumber())
+                    {
+                        fixture.shapeData.box.halfWidth = static_cast<float>(halfWidthValue.getNumber());
+                    }
+
+                    const auto& halfHeightValue = fixtureValue["halfHeight"];
+                    if (halfHeightValue.isNumber())
+                    {
+                        fixture.shapeData.box.halfHeight = static_cast<float>(halfHeightValue.getNumber());
+                    }
+                }
+                else if (typeStr == "Polygon")
+                {
+                    fixture.shapeType = ColliderShape::Polygon;
+
+                    const auto& vertexCountValue = fixtureValue["vertexCount"];
+                    if (vertexCountValue.isNumber())
+                    {
+                        fixture.shapeData.polygon.vertexCount = static_cast<int>(vertexCountValue.getNumber());
+                    }
+
+                    const auto& radiusValue = fixtureValue["radius"];
+                    if (radiusValue.isNumber())
+                    {
+                        fixture.shapeData.polygon.radius = static_cast<float>(radiusValue.getNumber());
+                    }
+
+                    const auto& verticesValue = fixtureValue["vertices"];
+                    if (verticesValue.isArray())
+                    {
+                        const auto& vertices = verticesValue.getArray();
+                        int count = std::min(static_cast<int>(vertices.size()),
+                                             static_cast<int>(B2_MAX_POLYGON_VERTICES));
+                        for (int i = 0; i < count; ++i)
+                        {
+                            if (vertices[i].isObject())
+                            {
+                                const auto& xValue = vertices[i]["x"];
+                                const auto& yValue = vertices[i]["y"];
+                                if (xValue.isNumber() && yValue.isNumber())
+                                {
+                                    fixture.shapeData.polygon.vertices[i].x =
+                                        static_cast<float>(xValue.getNumber());
+                                    fixture.shapeData.polygon.vertices[i].y =
+                                        static_cast<float>(yValue.getNumber());
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                m_fixtures.push_back(fixture);
+            }
+        }
+    }
+    // Support legacy format (single shape)
+    else
+    {
+        const auto& shapeTypeValue = collider["shapeType"];
+        if (shapeTypeValue.isString())
+        {
+            ShapeFixture fixture;
+            fixture.shapeId = b2_nullShapeId;
+            std::string typeStr = shapeTypeValue.getString();
+            
+            if (typeStr == "Circle")
+            {
+                fixture.shapeType = ColliderShape::Circle;
+                const auto& radiusValue = collider["radius"];
+                if (radiusValue.isNumber())
+                {
+                    fixture.shapeData.circle.radius = static_cast<float>(radiusValue.getNumber());
+                }
+                const auto& centerXValue = collider["centerX"];
+                if (centerXValue.isNumber())
+                {
+                    fixture.shapeData.circle.center.x = static_cast<float>(centerXValue.getNumber());
+                }
+                const auto& centerYValue = collider["centerY"];
+                if (centerYValue.isNumber())
+                {
+                    fixture.shapeData.circle.center.y = static_cast<float>(centerYValue.getNumber());
+                }
+            }
+            else if (typeStr == "Box")
+            {
+                fixture.shapeType = ColliderShape::Box;
+                const auto& halfWidthValue = collider["halfWidth"];
+                if (halfWidthValue.isNumber())
+                {
+                    fixture.shapeData.box.halfWidth = static_cast<float>(halfWidthValue.getNumber());
+                }
+                const auto& halfHeightValue = collider["halfHeight"];
+                if (halfHeightValue.isNumber())
+                {
+                    fixture.shapeData.box.halfHeight = static_cast<float>(halfHeightValue.getNumber());
+                }
+            }
+            else if (typeStr == "Polygon")
+            {
+                fixture.shapeType = ColliderShape::Polygon;
+                const auto& vertexCountValue = collider["vertexCount"];
+                if (vertexCountValue.isNumber())
+                {
+                    fixture.shapeData.polygon.vertexCount = static_cast<int>(vertexCountValue.getNumber());
+                }
+                const auto& radiusValue = collider["radius"];
+                if (radiusValue.isNumber())
+                {
+                    fixture.shapeData.polygon.radius = static_cast<float>(radiusValue.getNumber());
+                }
+                const auto& verticesValue = collider["vertices"];
+                if (verticesValue.isArray())
+                {
+                    const auto& vertices = verticesValue.getArray();
+                    int count = std::min(static_cast<int>(vertices.size()),
+                                         static_cast<int>(B2_MAX_POLYGON_VERTICES));
+                    for (int i = 0; i < count; ++i)
+                    {
+                        if (vertices[i].isObject())
+                        {
+                            const auto& xValue = vertices[i]["x"];
+                            const auto& yValue = vertices[i]["y"];
+                            if (xValue.isNumber() && yValue.isNumber())
+                            {
+                                fixture.shapeData.polygon.vertices[i].x =
+                                    static_cast<float>(xValue.getNumber());
+                                fixture.shapeData.polygon.vertices[i].y =
+                                    static_cast<float>(yValue.getNumber());
+                            }
+                        }
+                    }
+                }
+            }
+            
+            m_fixtures.push_back(fixture);
+        }
     }
 }
 

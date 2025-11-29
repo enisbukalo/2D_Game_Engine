@@ -178,34 +178,66 @@ public:
         m_playerPhysics->setAngularDamping(0.75f);  // Damping to reduce spin over time
         m_playerPhysics->setLinearDamping(0.75f);   // Some linear damping for better control
 
-        // Create boat shape with curved bow
+        // Create boat shape with curved bow using multiple polygon segments
         // Boat points from stern (back) to bow (front), with Y-axis as forward
         const float boatLength = PLAYER_SIZE_METERS * 3.0f;  // Total length
         const float boatWidth = PLAYER_SIZE_METERS * 1.5f;   // Width at widest point
         
-        b2Vec2 boatVertices[7] = {
-            // Stern (back) - flat end
-            {-boatWidth * 0.5f, -boatLength * 0.4f},  // Back left corner
-            {boatWidth * 0.5f, -boatLength * 0.4f},   // Back right corner
-            
-            // Widest part of boat
-            {boatWidth * 0.5f, 0.0f},                 // Right side middle
-            
-            // Bow (front) - curved/pointed
-            {boatWidth * 0.3f, boatLength * 0.3f},    // Right front curve
-            {0.0f, boatLength * 0.6f},                // Bow point (front tip)
-            {-boatWidth * 0.3f, boatLength * 0.3f},   // Left front curve
-            
-            // Back to stern
-            {-boatWidth * 0.5f, 0.0f}                 // Left side middle
-        };
-
-        // Add polygon collider for boat shape
+        // Create single collider that will hold multiple polygon fixtures
         auto* collider = m_player->addComponent<CCollider2D>();
-        collider->createPolygon(boatVertices, 7, 0.02f);  // Small radius for smooth edges
-        collider->setRestitution(0.125f);  // Lower restitution to reduce bounce
-        collider->setDensity(5.0f);        // Higher density makes player heavier
-        collider->setFriction(0.5f);       // Some friction for better control
+        
+        // 1. Create main hull body (rectangular section with flat stern)
+        {
+            std::vector<b2Vec2> hullVertices;
+            hullVertices.push_back({-boatWidth * 0.5f, -boatLength * 0.4f});  // Back left
+            hullVertices.push_back({boatWidth * 0.5f, -boatLength * 0.4f});   // Back right
+            hullVertices.push_back({boatWidth * 0.5f, 0.0f});                 // Front right
+            hullVertices.push_back({-boatWidth * 0.5f, 0.0f});                // Front left
+            
+            collider->createPolygon(hullVertices.data(), hullVertices.size(), 0.02f);
+            collider->setRestitution(0.125f);
+            collider->setDensity(5.0f);
+            collider->setFriction(0.5f);
+        }
+        
+        // 2. Create curved bow using multiple "pizza slice" polygon segments
+        // Each slice is a small triangle forming part of the semicircular bow
+        const int numBowSegments = 8;  // Number of slices for smooth curve
+        const float bowRadius = boatWidth * 0.6f;  // Radius of the bow curve
+        const float bowCenterY = 0.0f;  // Where the arc starts (at widest point)
+        const float bowTipY = boatLength * 0.6f;   // How far forward the bow extends
+        
+        // Create pizza slices arranged in semicircle from right to left
+        for (int i = 0; i < numBowSegments; ++i)
+        {
+            // Calculate angles for this segment (from -PI/2 to +PI/2, right to left)
+            float startAngle = -B2_PI * 0.5f + (B2_PI / numBowSegments) * i;
+            float endAngle = -B2_PI * 0.5f + (B2_PI / numBowSegments) * (i + 1);
+            
+            // Each slice is a triangle: center point, start point, end point
+            std::vector<b2Vec2> sliceVertices;
+            
+            // Center point (on the hull's front edge)
+            float centerX = 0.0f;
+            float centerY = bowCenterY;
+            
+            // Arc points at the start and end of this segment
+            float startX = bowRadius * std::cos(startAngle);
+            float startY = bowCenterY + (bowTipY - bowCenterY) * (0.5f + 0.5f * std::sin(startAngle)) 
+                          + bowRadius * std::sin(startAngle) * 0.4f;
+            
+            float endX = bowRadius * std::cos(endAngle);
+            float endY = bowCenterY + (bowTipY - bowCenterY) * (0.5f + 0.5f * std::sin(endAngle))
+                        + bowRadius * std::sin(endAngle) * 0.4f;
+            
+            // Create triangular slice
+            sliceVertices.push_back({centerX, centerY});
+            sliceVertices.push_back({startX, startY});
+            sliceVertices.push_back({endX, endY});
+            
+            // Add this polygon as an additional fixture
+            collider->addPolygon(sliceVertices.data(), sliceVertices.size(), 0.02f);
+        }
 
         // Add input controller with action bindings
         auto* inputController = m_player->addComponent<CInputController>();
@@ -600,40 +632,46 @@ public:
             sf::Vector2f posPixels = metersToPixels(posMeters);
             float        rotation  = transform->getRotation();  // Get rotation in radians
 
-            // Draw boat polygon
-            if (collider->getShapeType() == ColliderShape::Polygon)
+            // Draw all polygon fixtures in the collider
+            const auto& fixtures = collider->getFixtures();
+            for (size_t fixtureIdx = 0; fixtureIdx < fixtures.size(); ++fixtureIdx)
             {
-                const b2Vec2* vertices = collider->getPolygonVertices();
-                int vertexCount = collider->getPolygonVertexCount();
+                const auto& fixture = fixtures[fixtureIdx];
                 
-                if (vertices && vertexCount > 0)
+                if (fixture.shapeType == ColliderShape::Polygon)
                 {
-                    sf::ConvexShape boatShape(vertexCount);
+                    const b2Vec2* vertices = collider->getPolygonVertices(fixtureIdx);
+                    int vertexCount = collider->getPolygonVertexCount(fixtureIdx);
                     
-                    // Transform and set each vertex
-                    for (int i = 0; i < vertexCount; ++i)
+                    if (vertices && vertexCount > 0)
                     {
-                        // Rotate vertex around origin
-                        float cosR = std::cos(rotation);
-                        float sinR = std::sin(rotation);
-                        float rotatedX = vertices[i].x * cosR - vertices[i].y * sinR;
-                        float rotatedY = vertices[i].x * sinR + vertices[i].y * cosR;
+                        sf::ConvexShape boatShape(vertexCount);
                         
-                        // Convert to pixels (note: Y-flip for screen coordinates)
-                        float pixelX = rotatedX * PIXELS_PER_METER;
-                        float pixelY = -rotatedY * PIXELS_PER_METER;  // Negative for screen Y-down
+                        // Transform and set each vertex
+                        for (int i = 0; i < vertexCount; ++i)
+                        {
+                            // Rotate vertex around origin
+                            float cosR = std::cos(rotation);
+                            float sinR = std::sin(rotation);
+                            float rotatedX = vertices[i].x * cosR - vertices[i].y * sinR;
+                            float rotatedY = vertices[i].x * sinR + vertices[i].y * cosR;
+                            
+                            // Convert to pixels (note: Y-flip for screen coordinates)
+                            float pixelX = rotatedX * PIXELS_PER_METER;
+                            float pixelY = -rotatedY * PIXELS_PER_METER;  // Negative for screen Y-down
+                            
+                            boatShape.setPoint(i, sf::Vector2f(pixelX, pixelY));
+                        }
                         
-                        boatShape.setPoint(i, sf::Vector2f(pixelX, pixelY));
+                        boatShape.setPosition(posPixels);
+                        boatShape.setFillColor(sf::Color(200, 150, 100));  // Brownish color for boat
+                        if (m_showColliders)
+                        {
+                            boatShape.setOutlineColor(sf::Color::Magenta);  // Magenta outline for player
+                            boatShape.setOutlineThickness(3.0f);
+                        }
+                        m_window.draw(boatShape);
                     }
-                    
-                    boatShape.setPosition(posPixels);
-                    boatShape.setFillColor(sf::Color(200, 150, 100));  // Brownish color for boat
-                    if (m_showColliders)
-                    {
-                        boatShape.setOutlineColor(sf::Color::Magenta);  // Magenta outline for player
-                        boatShape.setOutlineThickness(3.0f);
-                    }
-                    m_window.draw(boatShape);
                 }
             }
         }

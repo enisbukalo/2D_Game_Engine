@@ -2,6 +2,7 @@
 
 #include "Component.h"
 #include "box2d/box2d.h"
+#include <vector>
 
 class CPhysicsBody2D;
 
@@ -24,12 +25,14 @@ enum class ColliderShape
  * The collider can be a sensor (trigger) or a solid collider.
  * Sensors detect collisions but do not generate collision responses.
  */
-class CCollider2D : public Component
+/**
+ * @brief Structure to hold data for a single shape/fixture
+ */
+struct ShapeFixture
 {
-private:
-    b2ShapeId     m_shapeId;
-    ColliderShape m_shapeType;
-
+    b2ShapeId     shapeId;
+    ColliderShape shapeType;
+    
     // Shape parameters
     union ShapeData
     {
@@ -49,9 +52,15 @@ private:
             int    vertexCount;
             float  radius;
         } polygon;
-    } m_shapeData;
+    } shapeData;
+};
 
-    // Fixture properties
+class CCollider2D : public Component
+{
+private:
+    std::vector<ShapeFixture> m_fixtures;
+
+    // Fixture properties (default for all fixtures)
     bool  m_isSensor;
     float m_density;
     float m_friction;
@@ -87,6 +96,15 @@ public:
     void createPolygon(const b2Vec2* vertices, int count, float radius = 0.0f);
 
     /**
+     * @brief Add an additional polygon shape to this collider
+     * @param vertices Array of vertices (will compute convex hull)
+     * @param count Number of vertices
+     * @param radius Skin radius for the polygon (default: 0.0f)
+     * @note This adds another fixture to the same physics body
+     */
+    void addPolygon(const b2Vec2* vertices, int count, float radius = 0.0f);
+
+    /**
      * @brief Create a polygon collider from a pre-computed hull
      * @param hull Pre-computed convex hull
      * @param radius Skin radius for the polygon (default: 0.0f)
@@ -112,19 +130,35 @@ public:
     }
 
     /**
-     * @brief Get the Box2D shape ID
+     * @brief Get the Box2D shape ID of the first fixture
      */
     b2ShapeId getShapeId() const
     {
-        return m_shapeId;
+        return m_fixtures.empty() ? b2_nullShapeId : m_fixtures[0].shapeId;
     }
 
     /**
-     * @brief Get the shape type
+     * @brief Get the shape type of the first fixture
      */
     ColliderShape getShapeType() const
     {
-        return m_shapeType;
+        return m_fixtures.empty() ? ColliderShape::Box : m_fixtures[0].shapeType;
+    }
+
+    /**
+     * @brief Get all fixtures in this collider
+     */
+    const std::vector<ShapeFixture>& getFixtures() const
+    {
+        return m_fixtures;
+    }
+
+    /**
+     * @brief Get the number of fixtures in this collider
+     */
+    size_t getFixtureCount() const
+    {
+        return m_fixtures.size();
     }
 
     /**
@@ -204,22 +238,25 @@ public:
     float getBoxHalfHeight() const;
 
     /**
-     * @brief Get polygon vertices (only valid for polygon shapes)
+     * @brief Get polygon vertices for a specific fixture (only valid for polygon shapes)
+     * @param fixtureIndex Index of the fixture (default: 0)
      * @return Pointer to vertex array (nullptr if not a polygon)
      */
-    const b2Vec2* getPolygonVertices() const;
+    const b2Vec2* getPolygonVertices(size_t fixtureIndex = 0) const;
 
     /**
-     * @brief Get polygon vertex count (only valid for polygon shapes)
+     * @brief Get polygon vertex count for a specific fixture (only valid for polygon shapes)
+     * @param fixtureIndex Index of the fixture (default: 0)
      * @return Number of vertices (0 if not a polygon)
      */
-    int getPolygonVertexCount() const;
+    int getPolygonVertexCount(size_t fixtureIndex = 0) const;
 
     /**
-     * @brief Get polygon radius/skin (only valid for polygon shapes)
+     * @brief Get polygon radius/skin for a specific fixture (only valid for polygon shapes)
+     * @param fixtureIndex Index of the fixture (default: 0)
      * @return Radius value (0.0f if not a polygon)
      */
-    float getPolygonRadius() const;
+    float getPolygonRadius(size_t fixtureIndex = 0) const;
 
     // Component interface
     void        init() override;
