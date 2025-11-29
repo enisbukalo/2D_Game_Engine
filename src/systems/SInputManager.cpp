@@ -1,4 +1,4 @@
-#include "systems/SInputManager.h"
+#include "SInputManager.h"
 
 #include <imgui-SFML.h>
 #include <imgui.h>

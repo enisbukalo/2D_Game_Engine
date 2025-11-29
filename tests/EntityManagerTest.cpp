@@ -9,9 +9,9 @@
 #include "Vec2.h"
 #include "CPhysicsBody2D.h"
 #include "CCollider2D.h"
-#include "components/CInputController.h"
+#include "CInputController.h"
 #include "Input/KeyCode.h"
-#include "systems/SInputManager.h"
+#include "SInputManager.h"
 
 // Define the source directory path
 #ifndef SOURCE_DIR

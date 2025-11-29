@@ -5,6 +5,14 @@
 #include <SFML/Graphics.hpp>
 #include <memory>
 
+// Include system and manager headers
+#include <ComponentFactory.h>
+#include <EntityManager.h>
+#include <SAudioSystem.h>
+#include <SBox2DPhysics.h>
+#include <SInputManager.h>
+#include <SceneManager.h>
+
 /**
  * @brief Main game engine class handling core game loop and systems
  *
@@ -59,6 +67,45 @@ public:
      * @return Shared pointer to the spdlog logger, or nullptr if not initialized
      */
     static std::shared_ptr<spdlog::logger> getLogger();
+
+    // System and Manager Accessors
+    // These are the recommended public API for engine users
+
+    /**
+     * @brief Gets the entity manager instance
+     * @return Reference to the EntityManager singleton
+     */
+    EntityManager& getEntityManager();
+
+    /**
+     * @brief Gets the scene manager instance
+     * @return Reference to the SceneManager singleton
+     */
+    SceneManager& getSceneManager();
+
+    /**
+     * @brief Gets the component factory instance
+     * @return Reference to the ComponentFactory singleton
+     */
+    ComponentFactory& getComponentFactory();
+
+    /**
+     * @brief Gets the Box2D physics system instance
+     * @return Reference to the SBox2DPhysics singleton
+     */
+    SBox2DPhysics& getPhysics();
+
+    /**
+     * @brief Gets the input manager instance
+     * @return Reference to the SInputManager singleton
+     */
+    SInputManager& getInputManager();
+
+    /**
+     * @brief Gets the audio system instance
+     * @return Reference to the SAudioSystem singleton
+     */
+    SAudioSystem& getAudioSystem();
 
 private:
     const uint8_t m_subStepCount;  ///< Number of physics sub-steps per update

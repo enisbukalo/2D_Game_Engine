@@ -1,16 +1,12 @@
+#include <AudioTypes.h>
+#include <CCollider2D.h>
+#include <CInputController.h>
+#include <CPhysicsBody2D.h>
+#include <CTransform.h>
 #include <Entity.h>
-#include <EntityManager.h>
 #include <GameEngine.h>
 #include <Input/MouseButton.h>
 #include <Vec2.h>
-#include <components/CCollider2D.h>
-#include <components/CInputController.h>
-#include <components/CPhysicsBody2D.h>
-#include <components/CTransform.h>
-#include <systems/AudioTypes.h>
-#include <systems/SAudioSystem.h>
-#include <systems/SBox2DPhysics.h>
-#include <systems/SInputManager.h>
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <memory>
@@ -102,13 +98,13 @@ public:
     ~BounceGame()
     {
         // Cleanup audio
-        SAudioSystem::instance().shutdown();
+        m_gameEngine->getAudioSystem().shutdown();
     }
 
     void init()
     {
         // Initialize audio system
-        auto& audioSystem = SAudioSystem::instance();
+        auto& audioSystem = m_gameEngine->getAudioSystem();
         audioSystem.initialize();
 
         // Set initial master volume
@@ -124,10 +120,10 @@ public:
         audioSystem.playMusic("background_music", true, MAX_MUSIC_VOLUME);
 
         // Input Manager is already initialized by GameEngine - just disable ImGui passthrough
-        SInputManager::instance().setPassToImGui(false);
+        m_gameEngine->getInputManager().setPassToImGui(false);
 
         // Set up Box2D physics world
-        auto& physics = SBox2DPhysics::instance();
+        auto& physics = m_gameEngine->getPhysics();
         physics.setGravity({0.0f, m_gravityEnabled ? GRAVITY_FORCE : 0.0f});
 
         createBoundaryColliders();
@@ -135,7 +131,7 @@ public:
         createBalls();
 
         // Force EntityManager to process pending entities
-        EntityManager::instance().update(0.0f);
+        m_gameEngine->getEntityManager().update(0.0f);
 
         std::cout << "Game initialized!" << std::endl;
         std::cout << "Physics: Box2D v3.1.1 (1 unit = 1 meter, Y-up)" << std::endl;
@@ -158,10 +154,10 @@ public:
         const float screenHeightMeters = SCREEN_HEIGHT / PIXELS_PER_METER;
 
         // Create boundary collider entities
-        auto floor     = EntityManager::instance().addEntity("floor");
-        auto rightWall = EntityManager::instance().addEntity("rightWall");
-        auto leftWall  = EntityManager::instance().addEntity("leftWall");
-        auto topWall   = EntityManager::instance().addEntity("topWall");
+        auto floor     = m_gameEngine->getEntityManager().addEntity("floor");
+        auto rightWall = m_gameEngine->getEntityManager().addEntity("rightWall");
+        auto leftWall  = m_gameEngine->getEntityManager().addEntity("leftWall");
+        auto topWall   = m_gameEngine->getEntityManager().addEntity("topWall");
 
         // Position the boundary colliders in meters (Box2D Y-up coordinates)
         floor->addComponent<CTransform>(Vec2(screenWidthMeters / 2.0f, BOUNDARY_THICKNESS_METERS / 2.0f), Vec2(1.0f, 1.0f), 0.0f);
@@ -202,7 +198,7 @@ public:
         const float centerY = screenHeightMeters / 2.0f;
 
         // Create player entity
-        m_player = EntityManager::instance().addEntity("player");
+        m_player = m_gameEngine->getEntityManager().addEntity("player");
         m_player->addComponent<CTransform>(Vec2(centerX, centerY), Vec2(1.0f, 1.0f), 0.0f);
 
         // Add physics body
@@ -366,7 +362,7 @@ public:
             float randomX = MIN_X + static_cast<float>(rand()) / RAND_MAX * (MAX_X - MIN_X);
             float randomY = MIN_Y + static_cast<float>(rand()) / RAND_MAX * (MAX_Y - MIN_Y);
 
-            auto ball = EntityManager::instance().addEntity("ball");
+            auto ball = m_gameEngine->getEntityManager().addEntity("ball");
             ball->addComponent<CTransform>(Vec2(randomX, randomY), Vec2(1.0f, 1.0f), 0.0f);
 
             auto* physicsBody = ball->addComponent<CPhysicsBody2D>();
@@ -390,7 +386,7 @@ public:
         m_gravityEnabled = !m_gravityEnabled;
 
         // Update global gravity in Box2D physics system
-        auto& physics = SBox2DPhysics::instance();
+        auto& physics = m_gameEngine->getPhysics();
         if (m_gravityEnabled)
         {
             physics.setGravity({0.0f, GRAVITY_FORCE});
@@ -416,7 +412,7 @@ public:
 
     void startMotorBoat()
     {
-        auto& audioSystem = SAudioSystem::instance();
+        auto& audioSystem = m_gameEngine->getAudioSystem();
 
         // Check if motor boat is already playing
         if (audioSystem.isPlayingSFX(m_motorBoatHandle))
@@ -435,14 +431,14 @@ public:
     void checkStopMotorBoat()
     {
         // Check if any movement key is still being held
-        const auto& inputManager       = SInputManager::instance();
+        const auto& inputManager       = m_gameEngine->getInputManager();
         bool        anyMovementKeyHeld = inputManager.isKeyDown(KeyCode::W) || inputManager.isKeyDown(KeyCode::S);
 
-        if (!anyMovementKeyHeld && SAudioSystem::instance().isPlayingSFX(m_motorBoatHandle))
+        if (!anyMovementKeyHeld && m_gameEngine->getAudioSystem().isPlayingSFX(m_motorBoatHandle))
         {
             // Stop with fade-out
             FadeConfig fadeOut = FadeConfig::linear(MOTOR_FADE_DURATION, true);
-            SAudioSystem::instance().stopSFXWithFade(m_motorBoatHandle, fadeOut);
+            m_gameEngine->getAudioSystem().stopSFXWithFade(m_motorBoatHandle, fadeOut);
         }
     }
 
@@ -462,7 +458,7 @@ public:
         float randomX = MIN_X + static_cast<float>(rand()) / RAND_MAX * (MAX_X - MIN_X);
         float randomY = MIN_Y + static_cast<float>(rand()) / RAND_MAX * (MAX_Y - MIN_Y);
 
-        auto ball = EntityManager::instance().addEntity("ball");
+        auto ball = m_gameEngine->getEntityManager().addEntity("ball");
         ball->addComponent<CTransform>(Vec2(randomX, randomY), Vec2(1.0f, 1.0f), 0.0f);
 
         auto* physicsBody = ball->addComponent<CPhysicsBody2D>();
@@ -482,7 +478,7 @@ public:
 
     void removeRandomBall()
     {
-        auto balls = EntityManager::instance().getEntitiesByTag("ball");
+        auto balls = m_gameEngine->getEntityManager().getEntitiesByTag("ball");
         if (!balls.empty())
         {
             // Pick a random ball to remove
@@ -498,7 +494,7 @@ public:
         std::cout << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << std::endl;
 
         // Stop motor boat if playing
-        auto& audioSystem = SAudioSystem::instance();
+        auto& audioSystem = m_gameEngine->getAudioSystem();
         if (audioSystem.isPlayingSFX(m_motorBoatHandle))
         {
             audioSystem.stopSFX(m_motorBoatHandle);
@@ -506,10 +502,10 @@ public:
         }
 
         // Clear all entities
-        EntityManager::instance().clear();
+        m_gameEngine->getEntityManager().clear();
 
         // Reset physics world
-        auto& physics = SBox2DPhysics::instance();
+        auto& physics = m_gameEngine->getPhysics();
         physics.setGravity({0.0f, m_gravityEnabled ? GRAVITY_FORCE : 0.0f});
 
         // Recreate boundary colliders, player, and balls
@@ -518,7 +514,7 @@ public:
         createBalls();
 
         // Force EntityManager to process pending entities
-        EntityManager::instance().update(0.0f);
+        m_gameEngine->getEntityManager().update(0.0f);
 
         std::cout << "=== Restart complete ===" << std::endl;
     }
@@ -546,10 +542,10 @@ public:
     void update(float dt)
     {
         // Update Input Manager
-        SInputManager::instance().update(dt);
+        m_gameEngine->getInputManager().update(dt);
 
         // Handle window controls and key actions via SInputManager (prevents double polling)
-        const auto& im = SInputManager::instance();
+        const auto& im = m_gameEngine->getInputManager();
 
         // Check for mouse clicks using abstracted MouseButton enum
         if (im.wasMouseReleased(MouseButton::Left))
@@ -603,7 +599,7 @@ public:
         }
         if (im.wasKeyPressed(KeyCode::Up))
         {
-            auto& audioSystem   = SAudioSystem::instance();
+            auto& audioSystem   = m_gameEngine->getAudioSystem();
             float currentVolume = audioSystem.getMasterVolume();
             float newVolume     = std::min(currentVolume + VOLUME_ADJUSTMENT_STEP, 1.0f);
             audioSystem.setMasterVolume(newVolume);
@@ -611,7 +607,7 @@ public:
         }
         if (im.wasKeyPressed(KeyCode::Down))
         {
-            auto& audioSystem   = SAudioSystem::instance();
+            auto& audioSystem   = m_gameEngine->getAudioSystem();
             float currentVolume = audioSystem.getMasterVolume();
             float newVolume     = std::max(currentVolume - VOLUME_ADJUSTMENT_STEP, 0.0f);
             audioSystem.setMasterVolume(newVolume);
@@ -619,13 +615,13 @@ public:
         }
 
         // Update Box2D physics
-        SBox2DPhysics::instance().update(dt);
+        m_gameEngine->getPhysics().update(dt);
 
         // Update Audio System
-        SAudioSystem::instance().update(dt);
+        m_gameEngine->getAudioSystem().update(dt);
 
         // Update EntityManager
-        EntityManager::instance().update(dt);
+        m_gameEngine->getEntityManager().update(dt);
     }
 
     void render()
@@ -636,7 +632,7 @@ public:
         std::vector<std::string> boundaryTags = {"floor", "rightWall", "leftWall", "topWall"};
         for (const auto& tag : boundaryTags)
         {
-            auto boundaries = EntityManager::instance().getEntitiesByTag(tag);
+            auto boundaries = m_gameEngine->getEntityManager().getEntitiesByTag(tag);
             for (auto& boundaryCollider : boundaries)
             {
                 if (!boundaryCollider->hasComponent<CTransform>() || !boundaryCollider->hasComponent<CCollider2D>())
@@ -665,7 +661,7 @@ public:
         }
 
         // Draw balls
-        auto balls     = EntityManager::instance().getEntitiesByTag("ball");
+        auto balls     = m_gameEngine->getEntityManager().getEntitiesByTag("ball");
         int  ballIndex = 0;
         for (auto& ball : balls)
         {
@@ -715,7 +711,7 @@ public:
         }
 
         // Draw player boat
-        auto players = EntityManager::instance().getEntitiesByTag("player");
+        auto players = m_gameEngine->getEntityManager().getEntitiesByTag("player");
         for (auto& player : players)
         {
             if (!player->hasComponent<CTransform>() || !player->hasComponent<CCollider2D>())
@@ -832,8 +828,8 @@ public:
         if (m_showVectors)
         {
             // Get all entities and check all entities have CTransform and CPhysicsBody2D
-            auto player   = EntityManager::instance().getEntitiesByTag("player")[0];
-            auto allBalls = EntityManager::instance().getEntitiesByTag("ball");
+            auto player   = m_gameEngine->getEntityManager().getEntitiesByTag("player")[0];
+            auto allBalls = m_gameEngine->getEntityManager().getEntitiesByTag("ball");
 
             // Combine balls and players into one itertable list
             auto allEntities = allBalls;
@@ -862,7 +858,7 @@ public:
         // Draw UI text showing current status
         if (m_fontLoaded)
         {
-            const auto& audioSystem   = SAudioSystem::instance();
+            const auto& audioSystem   = m_gameEngine->getAudioSystem();
             float       currentVolume = audioSystem.getMasterVolume();
 
             std::ostringstream oss;

@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
-#include "components/CInputController.h"
-#include "systems/SInputManager.h"
+#include "CInputController.h"
+#include "SInputManager.h"
 #include "Input/ActionBinding.h"
 #include "Input/InputEvents.h"
 #include "utility/JsonBuilder.h"
