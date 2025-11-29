@@ -48,7 +48,7 @@ set(FETCHCONTENT_BASE_DIR ${DEPS_CACHE_DIR})
 
 # Find SFML (pre-built for Windows cross-compilation)
 set(SFML_STATIC_LIBRARIES FALSE)
-find_package(SFML 2.6 REQUIRED COMPONENTS graphics window system)
+find_package(SFML 2.6 REQUIRED COMPONENTS graphics window system audio)
 
 # Find OpenGL (required for ImGui-SFML)
 find_package(OpenGL REQUIRED)
@@ -214,6 +214,7 @@ target_link_libraries(GameEngine
     sfml-graphics
     sfml-window
     sfml-system
+    sfml-audio
     ImGui-SFML
     Threads::Threads
     box2d

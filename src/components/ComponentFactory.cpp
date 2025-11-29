@@ -1,4 +1,6 @@
 #include "ComponentFactory.h"
+#include "CAudioListener.h"
+#include "CAudioSource.h"
 #include "CCollider2D.h"
 #include "CInputController.h"
 #include "CName.h"
@@ -38,4 +40,10 @@ void ComponentFactory::registerBuiltInComponents()
     registerComponent<CCollider2D>("Collider2D");  // Alias for easier JSON usage
     registerComponent<CInputController>("CInputController");
     registerComponent<CInputController>("InputController");  // Alias for easier JSON usage
+
+    // Audio components
+    registerComponent<CAudioSource>("CAudioSource");
+    registerComponent<CAudioSource>("AudioSource");  // Alias for easier JSON usage
+    registerComponent<CAudioListener>("CAudioListener");
+    registerComponent<CAudioListener>("AudioListener");  // Alias for easier JSON usage
 }
