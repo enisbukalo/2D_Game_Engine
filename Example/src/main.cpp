@@ -34,7 +34,7 @@ const float MOTOR_FADE_DURATION       = 2.0f;   // 2 second fade-in & fade-out
 const float MOTOR_MAX_VOLUME          = 0.45f;  // 45% max volume
 const float MAX_MUSIC_VOLUME          = 0.80f;  // 80% max volume
 const float VOLUME_ADJUSTMENT_STEP    = 0.05f;  // Volume change per key press (5%)
-const float INITIAL_VOLUME            = 0.5f;   // 50% initial volume
+const float INITIAL_VOLUME            = 0.15f;  // 15% initial volume
 
 class BounceGame
 {
@@ -54,8 +54,9 @@ private:
     // Audio state
     AudioHandle m_motorBoatHandle;
     bool        m_motorBoatPlaying;
+    bool        m_motorBoatFadingOut;
     float       m_motorBoatVolume;
-    float       m_motorBoatFadeSpeed;  // Volume increase per second
+    float       m_motorBoatFadeSpeed;  // Volume change per second (for both fade in and out)
 
     // Helper function to convert meters to pixels for rendering
     sf::Vector2f metersToPixels(const Vec2& meters) const
@@ -88,6 +89,7 @@ public:
           m_playerPhysics(nullptr),
           m_motorBoatHandle(AudioHandle::invalid()),
           m_motorBoatPlaying(false),
+          m_motorBoatFadingOut(false),
           m_motorBoatVolume(0.0f),
           m_motorBoatFadeSpeed(MOTOR_MAX_VOLUME / MOTOR_FADE_DURATION)
     {
@@ -117,7 +119,9 @@ public:
         audioSystem.initialize();
 
         // Set initial master volume
+        std::cout << "Setting initial master volume to: " << INITIAL_VOLUME << std::endl;
         audioSystem.setMasterVolume(INITIAL_VOLUME);
+        std::cout << "Master volume is now: " << audioSystem.getMasterVolume() << std::endl;
 
         // Load audio assets
         audioSystem.loadSound("background_music", "assets/audio/rainyday.mp3", AudioType::Music);
@@ -434,15 +438,17 @@ public:
     {
         // Check if any movement key is still being held
         auto& inputManager       = SInputManager::instance();
-        bool  anyMovementKeyHeld = inputManager.isKeyDown(KeyCode::W) || inputManager.isKeyDown(KeyCode::A);
+        bool  anyMovementKeyHeld = inputManager.isKeyDown(KeyCode::W) || inputManager.isKeyDown(KeyCode::S);
 
-        if (!anyMovementKeyHeld && m_motorBoatPlaying)
+        if (!anyMovementKeyHeld && m_motorBoatPlaying && !m_motorBoatFadingOut)
         {
-            // Stop motor boat sound with fade-out
-            auto& audioSystem = SAudioSystem::instance();
-            audioSystem.stopSFX(m_motorBoatHandle);
-            m_motorBoatPlaying = false;
-            m_motorBoatVolume  = 0.0f;
+            // Initiate fade-out
+            m_motorBoatFadingOut = true;
+        }
+        else if (anyMovementKeyHeld && m_motorBoatFadingOut)
+        {
+            // Cancel fade-out if user starts moving again
+            m_motorBoatFadingOut = false;
         }
     }
 
@@ -455,9 +461,26 @@ public:
 
         auto& audioSystem = SAudioSystem::instance();
 
-        // Fade in motor boat volume over time
-        if (m_motorBoatVolume < MOTOR_MAX_VOLUME)
+        if (m_motorBoatFadingOut)
         {
+            // Fade out motor boat volume over time
+            m_motorBoatVolume -= m_motorBoatFadeSpeed * dt;
+            if (m_motorBoatVolume <= 0.0f)
+            {
+                // Volume reached zero, stop the sound
+                m_motorBoatVolume = 0.0f;
+                audioSystem.stopSFX(m_motorBoatHandle);
+                m_motorBoatPlaying   = false;
+                m_motorBoatFadingOut = false;
+            }
+            else
+            {
+                audioSystem.setSFXVolume(m_motorBoatHandle, m_motorBoatVolume);
+            }
+        }
+        else if (m_motorBoatVolume < MOTOR_MAX_VOLUME)
+        {
+            // Fade in motor boat volume over time
             m_motorBoatVolume += m_motorBoatFadeSpeed * dt;
             m_motorBoatVolume = std::min(m_motorBoatVolume, MOTOR_MAX_VOLUME);
             audioSystem.setSFXVolume(m_motorBoatHandle, m_motorBoatVolume);
@@ -519,8 +542,9 @@ public:
         if (m_motorBoatPlaying)
         {
             SAudioSystem::instance().stopSFX(m_motorBoatHandle);
-            m_motorBoatPlaying = false;
-            m_motorBoatVolume  = 0.0f;
+            m_motorBoatPlaying   = false;
+            m_motorBoatFadingOut = false;
+            m_motorBoatVolume    = 0.0f;
         }
 
         // Clear all entities
