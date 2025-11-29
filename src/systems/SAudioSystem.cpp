@@ -346,6 +346,18 @@ void SAudioSystem::setSFXPosition(AudioHandle handle, const Vec2& position)
     m_soundPool[handle.index].sound.setPosition(position.x, position.y, 0.0f);
 }
 
+void SAudioSystem::setSFXVolume(AudioHandle handle, float volume)
+{
+    if (!isHandleValid(handle))
+    {
+        return;
+    }
+
+    // Clamp and apply volume with master and category multipliers
+    volume = std::clamp(volume, 0.0f, 1.0f);
+    m_soundPool[handle.index].sound.setVolume(calculateEffectiveSFXVolume(volume) * 100.0f);
+}
+
 bool SAudioSystem::playMusic(const std::string& id, bool loop, float volume)
 {
     if (!m_initialized)

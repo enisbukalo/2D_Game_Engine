@@ -7,6 +7,7 @@
 #include <components/CInputController.h>
 #include <components/CPhysicsBody2D.h>
 #include <components/CTransform.h>
+#include <systems/SAudioSystem.h>
 #include <systems/SBox2DPhysics.h>
 #include <systems/SInputManager.h>
 #include <SFML/Graphics.hpp>
@@ -29,6 +30,9 @@ const float RANDOM_VELOCITY_RANGE     = 2.0f;   // Random velocity range: -2 to 
 const float PLAYER_SIZE_METERS        = 0.25f;  // Player square half-width/height in meters
 const float PLAYER_FORCE              = 5.0f;   // Force applied for player movement
 const float PLAYER_TURNING_FORCE      = 0.5f;   // Torque applied for player rotation
+const float                 MOTOR_FADE_DURATION = 2.0f;  // 2 second fade-in
+const float                 MOTOR_MAX_VOLUME = 0.6f;     // 60% max volume
+const float MAX_MUSIC_VOLUME    = 0.80f;     // 80% max volume
 
 class BounceGame
 {
@@ -44,6 +48,12 @@ private:
     bool                        m_showVectors;
     CPhysicsBody2D*             m_playerPhysics;
     std::shared_ptr<Entity>     m_player;
+
+    // Audio state
+    AudioHandle                 m_motorBoatHandle;
+    bool                        m_motorBoatPlaying;
+    float                       m_motorBoatVolume;
+    float                       m_motorBoatFadeSpeed;  // Volume increase per second
 
     // Helper function to convert meters to pixels for rendering
     sf::Vector2f metersToPixels(const Vec2& meters) const
@@ -70,10 +80,14 @@ public:
           m_ballAmount(INITIAL_BALL_COUNT),
           m_fontLoaded(false),
           m_gravityEnabled(INITIAL_GRAVITY_ENABLED),
-          m_showColliders(true),
+          m_showColliders(false),
           m_showVectors(false),
           m_player(nullptr),
-          m_playerPhysics(nullptr)
+          m_playerPhysics(nullptr),
+          m_motorBoatHandle(AudioHandle::invalid()),
+          m_motorBoatPlaying(false),
+          m_motorBoatVolume(0.0f),
+          m_motorBoatFadeSpeed(MOTOR_MAX_VOLUME / MOTOR_FADE_DURATION)
     {
         m_window.setFramerateLimit(60);
 
@@ -88,8 +102,25 @@ public:
         }
     }
 
+    ~BounceGame()
+    {
+        // Cleanup audio
+        SAudioSystem::instance().shutdown();
+    }
+
     void init()
     {
+        // Initialize audio system
+        auto& audioSystem = SAudioSystem::instance();
+        audioSystem.initialize();
+
+        // Load audio assets
+        audioSystem.loadSound("background_music", "assets/audio/rainyday.mp3", AudioType::Music);
+        audioSystem.loadSound("motor_boat", "assets/audio/motor_boat.mp3", AudioType::SFX);
+
+        // Start background music
+        audioSystem.playMusic("background_music", true, MAX_MUSIC_VOLUME);
+
         // Input Manager is already initialized by GameEngine - just disable ImGui passthrough
         SInputManager::instance().setPassToImGui(false);
 
@@ -268,6 +299,11 @@ public:
                                                    b2Vec2 forward = m_playerPhysics->getForwardVector();
                                                    b2Vec2 force = {forward.x * PLAYER_FORCE, forward.y * PLAYER_FORCE};
                                                    m_playerPhysics->applyForceToCenter(force);
+                                                   startMotorBoat();
+                                               }
+                                               else if (state == ActionState::Released)
+                                               {
+                                                   checkStopMotorBoat();
                                                }
                                            });
 
@@ -281,6 +317,11 @@ public:
                                                    b2Vec2 forward = m_playerPhysics->getForwardVector();
                                                    b2Vec2 force = {-forward.x * PLAYER_FORCE, -forward.y * PLAYER_FORCE};
                                                    m_playerPhysics->applyForceToCenter(force);
+                                                   startMotorBoat();
+                                               }
+                                               else if (state == ActionState::Released)
+                                               {
+                                                   checkStopMotorBoat();
                                                }
                                            });
 
@@ -371,6 +412,54 @@ public:
         std::cout << "Vectors: " << (m_showVectors ? "ON" : "OFF") << std::endl;
     }
 
+    void startMotorBoat()
+    {
+        auto& audioSystem = SAudioSystem::instance();
+        
+        if (!m_motorBoatPlaying)
+        {
+            // Start motor boat sound with 0 volume
+            m_motorBoatHandle = audioSystem.playSFX("motor_boat", 0.0f, 1.0f, true);
+            m_motorBoatPlaying = true;
+            m_motorBoatVolume = 0.0f;
+        }
+    }
+
+    void checkStopMotorBoat()
+    {
+        // Check if any movement key is still being held
+        auto& inputManager = SInputManager::instance();
+        bool anyMovementKeyHeld = inputManager.isKeyDown(KeyCode::W) ||
+                                   inputManager.isKeyDown(KeyCode::A) ||
+
+        if (!anyMovementKeyHeld && m_motorBoatPlaying)
+        {
+            // Stop motor boat sound
+            auto& audioSystem = SAudioSystem::instance();
+            audioSystem.stopSFX(m_motorBoatHandle);
+            m_motorBoatPlaying = false;
+            m_motorBoatVolume = 0.0f;
+        }
+    }
+
+    void updateMotorBoatVolume(float dt)
+    {
+        if (!m_motorBoatPlaying)
+        {
+            return;
+        }
+
+        auto& audioSystem = SAudioSystem::instance();
+
+        // Fade in motor boat volume over time
+        if (m_motorBoatVolume < MOTOR_MAX_VOLUME)
+        {
+            m_motorBoatVolume += m_motorBoatFadeSpeed * dt;
+            m_motorBoatVolume = std::min(m_motorBoatVolume, MOTOR_MAX_VOLUME);
+            audioSystem.setSFXVolume(m_motorBoatHandle, m_motorBoatVolume);
+        }
+    }
+
     void spawnRandomBall()
     {
         // Screen dimensions in meters
@@ -422,6 +511,14 @@ public:
         std::cout << "Ball count: " << m_ballAmount << std::endl;
         std::cout << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << std::endl;
 
+        // Stop motor boat if playing
+        if (m_motorBoatPlaying)
+        {
+            SAudioSystem::instance().stopSFX(m_motorBoatHandle);
+            m_motorBoatPlaying = false;
+            m_motorBoatVolume = 0.0f;
+        }
+
         // Clear all entities
         EntityManager::instance().clear();
 
@@ -464,6 +561,9 @@ public:
     {
         // Update Input Manager
         SInputManager::instance().update(dt);
+
+        // Update motor boat volume fade
+        updateMotorBoatVolume(dt);
 
         // Handle window controls and key actions via SInputManager (prevents double polling)
         const auto& im = SInputManager::instance();
@@ -521,6 +621,9 @@ public:
 
         // Update Box2D physics
         SBox2DPhysics::instance().update(dt);
+
+        // Update Audio System
+        SAudioSystem::instance().update(dt);
 
         // Update EntityManager
         EntityManager::instance().update(dt);
@@ -729,13 +832,21 @@ public:
         // Draw velocity vectors
         if (m_showVectors)
         {
-            for (auto& ball : balls)
+            // Get all entities and check all entities have CTransform and CPhysicsBody2D
+            auto player = EntityManager::instance().getEntitiesByTag("player")[0];
+            auto balls  = EntityManager::instance().getEntitiesByTag("ball");
+
+            // Combine balls and players into one itertable list
+            auto allEntities = balls;
+            allEntities.push_back(player);
+            
+            for (auto& entity : allEntities)
             {
-                if (!ball->hasComponent<CTransform>() || !ball->hasComponent<CPhysicsBody2D>())
+                if (!entity->hasComponent<CTransform>() || !entity->hasComponent<CPhysicsBody2D>())
                     continue;
 
-                auto* transform   = ball->getComponent<CTransform>();
-                auto* physicsBody = ball->getComponent<CPhysicsBody2D>();
+                auto* transform   = entity->getComponent<CTransform>();
+                auto* physicsBody = entity->getComponent<CPhysicsBody2D>();
 
                 Vec2 posMeters = transform->getPosition();
 
@@ -748,6 +859,7 @@ public:
                 }
             }
         }
+        
 
         // Draw UI text showing current status
         if (m_fontLoaded)

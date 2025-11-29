@@ -61,6 +61,7 @@ public:
     void resumeSFX(AudioHandle handle) override;
     bool isPlayingSFX(AudioHandle handle) const override;
     void setSFXPosition(AudioHandle handle, const Vec2& position) override;
+    void setSFXVolume(AudioHandle handle, float volume) override;
 
     bool playMusic(const std::string& id, bool loop = true, float volume = 1.0f) override;
     void stopMusic() override;

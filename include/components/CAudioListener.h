@@ -32,7 +32,7 @@ public:
         std::string clipId;                                          ///< Audio clip identifier
         AudioType   type         = AudioType::SFX;                   ///< Type of audio
         float       volume       = AudioConstants::DEFAULT_SFX_VOLUME;
-        float       pitch        = AudioConstants::DEFAULT_PITCH;
+        float       pitch        = AudioConstants::DEFAULT_AUDIO_PITCH;
         bool        loop         = false;
         bool        spatial      = false;                            ///< Enable 3D spatial audio
         float       minDistance  = AudioConstants::DEFAULT_MIN_DISTANCE;

@@ -112,6 +112,13 @@ public:
     virtual void setSFXPosition(AudioHandle handle, const Vec2& position) = 0;
 
     /**
+     * @brief Set the volume of a specific sound effect
+     * @param handle Handle to the sound
+     * @param volume Volume multiplier (0.0 to 1.0)
+     */
+    virtual void setSFXVolume(AudioHandle handle, float volume) = 0;
+
+    /**
      * @brief Play background music
      * @param id Identifier of the loaded music
      * @param loop Whether to loop the music

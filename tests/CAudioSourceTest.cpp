@@ -35,7 +35,7 @@ TEST_F(CAudioSourceTest, ComponentCreationAndDefaults)
     EXPECT_TRUE(audioSource->getClipId().empty());
     EXPECT_EQ(audioSource->getAudioType(), AudioType::SFX);
     EXPECT_FLOAT_EQ(audioSource->getVolume(), AudioConstants::DEFAULT_SFX_VOLUME);
-    EXPECT_FLOAT_EQ(audioSource->getPitch(), AudioConstants::DEFAULT_PITCH);
+    EXPECT_FLOAT_EQ(audioSource->getPitch(), AudioConstants::DEFAULT_AUDIO_PITCH);
     EXPECT_FALSE(audioSource->isLooping());
     EXPECT_FALSE(audioSource->isSpatial());
 }

@@ -53,15 +53,15 @@ struct AudioHandle
  */
 namespace AudioConstants
 {
-constexpr size_t DEFAULT_SFX_POOL_SIZE = 32;  ///< Default number of simultaneous sound effects
-constexpr float  DEFAULT_MASTER_VOLUME = 1.0f;
-constexpr float  DEFAULT_SFX_VOLUME    = 1.0f;
-constexpr float  DEFAULT_MUSIC_VOLUME  = 1.0f;
-constexpr float  DEFAULT_MIN_DISTANCE  = 1.0f;    ///< Minimum distance for 3D audio attenuation
-constexpr float  DEFAULT_ATTENUATION   = 1.0f;    ///< Attenuation factor for 3D audio
-constexpr float  DEFAULT_PITCH         = 1.0f;
-constexpr float  MIN_VOLUME            = 0.0f;
-constexpr float  MAX_VOLUME            = 1.0f;
+constexpr size_t DEFAULT_SFX_POOL_SIZE    = 32;    ///< Default number of simultaneous sound effects
+constexpr float  DEFAULT_MASTER_VOLUME    = 1.0f;
+constexpr float  DEFAULT_SFX_VOLUME       = 1.0f;
+constexpr float  DEFAULT_MUSIC_VOLUME     = 1.0f;
+constexpr float  DEFAULT_MIN_DISTANCE     = 1.0f;  ///< Minimum distance for 3D audio attenuation
+constexpr float  DEFAULT_ATTENUATION      = 1.0f;  ///< Attenuation factor for 3D audio
+constexpr float  DEFAULT_AUDIO_PITCH      = 1.0f;
+constexpr float  MIN_VOLUME               = 0.0f;
+constexpr float  MAX_VOLUME               = 1.0f;
 }  // namespace AudioConstants
 
 #endif  // AUDIOTYPES_H

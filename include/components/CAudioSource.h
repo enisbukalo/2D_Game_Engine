@@ -137,7 +137,7 @@ private:
     std::string m_clipId;                                           ///< Audio clip identifier
     AudioType   m_type         = AudioType::SFX;                    ///< Type of audio (SFX or Music)
     float       m_volume       = AudioConstants::DEFAULT_SFX_VOLUME;
-    float       m_pitch        = AudioConstants::DEFAULT_PITCH;
+    float       m_pitch        = AudioConstants::DEFAULT_AUDIO_PITCH;
     bool        m_loop         = false;
     bool        m_spatial      = false;                             ///< Enable 3D spatial audio
     bool        m_playOnAwake  = false;                             ///< Auto-play on initialization
