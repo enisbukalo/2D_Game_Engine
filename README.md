@@ -47,8 +47,11 @@ A modern C++ 2D game engine built with SFML, featuring an Entity Component Syste
 - **Built-in Components**:
   - `CTransform`: Handles position, velocity, scale, and rotation data storage
   - `CPhysicsBody2D`: Box2D physics body wrapper (Dynamic, Kinematic, or Static)
-  - `CCollider2D`: Box2D collision shape wrapper (Circle or Box)
+  - `CCollider2D`: Box2D collision shape wrapper (Circle, Box, Polygon, or Segment)
   - `CName`: Provides naming functionality for entities
+  - `CInputController`: Entity-specific input handling with action bindings
+  - `CAudioListener`: Marks entity as audio listener for spatial audio
+  - `CAudioSource`: Enables audio playback on entities (2D or spatial)
 
 ### Physics Scale Convention
 - **100 pixels = 1 meter**: Conversion scale for rendering Box2D physics
@@ -116,6 +119,24 @@ The codebase is organized using pragma regions for better readability:
   - Collision detection and response
   - Component-based physics integration
   - Automatic sync between Box2D and ECS components
+- **Audio System (SAudioSystem)**: SFML-based audio engine with advanced features
+  - **Music Streaming**: Single streamed music track with seamless playback
+  - **SFX Pooling**: Efficient sound effect management with configurable pool size (default 32)
+  - **Spatial Audio**: 3D positioned sound effects with distance attenuation
+  - **Fade Effects**: Smooth fade-in/fade-out transitions for music and SFX
+    - Linear and exponential fade curves
+    - Configurable fade duration
+  - **Volume Control**: Independent master, music, and SFX volume levels
+  - **Looping**: Support for both looping and one-shot playback
+  - **Pitch Control**: Adjust playback speed and pitch
+  - **Audio Handle System**: Track and control playing sounds
+  - Access via `gameEngine.getAudioSystem()`
+- **Input Manager (SInputManager)**: Comprehensive input handling system
+  - Keyboard and mouse input abstraction
+  - Action binding system for gameplay events
+  - Entity-specific input controllers via `CInputController` component
+  - Support for pressed, released, and held states
+  - Access via `gameEngine.getInputManager()`
 - **Component Factory**: Provides a factory pattern for component creation
   - Registers all built-in components
   - Supports custom component registration
@@ -236,65 +257,145 @@ The build script automatically handles the following dependencies:
 Dependencies are dynamically linked by default. The shared libraries will be included in the package's bin directory.
 You will be required to link the dependencies manually in your project.
 
+## API Usage
+
+### Accessing Engine Systems
+
+The GameEngine class provides the recommended public API for accessing all engine systems and managers. Instead of directly calling singleton `instance()` methods, use the GameEngine accessor methods:
+
+```cpp
+GameEngine gameEngine(&window, sf::Vector2f(0.0f, -9.81f));
+
+// Access systems through GameEngine (recommended)
+auto& entityManager = gameEngine.getEntityManager();
+auto& physics = gameEngine.getPhysics();
+auto& audioSystem = gameEngine.getAudioSystem();
+auto& inputManager = gameEngine.getInputManager();
+auto& sceneManager = gameEngine.getSceneManager();
+auto& componentFactory = gameEngine.getComponentFactory();
+```
+
+### Simplified Include Paths
+
+The engine uses a flat include structure. You can include headers directly without subdirectory prefixes:
+
+```cpp
+// Components - no "components/" prefix needed
+#include <CTransform.h>
+#include <CPhysicsBody2D.h>
+#include <CCollider2D.h>
+#include <CInputController.h>
+#include <CAudioSource.h>
+
+// Systems - no "systems/" prefix needed
+#include <SBox2DPhysics.h>
+#include <SAudioSystem.h>
+#include <SInputManager.h>
+
+// Entities and Managers
+#include <Entity.h>
+#include <EntityManager.h>
+#include <SceneManager.h>
+
+// Utilities
+#include <Vec2.h>
+#include <JsonBuilder.h>
+```
+
 ## Usage Example
 ```cpp
-// Get the physics system and entity manager
-auto& physics = SBox2DPhysics::instance();
-auto& entityManager = EntityManager::instance();
-auto& sceneManager = SceneManager::instance();
+#include <GameEngine.h>
+#include <Entity.h>
+#include <CTransform.h>
+#include <CPhysicsBody2D.h>
+#include <CCollider2D.h>
+#include <Vec2.h>
+#include <SFML/Graphics.hpp>
 
-// Initialize Box2D world with gravity
-// Note: Box2D uses Y-up coordinates (positive Y = upward) and meters
-physics.initialize(b2Vec2(0.0f, -10.0f));  // Standard Earth gravity (9.81 m/s²)
+int main()
+{
+    // Create window
+    sf::RenderWindow window(sf::VideoMode(800, 600), "Game");
+    
+    // Create game engine with gravity
+    GameEngine gameEngine(&window, sf::Vector2f(0.0f, -9.81f));
+    
+    // Access systems through GameEngine (recommended API)
+    auto& entityManager = gameEngine.getEntityManager();
+    auto& physics = gameEngine.getPhysics();
+    auto& sceneManager = gameEngine.getSceneManager();
+    auto& audioSystem = gameEngine.getAudioSystem();
 
-// Create a dynamic physics entity (e.g., player)
-auto player = entityManager.addEntity("player");
-auto transform = player->addComponent<CTransform>();
-auto physicsBody = player->addComponent<CPhysicsBody2D>();
-auto collider = player->addComponent<CCollider2D>();
+    // Initialize Box2D world with gravity
+    // Note: Box2D uses Y-up coordinates (positive Y = upward) and meters
+    physics.setGravity({0.0f, -10.0f});  // Standard Earth gravity (9.81 m/s²)
 
-// Initialize physics body at starting position (in meters)
-transform->setPosition(Vec2(5.0f, 10.0f));  // Position in meters
-physicsBody->initialize({5.0f, 10.0f}, BodyType::Dynamic);
+    // Create a dynamic physics entity (e.g., player)
+    auto player = entityManager.addEntity("player");
+    auto transform = player->addComponent<CTransform>();
+    auto physicsBody = player->addComponent<CPhysicsBody2D>();
+    auto collider = player->addComponent<CCollider2D>();
 
-// Add a circle collider (radius in meters)
-collider->createCircle(0.5f);  // 0.5 meter radius
-collider->setDensity(1.0f);    // 1 kg/m²
-collider->setFriction(0.3f);
-collider->setRestitution(0.5f); // 50% bounciness
+    // Initialize physics body at starting position (in meters)
+    transform->setPosition(Vec2(5.0f, 10.0f));  // Position in meters
+    physicsBody->initialize({5.0f, 10.0f}, BodyType::Dynamic);
 
-// Create a static ground platform
-auto ground = entityManager.addEntity("ground");
-auto groundTransform = ground->addComponent<CTransform>();
-auto groundBody = ground->addComponent<CPhysicsBody2D>();
-auto groundCollider = ground->addComponent<CCollider2D>();
+    // Add a circle collider (radius in meters)
+    collider->createCircle(0.5f);  // 0.5 meter radius
+    collider->setDensity(1.0f);    // 1 kg/m²
+    collider->setFriction(0.3f);
+    collider->setRestitution(0.5f); // 50% bounciness
 
-groundTransform->setPosition(Vec2(10.0f, 1.0f));
-groundBody->initialize({10.0f, 1.0f}, BodyType::Static);
-groundCollider->createBox(10.0f, 0.5f);  // 10m wide, 0.5m tall
+    // Create a static ground platform
+    auto ground = entityManager.addEntity("ground");
+    auto groundTransform = ground->addComponent<CTransform>();
+    auto groundBody = ground->addComponent<CPhysicsBody2D>();
+    auto groundCollider = ground->addComponent<CCollider2D>();
 
-// Apply forces and impulses
-physicsBody->applyLinearImpulseToCenter({5.0f, 0.0f});  // Horizontal kick
-physicsBody->applyForceToCenter({0.0f, 100.0f});        // Upward force
+    groundTransform->setPosition(Vec2(10.0f, 1.0f));
+    groundBody->initialize({10.0f, 1.0f}, BodyType::Static);
+    groundCollider->createBox(10.0f, 0.5f);  // 10m wide, 0.5m tall
 
-// Customize physics properties
-physicsBody->setGravityScale(0.5f);      // Half gravity
-physicsBody->setLinearDamping(0.1f);     // Air resistance
-physicsBody->setAngularDamping(0.1f);    // Rotation damping
+    // Apply forces and impulses
+    physicsBody->applyLinearImpulseToCenter({5.0f, 0.0f});  // Horizontal kick
+    physicsBody->applyForceToCenter({0.0f, 100.0f});        // Upward force
 
-// Game loop
-float deltaTime = 1.0f / 60.0f;
-physics.update(deltaTime);        // Step Box2D simulation
-entityManager.update(deltaTime);  // Update entities
+    // Customize physics properties
+    physicsBody->setGravityScale(0.5f);      // Half gravity
+    physicsBody->setLinearDamping(0.1f);     // Air resistance
+    physicsBody->setAngularDamping(0.1f);    // Rotation damping
 
-// Save the scene (includes all physics state)
-sceneManager.saveScene("level1.json");
+    // Initialize audio system and load sounds
+    audioSystem.initialize();
+    audioSystem.loadSound("background_music", "assets/music.mp3", AudioType::Music);
+    audioSystem.loadSound("jump_sfx", "assets/jump.wav", AudioType::SFX);
+    
+    // Play background music with looping
+    audioSystem.playMusic("background_music", true, 0.7f);
+    
+    // Play sound effect with fade-in
+    FadeConfig fadeIn = FadeConfig::linear(1.0f, true);
+    AudioHandle jumpHandle = audioSystem.playSFXWithFade("jump_sfx", 1.0f, 1.0f, false, fadeIn);
 
-// Later, load the scene (automatically recreates Box2D bodies)
-sceneManager.loadScene("level1.json");
+    // Game loop
+    float deltaTime = 1.0f / 60.0f;
+    while (window.isOpen())
+    {
+        gameEngine.update(deltaTime);
+        gameEngine.render();
+    }
 
-// Clear the scene when done
-sceneManager.clearScene();
+    // Save the scene (includes all physics state)
+    sceneManager.saveScene("level1.json");
+
+    // Later, load the scene (automatically recreates Box2D bodies)
+    sceneManager.loadScene("level1.json");
+
+    // Clear the scene when done
+    sceneManager.clearScene();
+    
+    return 0;
+}
 ```
 
 ## Project Structure

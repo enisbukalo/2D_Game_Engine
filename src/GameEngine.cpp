@@ -3,9 +3,6 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
-#include "EntityManager.h"
-#include "systems/SBox2DPhysics.h"
-#include "systems/SInputManager.h"
 
 GameEngine::GameEngine(sf::RenderWindow* window, sf::Vector2f gravity, uint8_t subStepCount, float timeStep)
     : m_window(window), m_gravity(gravity), m_subStepCount(subStepCount), m_timeStep(timeStep)
@@ -120,4 +117,34 @@ bool GameEngine::is_running() const
 std::shared_ptr<spdlog::logger> GameEngine::getLogger()
 {
     return spdlog::get("GameEngine");
+}
+
+EntityManager& GameEngine::getEntityManager()
+{
+    return EntityManager::instance();
+}
+
+SceneManager& GameEngine::getSceneManager()
+{
+    return SceneManager::instance();
+}
+
+ComponentFactory& GameEngine::getComponentFactory()
+{
+    return ComponentFactory::instance();
+}
+
+SBox2DPhysics& GameEngine::getPhysics()
+{
+    return SBox2DPhysics::instance();
+}
+
+SInputManager& GameEngine::getInputManager()
+{
+    return SInputManager::instance();
+}
+
+SAudioSystem& GameEngine::getAudioSystem()
+{
+    return SAudioSystem::instance();
 }

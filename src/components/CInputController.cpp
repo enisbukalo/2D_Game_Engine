@@ -1,6 +1,6 @@
-#include "components/CInputController.h"
+#include "CInputController.h"
 #include <spdlog/spdlog.h>
-#include "systems/SInputManager.h"
+#include "SInputManager.h"
 #include "utility/JsonBuilder.h"
 #include "utility/JsonValue.h"
 

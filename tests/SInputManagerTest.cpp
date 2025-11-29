@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "systems/SInputManager.h"
+#include "SInputManager.h"
 #include "Input/InputEvents.h"
 #include "Input/IInputListener.h"
 #include "Input/ActionBinding.h"
