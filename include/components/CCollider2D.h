@@ -1,8 +1,8 @@
 #pragma once
 
+#include <vector>
 #include "Component.h"
 #include "box2d/box2d.h"
-#include <vector>
 
 class CPhysicsBody2D;
 
@@ -34,7 +34,7 @@ struct ShapeFixture
 {
     b2ShapeId     shapeId;
     ColliderShape shapeType;
-    
+
     // Shape parameters
     union ShapeData
     {
@@ -164,8 +164,7 @@ public:
      * @param rotation Rotation offset in radians
      * @param radius Skin radius for the polygon (default: 0.0f)
      */
-    void createOffsetPolygon(const b2Hull& hull, const b2Vec2& position, float rotation,
-                             float radius = 0.0f);
+    void createOffsetPolygon(const b2Hull& hull, const b2Vec2& position, float rotation, float radius = 0.0f);
 
     /**
      * @brief Check if the collider has been initialized
