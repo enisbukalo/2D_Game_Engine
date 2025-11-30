@@ -56,25 +56,32 @@ void main()
     // Time-based animation
     float time = u_time * 0.3;
     
+    // Add subtle distortion to UV coordinates for more fluid look
+    vec2 distortion = vec2(
+        sin(uv.y * 15.0 + time * 2.0) * 0.003,
+        cos(uv.x * 20.0 + time * 1.5) * 0.003
+    );
+    vec2 distortedUV = uv + distortion;
+    
     // Create base noise pattern for natural water texture
-    vec2 noiseUV1 = uv * 8.0 + vec2(time * 0.15, time * 0.1);
-    vec2 noiseUV2 = uv * 12.0 - vec2(time * 0.1, time * 0.2);
-    vec2 noiseUV3 = uv * 20.0 + vec2(time * 0.08, -time * 0.15);
+    vec2 noiseUV1 = distortedUV * 8.0 + vec2(time * 0.15, time * 0.1);
+    vec2 noiseUV2 = distortedUV * 12.0 - vec2(time * 0.1, time * 0.2);
+    vec2 noiseUV3 = distortedUV * 20.0 + vec2(time * 0.08, -time * 0.15);
     
     float n1 = fbm(noiseUV1, 3);
     float n2 = fbm(noiseUV2, 3);
     float n3 = fbm(noiseUV3, 2);
     
     // Add horizontal wave motion influenced by noise
-    float horizontalWave = sin((uv.y + n1 * 0.1) * 60.0 + time * 1.5 + uv.x * 8.0) * 0.5 + 0.5;
+    float horizontalWave = sin((distortedUV.y + n1 * 0.1) * 60.0 + time * 1.5 + distortedUV.x * 8.0) * 0.5 + 0.5;
     
     // Combine noise layers with subtle horizontal bias
     float waves = (n1 * 0.35 + n2 * 0.25 + n3 * 0.15 + horizontalWave * 0.25);
     
-    // Ocean color palette - deep to shallow water
-    vec3 deepWater = vec3(0.0, 0.15, 0.35);      // Deep blue
-    vec3 shallowWater = vec3(0.0, 0.4, 0.6);     // Medium blue
-    vec3 surfaceWater = vec3(0.2, 0.55, 0.7);    // Light blue-green
+    // Ocean color palette - deep to shallow water (darker tones)
+    vec3 deepWater = vec3(0.0, 0.08, 0.25);      // Darker deep blue
+    vec3 shallowWater = vec3(0.0, 0.25, 0.45);   // Darker medium blue
+    vec3 surfaceWater = vec3(0.1, 0.4, 0.55);    // Darker light blue-green
     
     // Create depth gradient based on wave patterns
     float depth = waves * 0.8 + 0.2;
@@ -110,29 +117,82 @@ void main()
     float waveDisplacement = sin(uv.x * 15.0 + time * 2.0) * cos(uv.y * 12.0 + time * 1.5);
     waterColor += waveDisplacement * 0.03;
     
-    // Object wake effects
+    // Object wake effects - simple visible bubbles
     float wakeEffect = 0.0;
+    
+    // Calculate aspect ratio correction
+    float aspectRatio = u_resolution.x / u_resolution.y;
+    
     for(int i = 0; i < 50; i++)
     {
         if(i >= u_objectCount) break;
         
         vec2 objPos = u_objectPositions[i];
-        float dist = distance(uv, objPos);
         
-        // Create circular wake rings around objects
-        float wakeRadius = 0.08;  // Wake influence radius
-        if(dist < wakeRadius)
+        // Apply aspect ratio correction for circular distance
+        vec2 correctedUV = uv;
+        correctedUV.x *= aspectRatio;
+        vec2 correctedObjPos = objPos;
+        correctedObjPos.x *= aspectRatio;
+        
+        float dist = distance(correctedUV, correctedObjPos);
+        
+        // Check if we're near the object
+        float objectRadius = 0.01;
+        float wakeRadius = 0.025;
+        
+        if(dist > objectRadius && dist < wakeRadius)
         {
-            // Ripple rings emanating from object
-            float ripple = sin((dist - time * 0.5) * 40.0) * 0.5 + 0.5;
-            float falloff = 1.0 - (dist / wakeRadius);
-            wakeEffect += ripple * falloff * 0.4;
+            // Create 48 bubble spots (tripled) evenly distributed around object
+            for(int j = 0; j < 48; j++)
+            {
+                // Use unique seeds for each object and bubble
+                float objSeed = float(i) * 123.456;
+                float bubbleSeed = float(j) * 78.901;
+                
+                // Randomize bubble lifetime with much longer periods
+                float bubblePhase = hash(vec2(objSeed + bubbleSeed * 0.1, 0.0)) * 6.28318; // 0 to 2*PI
+                float bubbleSpeed = 0.3 + hash(vec2(objSeed + bubbleSeed * 0.2, 1.0)) * 0.4; // 0.3 to 0.7
+                float bubbleLife = sin(u_time * bubbleSpeed + bubblePhase) * 0.5 + 0.5;
+                
+                // Only show bubble if it's "alive" in its cycle
+                float spawnThreshold = hash(vec2(objSeed + bubbleSeed * 0.3, 2.0)) * 0.5 + 0.3; // 0.3 to 0.8
+                if(bubbleLife < spawnThreshold) continue; // Skip this bubble
+                
+                // Random angle around object with some drift over time
+                float baseAngle = hash(vec2(objSeed + bubbleSeed * 0.4, 3.0)) * 6.28318;
+                float angleDrift = sin(u_time * 0.2 + bubblePhase) * 0.3;
+                float bubbleAngle = baseAngle + angleDrift;
+                
+                // Random distance from object edge
+                float radiusVariation = hash(vec2(objSeed + bubbleSeed * 0.5, 4.0)) * 0.004;
+                float bubbleR = objectRadius + 0.001 + radiusVariation;
+                
+                // Position of this bubble with variance (with aspect correction)
+                vec2 bubblePos = correctedObjPos + vec2(cos(bubbleAngle), sin(bubbleAngle)) * bubbleR;
+                
+                // Distance to bubble center
+                float bubbleDist = distance(correctedUV, bubblePos);
+                
+                // Fade in/out smoothly over bubble lifetime
+                float visibility = smoothstep(spawnThreshold, spawnThreshold + 0.2, bubbleLife) * 
+                                  (1.0 - smoothstep(0.9, 1.0, bubbleLife));
+                
+                // Create small circular bubble with varying size
+                float bubbleSize = 0.003 + hash(vec2(objSeed + bubbleSeed * 0.6, 5.0)) * 0.002;
+                if(bubbleDist < bubbleSize && visibility > 0.05)
+                {
+                    float bubble = 1.0 - (bubbleDist / bubbleSize);
+                    bubble = bubble * bubble;  // Sharpen edges
+                    wakeEffect += bubble * 0.7 * visibility;
+                }
+            }
         }
     }
     
     // Apply wake foam
     vec3 wakeColor = vec3(1.0, 1.0, 1.0);
-    waterColor = mix(waterColor, wakeColor, wakeEffect * 0.8);
+    waterColor = mix(waterColor, wakeColor, clamp(wakeEffect, 0.0, 0.9));
     
     // Final color output
     gl_FragColor = vec4(waterColor, 1.0);
