@@ -164,9 +164,9 @@ void main()
                 float angleDrift = sin(u_time * 0.2 + bubblePhase) * 0.3;
                 float bubbleAngle = baseAngle + angleDrift;
                 
-                // Random distance from object edge
-                float radiusVariation = hash(vec2(objSeed + bubbleSeed * 0.5, 4.0)) * 0.004;
-                float bubbleR = objectRadius + 0.001 + radiusVariation;
+                // Random distance from object edge - tighter to edges
+                float radiusVariation = hash(vec2(objSeed + bubbleSeed * 0.5, 4.0)) * 0.002;
+                float bubbleR = objectRadius + 0.0005 + radiusVariation;
                 
                 // Position of this bubble with variance (with aspect correction)
                 vec2 bubblePos = correctedObjPos + vec2(cos(bubbleAngle), sin(bubbleAngle)) * bubbleR;
@@ -178,12 +178,12 @@ void main()
                 float visibility = smoothstep(spawnThreshold, spawnThreshold + 0.2, bubbleLife) * 
                                   (1.0 - smoothstep(0.9, 1.0, bubbleLife));
                 
-                // Create small circular bubble with varying size
+                // Create small circular bubble with varying size - softer edges
                 float bubbleSize = 0.003 + hash(vec2(objSeed + bubbleSeed * 0.6, 5.0)) * 0.002;
                 if(bubbleDist < bubbleSize && visibility > 0.05)
                 {
                     float bubble = 1.0 - (bubbleDist / bubbleSize);
-                    bubble = bubble * bubble;  // Sharpen edges
+                    bubble = sqrt(bubble);  // Softer, more blurred edges
                     wakeEffect += bubble * 0.7 * visibility;
                 }
             }
