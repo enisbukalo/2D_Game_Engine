@@ -507,6 +507,75 @@ public:
         m_velocityLines.clear();
     }
 
+    void updateOceanShaderUniforms()
+    {
+        if (!m_oceanBackground)
+            return;
+
+        // Get the shader from the material component
+        auto* material = m_oceanBackground->getComponent<CMaterial>();
+        if (!material)
+            return;
+
+        std::string shaderGuid = material->getShaderGuid();
+        if (shaderGuid.empty())
+            return;
+
+        auto* shaderComp = m_oceanBackground->getComponent<CShader>();
+        if (!shaderComp)
+            return;
+
+        // Get the SFML shader from SRenderer cache
+        auto& renderer = SRenderer::instance();
+        const sf::Shader* shader = renderer.loadShader(shaderComp->getVertexShaderPath(),
+                                                       shaderComp->getFragmentShaderPath());
+        if (!shader)
+            return;
+
+        // Collect positions of all physics objects (player + barrels)
+        std::vector<sf::Vector2f> positions;
+        const int MAX_OBJECTS = 50;
+
+        // Get player position
+        auto players = m_gameEngine->getEntityManager().getEntitiesByTag("player");
+        for (const auto& player : players)
+        {
+            if (positions.size() >= MAX_OBJECTS)
+                break;
+            auto* transform = player->getComponent<CTransform>();
+            if (transform)
+            {
+                Vec2 pos = transform->getPosition();
+                // Convert to normalized screen coordinates (0 to 1)
+                float normX = pos.x * PIXELS_PER_METER / SCREEN_WIDTH;
+                float normY = pos.y * PIXELS_PER_METER / SCREEN_HEIGHT;  // Don't flip - shader uses gl_FragCoord
+                positions.push_back(sf::Vector2f(normX, normY));
+            }
+        }
+
+        // Get barrel positions
+        auto barrels = m_gameEngine->getEntityManager().getEntitiesByTag("barrel");
+        for (const auto& barrel : barrels)
+        {
+            if (positions.size() >= MAX_OBJECTS)
+                break;
+            auto* transform = barrel->getComponent<CTransform>();
+            if (transform)
+            {
+                Vec2 pos = transform->getPosition();
+                // Convert to normalized screen coordinates (0 to 1)
+                float normX = pos.x * PIXELS_PER_METER / SCREEN_WIDTH;
+                float normY = pos.y * PIXELS_PER_METER / SCREEN_HEIGHT;  // Don't flip - shader uses gl_FragCoord
+                positions.push_back(sf::Vector2f(normX, normY));
+            }
+        }
+
+        // Set shader uniforms (need mutable shader)
+        sf::Shader* mutableShader = const_cast<sf::Shader*>(shader);
+        mutableShader->setUniform("u_objectCount", static_cast<int>(positions.size()));
+        mutableShader->setUniformArray("u_objectPositions", positions.data(), positions.size());
+    }
+
     void startMotorBoat()
     {
         auto& audioSystem = m_gameEngine->getAudioSystem();
@@ -815,17 +884,8 @@ public:
         // Update Box2D physics
         m_gameEngine->getPhysics().update(dt);
 
-        // Update ocean shader uniforms
-        if (m_oceanBackground)
-        {
-            auto* shader = m_oceanBackground->getComponent<CShader>();
-            if (shader)
-            {
-                // Update shader uniforms for animation
-                // Note: Uniform updates would need to be handled by the renderer
-                // For now, time is passed automatically by SFML if the shader uses it
-            }
-        }
+        // Update ocean shader uniforms with object positions
+        updateOceanShaderUniforms();
 
         // Update velocity lines if visible
         if (m_showVectors)

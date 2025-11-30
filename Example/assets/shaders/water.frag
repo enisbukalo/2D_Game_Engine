@@ -1,6 +1,8 @@
 // Procedural ocean water fragment shader
 uniform float u_time;
 uniform vec2 u_resolution;
+uniform int u_objectCount;
+uniform vec2 u_objectPositions[50];  // Max 50 objects
 
 varying vec2 v_texCoord;
 
@@ -107,6 +109,30 @@ void main()
     // Subtle wave motion displacement
     float waveDisplacement = sin(uv.x * 15.0 + time * 2.0) * cos(uv.y * 12.0 + time * 1.5);
     waterColor += waveDisplacement * 0.03;
+    
+    // Object wake effects
+    float wakeEffect = 0.0;
+    for(int i = 0; i < 50; i++)
+    {
+        if(i >= u_objectCount) break;
+        
+        vec2 objPos = u_objectPositions[i];
+        float dist = distance(uv, objPos);
+        
+        // Create circular wake rings around objects
+        float wakeRadius = 0.08;  // Wake influence radius
+        if(dist < wakeRadius)
+        {
+            // Ripple rings emanating from object
+            float ripple = sin((dist - time * 0.5) * 40.0) * 0.5 + 0.5;
+            float falloff = 1.0 - (dist / wakeRadius);
+            wakeEffect += ripple * falloff * 0.4;
+        }
+    }
+    
+    // Apply wake foam
+    vec3 wakeColor = vec3(1.0, 1.0, 1.0);
+    waterColor = mix(waterColor, wakeColor, wakeEffect * 0.8);
     
     // Final color output
     gl_FragColor = vec4(waterColor, 1.0);
