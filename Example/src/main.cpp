@@ -1,8 +1,12 @@
 #include <AudioTypes.h>
 #include <CCollider2D.h>
 #include <CInputController.h>
+#include <CMaterial.h>
 #include <CPhysicsBody2D.h>
+#include <CRenderable.h>
+#include <CTexture.h>
 #include <CTransform.h>
+#include <Color.h>
 #include <Entity.h>
 #include <GameEngine.h>
 #include <Input/MouseButton.h>
@@ -15,13 +19,13 @@
 // Define Screen Size
 const int   SCREEN_WIDTH              = 1600;
 const int   SCREEN_HEIGHT             = 1000;
-const int   INITIAL_BALL_COUNT        = 100;
+const int   INITIAL_BARREL_COUNT      = 100;
 const bool  INITIAL_GRAVITY_ENABLED   = false;
 const float TIME_STEP                 = 1.0f / 60.0f;  // 60 FPS
 const float GRAVITY_FORCE             = -10.0f;        // Box2D gravity (m/s²), negative = downward
 const float PIXELS_PER_METER          = 100.0f;        // Rendering scale: 100 pixels = 1 meter
 const float RESTITUTION               = 0.5f;   // Bounciness factor (lowered from 0.8 to reduce collision energy)
-const float BALL_RADIUS_METERS        = 0.1f;   // Radius in meters
+const float BARREL_RADIUS_METERS      = 0.15f;  // Barrel radius in meters
 const float BOUNDARY_THICKNESS_METERS = 0.5f;   // Thickness in meters
 const float RANDOM_VELOCITY_RANGE     = 2.0f;   // Random velocity range: -2 to +2 m/s
 const float PLAYER_SIZE_METERS        = 0.25f;  // Player square half-width/height in meters
@@ -36,10 +40,9 @@ const float INITIAL_VOLUME            = 0.15f;  // 15% initial volume
 class BounceGame
 {
 private:
-    sf::RenderWindow            m_window;
     std::unique_ptr<GameEngine> m_gameEngine;
     sf::Font                    m_font;
-    int                         m_ballAmount;
+    int                         m_barrelAmount;
     bool                        m_running;
     bool                        m_fontLoaded;
     bool                        m_gravityEnabled;
@@ -51,11 +54,17 @@ private:
     // Audio state
     AudioHandle m_motorBoatHandle;
 
-    // Helper function to convert meters to pixels for rendering
+    // Helper function to convert meters to pixels for rendering (used for debug visualization)
     sf::Vector2f metersToPixels(const Vec2& meters) const
     {
         // Note: Y-flip for screen coordinates (Box2D Y-up -> Screen Y-down)
         return sf::Vector2f(meters.x * PIXELS_PER_METER, SCREEN_HEIGHT - (meters.y * PIXELS_PER_METER));
+    }
+
+    // Helper to get window from renderer
+    sf::RenderWindow* getWindow() const
+    {
+        return m_gameEngine->getRenderer().getWindow();
     }
 
     // Helper function to generate random velocity in a symmetric range
@@ -70,10 +79,8 @@ private:
 
 public:
     BounceGame()
-        : m_window(sf::VideoMode(SCREEN_WIDTH, SCREEN_HEIGHT), "Bouncing Balls Example - Box2D"),
-          m_gameEngine(std::make_unique<GameEngine>(&m_window, sf::Vector2f(0.0f, GRAVITY_FORCE))),
-          m_running(true),
-          m_ballAmount(INITIAL_BALL_COUNT),
+        : m_running(true),
+          m_barrelAmount(INITIAL_BARREL_COUNT),
           m_fontLoaded(false),
           m_gravityEnabled(INITIAL_GRAVITY_ENABLED),
           m_showColliders(false),
@@ -82,7 +89,16 @@ public:
           m_playerPhysics(nullptr),
           m_motorBoatHandle(AudioHandle::invalid())
     {
-        m_window.setFramerateLimit(60);
+        // Create window configuration
+        WindowConfig windowConfig;
+        windowConfig.width = SCREEN_WIDTH;
+        windowConfig.height = SCREEN_HEIGHT;
+        windowConfig.title = "Bouncing Barrels Example - ECS Rendering";
+        windowConfig.vsync = true;
+        windowConfig.frameLimit = 60;
+
+        // Initialize game engine with window config
+        m_gameEngine = std::make_unique<GameEngine>(windowConfig, Vec2(0.0f, GRAVITY_FORCE));
 
         // Try to load a system font (optional, will work without it)
         if (!m_font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf"))
@@ -128,7 +144,7 @@ public:
 
         createBoundaryColliders();
         createPlayer();
-        createBalls();
+        createBarrels();
 
         // Force EntityManager to process pending entities
         m_gameEngine->getEntityManager().update(0.0f);
@@ -137,13 +153,13 @@ public:
         std::cout << "Physics: Box2D v3.1.1 (1 unit = 1 meter, Y-up)" << std::endl;
         std::cout << "Controls:" << std::endl;
         std::cout << "  WASD            : Move player boat (W=forward, S=backward, A/D=turn)" << std::endl;
-        std::cout << "  Left/Right      : Adjust ball count" << std::endl;
+        std::cout << "  Left/Right      : Adjust barrel count" << std::endl;
         std::cout << "  R               : Restart scenario" << std::endl;
         std::cout << "  G               : Toggle gravity" << std::endl;
         std::cout << "  C               : Toggle collider visibility" << std::endl;
         std::cout << "  V               : Toggle vector visualization" << std::endl;
         std::cout << "  Escape          : Exit" << std::endl;
-        std::cout << "Number of balls: " << m_ballAmount << std::endl;
+        std::cout << "Number of barrels:" << m_barrelAmount << std::endl;
         std::cout << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << std::endl;
     }
 
@@ -199,7 +215,15 @@ public:
 
         // Create player entity
         m_player = m_gameEngine->getEntityManager().addEntity("player");
-        m_player->addComponent<CTransform>(Vec2(centerX, centerY), Vec2(1.0f, 1.0f), 0.0f);
+        
+        // Boat dimensions for proper sprite scaling
+        const float boatLength = PLAYER_SIZE_METERS * 3.5f;  // 0.875 meters
+        const float boatWidth  = PLAYER_SIZE_METERS * 1.8f;  // 0.45 meters
+        
+        // Scale factor to make sprite match collider size
+        const float boatSpriteScale = 1.0f;  // Use 1.0 for natural size matching
+        
+        m_player->addComponent<CTransform>(Vec2(centerX, centerY), Vec2(boatSpriteScale, boatSpriteScale), 0.0f);
 
         // Add physics body
         m_playerPhysics = m_player->addComponent<CPhysicsBody2D>();
@@ -209,9 +233,8 @@ public:
 
         // Create boat shape with curved bow using multiple polygon segments
         // Boat points from stern (back) to bow (front), with Y-axis as forward
-        const float boatLength = PLAYER_SIZE_METERS * 3.5f;  // Total length (increased)
-        const float boatWidth  = PLAYER_SIZE_METERS * 1.8f;  // Width at widest point (increased)
-
+        // const float boatLength and boatWidth already defined above
+        
         // Create single collider that will hold multiple polygon fixtures
         auto* collider = m_player->addComponent<CCollider2D>();
 
@@ -261,6 +284,22 @@ public:
             // Add this polygon as an additional fixture
             collider->addPolygon(sliceVertices.data(), sliceVertices.size(), 0.02f);
         }
+
+        // Add rendering components for player boat texture
+        auto boatTexture = m_player->addComponent<CTexture>("assets/textures/boat.png");
+        auto boatRenderable = m_player->addComponent<CRenderable>(
+            VisualType::Sprite,
+            Color::White,
+            10  // Higher z-index so boat renders on top of barrels
+        );
+        boatRenderable->setVisible(true);
+
+        // Add material for the boat
+        auto boatMaterial = m_player->addComponent<CMaterial>();
+        boatMaterial->setTextureGuid(boatTexture->getGuid());
+        boatMaterial->setTint(Color::White);
+        boatMaterial->setOpacity(1.0f);
+        boatMaterial->setBlendMode(BlendMode::Alpha);
 
         // Add input controller with action bindings
         auto* inputController = m_player->addComponent<CInputController>();
@@ -344,40 +383,56 @@ public:
                                            });
     }
 
-    void createBalls()
+    void createBarrels()
     {
         // Screen dimensions in meters
         const float screenWidthMeters  = SCREEN_WIDTH / PIXELS_PER_METER;
         const float screenHeightMeters = SCREEN_HEIGHT / PIXELS_PER_METER;
 
-        // Calculate spawn boundaries accounting for boundary thickness and ball radius
-        const float MIN_X = BOUNDARY_THICKNESS_METERS + BALL_RADIUS_METERS;
-        const float MAX_X = screenWidthMeters - BOUNDARY_THICKNESS_METERS - BALL_RADIUS_METERS;
-        const float MIN_Y = BOUNDARY_THICKNESS_METERS + BALL_RADIUS_METERS;
-        const float MAX_Y = screenHeightMeters - BOUNDARY_THICKNESS_METERS - BALL_RADIUS_METERS;
+        // Calculate spawn boundaries accounting for boundary thickness and barrel radius
+        const float MIN_X = BOUNDARY_THICKNESS_METERS + BARREL_RADIUS_METERS;
+        const float MAX_X = screenWidthMeters - BOUNDARY_THICKNESS_METERS - BARREL_RADIUS_METERS;
+        const float MIN_Y = BOUNDARY_THICKNESS_METERS + BARREL_RADIUS_METERS;
+        const float MAX_Y = screenHeightMeters - BOUNDARY_THICKNESS_METERS - BARREL_RADIUS_METERS;
 
-        for (int i = 0; i < m_ballAmount; i++)
+        for (int i = 0; i < m_barrelAmount; i++)
         {
             // Random position within safe spawn area (in meters)
             float randomX = MIN_X + static_cast<float>(rand()) / RAND_MAX * (MAX_X - MIN_X);
             float randomY = MIN_Y + static_cast<float>(rand()) / RAND_MAX * (MAX_Y - MIN_Y);
 
-            auto ball = m_gameEngine->getEntityManager().addEntity("ball");
-            ball->addComponent<CTransform>(Vec2(randomX, randomY), Vec2(1.0f, 1.0f), 0.0f);
+            auto barrel = m_gameEngine->getEntityManager().addEntity("barrel");
+            barrel->addComponent<CTransform>(Vec2(randomX, randomY), Vec2(1.0f, 1.0f), 0.0f);
 
-            auto* physicsBody = ball->addComponent<CPhysicsBody2D>();
+            auto* physicsBody = barrel->addComponent<CPhysicsBody2D>();
             physicsBody->initialize({randomX, randomY}, BodyType::Dynamic);
 
-            auto* collider = ball->addComponent<CCollider2D>();
-            collider->createCircle(BALL_RADIUS_METERS);
+            auto* collider = barrel->addComponent<CCollider2D>();
+            collider->createCircle(BARREL_RADIUS_METERS);
             collider->setRestitution(RESTITUTION);
-            collider->setDensity(1.0f);  // Set ball density (lighter than player)
+            collider->setDensity(1.0f);  // Set barrel density (lighter than player)
 
-            // Add damping to gradually reduce velocity (prevents balls from maintaining excessive speeds)
+            // Add damping to gradually reduce velocity (prevents barrels from maintaining excessive speeds)
             physicsBody->setLinearDamping(0.125f);
 
             // Randomize initial velocity
             physicsBody->setLinearVelocity({getRandomVelocity().x, getRandomVelocity().y});
+
+            // Add rendering components for barrel sprite
+            auto barrelTexture = barrel->addComponent<CTexture>("assets/textures/barrel.png");
+            auto barrelRenderable = barrel->addComponent<CRenderable>(
+                VisualType::Sprite,
+                Color::White,
+                0  // Lower z-index so barrels render behind boat
+            );
+            barrelRenderable->setVisible(true);
+
+            // Add material for the barrel
+            auto barrelMaterial = barrel->addComponent<CMaterial>();
+            barrelMaterial->setTextureGuid(barrelTexture->getGuid());
+            barrelMaterial->setTint(Color::White);
+            barrelMaterial->setOpacity(1.0f);
+            barrelMaterial->setBlendMode(BlendMode::Alpha);
         }
     }
 
@@ -442,55 +497,71 @@ public:
         }
     }
 
-    void spawnRandomBall()
+    void spawnRandomBarrel()
     {
         // Screen dimensions in meters
         const float screenWidthMeters  = SCREEN_WIDTH / PIXELS_PER_METER;
         const float screenHeightMeters = SCREEN_HEIGHT / PIXELS_PER_METER;
 
         // Calculate spawn boundaries
-        const float MIN_X = BOUNDARY_THICKNESS_METERS + BALL_RADIUS_METERS;
-        const float MAX_X = screenWidthMeters - BOUNDARY_THICKNESS_METERS - BALL_RADIUS_METERS;
-        const float MIN_Y = BOUNDARY_THICKNESS_METERS + BALL_RADIUS_METERS;
-        const float MAX_Y = screenHeightMeters - BOUNDARY_THICKNESS_METERS - BALL_RADIUS_METERS;
+        const float MIN_X = BOUNDARY_THICKNESS_METERS + BARREL_RADIUS_METERS;
+        const float MAX_X = screenWidthMeters - BOUNDARY_THICKNESS_METERS - BARREL_RADIUS_METERS;
+        const float MIN_Y = BOUNDARY_THICKNESS_METERS + BARREL_RADIUS_METERS;
+        const float MAX_Y = screenHeightMeters - BOUNDARY_THICKNESS_METERS - BARREL_RADIUS_METERS;
 
         // Random position within safe spawn area (in meters)
         float randomX = MIN_X + static_cast<float>(rand()) / RAND_MAX * (MAX_X - MIN_X);
         float randomY = MIN_Y + static_cast<float>(rand()) / RAND_MAX * (MAX_Y - MIN_Y);
 
-        auto ball = m_gameEngine->getEntityManager().addEntity("ball");
-        ball->addComponent<CTransform>(Vec2(randomX, randomY), Vec2(1.0f, 1.0f), 0.0f);
+        auto barrel = m_gameEngine->getEntityManager().addEntity("barrel");
+        barrel->addComponent<CTransform>(Vec2(randomX, randomY), Vec2(1.0f, 1.0f), 0.0f);
 
-        auto* physicsBody = ball->addComponent<CPhysicsBody2D>();
+        auto* physicsBody = barrel->addComponent<CPhysicsBody2D>();
         physicsBody->initialize({randomX, randomY}, BodyType::Dynamic);
 
-        auto* collider = ball->addComponent<CCollider2D>();
-        collider->createCircle(BALL_RADIUS_METERS);
+        auto* collider = barrel->addComponent<CCollider2D>();
+        collider->createCircle(BARREL_RADIUS_METERS);
         collider->setRestitution(RESTITUTION);
-        collider->setDensity(1.0f);  // Set ball density (lighter than player)
+        collider->setDensity(1.0f);  // Set barrel density (lighter than player)
 
-        // Add damping to gradually reduce velocity (prevents balls from maintaining excessive speeds)
+        // Add damping to gradually reduce velocity (prevents barrels from maintaining excessive speeds)
         physicsBody->setLinearDamping(0.2f);
 
         // Randomize initial velocity
         physicsBody->setLinearVelocity({getRandomVelocity().x, getRandomVelocity().y});
+
+        // Add rendering components for barrel sprite
+        auto barrelTexture = barrel->addComponent<CTexture>("assets/textures/barrel.png");
+        auto barrelRenderable = barrel->addComponent<CRenderable>(
+            VisualType::Sprite,
+            Color::White,
+            0  // Lower z-index so barrels render behind boat
+        );
+        barrelRenderable->setVisible(true);
+
+        // Add material for the barrel
+        auto barrelMaterial = barrel->addComponent<CMaterial>();
+        barrelMaterial->setTextureGuid(barrelTexture->getGuid());
+        barrelMaterial->setTint(Color::White);
+        barrelMaterial->setOpacity(1.0f);
+        barrelMaterial->setBlendMode(BlendMode::Alpha);
     }
 
-    void removeRandomBall()
+    void removeRandomBarrel()
     {
-        auto balls = m_gameEngine->getEntityManager().getEntitiesByTag("ball");
-        if (!balls.empty())
+        auto barrels = m_gameEngine->getEntityManager().getEntitiesByTag("barrel");
+        if (!barrels.empty())
         {
-            // Pick a random ball to remove
-            int randomIndex = rand() % balls.size();
-            balls[randomIndex]->destroy();
+            // Pick a random barrel to remove
+            int randomIndex = rand() % barrels.size();
+            barrels[randomIndex]->destroy();
         }
     }
 
     void restart()
     {
         std::cout << "\n=== Restarting scenario ===" << std::endl;
-        std::cout << "Ball count: " << m_ballAmount << std::endl;
+        std::cout << "Barrel count:" << m_barrelAmount << std::endl;
         std::cout << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << std::endl;
 
         // Stop motor boat if playing
@@ -508,10 +579,10 @@ public:
         auto& physics = m_gameEngine->getPhysics();
         physics.setGravity({0.0f, m_gravityEnabled ? GRAVITY_FORCE : 0.0f});
 
-        // Recreate boundary colliders, player, and balls
+        // Recreate boundary colliders, player, and barrels
         createBoundaryColliders();
         createPlayer();
-        createBalls();
+        createBarrels();
 
         // Force EntityManager to process pending entities
         m_gameEngine->getEntityManager().update(0.0f);
@@ -536,7 +607,11 @@ public:
         line[1].position = endPixels;
         line[1].color    = color;
 
-        m_window.draw(line);
+        auto* window = getWindow();
+        if (window)
+        {
+            window->draw(line);
+        }
     }
 
     void update(float dt)
@@ -565,20 +640,20 @@ public:
         }
         if (im.wasKeyPressed(KeyCode::Left))
         {
-            if (m_ballAmount > 1)
+            if (m_barrelAmount > 1)
             {
-                m_ballAmount--;
-                removeRandomBall();
-                std::cout << "Ball count: " << m_ballAmount << std::endl;
+                m_barrelAmount--;
+                removeRandomBarrel();
+                std::cout << "Barrel count: " << m_barrelAmount << std::endl;
             }
         }
         if (im.wasKeyPressed(KeyCode::Right))
         {
-            if (m_ballAmount < 1000)
+            if (m_barrelAmount < 1000)
             {
-                m_ballAmount++;
-                spawnRandomBall();
-                std::cout << "Ball count: " << m_ballAmount << std::endl;
+                m_barrelAmount++;
+                spawnRandomBarrel();
+                std::cout << "Barrel count: " << m_barrelAmount << std::endl;
             }
         }
         if (im.wasKeyPressed(KeyCode::R))
@@ -626,8 +701,13 @@ public:
 
     void render()
     {
-        m_window.clear(sf::Color(50, 50, 50));  // Dark gray background
+        auto* window = getWindow();
+        if (!window) return;
 
+        // Use GameEngine's render pipeline for ECS entities
+        m_gameEngine->render();
+
+        // Manual drawing for debug visualization (colliders, vectors, UI)
         // Draw boundary colliders
         std::vector<std::string> boundaryTags = {"floor", "rightWall", "leftWall", "topWall"};
         for (const auto& tag : boundaryTags)
@@ -656,63 +736,43 @@ public:
                     shape.setOutlineColor(sf::Color(0, 255, 0));  // Lime green
                     shape.setOutlineThickness(2.0f);
                 }
-                m_window.draw(shape);
+                window->draw(shape);
             }
         }
 
-        // Draw balls
-        auto balls     = m_gameEngine->getEntityManager().getEntitiesByTag("ball");
-        int  ballIndex = 0;
-        for (auto& ball : balls)
+        // Barrels are now rendered by the ECS rendering pipeline automatically
+        // Only draw debug colliders if enabled
+        if (m_showColliders)
         {
-            if (!ball->hasComponent<CTransform>() || !ball->hasComponent<CCollider2D>())
-                continue;
-
-            auto* transform = ball->getComponent<CTransform>();
-            auto* collider  = ball->getComponent<CCollider2D>();
-
-            Vec2         posMeters    = transform->getPosition();
-            sf::Vector2f posPixels    = metersToPixels(posMeters);
-            float        radiusPixels = collider->getCircleRadius() * PIXELS_PER_METER;
-
-            sf::CircleShape ballShape(radiusPixels);
-            ballShape.setOrigin(radiusPixels, radiusPixels);
-            ballShape.setPosition(posPixels);
-
-            // Set a random color for each ball
-            sf::Color color;
-            switch (ballIndex % 5)
+            auto barrels = m_gameEngine->getEntityManager().getEntitiesByTag("barrel");
+            for (auto& barrel : barrels)
             {
-                case 0:
-                    color = sf::Color::Red;
-                    break;
-                case 1:
-                    color = sf::Color::Green;
-                    break;
-                case 2:
-                    color = sf::Color::Blue;
-                    break;
-                case 3:
-                    color = sf::Color::Yellow;
-                    break;
-                case 4:
-                    color = sf::Color::Cyan;
-                    break;
-            }
-            ballShape.setFillColor(color);
-            if (m_showColliders)
-            {
-                ballShape.setOutlineColor(sf::Color(0, 255, 0));  // Lime green
-                ballShape.setOutlineThickness(2.0f);
-            }
+                if (!barrel->hasComponent<CTransform>() || !barrel->hasComponent<CCollider2D>())
+                    continue;
 
-            m_window.draw(ballShape);
-            ballIndex++;
+                auto* transform = barrel->getComponent<CTransform>();
+                auto* collider  = barrel->getComponent<CCollider2D>();
+
+                Vec2         posMeters    = transform->getPosition();
+                sf::Vector2f posPixels    = metersToPixels(posMeters);
+                float        radiusPixels = collider->getCircleRadius() * PIXELS_PER_METER;
+
+                sf::CircleShape colliderShape(radiusPixels);
+                colliderShape.setOrigin(radiusPixels, radiusPixels);
+                colliderShape.setPosition(posPixels);
+                colliderShape.setFillColor(sf::Color::Transparent);
+                colliderShape.setOutlineColor(sf::Color::Green);
+                colliderShape.setOutlineThickness(2.0f);
+
+                window->draw(colliderShape);
+            }
         }
 
-        // Draw player boat
-        auto players = m_gameEngine->getEntityManager().getEntitiesByTag("player");
-        for (auto& player : players)
+        // Draw player boat debug colliders
+        if (m_showColliders)
+        {
+            auto players = m_gameEngine->getEntityManager().getEntitiesByTag("player");
+            for (auto& player : players)
         {
             if (!player->hasComponent<CTransform>() || !player->hasComponent<CCollider2D>())
                 continue;
@@ -762,7 +822,7 @@ public:
                             boatShape.setOutlineColor(sf::Color::Magenta);  // Magenta outline for player
                             boatShape.setOutlineThickness(3.0f);
                         }
-                        m_window.draw(boatShape);
+                        window->draw(boatShape);
                     }
                 }
                 else if (fixture.shapeType == ColliderShape::Segment || fixture.shapeType == ColliderShape::ChainSegment)
@@ -800,7 +860,7 @@ public:
                                                     sf::Color(200, 150, 100)),
                                          sf::Vertex(sf::Vector2f(posPixels.x + pixelX2, posPixels.y + pixelY2),
                                                     sf::Color(200, 150, 100))};
-                    m_window.draw(line, 2, sf::Lines);
+                    window->draw(line, 2, sf::Lines);
 
                     // Draw thicker line if colliders are shown
                     if (m_showColliders)
@@ -814,25 +874,26 @@ public:
                         {
                             thickLine[0].position.x += offset;
                             thickLine[1].position.x += offset;
-                            m_window.draw(thickLine, 2, sf::Lines);
+                            window->draw(thickLine, 2, sf::Lines);
                             thickLine[0].position.y += offset;
                             thickLine[1].position.y += offset;
-                            m_window.draw(thickLine, 2, sf::Lines);
+                            window->draw(thickLine, 2, sf::Lines);
                         }
                     }
                 }
             }
+        }
         }
 
         // Draw velocity vectors
         if (m_showVectors)
         {
             // Get all entities and check all entities have CTransform and CPhysicsBody2D
-            auto player   = m_gameEngine->getEntityManager().getEntitiesByTag("player")[0];
-            auto allBalls = m_gameEngine->getEntityManager().getEntitiesByTag("ball");
+            auto player      = m_gameEngine->getEntityManager().getEntitiesByTag("player")[0];
+            auto allBarrels = m_gameEngine->getEntityManager().getEntitiesByTag("barrel");
 
-            // Combine balls and players into one itertable list
-            auto allEntities = allBalls;
+            // Combine barrels and players into one iterable list
+            auto allEntities = allBarrels;
             allEntities.push_back(player);
 
             for (auto& entity : allEntities)
@@ -862,8 +923,8 @@ public:
             float       currentVolume = audioSystem.getMasterVolume();
 
             std::ostringstream oss;
-            oss << "Box2D Physics (1 unit = 1 meter, Y-up)\n";
-            oss << "Ball Count: " << m_ballAmount << " (Use Left/Right to add/remove)\n";
+            oss << "Box2D Physics (1 unit = 1 meter, Y-up) - ECS Rendering Pipeline\n";
+            oss << "Barrel Count: " << m_barrelAmount << " (Use Left/Right to add/remove)\n";
             oss << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << " (Press G to toggle)\n";
             oss << "Colliders: " << (m_showColliders ? "ON" : "OFF") << " (Press C to toggle)\n";
             oss << "Vectors: " << (m_showVectors ? "ON" : "OFF") << " (Press V to toggle)\n";
@@ -875,10 +936,10 @@ public:
             text.setCharacterSize(20);
             text.setFillColor(sf::Color::White);
             text.setPosition(10.0f, 10.0f);
-            m_window.draw(text);
+            window->draw(text);
         }
 
-        m_window.display();
+        // Display is handled by GameEngine's render() method
     }
 
     void run()
@@ -887,7 +948,8 @@ public:
 
         sf::Clock clock;
         clock.restart();  // Reset clock after init to get proper first frame delta
-        while (m_running && m_window.isOpen())
+        auto* window = getWindow();
+        while (m_running && window && window->isOpen())
         {
             float dt = clock.restart().asSeconds();
 
@@ -895,7 +957,10 @@ public:
             render();
         }
 
-        m_window.close();
+        if (window)
+        {
+            window->close();
+        }
     }
 };
 

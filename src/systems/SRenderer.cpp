@@ -259,6 +259,14 @@ void SRenderer::renderEntity(Entity* entity)
     Vec2  scale    = transform->getScale();
     float rotation = transform->getRotation();
 
+    // Convert from physics coordinates (meters, Y-up) to screen coordinates (pixels, Y-down)
+    const float PIXELS_PER_METER = 100.0f;
+    const float SCREEN_HEIGHT = static_cast<float>(m_window->getSize().y);
+    
+    sf::Vector2f screenPos;
+    screenPos.x = pos.x * PIXELS_PER_METER;
+    screenPos.y = SCREEN_HEIGHT - (pos.y * PIXELS_PER_METER);  // Flip Y axis
+
     // Get material if available
     auto* material = entity->getComponent<CMaterial>();
 
@@ -328,8 +336,8 @@ void SRenderer::renderEntity(Entity* entity)
         auto* collider = entity->getComponent<CCollider2D>();
         if (collider && collider->getShapeType() == ColliderShape::Box)
         {
-            float halfWidth = collider->getBoxHalfWidth();
-            float halfHeight = collider->getBoxHalfHeight();
+            float halfWidth = collider->getBoxHalfWidth() * PIXELS_PER_METER;
+            float halfHeight = collider->getBoxHalfHeight() * PIXELS_PER_METER;
             rect.setSize(sf::Vector2f(halfWidth * 2.0f, halfHeight * 2.0f));
             rect.setOrigin(halfWidth, halfHeight);
         }
@@ -340,8 +348,8 @@ void SRenderer::renderEntity(Entity* entity)
             rect.setOrigin(25.0f * scale.x, 25.0f * scale.y);
         }
 
-        rect.setPosition(pos.x, pos.y);
-        rect.setRotation(rotation * 180.0f / 3.14159265f);  // Convert radians to degrees
+        rect.setPosition(screenPos);
+        rect.setRotation(-rotation * 180.0f / 3.14159265f);  // Negate for Y-axis flip
         rect.setFillColor(finalColor.toSFML());
 
         if (texture)
@@ -361,14 +369,14 @@ void SRenderer::renderEntity(Entity* entity)
         float radius = 25.0f;
         if (collider && collider->getShapeType() == ColliderShape::Circle)
         {
-            radius = collider->getCircleRadius();
+            radius = collider->getCircleRadius() * PIXELS_PER_METER;
         }
 
         circle.setRadius(radius);
         circle.setOrigin(radius, radius);
-        circle.setPosition(pos.x, pos.y);
+        circle.setPosition(screenPos);
         circle.setScale(scale.x, scale.y);
-        circle.setRotation(rotation * 180.0f / 3.14159265f);
+        circle.setRotation(-rotation * 180.0f / 3.14159265f);  // Negate for Y-axis flip
         circle.setFillColor(finalColor.toSFML());
 
         if (texture)
@@ -385,10 +393,44 @@ void SRenderer::renderEntity(Entity* entity)
         {
             sf::Sprite sprite(*texture);
             sf::FloatRect bounds = sprite.getLocalBounds();
+            
+            // Scale sprite to match physics collider size
+            auto* collider = entity->getComponent<CCollider2D>();
+            if (collider)
+            {
+                float targetSize = 0.0f;
+                if (collider->getShapeType() == ColliderShape::Circle)
+                {
+                    // For circles, use diameter
+                    targetSize = collider->getCircleRadius() * 2.0f * PIXELS_PER_METER;
+                }
+                else if (collider->getShapeType() == ColliderShape::Box)
+                {
+                    // For boxes, use width (assuming square-ish sprites)
+                    targetSize = collider->getBoxHalfWidth() * 2.0f * PIXELS_PER_METER;
+                }
+                
+                if (targetSize > 0.0f)
+                {
+                    // Calculate scale to fit target size
+                    // Use the smaller dimension to ensure sprite fills the collider
+                    float spriteSize = std::min(bounds.width, bounds.height);
+                    float spriteScale = targetSize / spriteSize;
+                    sprite.setScale(spriteScale * scale.x, spriteScale * scale.y);
+                }
+                else
+                {
+                    sprite.setScale(scale.x, scale.y);
+                }
+            }
+            else
+            {
+                sprite.setScale(scale.x, scale.y);
+            }
+            
             sprite.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
-            sprite.setPosition(pos.x, pos.y);
-            sprite.setScale(scale.x, scale.y);
-            sprite.setRotation(rotation * 180.0f / 3.14159265f);
+            sprite.setPosition(screenPos);
+            sprite.setRotation(-rotation * 180.0f / 3.14159265f);  // Negate for Y-axis flip
             sprite.setColor(finalColor.toSFML());
 
             m_window->draw(sprite, states);
@@ -398,8 +440,8 @@ void SRenderer::renderEntity(Entity* entity)
             // Fallback: draw a rectangle if no texture
             sf::RectangleShape rect(sf::Vector2f(50.0f * scale.x, 50.0f * scale.y));
             rect.setOrigin(25.0f * scale.x, 25.0f * scale.y);
-            rect.setPosition(pos.x, pos.y);
-            rect.setRotation(rotation * 180.0f / 3.14159265f);
+            rect.setPosition(screenPos);
+            rect.setRotation(-rotation * 180.0f / 3.14159265f);  // Negate for Y-axis flip
             rect.setFillColor(finalColor.toSFML());
             m_window->draw(rect, states);
         }
