@@ -4,6 +4,7 @@
 #include <CMaterial.h>
 #include <CPhysicsBody2D.h>
 #include <CRenderable.h>
+#include <CShader.h>
 #include <CTexture.h>
 #include <CTransform.h>
 #include <Color.h>
@@ -57,6 +58,7 @@ private:
     bool                        m_showVectors;
     CPhysicsBody2D*             m_playerPhysics;
     std::shared_ptr<Entity>     m_player;
+    std::shared_ptr<Entity>     m_oceanBackground;
 
     // Audio state
     AudioHandle m_motorBoatHandle;
@@ -87,6 +89,7 @@ public:
           m_showVectors(false),
           m_player(nullptr),
           m_playerPhysics(nullptr),
+          m_oceanBackground(nullptr),
           m_motorBoatHandle(AudioHandle::invalid())
     {
         // Create window configuration
@@ -142,6 +145,7 @@ public:
         auto& physics = m_gameEngine->getPhysics();
         physics.setGravity({0.0f, m_gravityEnabled ? GRAVITY_FORCE : 0.0f});
 
+        createOceanBackground();
         createBoundaryColliders();
         createPlayer();
         createBarrels();
@@ -201,6 +205,44 @@ public:
         auto* topBody = topWall->addComponent<CPhysicsBody2D>();
         topBody->initialize({screenWidthMeters / 2.0f, screenHeightMeters - BOUNDARY_THICKNESS_METERS / 2.0f}, BodyType::Static);
         topWall->addComponent<CCollider2D>()->createBox(screenWidthMeters / 2.0f, BOUNDARY_THICKNESS_METERS / 2.0f);
+    }
+
+    void createOceanBackground()
+    {
+        // Screen dimensions in meters
+        const float screenWidthMeters  = SCREEN_WIDTH / PIXELS_PER_METER;
+        const float screenHeightMeters = SCREEN_HEIGHT / PIXELS_PER_METER;
+
+        // Create ocean background entity
+        m_oceanBackground = m_gameEngine->getEntityManager().addEntity("ocean");
+
+        // Position at screen center, covering entire play area
+        m_oceanBackground->addComponent<CTransform>(Vec2(screenWidthMeters / 2.0f, screenHeightMeters / 2.0f),
+                                                    Vec2(1.0f, 1.0f),
+                                                    0.0f);
+
+        // Create large rectangle covering the screen
+        auto* oceanRenderable = m_oceanBackground->addComponent<CRenderable>(VisualType::Rectangle,
+                                                                             Color::Blue,
+                                                                             -10  // Render behind everything
+        );
+        oceanRenderable->setVisible(true);
+
+        // Add box collider to define size (no physics body, just for rendering dimensions)
+        auto* oceanCollider = m_oceanBackground->addComponent<CCollider2D>();
+        oceanCollider->createBox(screenWidthMeters / 2.0f,   // half-width
+                                 screenHeightMeters / 2.0f);  // half-height
+
+        // Add ocean shader
+        auto* oceanShader = m_oceanBackground->addComponent<CShader>("assets/shaders/water.vert",
+                                                                     "assets/shaders/water.frag");
+
+        // Add material to bind shader
+        auto* oceanMaterial = m_oceanBackground->addComponent<CMaterial>();
+        oceanMaterial->setShaderGuid(oceanShader->getGuid());
+        oceanMaterial->setTint(Color::White);
+        oceanMaterial->setOpacity(1.0f);
+        oceanMaterial->setBlendMode(BlendMode::Alpha);
     }
 
     void createPlayer()
@@ -579,7 +621,8 @@ public:
         auto& physics = m_gameEngine->getPhysics();
         physics.setGravity({0.0f, m_gravityEnabled ? GRAVITY_FORCE : 0.0f});
 
-        // Recreate boundary colliders, player, and barrels
+        // Recreate ocean background, boundary colliders, player, and barrels
+        createOceanBackground();
         createBoundaryColliders();
         createPlayer();
         createBarrels();
@@ -771,6 +814,18 @@ public:
 
         // Update Box2D physics
         m_gameEngine->getPhysics().update(dt);
+
+        // Update ocean shader uniforms
+        if (m_oceanBackground)
+        {
+            auto* shader = m_oceanBackground->getComponent<CShader>();
+            if (shader)
+            {
+                // Update shader uniforms for animation
+                // Note: Uniform updates would need to be handled by the renderer
+                // For now, time is passed automatically by SFML if the shader uses it
+            }
+        }
 
         // Update velocity lines if visible
         if (m_showVectors)
