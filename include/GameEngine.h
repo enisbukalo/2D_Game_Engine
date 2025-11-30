@@ -2,7 +2,6 @@
 #define GAMEENGINE_H
 
 #include <spdlog/spdlog.h>
-#include <SFML/Graphics.hpp>
 #include <memory>
 
 // Include system and manager headers
@@ -11,6 +10,7 @@
 #include <SAudioSystem.h>
 #include <SBox2DPhysics.h>
 #include <SInputManager.h>
+#include <SRenderer.h>
 #include <SceneManager.h>
 
 /**
@@ -19,20 +19,20 @@
  * @description
  * GameEngine is the central class that manages the game loop, physics updates,
  * and rendering. It provides a fixed timestep update system for consistent
- * physics simulation and handles input processing. The engine integrates with
- * SFML for window management and rendering.
+ * physics simulation and handles input processing. The engine uses SRenderer
+ * for window management and rendering, abstracting away direct SFML dependencies.
  */
 class GameEngine
 {
 public:
     /**
      * @brief Constructs a game engine instance
-     * @param window Pointer to the SFML render window
-     * @param gravity The global gravity vector
+     * @param windowConfig Window initialization configuration
+     * @param gravity The global gravity vector (Y-up: positive Y = upward)
      * @param subStepCount Number of physics sub-steps per update (default: 6, increase for more stability with many bodies)
      * @param timeStep Fixed time step for physics updates
      */
-    GameEngine(sf::RenderWindow* window, sf::Vector2f gravity, uint8_t subStepCount = 6, float timeStep = 1.0f / 60.0f);
+    GameEngine(const WindowConfig& windowConfig, Vec2 gravity, uint8_t subStepCount = 6, float timeStep = 1.0f / 60.0f);
 
     /** @brief Destructor */
     ~GameEngine();
@@ -107,6 +107,12 @@ public:
      */
     SAudioSystem& getAudioSystem();
 
+    /**
+     * @brief Gets the renderer system instance
+     * @return Reference to the SRenderer singleton
+     */
+    SRenderer& getRenderer();
+
 private:
     const uint8_t m_subStepCount;  ///< Number of physics sub-steps per update
     const float   m_timeStep;      ///< Fixed time step for physics updates
@@ -114,8 +120,7 @@ private:
     bool  m_gameRunning = false;  ///< Flag indicating if the game is running
     float m_accumulator = 0.0f;   ///< Accumulator for fixed timestep updates
 
-    sf::RenderWindow* m_window;   ///< Pointer to the SFML render window
-    sf::Vector2f      m_gravity;  ///< Global gravity vector
+    Vec2 m_gravity;  ///< Global gravity vector
 };
 
 #endif  // GAMEENGINE_H

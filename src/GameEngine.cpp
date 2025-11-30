@@ -4,8 +4,8 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
-GameEngine::GameEngine(sf::RenderWindow* window, sf::Vector2f gravity, uint8_t subStepCount, float timeStep)
-    : m_window(window), m_gravity(gravity), m_subStepCount(subStepCount), m_timeStep(timeStep)
+GameEngine::GameEngine(const WindowConfig& windowConfig, Vec2 gravity, uint8_t subStepCount, float timeStep)
+    : m_gravity(gravity), m_subStepCount(subStepCount), m_timeStep(timeStep)
 {
     // Initialize spdlog logger (using synchronous logging for now)
     if (!spdlog::get("GameEngine"))
@@ -28,8 +28,18 @@ GameEngine::GameEngine(sf::RenderWindow* window, sf::Vector2f gravity, uint8_t s
     if (auto logger = spdlog::get("GameEngine"))
     {
         logger->info("GameEngine initialized");
-        logger->info("Window size: {}x{}", window->getSize().x, window->getSize().y);
+        logger->info("Window size: {}x{}", windowConfig.width, windowConfig.height);
         logger->info("SubSteps: {}, TimeStep: {}", (int)subStepCount, timeStep);
+    }
+
+    // Initialize renderer
+    if (!SRenderer::instance().initialize(windowConfig))
+    {
+        if (auto logger = spdlog::get("GameEngine"))
+        {
+            logger->error("Failed to initialize SRenderer");
+        }
+        return;
     }
 
     m_gameRunning = true;
@@ -41,16 +51,18 @@ GameEngine::GameEngine(sf::RenderWindow* window, sf::Vector2f gravity, uint8_t s
     // do not trigger "unused member" style warnings from static analyzers
     physics.setSubStepCount(m_subStepCount);  // Set substep count for stability
     physics.setTimeStep(m_timeStep);          // Set fixed timestep
+
     // Initialize input manager and register window event handling
-    SInputManager::instance().initialize(m_window, true);
+    SInputManager::instance().initialize(SRenderer::instance().getWindow(), true);
     SInputManager::instance().subscribe(
         [this](const InputEvent& ev)
         {
             if (ev.type == InputEventType::WindowClosed)
             {
-                if (m_window)
+                auto* window = SRenderer::instance().getWindow();
+                if (window)
                 {
-                    m_window->close();
+                    window->close();
                 }
                 m_gameRunning = false;
             }
@@ -61,6 +73,9 @@ GameEngine::~GameEngine()
 {
     // Shutdown input manager
     SInputManager::instance().shutdown();
+
+    // Shutdown renderer
+    SRenderer::instance().shutdown();
 
     if (auto logger = spdlog::get("GameEngine"))
     {
@@ -104,9 +119,10 @@ void GameEngine::update(float deltaTime)
 
 void GameEngine::render()
 {
-    m_window->clear();
-    // Render game objects
-    m_window->display();
+    auto& renderer = SRenderer::instance();
+    renderer.clear(Color::Black);
+    renderer.render();
+    renderer.display();
 }
 
 bool GameEngine::is_running() const
@@ -147,4 +163,9 @@ SInputManager& GameEngine::getInputManager()
 SAudioSystem& GameEngine::getAudioSystem()
 {
     return SAudioSystem::instance();
+}
+
+SRenderer& GameEngine::getRenderer()
+{
+    return SRenderer::instance();
 }
