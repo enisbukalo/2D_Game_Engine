@@ -8,6 +8,7 @@ A modern C++ 2D game engine built with SFML, featuring an Entity Component Syste
   - [Notes](#notes)
   - [Features](#features)
     - [Entity Component System (ECS)](#entity-component-system-ecs)
+    - [Rendering System](#rendering-system)
     - [Physics Scale Convention](#physics-scale-convention)
     - [Physics System](#physics-system)
     - [Serialization System](#serialization-system)
@@ -22,8 +23,6 @@ A modern C++ 2D game engine built with SFML, featuring an Entity Component Syste
     - [Build Output](#build-output)
     - [Building Example Project](#building-example-project)
     - [Dependencies](#dependencies-1)
-  - [API Usage](#api-usage)
-    - [Accessing Engine Systems](#accessing-engine-systems)
     - [Simplified Include Paths](#simplified-include-paths)
   - [Project Structure](#project-structure)
   - [Audio Attribution](#audio-attribution)
@@ -42,10 +41,35 @@ A modern C++ 2D game engine built with SFML, featuring an Entity Component Syste
   - `CTransform`: Handles position, velocity, scale, and rotation data storage
   - `CPhysicsBody2D`: Box2D physics body wrapper (Dynamic, Kinematic, or Static)
   - `CCollider2D`: Box2D collision shape wrapper (Circle, Box, Polygon, or Segment)
+  - `CRenderable`: Visual representation with support for sprites, shapes, and lines
+  - `CMaterial`: Material properties including textures, shaders, tint, opacity, and blend modes
+  - `CTexture`: Texture asset management and loading
+  - `CShader`: Shader program management (vertex and fragment shaders)
   - `CName`: Provides naming functionality for entities
   - `CInputController`: Entity-specific input handling with action bindings
   - `CAudioListener`: Marks entity as audio listener for spatial audio
   - `CAudioSource`: Enables audio playback on entities (2D or spatial)
+
+### Rendering System
+- **SRenderer**: ECS-based rendering pipeline with SFML backend
+  - Automatic rendering of all entities with `CRenderable` components
+  - Z-index based layering for draw order control
+  - Camera system for view transformations
+  - **Visual Types**:
+    - Sprites with texture support
+    - Primitive shapes (rectangles, circles)
+    - Lines with configurable thickness
+    - Custom rendering support
+  - **Material System**:
+    - Texture mapping with `CTexture` components
+    - Shader support via `CShader` components
+    - Color tinting and opacity control
+    - Blend mode options (Alpha, Additive, Multiply, None)
+  - **Coordinate System Integration**:
+    - Automatic conversion between physics (meters, Y-up) and screen space (pixels, Y-down)
+    - Proper rotation and scale transformations
+    - Multi-polygon collider bounds calculation for sprite scaling
+  - Clear separation between game logic and rendering
 
 ### Physics Scale Convention
 - **100 pixels = 1 meter**: Conversion scale for rendering Box2D physics
@@ -87,6 +111,11 @@ A modern C++ 2D game engine built with SFML, featuring an Entity Component Syste
 The codebase is organized using pragma regions for better readability with sections for Variables, Methods, and Templates.
 
 ### Core Systems
+- **Renderer (SRenderer)**: ECS-based rendering system with automatic entity rendering
+  - Z-index layering and camera transformations
+  - Sprite, shape, and line primitive support
+  - Material system with textures, shaders, and blend modes
+  - Access via `gameEngine.getRenderer()`
 - **Entity Manager**: Handles entity lifecycle, querying, and component management
 - **Scene Manager**: Manages game scenes and scene transitions
   - Load/save scenes from/to files
@@ -207,13 +236,14 @@ The build script automatically handles the following dependencies:
 
 Dependencies are dynamically linked by default. The shared libraries will be included in the package's bin directory.
 You will be required to link the dependencies manually in your project.
-
-## API Usage
-
-### Accessing Engine Systems
-
 The GameEngine class provides the public API for accessing all engine systems and managers:
+- `getRenderer()` - Rendering system with camera and material support
 - `getEntityManager()` - Entity lifecycle and component management
+- `getPhysics()` - Box2D physics system
+- `getAudioSystem()` - Audio playback and control
+- `getInputManager()` - Keyboard and mouse input
+- `getSceneManager()` - Scene loading and saving
+- `getComponentFactory()` - Component creation management
 - `getPhysics()` - Box2D physics system
 - `getAudioSystem()` - Audio playback and control
 - `getInputManager()` - Keyboard and mouse input
