@@ -1,8 +1,8 @@
 #ifndef CSHADER_H
 #define CSHADER_H
 
-#include "Component.h"
 #include <string>
+#include "Component.h"
 
 /**
  * @brief Component for shader resources

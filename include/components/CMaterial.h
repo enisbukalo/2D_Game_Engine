@@ -1,19 +1,19 @@
 #ifndef CMATERIAL_H
 #define CMATERIAL_H
 
-#include "Component.h"
-#include "Color.h"
 #include <string>
+#include "Color.h"
+#include "Component.h"
 
 /**
  * @brief Enumeration of blend modes for rendering
  */
 enum class BlendMode
 {
-    Alpha,      ///< Standard alpha blending (src.a, 1-src.a)
-    Add,        ///< Additive blending (src, 1)
-    Multiply,   ///< Multiplicative blending (dst, 0)
-    None        ///< No blending (replace)
+    Alpha,     ///< Standard alpha blending (src.a, 1-src.a)
+    Add,       ///< Additive blending (src, 1)
+    Multiply,  ///< Multiplicative blending (dst, 0)
+    None       ///< No blending (replace)
 };
 
 /**
@@ -40,8 +40,11 @@ public:
      * @param blendMode Blending mode
      * @param opacity Opacity/alpha multiplier (0.0 = transparent, 1.0 = opaque)
      */
-    CMaterial(const std::string& textureGuid, const std::string& shaderGuid, const Color& tint = Color::White,
-              BlendMode blendMode = BlendMode::Alpha, float opacity = 1.0f)
+    CMaterial(const std::string& textureGuid,
+              const std::string& shaderGuid,
+              const Color&       tint      = Color::White,
+              BlendMode          blendMode = BlendMode::Alpha,
+              float              opacity   = 1.0f)
         : m_textureGuid(textureGuid), m_shaderGuid(shaderGuid), m_tint(tint), m_blendMode(blendMode), m_opacity(opacity)
     {
     }
@@ -123,11 +126,11 @@ public:
     void setOpacity(float opacity);
 
 private:
-    std::string m_textureGuid;                 ///< GUID of texture component reference
-    std::string m_shaderGuid;                  ///< GUID of shader component reference
-    Color       m_tint      = Color::White;    ///< Color tint/modulation
+    std::string m_textureGuid;                   ///< GUID of texture component reference
+    std::string m_shaderGuid;                    ///< GUID of shader component reference
+    Color       m_tint      = Color::White;      ///< Color tint/modulation
     BlendMode   m_blendMode = BlendMode::Alpha;  ///< Blending mode
-    float       m_opacity   = 1.0f;            ///< Opacity multiplier (0.0-1.0)
+    float       m_opacity   = 1.0f;              ///< Opacity multiplier (0.0-1.0)
 };
 
 #endif  // CMATERIAL_H

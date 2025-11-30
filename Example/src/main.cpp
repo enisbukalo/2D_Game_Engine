@@ -13,19 +13,26 @@
 #include <Vec2.h>
 #include <SFML/Graphics.hpp>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <sstream>
 
 // Define Screen Size
-const int   SCREEN_WIDTH              = 1600;
-const int   SCREEN_HEIGHT             = 1000;
-const int   INITIAL_BARREL_COUNT      = 100;
-const bool  INITIAL_GRAVITY_ENABLED   = false;
-const float TIME_STEP                 = 1.0f / 60.0f;  // 60 FPS
-const float GRAVITY_FORCE             = -10.0f;        // Box2D gravity (m/s²), negative = downward
-const float PIXELS_PER_METER          = 100.0f;        // Rendering scale: 100 pixels = 1 meter
-const float RESTITUTION               = 0.5f;   // Bounciness factor (lowered from 0.8 to reduce collision energy)
-const float BARREL_RADIUS_METERS      = 0.15f;  // Barrel radius in meters
+const int   SCREEN_WIDTH            = 1600;
+const int   SCREEN_HEIGHT           = 1000;
+const int   INITIAL_BARREL_COUNT    = 25;
+const bool  INITIAL_GRAVITY_ENABLED = false;
+const float TIME_STEP               = 1.0f / 60.0f;  // 60 FPS
+const float GRAVITY_FORCE           = -10.0f;        // Box2D gravity (m/s²), negative = downward
+const float PIXELS_PER_METER        = 100.0f;        // Rendering scale: 100 pixels = 1 meter
+const float RESTITUTION             = 0.5f;          // Bounciness factor (lowered from 0.8 to reduce collision energy)
+
+// Barrel Constants
+const float BARREL_RADIUS_METERS = 0.10f;  // Barrel radius in meters
+const float BARREL_LINEAR_DRAG   = 1.5f;   // Linear drag for barrels
+const float BARREL_ANGULAR_DRAG  = 2.0f;   // Angular drag for barrels
+const float BARREL_DENSITY       = 0.5f;   // Density for barrels
+
 const float BOUNDARY_THICKNESS_METERS = 0.5f;   // Thickness in meters
 const float RANDOM_VELOCITY_RANGE     = 2.0f;   // Random velocity range: -2 to +2 m/s
 const float PLAYER_SIZE_METERS        = 0.25f;  // Player square half-width/height in meters
@@ -54,6 +61,9 @@ private:
     // Audio state
     AudioHandle m_motorBoatHandle;
 
+    // Velocity visualization (entity -> velocity line entity mapping)
+    std::map<Entity*, std::shared_ptr<Entity>> m_velocityLines;
+
     // Helper function to convert meters to pixels for rendering (used for debug visualization)
     sf::Vector2f metersToPixels(const Vec2& meters) const
     {
@@ -65,16 +75,6 @@ private:
     sf::RenderWindow* getWindow() const
     {
         return m_gameEngine->getRenderer().getWindow();
-    }
-
-    // Helper function to generate random velocity in a symmetric range
-    Vec2 getRandomVelocity() const
-    {
-        float velX = static_cast<float>((rand() % static_cast<int>(RANDOM_VELOCITY_RANGE * 2000 + 1)) - RANDOM_VELOCITY_RANGE * 1000)
-                     / 1000.0f;
-        float velY = static_cast<float>((rand() % static_cast<int>(RANDOM_VELOCITY_RANGE * 2000 + 1)) - RANDOM_VELOCITY_RANGE * 1000)
-                     / 1000.0f;
-        return Vec2(velX, velY);
     }
 
 public:
@@ -91,10 +91,10 @@ public:
     {
         // Create window configuration
         WindowConfig windowConfig;
-        windowConfig.width = SCREEN_WIDTH;
-        windowConfig.height = SCREEN_HEIGHT;
-        windowConfig.title = "Bouncing Barrels Example - ECS Rendering";
-        windowConfig.vsync = true;
+        windowConfig.width      = SCREEN_WIDTH;
+        windowConfig.height     = SCREEN_HEIGHT;
+        windowConfig.title      = "Bouncing Barrels Example - ECS Rendering";
+        windowConfig.vsync      = true;
         windowConfig.frameLimit = 60;
 
         // Initialize game engine with window config
@@ -215,14 +215,14 @@ public:
 
         // Create player entity
         m_player = m_gameEngine->getEntityManager().addEntity("player");
-        
+
         // Boat dimensions for proper sprite scaling
         const float boatLength = PLAYER_SIZE_METERS * 3.5f;  // 0.875 meters
         const float boatWidth  = PLAYER_SIZE_METERS * 1.8f;  // 0.45 meters
-        
+
         // Scale factor to make sprite match collider size
         const float boatSpriteScale = 1.0f;  // Use 1.0 for natural size matching
-        
+
         m_player->addComponent<CTransform>(Vec2(centerX, centerY), Vec2(boatSpriteScale, boatSpriteScale), 0.0f);
 
         // Add physics body
@@ -234,7 +234,7 @@ public:
         // Create boat shape with curved bow using multiple polygon segments
         // Boat points from stern (back) to bow (front), with Y-axis as forward
         // const float boatLength and boatWidth already defined above
-        
+
         // Create single collider that will hold multiple polygon fixtures
         auto* collider = m_player->addComponent<CCollider2D>();
 
@@ -286,11 +286,10 @@ public:
         }
 
         // Add rendering components for player boat texture
-        auto boatTexture = m_player->addComponent<CTexture>("assets/textures/boat.png");
-        auto boatRenderable = m_player->addComponent<CRenderable>(
-            VisualType::Sprite,
-            Color::White,
-            10  // Higher z-index so boat renders on top of barrels
+        auto boatTexture    = m_player->addComponent<CTexture>("assets/textures/boat.png");
+        auto boatRenderable = m_player->addComponent<CRenderable>(VisualType::Sprite,
+                                                                  Color::White,
+                                                                  10  // Higher z-index so boat renders on top of barrels
         );
         boatRenderable->setVisible(true);
 
@@ -385,54 +384,9 @@ public:
 
     void createBarrels()
     {
-        // Screen dimensions in meters
-        const float screenWidthMeters  = SCREEN_WIDTH / PIXELS_PER_METER;
-        const float screenHeightMeters = SCREEN_HEIGHT / PIXELS_PER_METER;
-
-        // Calculate spawn boundaries accounting for boundary thickness and barrel radius
-        const float MIN_X = BOUNDARY_THICKNESS_METERS + BARREL_RADIUS_METERS;
-        const float MAX_X = screenWidthMeters - BOUNDARY_THICKNESS_METERS - BARREL_RADIUS_METERS;
-        const float MIN_Y = BOUNDARY_THICKNESS_METERS + BARREL_RADIUS_METERS;
-        const float MAX_Y = screenHeightMeters - BOUNDARY_THICKNESS_METERS - BARREL_RADIUS_METERS;
-
         for (int i = 0; i < m_barrelAmount; i++)
         {
-            // Random position within safe spawn area (in meters)
-            float randomX = MIN_X + static_cast<float>(rand()) / RAND_MAX * (MAX_X - MIN_X);
-            float randomY = MIN_Y + static_cast<float>(rand()) / RAND_MAX * (MAX_Y - MIN_Y);
-
-            auto barrel = m_gameEngine->getEntityManager().addEntity("barrel");
-            barrel->addComponent<CTransform>(Vec2(randomX, randomY), Vec2(1.0f, 1.0f), 0.0f);
-
-            auto* physicsBody = barrel->addComponent<CPhysicsBody2D>();
-            physicsBody->initialize({randomX, randomY}, BodyType::Dynamic);
-
-            auto* collider = barrel->addComponent<CCollider2D>();
-            collider->createCircle(BARREL_RADIUS_METERS);
-            collider->setRestitution(RESTITUTION);
-            collider->setDensity(1.0f);  // Set barrel density (lighter than player)
-
-            // Add damping to gradually reduce velocity (prevents barrels from maintaining excessive speeds)
-            physicsBody->setLinearDamping(0.125f);
-
-            // Randomize initial velocity
-            physicsBody->setLinearVelocity({getRandomVelocity().x, getRandomVelocity().y});
-
-            // Add rendering components for barrel sprite
-            auto barrelTexture = barrel->addComponent<CTexture>("assets/textures/barrel.png");
-            auto barrelRenderable = barrel->addComponent<CRenderable>(
-                VisualType::Sprite,
-                Color::White,
-                0  // Lower z-index so barrels render behind boat
-            );
-            barrelRenderable->setVisible(true);
-
-            // Add material for the barrel
-            auto barrelMaterial = barrel->addComponent<CMaterial>();
-            barrelMaterial->setTextureGuid(barrelTexture->getGuid());
-            barrelMaterial->setTint(Color::White);
-            barrelMaterial->setOpacity(1.0f);
-            barrelMaterial->setBlendMode(BlendMode::Alpha);
+            spawnRandomBarrel();
         }
     }
 
@@ -463,6 +417,52 @@ public:
     {
         m_showVectors = !m_showVectors;
         std::cout << "Vectors: " << (m_showVectors ? "ON" : "OFF") << std::endl;
+
+        if (m_showVectors)
+        {
+            createVelocityLines();
+        }
+        else
+        {
+            destroyVelocityLines();
+        }
+    }
+
+    void createVelocityLines()
+    {
+        // Create velocity line entities for all physics objects
+        auto player     = m_gameEngine->getEntityManager().getEntitiesByTag("player");
+        auto allBarrels = m_gameEngine->getEntityManager().getEntitiesByTag("barrel");
+
+        auto allEntities = allBarrels;
+        if (!player.empty())
+        {
+            allEntities.push_back(player[0]);
+        }
+
+        for (auto& entity : allEntities)
+        {
+            if (entity->hasComponent<CPhysicsBody2D>())
+            {
+                auto velocityLine = m_gameEngine->getEntityManager().addEntity("velocity_line");
+                velocityLine->addComponent<CTransform>(Vec2(0, 0), Vec2(1.0f, 1.0f), 0.0f);
+                auto* renderable = velocityLine->addComponent<CRenderable>(VisualType::Line, Color::Yellow, 1000, true);
+                renderable->setLineStart(Vec2(0.0f, 0.0f));
+                renderable->setLineEnd(Vec2(0.0f, 0.0f));
+                renderable->setLineThickness(2.0f);
+
+                m_velocityLines[entity.get()] = velocityLine;
+            }
+        }
+    }
+
+    void destroyVelocityLines()
+    {
+        for (auto& [entity, line] : m_velocityLines)
+        {
+            line->destroy();
+        }
+        m_velocityLines.clear();
     }
 
     void startMotorBoat()
@@ -522,20 +522,17 @@ public:
         auto* collider = barrel->addComponent<CCollider2D>();
         collider->createCircle(BARREL_RADIUS_METERS);
         collider->setRestitution(RESTITUTION);
-        collider->setDensity(1.0f);  // Set barrel density (lighter than player)
+        collider->setDensity(BARREL_DENSITY);
 
         // Add damping to gradually reduce velocity (prevents barrels from maintaining excessive speeds)
-        physicsBody->setLinearDamping(0.2f);
-
-        // Randomize initial velocity
-        physicsBody->setLinearVelocity({getRandomVelocity().x, getRandomVelocity().y});
+        physicsBody->setLinearDamping(BARREL_LINEAR_DRAG);
+        physicsBody->setAngularDamping(BARREL_ANGULAR_DRAG);
 
         // Add rendering components for barrel sprite
-        auto barrelTexture = barrel->addComponent<CTexture>("assets/textures/barrel.png");
-        auto barrelRenderable = barrel->addComponent<CRenderable>(
-            VisualType::Sprite,
-            Color::White,
-            0  // Lower z-index so barrels render behind boat
+        auto barrelTexture    = barrel->addComponent<CTexture>("assets/textures/barrel.png");
+        auto barrelRenderable = barrel->addComponent<CRenderable>(VisualType::Sprite,
+                                                                  Color::White,
+                                                                  0  // Lower z-index so barrels render behind boat
         );
         barrelRenderable->setVisible(true);
 
@@ -572,6 +569,9 @@ public:
             m_motorBoatHandle = AudioHandle::invalid();
         }
 
+        // Clear velocity lines
+        m_velocityLines.clear();
+
         // Clear all entities
         m_gameEngine->getEntityManager().clear();
 
@@ -583,6 +583,12 @@ public:
         createBoundaryColliders();
         createPlayer();
         createBarrels();
+
+        // Recreate velocity lines if vectors are visible
+        if (m_showVectors)
+        {
+            createVelocityLines();
+        }
 
         // Force EntityManager to process pending entities
         m_gameEngine->getEntityManager().update(0.0f);
@@ -611,6 +617,80 @@ public:
         if (window)
         {
             window->draw(line);
+        }
+    }
+
+    void updateVelocityLines()
+    {
+        const float VELOCITY_SCALE = 0.5f;  // Scale factor for velocity visualization
+
+        // Update existing velocity lines
+        auto allEntitiesToUpdate = m_velocityLines;
+        for (auto& [entity, line] : allEntitiesToUpdate)
+        {
+            if (!entity || !entity->isAlive())
+            {
+                // Remove velocity line if entity is destroyed
+                if (line)
+                {
+                    line->destroy();
+                }
+                m_velocityLines.erase(entity);
+                continue;
+            }
+
+            auto* physicsBody = entity->getComponent<CPhysicsBody2D>();
+            auto* transform   = entity->getComponent<CTransform>();
+            auto* lineRender  = line->getComponent<CRenderable>();
+
+            if (physicsBody && transform && lineRender)
+            {
+                // Get velocity
+                b2Vec2 velocity = physicsBody->getLinearVelocity();
+                Vec2   velocityVec(velocity.x, velocity.y);
+                float  speed = velocityVec.length();
+
+                if (speed > 0.01f)  // Only show if velocity is significant
+                {
+                    // Update line position to entity position
+                    line->getComponent<CTransform>()->setPosition(transform->getPosition());
+
+                    // Update line endpoints (local space)
+                    lineRender->setLineStart(Vec2(0.0f, 0.0f));
+                    lineRender->setLineEnd(velocityVec * VELOCITY_SCALE);
+                    lineRender->setVisible(true);
+                }
+                else
+                {
+                    lineRender->setVisible(false);
+                }
+            }
+        }
+
+        // Check for new entities that need velocity lines
+        auto player     = m_gameEngine->getEntityManager().getEntitiesByTag("player");
+        auto allBarrels = m_gameEngine->getEntityManager().getEntitiesByTag("barrel");
+
+        auto allEntities = allBarrels;
+        if (!player.empty())
+        {
+            allEntities.push_back(player[0]);
+        }
+
+        for (auto& entity : allEntities)
+        {
+            if (entity->hasComponent<CPhysicsBody2D>() && m_velocityLines.find(entity.get()) == m_velocityLines.end())
+            {
+                // Create new velocity line for this entity
+                auto velocityLine = m_gameEngine->getEntityManager().addEntity("velocity_line");
+                velocityLine->addComponent<CTransform>(Vec2(0, 0), Vec2(1.0f, 1.0f), 0.0f);
+                auto* renderable = velocityLine->addComponent<CRenderable>(VisualType::Line, Color::Yellow, 1000, true);
+                renderable->setLineStart(Vec2(0.0f, 0.0f));
+                renderable->setLineEnd(Vec2(0.0f, 0.0f));
+                renderable->setLineThickness(2.0f);
+
+                m_velocityLines[entity.get()] = velocityLine;
+            }
         }
     }
 
@@ -692,6 +772,12 @@ public:
         // Update Box2D physics
         m_gameEngine->getPhysics().update(dt);
 
+        // Update velocity lines if visible
+        if (m_showVectors)
+        {
+            updateVelocityLines();
+        }
+
         // Update Audio System
         m_gameEngine->getAudioSystem().update(dt);
 
@@ -702,7 +788,8 @@ public:
     void render()
     {
         auto* window = getWindow();
-        if (!window) return;
+        if (!window)
+            return;
 
         // Use GameEngine's render pipeline for ECS entities
         m_gameEngine->render();
@@ -740,7 +827,6 @@ public:
             }
         }
 
-        // Barrels are now rendered by the ECS rendering pipeline automatically
         // Only draw debug colliders if enabled
         if (m_showColliders)
         {
@@ -773,145 +859,114 @@ public:
         {
             auto players = m_gameEngine->getEntityManager().getEntitiesByTag("player");
             for (auto& player : players)
-        {
-            if (!player->hasComponent<CTransform>() || !player->hasComponent<CCollider2D>())
-                continue;
-
-            auto* transform = player->getComponent<CTransform>();
-            auto* collider  = player->getComponent<CCollider2D>();
-
-            Vec2         posMeters = transform->getPosition();
-            sf::Vector2f posPixels = metersToPixels(posMeters);
-            float        rotation  = transform->getRotation();  // Get rotation in radians
-
-            // Draw all polygon fixtures in the collider
-            const auto& fixtures = collider->getFixtures();
-            for (size_t fixtureIdx = 0; fixtureIdx < fixtures.size(); ++fixtureIdx)
             {
-                const auto& fixture = fixtures[fixtureIdx];
-
-                if (fixture.shapeType == ColliderShape::Polygon)
-                {
-                    const b2Vec2* vertices    = collider->getPolygonVertices(fixtureIdx);
-                    int           vertexCount = collider->getPolygonVertexCount(fixtureIdx);
-
-                    if (vertices && vertexCount > 0)
-                    {
-                        sf::ConvexShape boatShape(vertexCount);
-
-                        // Transform and set each vertex
-                        for (int i = 0; i < vertexCount; ++i)
-                        {
-                            // Rotate vertex around origin
-                            float cosR     = std::cos(rotation);
-                            float sinR     = std::sin(rotation);
-                            float rotatedX = vertices[i].x * cosR - vertices[i].y * sinR;
-                            float rotatedY = vertices[i].x * sinR + vertices[i].y * cosR;
-
-                            // Convert to pixels (note: Y-flip for screen coordinates)
-                            float pixelX = rotatedX * PIXELS_PER_METER;
-                            float pixelY = -rotatedY * PIXELS_PER_METER;  // Negative for screen Y-down
-
-                            boatShape.setPoint(i, sf::Vector2f(pixelX, pixelY));
-                        }
-
-                        boatShape.setPosition(posPixels);
-                        boatShape.setFillColor(sf::Color(200, 150, 100));  // Brownish color for boat
-                        if (m_showColliders)
-                        {
-                            boatShape.setOutlineColor(sf::Color::Magenta);  // Magenta outline for player
-                            boatShape.setOutlineThickness(3.0f);
-                        }
-                        window->draw(boatShape);
-                    }
-                }
-                else if (fixture.shapeType == ColliderShape::Segment || fixture.shapeType == ColliderShape::ChainSegment)
-                {
-                    // Get segment endpoints
-                    b2Vec2 p1, p2;
-                    if (fixture.shapeType == ColliderShape::Segment)
-                    {
-                        p1 = fixture.shapeData.segment.point1;
-                        p2 = fixture.shapeData.segment.point2;
-                    }
-                    else  // ChainSegment
-                    {
-                        p1 = fixture.shapeData.chainSegment.point1;
-                        p2 = fixture.shapeData.chainSegment.point2;
-                    }
-
-                    // Rotate endpoints around origin
-                    float cosR = std::cos(rotation);
-                    float sinR = std::sin(rotation);
-
-                    float rotatedX1 = p1.x * cosR - p1.y * sinR;
-                    float rotatedY1 = p1.x * sinR + p1.y * cosR;
-                    float rotatedX2 = p2.x * cosR - p2.y * sinR;
-                    float rotatedY2 = p2.x * sinR + p2.y * cosR;
-
-                    // Convert to pixels
-                    float pixelX1 = rotatedX1 * PIXELS_PER_METER;
-                    float pixelY1 = -rotatedY1 * PIXELS_PER_METER;
-                    float pixelX2 = rotatedX2 * PIXELS_PER_METER;
-                    float pixelY2 = -rotatedY2 * PIXELS_PER_METER;
-
-                    // Draw line segment
-                    sf::Vertex line[] = {sf::Vertex(sf::Vector2f(posPixels.x + pixelX1, posPixels.y + pixelY1),
-                                                    sf::Color(200, 150, 100)),
-                                         sf::Vertex(sf::Vector2f(posPixels.x + pixelX2, posPixels.y + pixelY2),
-                                                    sf::Color(200, 150, 100))};
-                    window->draw(line, 2, sf::Lines);
-
-                    // Draw thicker line if colliders are shown
-                    if (m_showColliders)
-                    {
-                        sf::Vertex thickLine[] = {sf::Vertex(sf::Vector2f(posPixels.x + pixelX1, posPixels.y + pixelY1),
-                                                             sf::Color::Magenta),
-                                                  sf::Vertex(sf::Vector2f(posPixels.x + pixelX2, posPixels.y + pixelY2),
-                                                             sf::Color::Magenta)};
-                        // Draw multiple times for thickness
-                        for (int offset = -1; offset <= 1; ++offset)
-                        {
-                            thickLine[0].position.x += offset;
-                            thickLine[1].position.x += offset;
-                            window->draw(thickLine, 2, sf::Lines);
-                            thickLine[0].position.y += offset;
-                            thickLine[1].position.y += offset;
-                            window->draw(thickLine, 2, sf::Lines);
-                        }
-                    }
-                }
-            }
-        }
-        }
-
-        // Draw velocity vectors
-        if (m_showVectors)
-        {
-            // Get all entities and check all entities have CTransform and CPhysicsBody2D
-            auto player      = m_gameEngine->getEntityManager().getEntitiesByTag("player")[0];
-            auto allBarrels = m_gameEngine->getEntityManager().getEntitiesByTag("barrel");
-
-            // Combine barrels and players into one iterable list
-            auto allEntities = allBarrels;
-            allEntities.push_back(player);
-
-            for (auto& entity : allEntities)
-            {
-                if (!entity->hasComponent<CTransform>() || !entity->hasComponent<CPhysicsBody2D>())
+                if (!player->hasComponent<CTransform>() || !player->hasComponent<CCollider2D>())
                     continue;
 
-                auto* transform   = entity->getComponent<CTransform>();
-                auto* physicsBody = entity->getComponent<CPhysicsBody2D>();
+                auto* transform = player->getComponent<CTransform>();
+                auto* collider  = player->getComponent<CCollider2D>();
 
-                Vec2 posMeters = transform->getPosition();
+                Vec2         posMeters = transform->getPosition();
+                sf::Vector2f posPixels = metersToPixels(posMeters);
+                float        rotation  = transform->getRotation();  // Get rotation in radians
 
-                // Draw velocity vector (yellow)
-                b2Vec2 velocity = physicsBody->getLinearVelocity();
-                Vec2   velocityMeters(velocity.x, velocity.y);
-                if (velocityMeters.length() > 0.01f)  // Only draw if velocity is non-negligible
+                // Draw all polygon fixtures in the collider
+                const auto& fixtures = collider->getFixtures();
+                for (size_t fixtureIdx = 0; fixtureIdx < fixtures.size(); ++fixtureIdx)
                 {
-                    drawVector(posMeters, velocityMeters, sf::Color::Yellow, 0.5f);
+                    const auto& fixture = fixtures[fixtureIdx];
+
+                    if (fixture.shapeType == ColliderShape::Polygon)
+                    {
+                        const b2Vec2* vertices    = collider->getPolygonVertices(fixtureIdx);
+                        int           vertexCount = collider->getPolygonVertexCount(fixtureIdx);
+
+                        if (vertices && vertexCount > 0)
+                        {
+                            sf::ConvexShape boatShape(vertexCount);
+
+                            // Transform and set each vertex
+                            for (int i = 0; i < vertexCount; ++i)
+                            {
+                                // Rotate vertex around origin
+                                float cosR     = std::cos(rotation);
+                                float sinR     = std::sin(rotation);
+                                float rotatedX = vertices[i].x * cosR - vertices[i].y * sinR;
+                                float rotatedY = vertices[i].x * sinR + vertices[i].y * cosR;
+
+                                // Convert to pixels (note: Y-flip for screen coordinates)
+                                float pixelX = rotatedX * PIXELS_PER_METER;
+                                float pixelY = -rotatedY * PIXELS_PER_METER;  // Negative for screen Y-down
+
+                                boatShape.setPoint(i, sf::Vector2f(pixelX, pixelY));
+                            }
+
+                            boatShape.setPosition(posPixels);
+                            boatShape.setFillColor(sf::Color(200, 150, 100));  // Brownish color for boat
+                            if (m_showColliders)
+                            {
+                                boatShape.setOutlineColor(sf::Color::Magenta);  // Magenta outline for player
+                                boatShape.setOutlineThickness(3.0f);
+                            }
+                            window->draw(boatShape);
+                        }
+                    }
+                    else if (fixture.shapeType == ColliderShape::Segment || fixture.shapeType == ColliderShape::ChainSegment)
+                    {
+                        // Get segment endpoints
+                        b2Vec2 p1, p2;
+                        if (fixture.shapeType == ColliderShape::Segment)
+                        {
+                            p1 = fixture.shapeData.segment.point1;
+                            p2 = fixture.shapeData.segment.point2;
+                        }
+                        else  // ChainSegment
+                        {
+                            p1 = fixture.shapeData.chainSegment.point1;
+                            p2 = fixture.shapeData.chainSegment.point2;
+                        }
+
+                        // Rotate endpoints around origin
+                        float cosR = std::cos(rotation);
+                        float sinR = std::sin(rotation);
+
+                        float rotatedX1 = p1.x * cosR - p1.y * sinR;
+                        float rotatedY1 = p1.x * sinR + p1.y * cosR;
+                        float rotatedX2 = p2.x * cosR - p2.y * sinR;
+                        float rotatedY2 = p2.x * sinR + p2.y * cosR;
+
+                        // Convert to pixels
+                        float pixelX1 = rotatedX1 * PIXELS_PER_METER;
+                        float pixelY1 = -rotatedY1 * PIXELS_PER_METER;
+                        float pixelX2 = rotatedX2 * PIXELS_PER_METER;
+                        float pixelY2 = -rotatedY2 * PIXELS_PER_METER;
+
+                        // Draw line segment
+                        sf::Vertex line[] = {sf::Vertex(sf::Vector2f(posPixels.x + pixelX1, posPixels.y + pixelY1),
+                                                        sf::Color(200, 150, 100)),
+                                             sf::Vertex(sf::Vector2f(posPixels.x + pixelX2, posPixels.y + pixelY2),
+                                                        sf::Color(200, 150, 100))};
+                        window->draw(line, 2, sf::Lines);
+
+                        // Draw thicker line if colliders are shown
+                        if (m_showColliders)
+                        {
+                            sf::Vertex thickLine[] = {sf::Vertex(sf::Vector2f(posPixels.x + pixelX1, posPixels.y + pixelY1),
+                                                                 sf::Color::Magenta),
+                                                      sf::Vertex(sf::Vector2f(posPixels.x + pixelX2, posPixels.y + pixelY2),
+                                                                 sf::Color::Magenta)};
+                            // Draw multiple times for thickness
+                            for (int offset = -1; offset <= 1; ++offset)
+                            {
+                                thickLine[0].position.x += offset;
+                                thickLine[1].position.x += offset;
+                                window->draw(thickLine, 2, sf::Lines);
+                                thickLine[0].position.y += offset;
+                                thickLine[1].position.y += offset;
+                                window->draw(thickLine, 2, sf::Lines);
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -938,8 +993,6 @@ public:
             text.setPosition(10.0f, 10.0f);
             window->draw(text);
         }
-
-        // Display is handled by GameEngine's render() method
     }
 
     void run()

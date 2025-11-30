@@ -38,6 +38,29 @@ void CRenderable::serialize(JsonBuilder& builder) const
     builder.addKey("visible");
     builder.addBool(m_visible);
 
+    // Serialize line properties (for Line visual type)
+    if (m_visualType == VisualType::Line)
+    {
+        builder.addKey("lineStart");
+        builder.beginObject();
+        builder.addKey("x");
+        builder.addNumber(m_lineStart.x);
+        builder.addKey("y");
+        builder.addNumber(m_lineStart.y);
+        builder.endObject();
+
+        builder.addKey("lineEnd");
+        builder.beginObject();
+        builder.addKey("x");
+        builder.addNumber(m_lineEnd.x);
+        builder.addKey("y");
+        builder.addNumber(m_lineEnd.y);
+        builder.endObject();
+
+        builder.addKey("lineThickness");
+        builder.addNumber(m_lineThickness);
+    }
+
     builder.endObject();
     builder.endObject();
 }
@@ -61,6 +84,20 @@ void CRenderable::deserialize(const JsonValue& value)
 
     // Deserialize visibility
     m_visible = renderable["visible"].getBool();
+
+    // Deserialize line properties (for Line visual type)
+    if (m_visualType == VisualType::Line && renderable.hasKey("lineStart"))
+    {
+        const auto& lineStart = renderable["lineStart"];
+        m_lineStart.x         = static_cast<float>(lineStart["x"].getNumber());
+        m_lineStart.y         = static_cast<float>(lineStart["y"].getNumber());
+
+        const auto& lineEnd = renderable["lineEnd"];
+        m_lineEnd.x         = static_cast<float>(lineEnd["x"].getNumber());
+        m_lineEnd.y         = static_cast<float>(lineEnd["y"].getNumber());
+
+        m_lineThickness = static_cast<float>(renderable["lineThickness"].getNumber());
+    }
 }
 
 VisualType CRenderable::getVisualType() const
@@ -101,4 +138,34 @@ bool CRenderable::isVisible() const
 void CRenderable::setVisible(bool visible)
 {
     m_visible = visible;
+}
+
+Vec2 CRenderable::getLineStart() const
+{
+    return m_lineStart;
+}
+
+void CRenderable::setLineStart(const Vec2& start)
+{
+    m_lineStart = start;
+}
+
+Vec2 CRenderable::getLineEnd() const
+{
+    return m_lineEnd;
+}
+
+void CRenderable::setLineEnd(const Vec2& end)
+{
+    m_lineEnd = end;
+}
+
+float CRenderable::getLineThickness() const
+{
+    return m_lineThickness;
+}
+
+void CRenderable::setLineThickness(float thickness)
+{
+    m_lineThickness = thickness;
 }

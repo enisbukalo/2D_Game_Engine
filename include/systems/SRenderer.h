@@ -1,12 +1,12 @@
 #ifndef SRENDERER_H
 #define SRENDERER_H
 
-#include "System.h"
-#include "Color.h"
 #include <SFML/Graphics.hpp>
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include "Color.h"
+#include "System.h"
 
 // Forward declarations
 enum class BlendMode;
@@ -16,13 +16,13 @@ enum class BlendMode;
  */
 struct WindowConfig
 {
-    unsigned int width       = 800;               ///< Window width in pixels
-    unsigned int height      = 600;               ///< Window height in pixels
-    std::string  title       = "Game Engine";     ///< Window title
-    bool         fullscreen  = false;             ///< Fullscreen mode flag
-    bool         vsync       = true;              ///< Vertical sync flag
-    unsigned int frameLimit  = 0;                 ///< Frame rate limit (0 = unlimited)
-    unsigned int antialiasing = 0;                ///< Anti-aliasing level (0, 2, 4, 8, 16)
+    unsigned int width        = 800;            ///< Window width in pixels
+    unsigned int height       = 600;            ///< Window height in pixels
+    std::string  title        = "Game Engine";  ///< Window title
+    bool         fullscreen   = false;          ///< Fullscreen mode flag
+    bool         vsync        = true;           ///< Vertical sync flag
+    unsigned int frameLimit   = 0;              ///< Frame rate limit (0 = unlimited)
+    unsigned int antialiasing = 0;              ///< Anti-aliasing level (0, 2, 4, 8, 16)
 
     /**
      * @brief Gets SFML window style flags based on configuration
@@ -184,10 +184,10 @@ private:
      */
     sf::BlendMode toSFMLBlendMode(enum BlendMode blendMode) const;
 
-    std::unique_ptr<sf::RenderWindow>                                    m_window;       ///< The render window
-    std::unordered_map<std::string, sf::Texture>                         m_textureCache;  ///< Cached textures by filepath
-    std::unordered_map<std::string, std::unique_ptr<sf::Shader>>         m_shaderCache;   ///< Cached shaders by filepath combination
-    bool                                                                 m_initialized = false;  ///< Initialization state
+    std::unique_ptr<sf::RenderWindow>            m_window;                       ///< The render window
+    std::unordered_map<std::string, sf::Texture> m_textureCache;                 ///< Cached textures by filepath
+    std::unordered_map<std::string, std::unique_ptr<sf::Shader>> m_shaderCache;  ///< Cached shaders by filepath combination
+    bool m_initialized = false;                                                  ///< Initialization state
 };
 
 #endif  // SRENDERER_H

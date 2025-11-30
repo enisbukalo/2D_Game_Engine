@@ -1,4 +1,5 @@
 #include "CCollider2D.h"
+#include <limits>
 #include "CPhysicsBody2D.h"
 #include "Entity.h"
 
@@ -1037,6 +1038,98 @@ void CCollider2D::deserialize(const JsonValue& value)
             m_fixtures.push_back(fixture);
         }
     }
+}
+
+bool CCollider2D::getBounds(float& outWidth, float& outHeight) const
+{
+    if (m_fixtures.empty())
+    {
+        outWidth  = 0.0f;
+        outHeight = 0.0f;
+        return false;
+    }
+
+    // Initialize bounds to extreme values
+    float minX = std::numeric_limits<float>::max();
+    float maxX = std::numeric_limits<float>::lowest();
+    float minY = std::numeric_limits<float>::max();
+    float maxY = std::numeric_limits<float>::lowest();
+
+    // Iterate through all fixtures and find min/max bounds
+    for (const auto& fixture : m_fixtures)
+    {
+        switch (fixture.shapeType)
+        {
+            case ColliderShape::Circle:
+            {
+                float cx = fixture.shapeData.circle.center.x;
+                float cy = fixture.shapeData.circle.center.y;
+                float r  = fixture.shapeData.circle.radius;
+                minX     = std::min(minX, cx - r);
+                maxX     = std::max(maxX, cx + r);
+                minY     = std::min(minY, cy - r);
+                maxY     = std::max(maxY, cy + r);
+            }
+            break;
+
+            case ColliderShape::Box:
+            {
+                float hw = fixture.shapeData.box.halfWidth;
+                float hh = fixture.shapeData.box.halfHeight;
+                minX     = std::min(minX, -hw);
+                maxX     = std::max(maxX, hw);
+                minY     = std::min(minY, -hh);
+                maxY     = std::max(maxY, hh);
+            }
+            break;
+
+            case ColliderShape::Polygon:
+            {
+                int vertexCount = fixture.shapeData.polygon.vertexCount;
+                for (int i = 0; i < vertexCount; ++i)
+                {
+                    float vx = fixture.shapeData.polygon.vertices[i].x;
+                    float vy = fixture.shapeData.polygon.vertices[i].y;
+                    minX     = std::min(minX, vx);
+                    maxX     = std::max(maxX, vx);
+                    minY     = std::min(minY, vy);
+                    maxY     = std::max(maxY, vy);
+                }
+            }
+            break;
+
+            case ColliderShape::Segment:
+            {
+                float x1 = fixture.shapeData.segment.point1.x;
+                float y1 = fixture.shapeData.segment.point1.y;
+                float x2 = fixture.shapeData.segment.point2.x;
+                float y2 = fixture.shapeData.segment.point2.y;
+                minX     = std::min(minX, std::min(x1, x2));
+                maxX     = std::max(maxX, std::max(x1, x2));
+                minY     = std::min(minY, std::min(y1, y2));
+                maxY     = std::max(maxY, std::max(y1, y2));
+            }
+            break;
+
+            case ColliderShape::ChainSegment:
+            {
+                // For chain segments, consider all points including ghosts
+                float x1 = fixture.shapeData.chainSegment.point1.x;
+                float y1 = fixture.shapeData.chainSegment.point1.y;
+                float x2 = fixture.shapeData.chainSegment.point2.x;
+                float y2 = fixture.shapeData.chainSegment.point2.y;
+                minX     = std::min(minX, std::min(x1, x2));
+                maxX     = std::max(maxX, std::max(x1, x2));
+                minY     = std::min(minY, std::min(y1, y2));
+                maxY     = std::max(maxY, std::max(y1, y2));
+            }
+            break;
+        }
+    }
+
+    outWidth  = maxX - minX;
+    outHeight = maxY - minY;
+    return true;
 }
 
 std::string CCollider2D::getType() const

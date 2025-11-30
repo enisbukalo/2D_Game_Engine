@@ -1,18 +1,16 @@
 #include "SRenderer.h"
+#include <spdlog/spdlog.h>
+#include <algorithm>
+#include "CCollider2D.h"
 #include "CMaterial.h"
 #include "CRenderable.h"
 #include "CShader.h"
 #include "CTexture.h"
 #include "CTransform.h"
-#include "CCollider2D.h"
 #include "Entity.h"
 #include "EntityManager.h"
-#include <algorithm>
-#include <spdlog/spdlog.h>
 
-SRenderer::SRenderer() : System()
-{
-}
+SRenderer::SRenderer() : System() {}
 
 SRenderer::~SRenderer()
 {
@@ -34,8 +32,10 @@ bool SRenderer::initialize(const WindowConfig& config)
     }
 
     // Create the window
-    m_window = std::make_unique<sf::RenderWindow>(sf::VideoMode(config.width, config.height), config.title,
-                                                   config.getStyleFlags(), config.getContextSettings());
+    m_window = std::make_unique<sf::RenderWindow>(sf::VideoMode(config.width, config.height),
+                                                  config.title,
+                                                  config.getStyleFlags(),
+                                                  config.getContextSettings());
 
     if (!m_window)
     {
@@ -93,17 +93,20 @@ void SRenderer::render()
     auto  renderableEntities = entityManager.getEntitiesWithComponent<CRenderable>();
 
     // Sort entities by z-index (lower values draw first, higher on top)
-    std::sort(renderableEntities.begin(), renderableEntities.end(), [](Entity* a, Entity* b) {
-        auto* renderableA = a->getComponent<CRenderable>();
-        auto* renderableB = b->getComponent<CRenderable>();
+    std::sort(renderableEntities.begin(),
+              renderableEntities.end(),
+              [](Entity* a, Entity* b)
+              {
+                  auto* renderableA = a->getComponent<CRenderable>();
+                  auto* renderableB = b->getComponent<CRenderable>();
 
-        if (!renderableA)
-            return false;
-        if (!renderableB)
-            return true;
+                  if (!renderableA)
+                      return false;
+                  if (!renderableB)
+                      return true;
 
-        return renderableA->getZIndex() < renderableB->getZIndex();
-    });
+                  return renderableA->getZIndex() < renderableB->getZIndex();
+              });
 
     // Render each entity
     for (Entity* entity : renderableEntities)
@@ -215,7 +218,7 @@ const sf::Shader* SRenderer::loadShader(const std::string& vertexPath, const std
 
     // Cache the shader
     const sf::Shader* shaderPtr = shader.get();
-    m_shaderCache[cacheKey] = std::move(shader);
+    m_shaderCache[cacheKey]     = std::move(shader);
     spdlog::debug("SRenderer: Loaded shader (vertex: '{}', fragment: '{}')", vertexPath, fragmentPath);
     return shaderPtr;
 }
@@ -261,8 +264,8 @@ void SRenderer::renderEntity(Entity* entity)
 
     // Convert from physics coordinates (meters, Y-up) to screen coordinates (pixels, Y-down)
     const float PIXELS_PER_METER = 100.0f;
-    const float SCREEN_HEIGHT = static_cast<float>(m_window->getSize().y);
-    
+    const float SCREEN_HEIGHT    = static_cast<float>(m_window->getSize().y);
+
     sf::Vector2f screenPos;
     screenPos.x = pos.x * PIXELS_PER_METER;
     screenPos.y = SCREEN_HEIGHT - (pos.y * PIXELS_PER_METER);  // Flip Y axis
@@ -275,7 +278,7 @@ void SRenderer::renderEntity(Entity* entity)
     if (material)
     {
         // Apply material tint
-        Color tint = material->getTint();
+        Color tint   = material->getTint();
         finalColor.r = static_cast<uint8_t>((finalColor.r * tint.r) / 255);
         finalColor.g = static_cast<uint8_t>((finalColor.g * tint.g) / 255);
         finalColor.b = static_cast<uint8_t>((finalColor.b * tint.b) / 255);
@@ -329,130 +332,209 @@ void SRenderer::renderEntity(Entity* entity)
 
     switch (visualType)
     {
-    case VisualType::Rectangle: {
-        sf::RectangleShape rect;
-        
-        // If we have a collider, use its size
-        auto* collider = entity->getComponent<CCollider2D>();
-        if (collider && collider->getShapeType() == ColliderShape::Box)
+        case VisualType::Rectangle:
         {
-            float halfWidth = collider->getBoxHalfWidth() * PIXELS_PER_METER;
-            float halfHeight = collider->getBoxHalfHeight() * PIXELS_PER_METER;
-            rect.setSize(sf::Vector2f(halfWidth * 2.0f, halfHeight * 2.0f));
-            rect.setOrigin(halfWidth, halfHeight);
-        }
-        else
-        {
-            // Default rectangle size
-            rect.setSize(sf::Vector2f(50.0f * scale.x, 50.0f * scale.y));
-            rect.setOrigin(25.0f * scale.x, 25.0f * scale.y);
-        }
+            sf::RectangleShape rect;
 
-        rect.setPosition(screenPos);
-        rect.setRotation(-rotation * 180.0f / 3.14159265f);  // Negate for Y-axis flip
-        rect.setFillColor(finalColor.toSFML());
-
-        if (texture)
-        {
-            rect.setTexture(texture);
-        }
-
-        m_window->draw(rect, states);
-        break;
-    }
-
-    case VisualType::Circle: {
-        sf::CircleShape circle;
-        
-        // If we have a collider, use its radius
-        auto* collider = entity->getComponent<CCollider2D>();
-        float radius = 25.0f;
-        if (collider && collider->getShapeType() == ColliderShape::Circle)
-        {
-            radius = collider->getCircleRadius() * PIXELS_PER_METER;
-        }
-
-        circle.setRadius(radius);
-        circle.setOrigin(radius, radius);
-        circle.setPosition(screenPos);
-        circle.setScale(scale.x, scale.y);
-        circle.setRotation(-rotation * 180.0f / 3.14159265f);  // Negate for Y-axis flip
-        circle.setFillColor(finalColor.toSFML());
-
-        if (texture)
-        {
-            circle.setTexture(texture);
-        }
-
-        m_window->draw(circle, states);
-        break;
-    }
-
-    case VisualType::Sprite: {
-        if (texture)
-        {
-            sf::Sprite sprite(*texture);
-            sf::FloatRect bounds = sprite.getLocalBounds();
-            
-            // Scale sprite to match physics collider size
+            // If we have a collider, use its size
             auto* collider = entity->getComponent<CCollider2D>();
-            if (collider)
+            if (collider && collider->getShapeType() == ColliderShape::Box)
             {
-                float targetSize = 0.0f;
-                if (collider->getShapeType() == ColliderShape::Circle)
+                float halfWidth  = collider->getBoxHalfWidth() * PIXELS_PER_METER;
+                float halfHeight = collider->getBoxHalfHeight() * PIXELS_PER_METER;
+                rect.setSize(sf::Vector2f(halfWidth * 2.0f, halfHeight * 2.0f));
+                rect.setOrigin(halfWidth, halfHeight);
+            }
+            else
+            {
+                // Default rectangle size
+                rect.setSize(sf::Vector2f(50.0f * scale.x, 50.0f * scale.y));
+                rect.setOrigin(25.0f * scale.x, 25.0f * scale.y);
+            }
+
+            rect.setPosition(screenPos);
+            rect.setRotation(-rotation * 180.0f / 3.14159265f);  // Negate for Y-axis flip
+            rect.setFillColor(finalColor.toSFML());
+
+            if (texture)
+            {
+                rect.setTexture(texture);
+            }
+
+            m_window->draw(rect, states);
+            break;
+        }
+
+        case VisualType::Circle:
+        {
+            sf::CircleShape circle;
+
+            // If we have a collider, use its radius
+            auto* collider = entity->getComponent<CCollider2D>();
+            float radius   = 25.0f;
+            if (collider && collider->getShapeType() == ColliderShape::Circle)
+            {
+                radius = collider->getCircleRadius() * PIXELS_PER_METER;
+            }
+
+            circle.setRadius(radius);
+            circle.setOrigin(radius, radius);
+            circle.setPosition(screenPos);
+            circle.setScale(scale.x, scale.y);
+            circle.setRotation(-rotation * 180.0f / 3.14159265f);  // Negate for Y-axis flip
+            circle.setFillColor(finalColor.toSFML());
+
+            if (texture)
+            {
+                circle.setTexture(texture);
+            }
+
+            m_window->draw(circle, states);
+            break;
+        }
+
+        case VisualType::Sprite:
+        {
+            if (texture)
+            {
+                sf::Sprite    sprite(*texture);
+                sf::FloatRect bounds = sprite.getLocalBounds();
+
+                // Scale sprite to match physics collider size
+                auto* collider = entity->getComponent<CCollider2D>();
+                if (collider)
                 {
-                    // For circles, use diameter
-                    targetSize = collider->getCircleRadius() * 2.0f * PIXELS_PER_METER;
-                }
-                else if (collider->getShapeType() == ColliderShape::Box)
-                {
-                    // For boxes, use width (assuming square-ish sprites)
-                    targetSize = collider->getBoxHalfWidth() * 2.0f * PIXELS_PER_METER;
-                }
-                
-                if (targetSize > 0.0f)
-                {
-                    // Calculate scale to fit target size
-                    // Use the smaller dimension to ensure sprite fills the collider
-                    float spriteSize = std::min(bounds.width, bounds.height);
-                    float spriteScale = targetSize / spriteSize;
-                    sprite.setScale(spriteScale * scale.x, spriteScale * scale.y);
+                    float targetSize = 0.0f;
+                    if (collider->getShapeType() == ColliderShape::Circle)
+                    {
+                        // For circles, use diameter
+                        targetSize = collider->getCircleRadius() * 2.0f * PIXELS_PER_METER;
+                    }
+                    else if (collider->getShapeType() == ColliderShape::Box)
+                    {
+                        // For boxes, use width (assuming square-ish sprites)
+                        targetSize = collider->getBoxHalfWidth() * 2.0f * PIXELS_PER_METER;
+                    }
+                    else if (collider->getShapeType() == ColliderShape::Polygon)
+                    {
+                        // For polygon colliders (including multi-polygon bodies), calculate bounding box
+                        float boundsWidth, boundsHeight;
+                        if (collider->getBounds(boundsWidth, boundsHeight))
+                        {
+                            // Use the larger dimension to ensure the sprite covers the entire collider
+                            targetSize = std::max(boundsWidth, boundsHeight) * PIXELS_PER_METER;
+                        }
+                    }
+
+                    if (targetSize > 0.0f)
+                    {
+                        // Calculate scale to fit target size
+                        // Use the smaller dimension to ensure sprite fills the collider
+                        float spriteSize  = std::min(bounds.width, bounds.height);
+                        float spriteScale = targetSize / spriteSize;
+                        sprite.setScale(spriteScale * scale.x, spriteScale * scale.y);
+                    }
+                    else
+                    {
+                        sprite.setScale(scale.x, scale.y);
+                    }
                 }
                 else
                 {
                     sprite.setScale(scale.x, scale.y);
                 }
+
+                sprite.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
+                sprite.setPosition(screenPos);
+                sprite.setRotation(-rotation * 180.0f / 3.14159265f);  // Negate for Y-axis flip
+                sprite.setColor(finalColor.toSFML());
+
+                m_window->draw(sprite, states);
             }
             else
             {
-                sprite.setScale(scale.x, scale.y);
+                // Fallback: draw a rectangle if no texture
+                sf::RectangleShape rect(sf::Vector2f(50.0f * scale.x, 50.0f * scale.y));
+                rect.setOrigin(25.0f * scale.x, 25.0f * scale.y);
+                rect.setPosition(screenPos);
+                rect.setRotation(-rotation * 180.0f / 3.14159265f);  // Negate for Y-axis flip
+                rect.setFillColor(finalColor.toSFML());
+                m_window->draw(rect, states);
             }
-            
-            sprite.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
-            sprite.setPosition(screenPos);
-            sprite.setRotation(-rotation * 180.0f / 3.14159265f);  // Negate for Y-axis flip
-            sprite.setColor(finalColor.toSFML());
-
-            m_window->draw(sprite, states);
+            break;
         }
-        else
+
+        case VisualType::Line:
         {
-            // Fallback: draw a rectangle if no texture
-            sf::RectangleShape rect(sf::Vector2f(50.0f * scale.x, 50.0f * scale.y));
-            rect.setOrigin(25.0f * scale.x, 25.0f * scale.y);
-            rect.setPosition(screenPos);
-            rect.setRotation(-rotation * 180.0f / 3.14159265f);  // Negate for Y-axis flip
-            rect.setFillColor(finalColor.toSFML());
-            m_window->draw(rect, states);
-        }
-        break;
-    }
+            // Get line endpoints in local space
+            Vec2 lineStart = renderable->getLineStart();
+            Vec2 lineEnd   = renderable->getLineEnd();
 
-    case VisualType::Custom:
-    case VisualType::None:
-    default:
-        // No rendering for None or Custom (Custom would use shaders)
-        break;
+            // Apply transform rotation to line endpoints
+            float cosR = std::cos(rotation);
+            float sinR = std::sin(rotation);
+
+            Vec2 rotatedStart;
+            rotatedStart.x = lineStart.x * cosR - lineStart.y * sinR;
+            rotatedStart.y = lineStart.x * sinR + lineStart.y * cosR;
+
+            Vec2 rotatedEnd;
+            rotatedEnd.x = lineEnd.x * cosR - lineEnd.y * sinR;
+            rotatedEnd.y = lineEnd.x * sinR + lineEnd.y * cosR;
+
+            // Convert to screen coordinates (meters to pixels, Y-flip)
+            sf::Vector2f screenStart;
+            screenStart.x = screenPos.x + (rotatedStart.x * PIXELS_PER_METER * scale.x);
+            screenStart.y = screenPos.y - (rotatedStart.y * PIXELS_PER_METER * scale.y);  // Negative for Y-flip
+
+            sf::Vector2f screenEnd;
+            screenEnd.x = screenPos.x + (rotatedEnd.x * PIXELS_PER_METER * scale.x);
+            screenEnd.y = screenPos.y - (rotatedEnd.y * PIXELS_PER_METER * scale.y);  // Negative for Y-flip
+
+            // Create line using VertexArray
+            float           thickness = renderable->getLineThickness();
+            sf::Color       lineColor = finalColor.toSFML();
+            sf::VertexArray line(sf::Lines, 2);
+            line[0].position = screenStart;
+            line[0].color    = lineColor;
+            line[1].position = screenEnd;
+            line[1].color    = lineColor;
+
+            // Draw the line (for thickness > 1, draw multiple times with offset)
+            if (thickness <= 1.0f)
+            {
+                m_window->draw(line, states);
+            }
+            else
+            {
+                // Calculate perpendicular offset for thickness
+                sf::Vector2f direction = screenEnd - screenStart;
+                float        length    = std::sqrt(direction.x * direction.x + direction.y * direction.y);
+                if (length > 0.0f)
+                {
+                    sf::Vector2f perpendicular(-direction.y / length, direction.x / length);
+
+                    // Draw multiple lines with offset to simulate thickness
+                    int halfThickness = static_cast<int>(thickness / 2.0f);
+                    for (int offset = -halfThickness; offset <= halfThickness; ++offset)
+                    {
+                        sf::VertexArray thickLine(sf::Lines, 2);
+                        thickLine[0].position = screenStart + perpendicular * static_cast<float>(offset);
+                        thickLine[0].color    = lineColor;
+                        thickLine[1].position = screenEnd + perpendicular * static_cast<float>(offset);
+                        thickLine[1].color    = lineColor;
+                        m_window->draw(thickLine, states);
+                    }
+                }
+            }
+            break;
+        }
+
+        case VisualType::Custom:
+        case VisualType::None:
+        default:
+            // No rendering for None or Custom (Custom would use shaders)
+            break;
     }
 }
 
@@ -460,14 +542,14 @@ sf::BlendMode SRenderer::toSFMLBlendMode(BlendMode blendMode) const
 {
     switch (blendMode)
     {
-    case BlendMode::Add:
-        return sf::BlendAdd;
-    case BlendMode::Multiply:
-        return sf::BlendMultiply;
-    case BlendMode::None:
-        return sf::BlendNone;
-    case BlendMode::Alpha:
-    default:
-        return sf::BlendAlpha;
+        case BlendMode::Add:
+            return sf::BlendAdd;
+        case BlendMode::Multiply:
+            return sf::BlendMultiply;
+        case BlendMode::None:
+            return sf::BlendNone;
+        case BlendMode::Alpha:
+        default:
+            return sf::BlendAlpha;
     }
 }

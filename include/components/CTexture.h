@@ -1,8 +1,8 @@
 #ifndef CTEXTURE_H
 #define CTEXTURE_H
 
-#include "Component.h"
 #include <string>
+#include "Component.h"
 
 /**
  * @brief Component for texture resources

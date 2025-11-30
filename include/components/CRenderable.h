@@ -1,9 +1,10 @@
 #ifndef CRENDERABLE_H
 #define CRENDERABLE_H
 
-#include "Component.h"
-#include "Color.h"
 #include <string>
+#include "Color.h"
+#include "Component.h"
+#include "Vec2.h"
 
 /**
  * @brief Enumeration of visual types for rendering
@@ -14,6 +15,7 @@ enum class VisualType
     Rectangle,  ///< Rectangle shape
     Circle,     ///< Circle shape
     Sprite,     ///< Textured sprite
+    Line,       ///< Line primitive
     Custom      ///< Custom rendering (via shader/material)
 };
 
@@ -108,11 +110,52 @@ public:
      */
     void setVisible(bool visible);
 
+    /**
+     * @brief Gets the line start point (local space)
+     * @return Start point coordinates
+     */
+    Vec2 getLineStart() const;
+
+    /**
+     * @brief Sets the line start point (local space)
+     * @param start Start point coordinates
+     */
+    void setLineStart(const Vec2& start);
+
+    /**
+     * @brief Gets the line end point (local space)
+     * @return End point coordinates
+     */
+    Vec2 getLineEnd() const;
+
+    /**
+     * @brief Sets the line end point (local space)
+     * @param end End point coordinates
+     */
+    void setLineEnd(const Vec2& end);
+
+    /**
+     * @brief Gets the line thickness in pixels
+     * @return Line thickness
+     */
+    float getLineThickness() const;
+
+    /**
+     * @brief Sets the line thickness in pixels
+     * @param thickness Line thickness
+     */
+    void setLineThickness(float thickness);
+
 private:
     VisualType m_visualType = VisualType::None;  ///< Type of visual representation
     Color      m_color      = Color::White;      ///< Base color/tint
     int        m_zIndex     = 0;                 ///< Layer ordering (higher = on top)
     bool       m_visible    = true;              ///< Visibility flag
+
+    // Line-specific properties (used when m_visualType == Line)
+    Vec2  m_lineStart     = Vec2(0.0f, 0.0f);  ///< Line start point (local space)
+    Vec2  m_lineEnd       = Vec2(1.0f, 0.0f);  ///< Line end point (local space)
+    float m_lineThickness = 2.0f;              ///< Line thickness in pixels
 };
 
 #endif  // CRENDERABLE_H
