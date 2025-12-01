@@ -12,9 +12,6 @@ static std::random_device               s_rd;
 static std::mt19937                     s_gen(s_rd());
 static std::uniform_real_distribution<> s_dist(0.0, 1.0);
 
-// Vector to store entity ids with no emitters
-static std::vector<size_t> s_entitiesWithoutEmitters;
-
 // Helper function to generate random float
 static float randomFloat(float min, float max)
 {
@@ -178,7 +175,6 @@ void SParticleSystem::update(float deltaTime)
 {
     if (m_initialized == false)
     {
-        std::cout << "Particle system not initialized. Call initialize() first." << std::endl;
         return;
     }
 
@@ -200,7 +196,6 @@ void SParticleSystem::update(float deltaTime)
 
         if (emitter->isActive() == false)
         {
-            std::cout << "Emitter on entity " << entity->getId() << " is inactive." << std::endl;
             continue;
         }
 
@@ -252,7 +247,6 @@ void SParticleSystem::render(sf::RenderWindow* window)
 
     if (m_initialized == false || targetWindow == nullptr)
     {
-        std::cout << "Particle system not initialized or no render window available." << std::endl;
         return;
     }
 
@@ -263,14 +257,6 @@ void SParticleSystem::render(sf::RenderWindow* window)
     {
         if (entity->hasComponent<CParticleEmitter>() == false)
         {
-            // if entity id has NOT been stored yet, print and store
-            if (std::find(s_entitiesWithoutEmitters.begin(), s_entitiesWithoutEmitters.end(), entity->getId())
-                == s_entitiesWithoutEmitters.end())
-            {
-                s_entitiesWithoutEmitters.push_back(entity->getId());
-                std::cout << "Entity " << entity->getId() << " has no CParticleEmitter component." << std::endl;
-                std::cout << "Entity Tag: " << entity->getTag() << std::endl;
-            }
             continue;
         }
 
@@ -363,23 +349,6 @@ void SParticleSystem::render(sf::RenderWindow* window)
         // Render particles for this emitter
         if (m_vertexArray.getVertexCount() > 0)
         {
-            // Debug: Print first particle position and size
-            if (emitter->getParticles().size() > 0 && emitter->getParticles()[0].alive)
-            {
-                const auto&  p         = emitter->getParticles()[0];
-                sf::Vector2f screenPos = worldToScreen(p.position);
-                float        pixelSize = metersToPixels(p.size);
-                std::cout << "First particle - World: (" << p.position.x << ", " << p.position.y << ") Screen: ("
-                          << screenPos.x << ", " << screenPos.y << ") Size: " << pixelSize << "px" << std::endl;
-            }
-
-            std::cout << "Rendering " << (m_vertexArray.getVertexCount() / 4) << " particles for entity "
-                      << entity->getId() << " (texture: " << (emitter->getTexture() ? "YES" : "NO") << ", texSize: "
-                      << (emitter->getTexture() ? std::to_string(emitter->getTexture()->getSize().x) + "x"
-                                                      + std::to_string(emitter->getTexture()->getSize().y)
-                                                : "N/A")
-                      << ")" << std::endl;
-
             sf::RenderStates states;
             states.blendMode = sf::BlendAlpha;
 

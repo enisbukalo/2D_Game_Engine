@@ -543,11 +543,11 @@ public:
         emitter->setSpreadAngle(0.8f);      // Wide spread
         emitter->setMinSpeed(0.05f);
         emitter->setMaxSpeed(0.2f);
-        emitter->setMinLifetime(5.0f);
-        emitter->setMaxLifetime(5.0f);
-        emitter->setMinSize(0.05f);                    // 15cm (in meters)
-        emitter->setMaxSize(0.125f);                   // 40cm (in meters)
-        emitter->setEmissionRate(15.0f);               // Constant 15 particles/sec
+        emitter->setMinLifetime(2.5f);
+        emitter->setMaxLifetime(2.5f);
+        emitter->setMinSize(0.005f);                    // 5cm (in meters)
+        emitter->setMaxSize(0.025f);                   // 25cm (in meters)
+        emitter->setEmissionRate(100.0f);               // Constant 30 particles/sec
         emitter->setStartColor(Color(255, 255, 255));  // White (no tint)
         emitter->setEndColor(Color(255, 255, 255));
         emitter->setStartAlpha(1.0f);  // Fully opaque
