@@ -538,32 +538,32 @@ public:
         // Configure bubble particle emitter component
         auto* emitter = bubbleEmitterEntity->addComponent<CParticleEmitter>();
 
-        // Configure particle properties directly on component
-        emitter->direction        = Vec2(0, 1);  // Emit upward for visibility
-        emitter->spreadAngle      = 0.8f;        // Wide spread
-        emitter->minSpeed         = 0.05f;
-        emitter->maxSpeed         = 0.2f;
-        emitter->minLifetime      = 5.0f;
-        emitter->maxLifetime      = 5.0f;
-        emitter->minSize          = 0.05f;                 // 15cm (in meters)
-        emitter->maxSize          = 0.125f;                // 40cm (in meters)
-        emitter->emissionRate     = 15.0f;                 // Constant 15 particles/sec
-        emitter->startColor       = Color(255, 255, 255);  // White (no tint)
-        emitter->endColor         = Color(255, 255, 255);
-        emitter->startAlpha       = 1.0f;  // Fully opaque
-        emitter->endAlpha         = 1.0f;
-        emitter->gravity          = Vec2(0, 0);
-        emitter->minRotationSpeed = -2.0f;
-        emitter->maxRotationSpeed = 2.0f;
-        emitter->fadeOut          = false;
-        emitter->shrink           = true;
-        emitter->shrinkEndScale   = 0.05f;  // Shrink to 5%
-        emitter->active           = true;   // Always active
-        emitter->maxParticles     = 300;
-        emitter->texture          = &m_bubbleTexture;  // Use bubble texture
+        // Configure particle properties using setters
+        emitter->setDirection(Vec2(0, 1));  // Emit upward for visibility
+        emitter->setSpreadAngle(0.8f);      // Wide spread
+        emitter->setMinSpeed(0.05f);
+        emitter->setMaxSpeed(0.2f);
+        emitter->setMinLifetime(5.0f);
+        emitter->setMaxLifetime(5.0f);
+        emitter->setMinSize(0.05f);                    // 15cm (in meters)
+        emitter->setMaxSize(0.125f);                   // 40cm (in meters)
+        emitter->setEmissionRate(15.0f);               // Constant 15 particles/sec
+        emitter->setStartColor(Color(255, 255, 255));  // White (no tint)
+        emitter->setEndColor(Color(255, 255, 255));
+        emitter->setStartAlpha(1.0f);  // Fully opaque
+        emitter->setEndAlpha(1.0f);
+        emitter->setGravity(Vec2(0, 0));
+        emitter->setMinRotationSpeed(-2.0f);
+        emitter->setMaxRotationSpeed(2.0f);
+        emitter->setFadeOut(false);
+        emitter->setShrink(true);
+        emitter->setShrinkEndScale(0.05f);  // Shrink to 5%
+        emitter->setActive(true);           // Always active
+        emitter->setMaxParticles(300);
+        emitter->setTexture(&m_bubbleTexture);  // Use bubble texture
 
         // No offset needed - emitting from entity center
-        emitter->positionOffset = Vec2(0.0f, 0.0f);
+        emitter->setPositionOffset(Vec2(0.0f, 0.0f));
 
         std::cout << "Bubble emitter created at screen center (" << (screenWidthMeters / 2.0f) << ", "
                   << (screenHeightMeters / 2.0f) << ") meters" << std::endl;

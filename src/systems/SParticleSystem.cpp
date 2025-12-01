@@ -41,7 +41,7 @@ static Color lerpColor(const Color& a, const Color& b, float t)
 // Particle emission and update logic
 //=============================================================================
 
-static Particle spawnParticle(CParticleEmitter* emitter, const Vec2& worldPosition)
+static Particle spawnParticle(const CParticleEmitter* emitter, const Vec2& worldPosition)
 {
     Particle p;
     p.alive = true;
@@ -51,35 +51,36 @@ static Particle spawnParticle(CParticleEmitter* emitter, const Vec2& worldPositi
     p.position = worldPosition;
 
     // Lifetime
-    p.lifetime = randomFloat(emitter->minLifetime, emitter->maxLifetime);
+    p.lifetime = randomFloat(emitter->getMinLifetime(), emitter->getMaxLifetime());
 
     // Size
-    p.size        = randomFloat(emitter->minSize, emitter->maxSize);
+    p.size        = randomFloat(emitter->getMinSize(), emitter->getMaxSize());
     p.initialSize = p.size;
 
     // Velocity (direction + spread + speed)
-    float angle  = std::atan2(emitter->direction.y, emitter->direction.x);
-    float spread = randomFloat(-emitter->spreadAngle, emitter->spreadAngle);
+    Vec2  direction = emitter->getDirection();
+    float angle     = std::atan2(direction.y, direction.x);
+    float spread    = randomFloat(-emitter->getSpreadAngle(), emitter->getSpreadAngle());
     angle += spread;
 
-    float speed = randomFloat(emitter->minSpeed, emitter->maxSpeed);
+    float speed = randomFloat(emitter->getMinSpeed(), emitter->getMaxSpeed());
     p.velocity  = Vec2(std::cos(angle) * speed, std::sin(angle) * speed);
 
     // Acceleration (gravity)
-    p.acceleration = emitter->gravity;
+    p.acceleration = emitter->getGravity();
 
     // Color and alpha
-    p.color = emitter->startColor;
-    p.alpha = emitter->startAlpha;
+    p.color = emitter->getStartColor();
+    p.alpha = emitter->getStartAlpha();
 
     // Rotation
     p.rotation      = randomFloat(0.0f, 2.0f * 3.14159f);
-    p.rotationSpeed = randomFloat(emitter->minRotationSpeed, emitter->maxRotationSpeed);
+    p.rotationSpeed = randomFloat(emitter->getMinRotationSpeed(), emitter->getMaxRotationSpeed());
 
     return p;
 }
 
-static void updateParticle(Particle& particle, CParticleEmitter* emitter, float deltaTime)
+static void updateParticle(Particle& particle, const CParticleEmitter* emitter, float deltaTime)
 {
     particle.age += deltaTime;
 
@@ -103,41 +104,40 @@ static void updateParticle(Particle& particle, CParticleEmitter* emitter, float 
     float t = particle.age / particle.lifetime;
 
     // Color interpolation
-    particle.color = lerpColor(emitter->startColor, emitter->endColor, t);
+    particle.color = lerpColor(emitter->getStartColor(), emitter->getEndColor(), t);
 
     // Alpha fade
-    if (emitter->fadeOut)
+    if (emitter->getFadeOut())
     {
-        particle.alpha = lerp(emitter->startAlpha, emitter->endAlpha, t);
+        particle.alpha = lerp(emitter->getStartAlpha(), emitter->getEndAlpha(), t);
     }
 
     // Size shrink
-    if (emitter->shrink)
+    if (emitter->getShrink())
     {
-        particle.size = particle.initialSize * lerp(1.0f, emitter->shrinkEndScale, t);
+        particle.size = particle.initialSize * lerp(1.0f, emitter->getShrinkEndScale(), t);
     }
 }
 
 static void emitParticle(CParticleEmitter* emitter, const Vec2& worldPosition)
 {
     // Check particle limit
-    if (emitter->getAliveCount() >= static_cast<size_t>(emitter->maxParticles))
+    if (emitter->getAliveCount() >= static_cast<size_t>(emitter->getMaxParticles()))
     {
         return;
     }
 
     // Find dead particle to reuse or add new one
-    for (auto& p : emitter->particles)
+    auto& particles = emitter->getParticles();
+    auto  it        = std::find_if(particles.begin(), particles.end(), [](const Particle& p) { return !p.alive; });
+    if (it != particles.end())
     {
-        if (p.alive == false)
-        {
-            p = spawnParticle(emitter, worldPosition);
-            return;
-        }
+        *it = spawnParticle(emitter, worldPosition);
+        return;
     }
 
     // No dead particles, add new one
-    emitter->particles.push_back(spawnParticle(emitter, worldPosition));
+    emitter->getParticles().push_back(spawnParticle(emitter, worldPosition));
 }
 
 //=============================================================================
@@ -198,7 +198,7 @@ void SParticleSystem::update(float deltaTime)
         auto* emitter   = entity->getComponent<CParticleEmitter>();
         auto* transform = entity->getComponent<CTransform>();
 
-        if (emitter->active == false)
+        if (emitter->isActive() == false)
         {
             std::cout << "Emitter on entity " << entity->getId() << " is inactive." << std::endl;
             continue;
@@ -206,7 +206,7 @@ void SParticleSystem::update(float deltaTime)
 
         // Calculate world position (entity position + rotated offset)
         Vec2 entityPos = transform->getPosition();
-        Vec2 offset    = emitter->positionOffset;
+        Vec2 offset    = emitter->getPositionOffset();
 
         float rotation = transform->getRotation();
         if (rotation != 0.0f)
@@ -221,7 +221,7 @@ void SParticleSystem::update(float deltaTime)
         Vec2 worldPos = entityPos + offset;
 
         // Update existing particles
-        for (auto& particle : emitter->particles)
+        for (auto& particle : emitter->getParticles())
         {
             if (particle.alive)
             {
@@ -230,16 +230,17 @@ void SParticleSystem::update(float deltaTime)
         }
 
         // Emit new particles if needed
-        if (emitter->emissionRate > 0.0f)
+        if (emitter->getEmissionRate() > 0.0f)
         {
-            emitter->emissionTimer += deltaTime;
-            float emissionInterval = 1.0f / emitter->emissionRate;
+            float timer            = emitter->getEmissionTimer() + deltaTime;
+            float emissionInterval = 1.0f / emitter->getEmissionRate();
 
-            while (emitter->emissionTimer >= emissionInterval)
+            while (timer >= emissionInterval)
             {
                 emitParticle(emitter, worldPos);
-                emitter->emissionTimer -= emissionInterval;
+                timer -= emissionInterval;
             }
+            emitter->setEmissionTimer(timer);
         }
     }
 }
@@ -279,7 +280,7 @@ void SParticleSystem::render(sf::RenderWindow* window)
         m_vertexArray.clear();
 
         // Build vertex array for all alive particles
-        for (const auto& particle : emitter->particles)
+        for (const auto& particle : emitter->getParticles())
         {
             if (particle.alive == false)
             {
@@ -293,7 +294,7 @@ void SParticleSystem::render(sf::RenderWindow* window)
             // Create color with alpha
             sf::Color color(particle.color.r, particle.color.g, particle.color.b, static_cast<sf::Uint8>(particle.alpha * 255.0f));
 
-            if (emitter->texture)
+            if (emitter->getTexture())
             {
                 // Textured quad
                 float cosR = std::cos(particle.rotation);
@@ -318,7 +319,7 @@ void SParticleSystem::render(sf::RenderWindow* window)
                 }
 
                 // Texture coordinates (in pixels for SFML - confirmed by official docs)
-                sf::Vector2u texSize      = emitter->texture->getSize();
+                sf::Vector2u texSize      = emitter->getTexture()->getSize();
                 sf::Vector2f texCoords[4] = {
                     sf::Vector2f(0.0f, 0.0f),                                                    // Top-left
                     sf::Vector2f(static_cast<float>(texSize.x), 0.0f),                           // Top-right
@@ -363,9 +364,9 @@ void SParticleSystem::render(sf::RenderWindow* window)
         if (m_vertexArray.getVertexCount() > 0)
         {
             // Debug: Print first particle position and size
-            if (emitter->particles.size() > 0 && emitter->particles[0].alive)
+            if (emitter->getParticles().size() > 0 && emitter->getParticles()[0].alive)
             {
-                const auto&  p         = emitter->particles[0];
+                const auto&  p         = emitter->getParticles()[0];
                 sf::Vector2f screenPos = worldToScreen(p.position);
                 float        pixelSize = metersToPixels(p.size);
                 std::cout << "First particle - World: (" << p.position.x << ", " << p.position.y << ") Screen: ("
@@ -373,18 +374,18 @@ void SParticleSystem::render(sf::RenderWindow* window)
             }
 
             std::cout << "Rendering " << (m_vertexArray.getVertexCount() / 4) << " particles for entity "
-                      << entity->getId() << " (texture: " << (emitter->texture ? "YES" : "NO") << ", texSize: "
-                      << (emitter->texture ? std::to_string(emitter->texture->getSize().x) + "x"
-                                                 + std::to_string(emitter->texture->getSize().y)
-                                           : "N/A")
+                      << entity->getId() << " (texture: " << (emitter->getTexture() ? "YES" : "NO") << ", texSize: "
+                      << (emitter->getTexture() ? std::to_string(emitter->getTexture()->getSize().x) + "x"
+                                                      + std::to_string(emitter->getTexture()->getSize().y)
+                                                : "N/A")
                       << ")" << std::endl;
 
             sf::RenderStates states;
             states.blendMode = sf::BlendAlpha;
 
-            if (emitter->texture)
+            if (emitter->getTexture())
             {
-                states.texture = emitter->texture;
+                states.texture = emitter->getTexture();
             }
 
             targetWindow->draw(m_vertexArray, states);
