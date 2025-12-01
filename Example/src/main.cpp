@@ -153,7 +153,7 @@ public:
         auto& particleSystem = m_gameEngine->getParticleSystem();
         particleSystem.initialize(getWindow(), PIXELS_PER_METER);
 
-        // createOceanBackground();
+        createOceanBackground();
         createBoundaryColliders();
         createPlayer();
         createBubbleTrail();
@@ -754,7 +754,7 @@ public:
         physics.setGravity({0.0f, m_gravityEnabled ? GRAVITY_FORCE : 0.0f});
 
         // Recreate ocean background, boundary colliders, player, and barrels
-        // createOceanBackground();
+        createOceanBackground();
         createBoundaryColliders();
         createPlayer();
         createBubbleTrail();
