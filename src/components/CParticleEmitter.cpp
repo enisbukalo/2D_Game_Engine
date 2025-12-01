@@ -1,6 +1,7 @@
 #include "components/CParticleEmitter.h"
 #include "JsonBuilder.h"
 #include "JsonValue.h"
+#include <algorithm>
 
 // Particle constructor
 Particle::Particle()
@@ -54,18 +55,12 @@ void CParticleEmitter::deserialize(const JsonValue& value)
     m_positionOffset.x  = offset["x"].getNumber();
     m_positionOffset.y  = offset["y"].getNumber();
     Component::setActive(emitter["active"].getBool());
-    m_maxParticles      = static_cast<int>(emitter["maxParticles"].getNumber());
+    m_maxParticles = static_cast<int>(emitter["maxParticles"].getNumber());
 }
 
 size_t CParticleEmitter::getAliveCount() const
 {
-    size_t count = 0;
-    for (const auto& p : m_particles)
-    {
-        if (p.alive)
-            count++;
-    }
-    return count;
+    return std::count_if(m_particles.begin(), m_particles.end(), [](const Particle& p) { return p.alive; });
 }
 
 // Configuration getters/setters

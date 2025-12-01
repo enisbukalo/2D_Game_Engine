@@ -38,7 +38,7 @@ static Color lerpColor(const Color& a, const Color& b, float t)
 // Particle emission and update logic
 //=============================================================================
 
-static Particle spawnParticle(const CParticleEmitter* emitter, const Vec2& worldPosition)
+static Particle spawnParticle(const CParticleEmitter* emitter, const Vec2& worldPosition, float entityRotation)
 {
     Particle p;
     p.alive = true;
@@ -55,9 +55,19 @@ static Particle spawnParticle(const CParticleEmitter* emitter, const Vec2& world
     p.initialSize = p.size;
 
     // Velocity (direction + spread + speed)
-    Vec2  direction = emitter->getDirection();
-    float angle     = std::atan2(direction.y, direction.x);
-    float spread    = randomFloat(-emitter->getSpreadAngle(), emitter->getSpreadAngle());
+    // Rotate the emission direction by entity rotation for local-space emission
+    Vec2 direction = emitter->getDirection();
+    if (entityRotation != 0.0f)
+    {
+        float cosR     = std::cos(entityRotation);
+        float sinR     = std::sin(entityRotation);
+        float rotatedX = direction.x * cosR - direction.y * sinR;
+        float rotatedY = direction.x * sinR + direction.y * cosR;
+        direction      = Vec2(rotatedX, rotatedY);
+    }
+
+    float angle  = std::atan2(direction.y, direction.x);
+    float spread = randomFloat(-emitter->getSpreadAngle(), emitter->getSpreadAngle());
     angle += spread;
 
     float speed = randomFloat(emitter->getMinSpeed(), emitter->getMaxSpeed());
@@ -116,7 +126,7 @@ static void updateParticle(Particle& particle, const CParticleEmitter* emitter, 
     }
 }
 
-static void emitParticle(CParticleEmitter* emitter, const Vec2& worldPosition)
+static void emitParticle(CParticleEmitter* emitter, const Vec2& worldPosition, float entityRotation)
 {
     // Check particle limit
     if (emitter->getAliveCount() >= static_cast<size_t>(emitter->getMaxParticles()))
@@ -129,12 +139,12 @@ static void emitParticle(CParticleEmitter* emitter, const Vec2& worldPosition)
     auto  it        = std::find_if(particles.begin(), particles.end(), [](const Particle& p) { return !p.alive; });
     if (it != particles.end())
     {
-        *it = spawnParticle(emitter, worldPosition);
+        *it = spawnParticle(emitter, worldPosition, entityRotation);
         return;
     }
 
     // No dead particles, add new one
-    emitter->getParticles().push_back(spawnParticle(emitter, worldPosition));
+    emitter->getParticles().push_back(spawnParticle(emitter, worldPosition, entityRotation));
 }
 
 //=============================================================================
@@ -232,7 +242,7 @@ void SParticleSystem::update(float deltaTime)
 
             while (timer >= emissionInterval)
             {
-                emitParticle(emitter, worldPos);
+                emitParticle(emitter, worldPos, rotation);
                 timer -= emissionInterval;
             }
             emitter->setEmissionTimer(timer);

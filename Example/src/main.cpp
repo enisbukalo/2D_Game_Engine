@@ -527,46 +527,48 @@ public:
         std::cout << "SUCCESS: Loaded bubble.png texture (" << m_bubbleTexture.getSize().x << "x"
                   << m_bubbleTexture.getSize().y << ")" << std::endl;
 
-        // Screen dimensions in meters
-        const float screenWidthMeters  = SCREEN_WIDTH / PIXELS_PER_METER;
-        const float screenHeightMeters = SCREEN_HEIGHT / PIXELS_PER_METER;
+        if (!m_player)
+        {
+            std::cout << "ERROR: Cannot create bubble trail - player not initialized!" << std::endl;
+            return;
+        }
 
-        // Create stationary entity at screen center for testing
-        auto bubbleEmitterEntity = m_gameEngine->getEntityManager().addEntity("bubble_emitter");
-        bubbleEmitterEntity->addComponent<CTransform>(Vec2(screenWidthMeters / 2.0f, screenHeightMeters / 2.0f), Vec2(1.0f, 1.0f), 0.0f);
-
-        // Configure bubble particle emitter component
-        auto* emitter = bubbleEmitterEntity->addComponent<CParticleEmitter>();
+        // Add particle emitter directly to the player boat entity
+        auto* emitter = m_player->addComponent<CParticleEmitter>();
 
         // Configure particle properties using setters
-        emitter->setDirection(Vec2(0, 1));  // Emit upward for visibility
-        emitter->setSpreadAngle(0.8f);      // Wide spread
+        // Direction is now in LOCAL SPACE relative to boat rotation
+        // Boat's forward is +Y, so stern (back) is -Y
+        emitter->setDirection(Vec2(0.0f, -1.0f));  // Emit from back of boat in local space
+        emitter->setSpreadAngle(1.20f);            // Wide spread
         emitter->setMinSpeed(0.05f);
         emitter->setMaxSpeed(0.2f);
-        emitter->setMinLifetime(2.5f);
-        emitter->setMaxLifetime(2.5f);
-        emitter->setMinSize(0.005f);                    // 5cm (in meters)
+        emitter->setMinLifetime(3.0f);
+        emitter->setMaxLifetime(3.0f);
+        emitter->setMinSize(0.005f);                   // 5cm (in meters)
         emitter->setMaxSize(0.025f);                   // 25cm (in meters)
-        emitter->setEmissionRate(100.0f);               // Constant 30 particles/sec
+        emitter->setEmissionRate(300.0f);              // Constant 30 particles/sec
         emitter->setStartColor(Color(255, 255, 255));  // White (no tint)
         emitter->setEndColor(Color(255, 255, 255));
         emitter->setStartAlpha(1.0f);  // Fully opaque
-        emitter->setEndAlpha(1.0f);
+        emitter->setEndAlpha(0.5f);
         emitter->setGravity(Vec2(0, 0));
         emitter->setMinRotationSpeed(-2.0f);
         emitter->setMaxRotationSpeed(2.0f);
-        emitter->setFadeOut(false);
+        emitter->setFadeOut(true);
         emitter->setShrink(true);
-        emitter->setShrinkEndScale(0.05f);  // Shrink to 5%
-        emitter->setActive(true);           // Always active
-        emitter->setMaxParticles(300);
+        emitter->setShrinkEndScale(0.0f);  // Shrink to 5%
+        emitter->setActive(true);          // Always active
+        emitter->setMaxParticles(1000);
         emitter->setTexture(&m_bubbleTexture);  // Use bubble texture
 
-        // No offset needed - emitting from entity center
-        emitter->setPositionOffset(Vec2(0.0f, 0.0f));
+        // Position emitter at back of boat (stern)
+        // Boat forward direction is +Y in local space, so back is -Y
+        const float boatLength = PLAYER_SIZE_METERS * 3.5f;          // Match boat dimensions
+        emitter->setPositionOffset(Vec2(0.0f, -boatLength * 0.75));  // 50% back from center
 
-        std::cout << "Bubble emitter created at screen center (" << (screenWidthMeters / 2.0f) << ", "
-                  << (screenHeightMeters / 2.0f) << ") meters" << std::endl;
+        std::cout << "Boat wake particle emitter attached to player with offset (0.0, " << (-boatLength * 0.75)
+                  << ") meters" << std::endl;
     }
 
     void updateOceanShaderUniforms()
