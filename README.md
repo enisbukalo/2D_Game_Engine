@@ -48,6 +48,7 @@ A modern C++ 2D game engine built with SFML, featuring an Entity Component Syste
   - `CInputController`: Entity-specific input handling with action bindings
   - `CAudioListener`: Marks entity as audio listener for spatial audio
   - `CAudioSource`: Enables audio playback on entities (2D or spatial)
+  - `CParticleEmitter`: Configurable particle emitter for visual effects (fire, smoke, explosions, etc.)
 
 ### Rendering System
 - **SRenderer**: ECS-based rendering pipeline with SFML backend
@@ -146,6 +147,27 @@ The codebase is organized using pragma regions for better readability with secti
   - Entity-specific input controllers via `CInputController` component
   - Support for pressed, released, and held states
   - Access via `gameEngine.getInputManager()`
+- **Particle System (SParticleSystem)**: Visual effects system for particles
+  - **Emission Control**: Configurable emission rates and burst modes
+  - **Particle Properties**: 
+    - Lifetime and aging
+    - Velocity and acceleration (gravity support)
+    - Size with shrinking effects
+    - Color transitions (start to end color)
+    - Alpha fading
+    - Rotation and rotation speed
+  - **Emitter Configuration** (`CParticleEmitter`):
+    - Direction and spread angle
+    - Speed ranges (min/max)
+    - Lifetime ranges
+    - Size ranges with shrink-to-scale
+    - Color gradients (start/end)
+    - Alpha fading (start/end)
+    - Rotation speed ranges
+    - Texture support
+    - Maximum particle count
+  - **Rendering Integration**: Automatic particle rendering via SRenderer
+  - Access via particle system update in game loop
 - **Component Factory**: Provides a factory pattern for component creation
   - Registers all built-in components
   - Supports custom component registration
