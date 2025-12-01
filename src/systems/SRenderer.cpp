@@ -9,6 +9,7 @@
 #include "CTransform.h"
 #include "Entity.h"
 #include "EntityManager.h"
+#include "SParticleSystem.h"
 
 SRenderer::SRenderer() : System() {}
 
@@ -112,6 +113,13 @@ void SRenderer::render()
     for (Entity* entity : renderableEntities)
     {
         renderEntity(entity);
+    }
+
+    // Render particles after entities
+    auto& particleSystem = SParticleSystem::instance();
+    if (particleSystem.isInitialized())
+    {
+        particleSystem.render(m_window.get());
     }
 }
 
@@ -325,19 +333,19 @@ void SRenderer::renderEntity(Entity* entity)
     if (shader)
     {
         states.shader = shader;
-        
+
         // Set common shader uniforms
         sf::Shader* mutableShader = const_cast<sf::Shader*>(shader);
-        
+
         // Time uniform (elapsed time since program start)
         static sf::Clock shaderClock;
-        float time = shaderClock.getElapsedTime().asSeconds();
+        float            time = shaderClock.getElapsedTime().asSeconds();
         mutableShader->setUniform("u_time", time);
-        
+
         // Resolution uniform (screen dimensions)
         sf::Vector2u windowSize = m_window->getSize();
-        mutableShader->setUniform("u_resolution", sf::Vector2f(static_cast<float>(windowSize.x), 
-                                                                static_cast<float>(windowSize.y)));
+        mutableShader->setUniform("u_resolution",
+                                  sf::Vector2f(static_cast<float>(windowSize.x), static_cast<float>(windowSize.y)));
     }
 
     // Render based on visual type

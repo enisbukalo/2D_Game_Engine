@@ -23,7 +23,6 @@ A modern C++ 2D game engine built with SFML, featuring an Entity Component Syste
     - [Build Output](#build-output)
     - [Building Example Project](#building-example-project)
     - [Dependencies](#dependencies-1)
-    - [Simplified Include Paths](#simplified-include-paths)
   - [Project Structure](#project-structure)
   - [Audio Attribution](#audio-attribution)
   - [Contributing](#contributing)
@@ -249,10 +248,6 @@ The GameEngine class provides the public API for accessing all engine systems an
 - `getInputManager()` - Keyboard and mouse input
 - `getSceneManager()` - Scene loading and saving
 - `getComponentFactory()` - Component creation
-
-### Simplified Include Paths
-
-The engine uses a flat include structure. Headers can be included directly without subdirectory prefixes (e.g., `#include <CTransform.h>` instead of `#include <components/CTransform.h>`).
 
 ## Project Structure
 

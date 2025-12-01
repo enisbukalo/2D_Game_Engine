@@ -169,3 +169,8 @@ SRenderer& GameEngine::getRenderer()
 {
     return SRenderer::instance();
 }
+
+SParticleSystem& GameEngine::getParticleSystem()
+{
+    return SParticleSystem::instance();
+}

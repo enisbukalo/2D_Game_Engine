@@ -10,6 +10,7 @@
 #include <SAudioSystem.h>
 #include <SBox2DPhysics.h>
 #include <SInputManager.h>
+#include <SParticleSystem.h>
 #include <SRenderer.h>
 #include <SceneManager.h>
 
@@ -112,6 +113,12 @@ public:
      * @return Reference to the SRenderer singleton
      */
     SRenderer& getRenderer();
+
+    /**
+     * @brief Gets the particle system instance
+     * @return Reference to the SParticleSystem singleton
+     */
+    SParticleSystem& getParticleSystem();
 
 private:
     const uint8_t m_subStepCount;  ///< Number of physics sub-steps per update

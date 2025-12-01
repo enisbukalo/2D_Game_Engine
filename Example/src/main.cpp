@@ -2,6 +2,7 @@
 #include <CCollider2D.h>
 #include <CInputController.h>
 #include <CMaterial.h>
+#include <CParticleEmitter.h>
 #include <CPhysicsBody2D.h>
 #include <CRenderable.h>
 #include <CShader.h>
@@ -21,7 +22,6 @@
 // Define Screen Size
 const int   SCREEN_WIDTH            = 1600;
 const int   SCREEN_HEIGHT           = 1000;
-const int   INITIAL_BARREL_COUNT    = 25;
 const bool  INITIAL_GRAVITY_ENABLED = false;
 const float TIME_STEP               = 1.0f / 60.0f;  // 60 FPS
 const float GRAVITY_FORCE           = -10.0f;        // Box2D gravity (m/s²), negative = downward
@@ -29,6 +29,7 @@ const float PIXELS_PER_METER        = 100.0f;        // Rendering scale: 100 pix
 const float RESTITUTION             = 0.5f;          // Bounciness factor (lowered from 0.8 to reduce collision energy)
 
 // Barrel Constants
+const int   INITIAL_BARREL_COUNT = 0;      // Initial number of barrels
 const float BARREL_RADIUS_METERS = 0.10f;  // Barrel radius in meters
 const float BARREL_LINEAR_DRAG   = 1.5f;   // Linear drag for barrels
 const float BARREL_ANGULAR_DRAG  = 2.0f;   // Angular drag for barrels
@@ -62,6 +63,9 @@ private:
 
     // Audio state
     AudioHandle m_motorBoatHandle;
+
+    // Particle system
+    sf::Texture m_bubbleTexture;
 
     // Velocity visualization (entity -> velocity line entity mapping)
     std::map<Entity*, std::shared_ptr<Entity>> m_velocityLines;
@@ -145,9 +149,14 @@ public:
         auto& physics = m_gameEngine->getPhysics();
         physics.setGravity({0.0f, m_gravityEnabled ? GRAVITY_FORCE : 0.0f});
 
-        createOceanBackground();
+        // Initialize particle system
+        auto& particleSystem = m_gameEngine->getParticleSystem();
+        particleSystem.initialize(getWindow(), PIXELS_PER_METER);
+
+        // createOceanBackground();
         createBoundaryColliders();
         createPlayer();
+        createBubbleTrail();
         createBarrels();
 
         // Force EntityManager to process pending entities
@@ -217,9 +226,7 @@ public:
         m_oceanBackground = m_gameEngine->getEntityManager().addEntity("ocean");
 
         // Position at screen center, covering entire play area
-        m_oceanBackground->addComponent<CTransform>(Vec2(screenWidthMeters / 2.0f, screenHeightMeters / 2.0f),
-                                                    Vec2(1.0f, 1.0f),
-                                                    0.0f);
+        m_oceanBackground->addComponent<CTransform>(Vec2(screenWidthMeters / 2.0f, screenHeightMeters / 2.0f), Vec2(1.0f, 1.0f), 0.0f);
 
         // Create large rectangle covering the screen
         auto* oceanRenderable = m_oceanBackground->addComponent<CRenderable>(VisualType::Rectangle,
@@ -230,7 +237,7 @@ public:
 
         // Add box collider to define size (no physics body, just for rendering dimensions)
         auto* oceanCollider = m_oceanBackground->addComponent<CCollider2D>();
-        oceanCollider->createBox(screenWidthMeters / 2.0f,   // half-width
+        oceanCollider->createBox(screenWidthMeters / 2.0f,    // half-width
                                  screenHeightMeters / 2.0f);  // half-height
 
         // Add ocean shader
@@ -507,6 +514,61 @@ public:
         m_velocityLines.clear();
     }
 
+    void createBubbleTrail()
+    {
+        // Load bubble texture
+        if (!m_bubbleTexture.loadFromFile("assets/textures/bubble.png"))
+        {
+            std::cout << "ERROR: Could not load bubble.png texture!" << std::endl;
+            return;
+        }
+
+        m_bubbleTexture.setSmooth(true);
+        std::cout << "SUCCESS: Loaded bubble.png texture (" << m_bubbleTexture.getSize().x << "x"
+                  << m_bubbleTexture.getSize().y << ")" << std::endl;
+
+        // Screen dimensions in meters
+        const float screenWidthMeters  = SCREEN_WIDTH / PIXELS_PER_METER;
+        const float screenHeightMeters = SCREEN_HEIGHT / PIXELS_PER_METER;
+
+        // Create stationary entity at screen center for testing
+        auto bubbleEmitterEntity = m_gameEngine->getEntityManager().addEntity("bubble_emitter");
+        bubbleEmitterEntity->addComponent<CTransform>(Vec2(screenWidthMeters / 2.0f, screenHeightMeters / 2.0f), Vec2(1.0f, 1.0f), 0.0f);
+
+        // Configure bubble particle emitter component
+        auto* emitter = bubbleEmitterEntity->addComponent<CParticleEmitter>();
+
+        // Configure particle properties directly on component
+        emitter->direction        = Vec2(0, 1);  // Emit upward for visibility
+        emitter->spreadAngle      = 0.8f;        // Wide spread
+        emitter->minSpeed         = 0.05f;
+        emitter->maxSpeed         = 0.2f;
+        emitter->minLifetime      = 5.0f;
+        emitter->maxLifetime      = 5.0f;
+        emitter->minSize          = 0.05f;                 // 15cm (in meters)
+        emitter->maxSize          = 0.125f;                // 40cm (in meters)
+        emitter->emissionRate     = 15.0f;                 // Constant 15 particles/sec
+        emitter->startColor       = Color(255, 255, 255);  // White (no tint)
+        emitter->endColor         = Color(255, 255, 255);
+        emitter->startAlpha       = 1.0f;  // Fully opaque
+        emitter->endAlpha         = 1.0f;
+        emitter->gravity          = Vec2(0, 0);
+        emitter->minRotationSpeed = -2.0f;
+        emitter->maxRotationSpeed = 2.0f;
+        emitter->fadeOut          = false;
+        emitter->shrink           = true;
+        emitter->shrinkEndScale   = 0.05f;  // Shrink to 5%
+        emitter->active           = true;   // Always active
+        emitter->maxParticles     = 300;
+        emitter->texture          = &m_bubbleTexture;  // Use bubble texture
+
+        // No offset needed - emitting from entity center
+        emitter->positionOffset = Vec2(0.0f, 0.0f);
+
+        std::cout << "Bubble emitter created at screen center (" << (screenWidthMeters / 2.0f) << ", "
+                  << (screenHeightMeters / 2.0f) << ") meters" << std::endl;
+    }
+
     void updateOceanShaderUniforms()
     {
         if (!m_oceanBackground)
@@ -527,14 +589,13 @@ public:
 
         // Get the SFML shader from SRenderer cache
         auto& renderer = SRenderer::instance();
-        const sf::Shader* shader = renderer.loadShader(shaderComp->getVertexShaderPath(),
-                                                       shaderComp->getFragmentShaderPath());
+        const sf::Shader* shader = renderer.loadShader(shaderComp->getVertexShaderPath(), shaderComp->getFragmentShaderPath());
         if (!shader)
             return;
 
         // Collect positions of all physics objects (player + barrels)
         std::vector<sf::Vector2f> positions;
-        const int MAX_OBJECTS = 50;
+        const int                 MAX_OBJECTS = 50;
 
         // Get player position
         auto players = m_gameEngine->getEntityManager().getEntitiesByTag("player");
@@ -691,9 +752,10 @@ public:
         physics.setGravity({0.0f, m_gravityEnabled ? GRAVITY_FORCE : 0.0f});
 
         // Recreate ocean background, boundary colliders, player, and barrels
-        createOceanBackground();
+        // createOceanBackground();
         createBoundaryColliders();
         createPlayer();
+        createBubbleTrail();
         createBarrels();
 
         // Recreate velocity lines if vectors are visible
@@ -884,6 +946,9 @@ public:
         // Update Box2D physics
         m_gameEngine->getPhysics().update(dt);
 
+        // Update particle system
+        m_gameEngine->getParticleSystem().update(dt);
+
         // Update ocean shader uniforms with object positions
         updateOceanShaderUniforms();
 
@@ -906,7 +971,7 @@ public:
         if (!window)
             return;
 
-        // Use GameEngine's render pipeline for ECS entities
+        // Use GameEngine's complete render pipeline (includes particles)
         m_gameEngine->render();
 
         // Manual drawing for debug visualization (colliders, vectors, UI)
