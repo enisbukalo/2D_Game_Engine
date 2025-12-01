@@ -59,9 +59,10 @@ public:
      * @brief Checks if the particle system is initialized
      * @return true if initialized, false otherwise
      */
-    bool isInitialized() const { return m_initialized; }
-
-
+    bool isInitialized() const
+    {
+        return m_initialized;
+    }
 
 private:
     /** @brief Private constructor for singleton pattern */
@@ -90,10 +91,10 @@ private:
      */
     float metersToPixels(float meters) const;
 
-    sf::VertexArray  m_vertexArray;     ///< Vertex array for rendering
-    sf::RenderWindow* m_window;         ///< Render window reference
-    float            m_pixelsPerMeter;  ///< Rendering scale
-    bool             m_initialized;     ///< Initialization state
+    sf::VertexArray   m_vertexArray;     ///< Vertex array for rendering
+    sf::RenderWindow* m_window;          ///< Render window reference
+    float             m_pixelsPerMeter;  ///< Rendering scale
+    bool              m_initialized;     ///< Initialization state
 };
 
 #endif  // SPARTICLESYSTEM_H
