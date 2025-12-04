@@ -202,14 +202,14 @@ private:
     Vec2  m_positionOffset   = Vec2(0.0f, 0.0f);  ///< Offset from entity position
 
     // Emission shape configuration
-    EmissionShape      m_emissionShape   = EmissionShape::Point;  ///< Shape for emission distribution
-    float              m_shapeRadius     = 1.0f;                  ///< Radius for circle shape (meters)
-    Vec2               m_shapeSize       = Vec2(1.0f, 1.0f);      ///< Size for rectangle shape (meters)
-    Vec2               m_lineStart       = Vec2(-0.5f, 0.0f);     ///< Start point for line shape
-    Vec2               m_lineEnd         = Vec2(0.5f, 0.0f);      ///< End point for line shape
-    std::vector<Vec2>  m_polygonVertices;                         ///< Vertices for polygon shape
-    bool               m_emitFromEdge    = true;                  ///< Emit from edge (true) or filled area (false)
-    bool               m_emitOutward     = false;                 ///< Emit in direction away from shape center
+    EmissionShape     m_emissionShape = EmissionShape::Point;  ///< Shape for emission distribution
+    float             m_shapeRadius   = 1.0f;                  ///< Radius for circle shape (meters)
+    Vec2              m_shapeSize     = Vec2(1.0f, 1.0f);      ///< Size for rectangle shape (meters)
+    Vec2              m_lineStart     = Vec2(-0.5f, 0.0f);     ///< Start point for line shape
+    Vec2              m_lineEnd       = Vec2(0.5f, 0.0f);      ///< End point for line shape
+    std::vector<Vec2> m_polygonVertices;                       ///< Vertices for polygon shape
+    bool              m_emitFromEdge = true;                   ///< Emit from edge (true) or filled area (false)
+    bool              m_emitOutward  = false;                  ///< Emit in direction away from shape center
 
     // Resources
     sf::Texture* m_texture = nullptr;  ///< Optional texture for particles

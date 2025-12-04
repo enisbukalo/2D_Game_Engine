@@ -47,8 +47,8 @@ static Color lerpColor(const Color& a, const Color& b, float t)
 static std::pair<Vec2, Vec2> sampleCircleEdge(float radius)
 {
     float angle = randomFloat(0.0f, 2.0f * 3.14159f);
-    Vec2 position(std::cos(angle) * radius, std::sin(angle) * radius);
-    Vec2 normal(std::cos(angle), std::sin(angle));  // Outward normal
+    Vec2  position(std::cos(angle) * radius, std::sin(angle) * radius);
+    Vec2  normal(std::cos(angle), std::sin(angle));  // Outward normal
     return {position, normal};
 }
 
@@ -62,10 +62,10 @@ static std::pair<Vec2, Vec2> sampleRectangleEdge(float halfWidth, float halfHeig
 {
     // Calculate perimeter for uniform distribution
     float perimeter = 2.0f * (2.0f * halfWidth + 2.0f * halfHeight);
-    float t = randomFloat(0.0f, perimeter);
+    float t         = randomFloat(0.0f, perimeter);
 
-    float topLength = 2.0f * halfWidth;
-    float rightLength = 2.0f * halfHeight;
+    float topLength    = 2.0f * halfWidth;
+    float rightLength  = 2.0f * halfHeight;
     float bottomLength = 2.0f * halfWidth;
 
     Vec2 position;
@@ -75,28 +75,28 @@ static std::pair<Vec2, Vec2> sampleRectangleEdge(float halfWidth, float halfHeig
     {
         // Top edge
         position = Vec2(-halfWidth + t, halfHeight);
-        normal = Vec2(0.0f, 1.0f);
+        normal   = Vec2(0.0f, 1.0f);
     }
     else if (t < topLength + rightLength)
     {
         // Right edge
         float localT = t - topLength;
-        position = Vec2(halfWidth, halfHeight - localT);
-        normal = Vec2(1.0f, 0.0f);
+        position     = Vec2(halfWidth, halfHeight - localT);
+        normal       = Vec2(1.0f, 0.0f);
     }
     else if (t < topLength + rightLength + bottomLength)
     {
         // Bottom edge
         float localT = t - topLength - rightLength;
-        position = Vec2(halfWidth - localT, -halfHeight);
-        normal = Vec2(0.0f, -1.0f);
+        position     = Vec2(halfWidth - localT, -halfHeight);
+        normal       = Vec2(0.0f, -1.0f);
     }
     else
     {
         // Left edge
         float localT = t - topLength - rightLength - bottomLength;
-        position = Vec2(-halfWidth, -halfHeight + localT);
-        normal = Vec2(-1.0f, 0.0f);
+        position     = Vec2(-halfWidth, -halfHeight + localT);
+        normal       = Vec2(-1.0f, 0.0f);
     }
 
     return {position, normal};
@@ -110,11 +110,11 @@ static std::pair<Vec2, Vec2> sampleRectangleEdge(float halfWidth, float halfHeig
  */
 static std::pair<Vec2, Vec2> sampleLine(const Vec2& start, const Vec2& end)
 {
-    float t = randomFloat(0.0f, 1.0f);
-    Vec2 position = lerp(start, end, t);
+    float t        = randomFloat(0.0f, 1.0f);
+    Vec2  position = lerp(start, end, t);
 
     // Calculate perpendicular normal (90 degrees rotated from line direction)
-    Vec2 direction(end.x - start.x, end.y - start.y);
+    Vec2  direction(end.x - start.x, end.y - start.y);
     float length = std::sqrt(direction.x * direction.x + direction.y * direction.y);
     if (length > 0.0001f)
     {
@@ -140,17 +140,17 @@ static std::pair<Vec2, Vec2> samplePolygonEdge(const std::vector<Vec2>& vertices
     }
 
     // Calculate total perimeter
-    float totalPerimeter = 0.0f;
+    float              totalPerimeter = 0.0f;
     std::vector<float> edgeLengths;
-    size_t numVertices = vertices.size();
+    size_t             numVertices = vertices.size();
 
     for (size_t i = 0; i < numVertices; ++i)
     {
-        const Vec2& v1 = vertices[i];
-        const Vec2& v2 = vertices[(i + 1) % numVertices];
-        float dx = v2.x - v1.x;
-        float dy = v2.y - v1.y;
-        float length = std::sqrt(dx * dx + dy * dy);
+        const Vec2& v1     = vertices[i];
+        const Vec2& v2     = vertices[(i + 1) % numVertices];
+        float       dx     = v2.x - v1.x;
+        float       dy     = v2.y - v1.y;
+        float       length = std::sqrt(dx * dx + dy * dy);
         edgeLengths.push_back(length);
         totalPerimeter += length;
     }
@@ -161,7 +161,7 @@ static std::pair<Vec2, Vec2> samplePolygonEdge(const std::vector<Vec2>& vertices
     }
 
     // Random position along perimeter
-    float targetDist = randomFloat(0.0f, totalPerimeter);
+    float targetDist  = randomFloat(0.0f, totalPerimeter);
     float accumulated = 0.0f;
 
     for (size_t i = 0; i < numVertices; ++i)
@@ -169,15 +169,15 @@ static std::pair<Vec2, Vec2> samplePolygonEdge(const std::vector<Vec2>& vertices
         if (accumulated + edgeLengths[i] >= targetDist)
         {
             // This is the edge
-            float localT = (targetDist - accumulated) / edgeLengths[i];
-            const Vec2& v1 = vertices[i];
-            const Vec2& v2 = vertices[(i + 1) % numVertices];
+            float       localT = (targetDist - accumulated) / edgeLengths[i];
+            const Vec2& v1     = vertices[i];
+            const Vec2& v2     = vertices[(i + 1) % numVertices];
 
             Vec2 position = lerp(v1, v2, localT);
 
             // Calculate outward normal (perpendicular to edge, pointing outward)
             // For counter-clockwise winding, the RIGHT perpendicular points outward
-            Vec2 direction(v2.x - v1.x, v2.y - v1.y);
+            Vec2  direction(v2.x - v1.x, v2.y - v1.y);
             float length = edgeLengths[i];
             if (length > 0.0001f)
             {
@@ -216,25 +216,25 @@ static std::pair<Vec2, Vec2> getEmissionPositionAndNormal(const CParticleEmitter
         case EmissionShape::Circle:
         {
             auto [pos, normal] = sampleCircleEdge(emitter->getShapeRadius());
-            localPosition = pos;
-            outwardNormal = normal;
+            localPosition      = pos;
+            outwardNormal      = normal;
             break;
         }
 
         case EmissionShape::Rectangle:
         {
-            Vec2 size = emitter->getShapeSize();
+            Vec2 size          = emitter->getShapeSize();
             auto [pos, normal] = sampleRectangleEdge(size.x / 2.0f, size.y / 2.0f);
-            localPosition = pos;
-            outwardNormal = normal;
+            localPosition      = pos;
+            outwardNormal      = normal;
             break;
         }
 
         case EmissionShape::Line:
         {
             auto [pos, normal] = sampleLine(emitter->getLineStart(), emitter->getLineEnd());
-            localPosition = pos;
-            outwardNormal = normal;
+            localPosition      = pos;
+            outwardNormal      = normal;
             break;
         }
 
@@ -244,8 +244,8 @@ static std::pair<Vec2, Vec2> getEmissionPositionAndNormal(const CParticleEmitter
             if (!vertices.empty())
             {
                 auto [pos, normal] = samplePolygonEdge(vertices);
-                localPosition = pos;
-                outwardNormal = normal;
+                localPosition      = pos;
+                outwardNormal      = normal;
             }
             break;
         }
@@ -259,11 +259,11 @@ static std::pair<Vec2, Vec2> getEmissionPositionAndNormal(const CParticleEmitter
 
         float rotatedPosX = localPosition.x * cosR - localPosition.y * sinR;
         float rotatedPosY = localPosition.x * sinR + localPosition.y * cosR;
-        localPosition = Vec2(rotatedPosX, rotatedPosY);
+        localPosition     = Vec2(rotatedPosX, rotatedPosY);
 
         float rotatedNormX = outwardNormal.x * cosR - outwardNormal.y * sinR;
         float rotatedNormY = outwardNormal.x * sinR + outwardNormal.y * cosR;
-        outwardNormal = Vec2(rotatedNormX, rotatedNormY);
+        outwardNormal      = Vec2(rotatedNormX, rotatedNormY);
     }
 
     return {localPosition, outwardNormal};
@@ -284,7 +284,7 @@ static bool shouldEmitAtNormal(const Vec2& outwardNormal, const Vec2& velocity)
     // Calculate dot product: positive = facing same direction as velocity
     // We want to emit from edges facing OPPOSITE to velocity (behind the object)
     float dot = outwardNormal.x * velocity.x + outwardNormal.y * velocity.y;
-    
+
     // Only emit if normal is facing opposite to velocity direction (dot < 0)
     // This means the edge is on the "trailing" side of the object
     return dot < 0.0f;

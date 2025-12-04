@@ -36,11 +36,11 @@ const float BARREL_ANGULAR_DRAG  = 2.0f;   // Angular drag for barrels
 const float BARREL_DENSITY       = 0.5f;   // Density for barrels
 
 // Rendering Constants
-const int BOAT_INDEX = 10;  // Z-index for boat rendering
-const int BARREL_INDEX = 10; // Z-index for barrel rendering
-const int BACKGROUND_INDEX = 0;  // Z-index for background rendering
-const int BUBBLE_TRAIL_INDEX = 5;  // Z-index for bubble trail rendering
-const int HULL_SPRAY_INDEX = 5;      // Z-index for hull spray rendering
+const int BOAT_INDEX         = 10;  // Z-index for boat rendering
+const int BARREL_INDEX       = 10;  // Z-index for barrel rendering
+const int BACKGROUND_INDEX   = 0;   // Z-index for background rendering
+const int BUBBLE_TRAIL_INDEX = 5;   // Z-index for bubble trail rendering
+const int HULL_SPRAY_INDEX   = 5;   // Z-index for hull spray rendering
 
 const float BOUNDARY_THICKNESS_METERS = 0.5f;   // Thickness in meters
 const float RANDOM_VELOCITY_RANGE     = 2.0f;   // Random velocity range: -2 to +2 m/s
@@ -72,11 +72,11 @@ private:
     AudioHandle m_motorBoatHandle;
 
     // Particle system
-    sf::Texture m_bubbleTexture;
-    sf::Texture m_sprayTexture;
-    std::shared_ptr<Entity> m_bubbleTrailEntity = nullptr;   // Separate entity for bubble trail
-    std::shared_ptr<Entity> m_hullSprayEntity = nullptr;     // Separate entity for hull spray
-    CParticleEmitter* m_hullSprayEmitter = nullptr;          // Reference to hull spray emitter for dynamic updates
+    sf::Texture             m_bubbleTexture;
+    sf::Texture             m_sprayTexture;
+    std::shared_ptr<Entity> m_bubbleTrailEntity = nullptr;  // Separate entity for bubble trail
+    std::shared_ptr<Entity> m_hullSprayEntity   = nullptr;  // Separate entity for hull spray
+    CParticleEmitter*       m_hullSprayEmitter  = nullptr;  // Reference to hull spray emitter for dynamic updates
 
     // Velocity visualization (entity -> velocity line entity mapping)
     std::map<Entity*, std::shared_ptr<Entity>> m_velocityLines;
@@ -348,10 +348,7 @@ public:
 
         // Add rendering components for player boat texture
         auto boatTexture    = m_player->addComponent<CTexture>("assets/textures/boat.png");
-        auto boatRenderable = m_player->addComponent<CRenderable>(VisualType::Sprite,
-                                                                  Color::White,
-                                                                  BOAT_INDEX
-        );
+        auto boatRenderable = m_player->addComponent<CRenderable>(VisualType::Sprite, Color::White, BOAT_INDEX);
         boatRenderable->setVisible(true);
 
         // Add material for the boat
@@ -547,10 +544,10 @@ public:
 
         // Create a separate entity for the bubble trail emitter
         m_bubbleTrailEntity = m_gameEngine->getEntityManager().addEntity("bubble_trail");
-        
+
         // Get player position for initial placement
         auto* playerTransform = m_player->getComponent<CTransform>();
-        Vec2 playerPos = playerTransform ? playerTransform->getPosition() : Vec2(0, 0);
+        Vec2  playerPos       = playerTransform ? playerTransform->getPosition() : Vec2(0, 0);
         m_bubbleTrailEntity->addComponent<CTransform>(playerPos, Vec2(1.0f, 1.0f), 0.0f);
 
         // Add particle emitter to the bubble trail entity
@@ -580,7 +577,7 @@ public:
         emitter->setShrinkEndScale(0.0f);  // Shrink to nothing
         emitter->setActive(true);          // Always active
         emitter->setMaxParticles(1000);
-        emitter->setTexture(&m_bubbleTexture);  // Use bubble texture
+        emitter->setTexture(&m_bubbleTexture);   // Use bubble texture
         emitter->setZIndex(BUBBLE_TRAIL_INDEX);  // Render behind boat
 
         // Position emitter at back of boat (stern)
@@ -610,10 +607,10 @@ public:
 
         // Create a separate entity for the hull spray emitter
         m_hullSprayEntity = m_gameEngine->getEntityManager().addEntity("hull_spray");
-        
+
         // Get player position for initial placement
         auto* playerTransform = m_player->getComponent<CTransform>();
-        Vec2 playerPos = playerTransform ? playerTransform->getPosition() : Vec2(0, 0);
+        Vec2  playerPos       = playerTransform ? playerTransform->getPosition() : Vec2(0, 0);
         m_hullSprayEntity->addComponent<CTransform>(playerPos, Vec2(1.0f, 1.0f), 0.0f);
 
         // Create hull spray emitter on the separate entity
@@ -627,15 +624,15 @@ public:
         if (playerCollider)
         {
             std::vector<Vec2> allVertices;
-            const auto& fixtures = playerCollider->getFixtures();
-            
+            const auto&       fixtures = playerCollider->getFixtures();
+
             for (size_t i = 0; i < fixtures.size(); ++i)
             {
                 if (fixtures[i].shapeType == ColliderShape::Polygon)
                 {
-                    const b2Vec2* verts = playerCollider->getPolygonVertices(i);
-                    int vertCount = playerCollider->getPolygonVertexCount(i);
-                    
+                    const b2Vec2* verts     = playerCollider->getPolygonVertices(i);
+                    int           vertCount = playerCollider->getPolygonVertexCount(i);
+
                     for (int v = 0; v < vertCount; ++v)
                     {
                         allVertices.push_back(Vec2(verts[v].x, verts[v].y));
@@ -651,14 +648,14 @@ public:
         m_hullSprayEmitter->setEmitOutward(true);
 
         // Spray particle properties
-        m_hullSprayEmitter->setSpreadAngle(0.4f);           // Moderate spread
+        m_hullSprayEmitter->setSpreadAngle(0.4f);  // Moderate spread
         m_hullSprayEmitter->setMinSpeed(0.8f);
         m_hullSprayEmitter->setMaxSpeed(2.5f);
         m_hullSprayEmitter->setMinLifetime(0.5f);
         m_hullSprayEmitter->setMaxLifetime(1.2f);
-        m_hullSprayEmitter->setMinSize(0.006f);             // Small spray droplets
+        m_hullSprayEmitter->setMinSize(0.006f);  // Small spray droplets
         m_hullSprayEmitter->setMaxSize(0.02f);
-        m_hullSprayEmitter->setEmissionRate(0.0f);          // Start at 0, will be updated based on speed
+        m_hullSprayEmitter->setEmissionRate(0.0f);                // Start at 0, will be updated based on speed
         m_hullSprayEmitter->setStartColor(Color(220, 240, 255));  // Light blue-white
         m_hullSprayEmitter->setEndColor(Color(255, 255, 255));
         m_hullSprayEmitter->setStartAlpha(0.9f);
@@ -684,13 +681,13 @@ public:
 
         // Get current speed
         b2Vec2 velocity = m_playerPhysics->getLinearVelocity();
-        float speed = std::sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+        float  speed    = std::sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
 
         // Define speed thresholds
-        const float MIN_SPEED_FOR_SPRAY = 0.1f;   // Start spraying at this speed (m/s)
-        const float MAX_SPEED_FOR_SPRAY = 2.25f;   // Maximum spray at this speed (m/s)
-        const float MIN_EMISSION_RATE = 0.0f;     // Emission rate at minimum speed
-        const float MAX_EMISSION_RATE = 5000.0f;   // Emission rate at maximum speed
+        const float MIN_SPEED_FOR_SPRAY = 0.1f;     // Start spraying at this speed (m/s)
+        const float MAX_SPEED_FOR_SPRAY = 2.25f;    // Maximum spray at this speed (m/s)
+        const float MIN_EMISSION_RATE   = 0.0f;     // Emission rate at minimum speed
+        const float MAX_EMISSION_RATE   = 5000.0f;  // Emission rate at maximum speed
 
         // Calculate emission rate based on speed
         float emissionRate = 0.0f;
@@ -698,7 +695,7 @@ public:
         {
             // Normalize speed to 0-1 range
             float normalizedSpeed = (speed - MIN_SPEED_FOR_SPRAY) / (MAX_SPEED_FOR_SPRAY - MIN_SPEED_FOR_SPRAY);
-            normalizedSpeed = std::min(1.0f, std::max(0.0f, normalizedSpeed));
+            normalizedSpeed       = std::min(1.0f, std::max(0.0f, normalizedSpeed));
 
             // Use quadratic curve for more dramatic effect at higher speeds
             emissionRate = MIN_EMISSION_RATE + (MAX_EMISSION_RATE - MIN_EMISSION_RATE) * (normalizedSpeed * normalizedSpeed);
@@ -721,7 +718,7 @@ public:
         if (!playerTransform)
             return;
 
-        Vec2 playerPos = playerTransform->getPosition();
+        Vec2  playerPos      = playerTransform->getPosition();
         float playerRotation = playerTransform->getRotation();
 
         // Update bubble trail entity to follow player
@@ -880,10 +877,7 @@ public:
 
         // Add rendering components for barrel sprite
         auto barrelTexture    = barrel->addComponent<CTexture>("assets/textures/barrel.png");
-        auto barrelRenderable = barrel->addComponent<CRenderable>(VisualType::Sprite,
-                                                                  Color::White,
-                                                                  BARREL_INDEX
-        );
+        auto barrelRenderable = barrel->addComponent<CRenderable>(VisualType::Sprite, Color::White, BARREL_INDEX);
         barrelRenderable->setVisible(true);
 
         // Add material for the barrel

@@ -1,7 +1,7 @@
 #include "components/CParticleEmitter.h"
+#include <algorithm>
 #include "JsonBuilder.h"
 #include "JsonValue.h"
-#include <algorithm>
 
 // Particle constructor
 Particle::Particle()
@@ -393,8 +393,7 @@ void CParticleEmitter::setPolygonFromConvexHull(const std::vector<Vec2>& vertice
     size_t startIdx = 0;
     for (size_t i = 1; i < points.size(); ++i)
     {
-        if (points[i].y < points[startIdx].y ||
-            (points[i].y == points[startIdx].y && points[i].x < points[startIdx].x))
+        if (points[i].y < points[startIdx].y || (points[i].y == points[startIdx].y && points[i].x < points[startIdx].x))
         {
             startIdx = i;
         }
@@ -403,18 +402,20 @@ void CParticleEmitter::setPolygonFromConvexHull(const std::vector<Vec2>& vertice
     Vec2 pivot = points[0];
 
     // Sort by polar angle relative to pivot (counter-clockwise)
-    std::sort(points.begin() + 1, points.end(),
-        [&pivot](const Vec2& a, const Vec2& b) {
-            Vec2 da = a - pivot;
-            Vec2 db = b - pivot;
-            float crossProduct = da.x * db.y - da.y * db.x;
-            if (std::abs(crossProduct) < 1e-9f)
-            {
-                // Collinear - sort by distance (closer first)
-                return da.x * da.x + da.y * da.y < db.x * db.x + db.y * db.y;
-            }
-            return crossProduct > 0;  // Counter-clockwise order
-        });
+    std::sort(points.begin() + 1,
+              points.end(),
+              [&pivot](const Vec2& a, const Vec2& b)
+              {
+                  Vec2  da           = a - pivot;
+                  Vec2  db           = b - pivot;
+                  float crossProduct = da.x * db.y - da.y * db.x;
+                  if (std::abs(crossProduct) < 1e-9f)
+                  {
+                      // Collinear - sort by distance (closer first)
+                      return da.x * da.x + da.y * da.y < db.x * db.x + db.y * db.y;
+                  }
+                  return crossProduct > 0;  // Counter-clockwise order
+              });
 
     // Build convex hull using Graham scan
     std::vector<Vec2> hull;
@@ -423,10 +424,10 @@ void CParticleEmitter::setPolygonFromConvexHull(const std::vector<Vec2>& vertice
         // Remove points that make a clockwise turn (or are collinear)
         while (hull.size() >= 2)
         {
-            Vec2 a = hull[hull.size() - 2];
-            Vec2 b = hull[hull.size() - 1];
-            Vec2 ab = b - a;
-            Vec2 ac = v - a;
+            Vec2  a     = hull[hull.size() - 2];
+            Vec2  b     = hull[hull.size() - 1];
+            Vec2  ab    = b - a;
+            Vec2  ac    = v - a;
             float cross = ab.x * ac.y - ab.y * ac.x;
             if (cross <= 0)
                 hull.pop_back();
