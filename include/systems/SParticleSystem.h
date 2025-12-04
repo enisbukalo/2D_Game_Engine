@@ -51,12 +51,6 @@ public:
     void update(float deltaTime) override;
 
     /**
-     * @brief Renders all particles to a render window
-     * @param window SFML render window
-     */
-    void render(sf::RenderWindow* window);
-
-    /**
      * @brief Renders particles for a single emitter entity
      * @param entity Entity with CParticleEmitter component
      * @param window SFML render window

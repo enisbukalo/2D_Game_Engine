@@ -3,6 +3,7 @@
 #include <algorithm>
 #include "CCollider2D.h"
 #include "CMaterial.h"
+#include "CParticleEmitter.h"
 #include "CRenderable.h"
 #include "CShader.h"
 #include "CTexture.h"
@@ -92,34 +93,58 @@ void SRenderer::render()
     // Get all entities with renderable components
     auto& entityManager      = EntityManager::instance();
     auto  renderableEntities = entityManager.getEntitiesWithComponent<CRenderable>();
+    auto  emitterEntities    = entityManager.getEntitiesWithComponent<CParticleEmitter>();
 
-    // Sort entities by z-index (lower values draw first, higher on top)
-    std::sort(renderableEntities.begin(),
-              renderableEntities.end(),
-              [](Entity* a, Entity* b)
-              {
-                  auto* renderableA = a->getComponent<CRenderable>();
-                  auto* renderableB = b->getComponent<CRenderable>();
-
-                  if (!renderableA)
-                      return false;
-                  if (!renderableB)
-                      return true;
-
-                  return renderableA->getZIndex() < renderableB->getZIndex();
-              });
-
-    // Render particles before entities (so they appear behind sprites)
-    auto& particleSystem = SParticleSystem::instance();
-    if (particleSystem.isInitialized())
+    // Build unified render queue with z-index
+    struct RenderItem
     {
-        particleSystem.render(m_window.get());
-    }
+        Entity* entity;
+        int     zIndex;
+        bool    isParticleEmitter;
+    };
+    std::vector<RenderItem> renderQueue;
+    renderQueue.reserve(renderableEntities.size() + emitterEntities.size());
 
-    // Render each entity
+    // Add renderable entities
     for (Entity* entity : renderableEntities)
     {
-        renderEntity(entity);
+        auto* renderable = entity->getComponent<CRenderable>();
+        if (renderable)
+        {
+            renderQueue.push_back({entity, renderable->getZIndex(), false});
+        }
+    }
+
+    // Add particle emitter entities
+    for (Entity* entity : emitterEntities)
+    {
+        auto* emitter = entity->getComponent<CParticleEmitter>();
+        if (emitter && emitter->isActive())
+        {
+            renderQueue.push_back({entity, emitter->getZIndex(), true});
+        }
+    }
+
+    // Sort by z-index (lower values draw first, higher on top)
+    std::sort(renderQueue.begin(),
+              renderQueue.end(),
+              [](const RenderItem& a, const RenderItem& b) { return a.zIndex < b.zIndex; });
+
+    // Render in z-index order
+    auto& particleSystem = SParticleSystem::instance();
+    for (const RenderItem& item : renderQueue)
+    {
+        if (item.isParticleEmitter)
+        {
+            if (particleSystem.isInitialized())
+            {
+                particleSystem.renderEmitter(item.entity, m_window.get());
+            }
+        }
+        else
+        {
+            renderEntity(item.entity);
+        }
     }
 }
 

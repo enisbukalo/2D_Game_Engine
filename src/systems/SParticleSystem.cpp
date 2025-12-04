@@ -517,125 +517,118 @@ void SParticleSystem::update(float deltaTime)
     }
 }
 
-void SParticleSystem::render(sf::RenderWindow* window)
+void SParticleSystem::renderEmitter(Entity* entity, sf::RenderWindow* window)
 {
-    // Use stored window if no window parameter provided
     sf::RenderWindow* targetWindow = window ? window : m_window;
 
-    if (m_initialized == false || targetWindow == nullptr)
+    if (m_initialized == false || targetWindow == nullptr || entity == nullptr)
     {
         return;
     }
 
-    // Iterate over all entities with CParticleEmitter component
-    auto entities = EntityManager::instance().getEntities();
-
-    for (auto& entity : entities)
+    if (entity->hasComponent<CParticleEmitter>() == false)
     {
-        if (entity->hasComponent<CParticleEmitter>() == false)
+        return;
+    }
+
+    auto* emitter = entity->getComponent<CParticleEmitter>();
+
+    // Clear vertex array for this emitter
+    m_vertexArray.clear();
+
+    // Build vertex array for all alive particles
+    for (const auto& particle : emitter->getParticles())
+    {
+        if (particle.alive == false)
         {
             continue;
         }
 
-        auto* emitter = entity->getComponent<CParticleEmitter>();
+        // Convert to screen space
+        sf::Vector2f screenPos = worldToScreen(particle.position);
+        float        pixelSize = metersToPixels(particle.size);
 
-        // Clear vertex array for this emitter
-        m_vertexArray.clear();
+        // Create color with alpha
+        sf::Color color(particle.color.r, particle.color.g, particle.color.b, static_cast<sf::Uint8>(particle.alpha * 255.0f));
 
-        // Build vertex array for all alive particles
-        for (const auto& particle : emitter->getParticles())
+        if (emitter->getTexture())
         {
-            if (particle.alive == false)
+            // Textured quad
+            float cosR = std::cos(particle.rotation);
+            float sinR = std::sin(particle.rotation);
+
+            // Quad corners (centered)
+            sf::Vector2f corners[4] = {
+                sf::Vector2f(-pixelSize, -pixelSize),  // Top-left
+                sf::Vector2f(pixelSize, -pixelSize),   // Top-right
+                sf::Vector2f(pixelSize, pixelSize),    // Bottom-right
+                sf::Vector2f(-pixelSize, pixelSize)    // Bottom-left
+            };
+
+            // Rotate corners
+            for (int i = 0; i < 4; ++i)
             {
-                continue;
+                float x      = corners[i].x;
+                float y      = corners[i].y;
+                corners[i].x = x * cosR - y * sinR;
+                corners[i].y = x * sinR + y * cosR;
+                corners[i] += screenPos;
             }
 
-            // Convert to screen space
-            sf::Vector2f screenPos = worldToScreen(particle.position);
-            float        pixelSize = metersToPixels(particle.size);
+            // Texture coordinates (in pixels for SFML - confirmed by official docs)
+            sf::Vector2u texSize      = emitter->getTexture()->getSize();
+            sf::Vector2f texCoords[4] = {
+                sf::Vector2f(0.0f, 0.0f),                                                    // Top-left
+                sf::Vector2f(static_cast<float>(texSize.x), 0.0f),                           // Top-right
+                sf::Vector2f(static_cast<float>(texSize.x), static_cast<float>(texSize.y)),  // Bottom-right
+                sf::Vector2f(0.0f, static_cast<float>(texSize.y))                            // Bottom-left
+            };
 
-            // Create color with alpha
-            sf::Color color(particle.color.r, particle.color.g, particle.color.b, static_cast<sf::Uint8>(particle.alpha * 255.0f));
-
-            if (emitter->getTexture())
+            // Add vertices
+            for (int i = 0; i < 4; ++i)
             {
-                // Textured quad
-                float cosR = std::cos(particle.rotation);
-                float sinR = std::sin(particle.rotation);
-
-                // Quad corners (centered)
-                sf::Vector2f corners[4] = {
-                    sf::Vector2f(-pixelSize, -pixelSize),  // Top-left
-                    sf::Vector2f(pixelSize, -pixelSize),   // Top-right
-                    sf::Vector2f(pixelSize, pixelSize),    // Bottom-right
-                    sf::Vector2f(-pixelSize, pixelSize)    // Bottom-left
-                };
-
-                // Rotate corners
-                for (int i = 0; i < 4; ++i)
-                {
-                    float x      = corners[i].x;
-                    float y      = corners[i].y;
-                    corners[i].x = x * cosR - y * sinR;
-                    corners[i].y = x * sinR + y * cosR;
-                    corners[i] += screenPos;
-                }
-
-                // Texture coordinates (in pixels for SFML - confirmed by official docs)
-                sf::Vector2u texSize      = emitter->getTexture()->getSize();
-                sf::Vector2f texCoords[4] = {
-                    sf::Vector2f(0.0f, 0.0f),                                                    // Top-left
-                    sf::Vector2f(static_cast<float>(texSize.x), 0.0f),                           // Top-right
-                    sf::Vector2f(static_cast<float>(texSize.x), static_cast<float>(texSize.y)),  // Bottom-right
-                    sf::Vector2f(0.0f, static_cast<float>(texSize.y))                            // Bottom-left
-                };
-
-                // Add vertices
-                for (int i = 0; i < 4; ++i)
-                {
-                    m_vertexArray.append(sf::Vertex(corners[i], color, texCoords[i]));
-                }
-            }
-            else
-            {
-                // Colored quad (no texture)
-                float cosR = std::cos(particle.rotation);
-                float sinR = std::sin(particle.rotation);
-
-                sf::Vector2f corners[4] = {sf::Vector2f(-pixelSize, -pixelSize),
-                                           sf::Vector2f(pixelSize, -pixelSize),
-                                           sf::Vector2f(pixelSize, pixelSize),
-                                           sf::Vector2f(-pixelSize, pixelSize)};
-
-                for (int i = 0; i < 4; ++i)
-                {
-                    float x      = corners[i].x;
-                    float y      = corners[i].y;
-                    corners[i].x = x * cosR - y * sinR;
-                    corners[i].y = x * sinR + y * cosR;
-                    corners[i] += screenPos;
-                }
-
-                for (int i = 0; i < 4; ++i)
-                {
-                    m_vertexArray.append(sf::Vertex(corners[i], color));
-                }
+                m_vertexArray.append(sf::Vertex(corners[i], color, texCoords[i]));
             }
         }
-
-        // Render particles for this emitter
-        if (m_vertexArray.getVertexCount() > 0)
+        else
         {
-            sf::RenderStates states;
-            states.blendMode = sf::BlendAlpha;
+            // Colored quad (no texture)
+            float cosR = std::cos(particle.rotation);
+            float sinR = std::sin(particle.rotation);
 
-            if (emitter->getTexture())
+            sf::Vector2f corners[4] = {sf::Vector2f(-pixelSize, -pixelSize),
+                                       sf::Vector2f(pixelSize, -pixelSize),
+                                       sf::Vector2f(pixelSize, pixelSize),
+                                       sf::Vector2f(-pixelSize, pixelSize)};
+
+            for (int i = 0; i < 4; ++i)
             {
-                states.texture = emitter->getTexture();
+                float x      = corners[i].x;
+                float y      = corners[i].y;
+                corners[i].x = x * cosR - y * sinR;
+                corners[i].y = x * sinR + y * cosR;
+                corners[i] += screenPos;
             }
 
-            targetWindow->draw(m_vertexArray, states);
+            for (int i = 0; i < 4; ++i)
+            {
+                m_vertexArray.append(sf::Vertex(corners[i], color));
+            }
         }
+    }
+
+    // Render particles for this emitter
+    if (m_vertexArray.getVertexCount() > 0)
+    {
+        sf::RenderStates states;
+        states.blendMode = sf::BlendAlpha;
+
+        if (emitter->getTexture())
+        {
+            states.texture = emitter->getTexture();
+        }
+
+        targetWindow->draw(m_vertexArray, states);
     }
 }
 

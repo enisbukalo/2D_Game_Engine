@@ -35,6 +35,13 @@ const float BARREL_LINEAR_DRAG   = 1.5f;   // Linear drag for barrels
 const float BARREL_ANGULAR_DRAG  = 2.0f;   // Angular drag for barrels
 const float BARREL_DENSITY       = 0.5f;   // Density for barrels
 
+// Rendering Constants
+const int BOAT_INDEX = 10;  // Z-index for boat rendering
+const int BARREL_INDEX = 10; // Z-index for barrel rendering
+const int BACKGROUND_INDEX = 0;  // Z-index for background rendering
+const int BUBBLE_TRAIL_INDEX = 5;  // Z-index for bubble trail rendering
+const int HULL_SPRAY_INDEX = 5;      // Z-index for hull spray rendering
+
 const float BOUNDARY_THICKNESS_METERS = 0.5f;   // Thickness in meters
 const float RANDOM_VELOCITY_RANGE     = 2.0f;   // Random velocity range: -2 to +2 m/s
 const float PLAYER_SIZE_METERS        = 0.25f;  // Player square half-width/height in meters
@@ -343,7 +350,7 @@ public:
         auto boatTexture    = m_player->addComponent<CTexture>("assets/textures/boat.png");
         auto boatRenderable = m_player->addComponent<CRenderable>(VisualType::Sprite,
                                                                   Color::White,
-                                                                  10  // Higher z-index so boat renders on top of barrels
+                                                                  BOAT_INDEX
         );
         boatRenderable->setVisible(true);
 
@@ -574,6 +581,7 @@ public:
         emitter->setActive(true);          // Always active
         emitter->setMaxParticles(1000);
         emitter->setTexture(&m_bubbleTexture);  // Use bubble texture
+        emitter->setZIndex(BUBBLE_TRAIL_INDEX);  // Render behind boat
 
         // Position emitter at back of boat (stern)
         // Boat forward direction is +Y in local space, so back is -Y
@@ -664,6 +672,7 @@ public:
         m_hullSprayEmitter->setActive(true);
         m_hullSprayEmitter->setMaxParticles(5000);
         m_hullSprayEmitter->setTexture(&m_sprayTexture);
+        m_hullSprayEmitter->setZIndex(HULL_SPRAY_INDEX);  // Render behind boat
 
         std::cout << "Hull spray particle emitter attached to player (speed-based emission)" << std::endl;
     }
@@ -873,7 +882,7 @@ public:
         auto barrelTexture    = barrel->addComponent<CTexture>("assets/textures/barrel.png");
         auto barrelRenderable = barrel->addComponent<CRenderable>(VisualType::Sprite,
                                                                   Color::White,
-                                                                  0  // Lower z-index so barrels render behind boat
+                                                                  BARREL_INDEX
         );
         barrelRenderable->setVisible(true);
 
