@@ -9,6 +9,25 @@
 #include "Vec2.h"
 
 /**
+ * @brief Emission shape type for particle emitters
+ *
+ * Defines how particles are distributed when spawned:
+ * - Point: All particles spawn from a single point (default)
+ * - Circle: Particles spawn on the edge of a circle
+ * - Rectangle: Particles spawn on the edges of a rectangle
+ * - Line: Particles spawn along a line segment
+ * - Polygon: Particles spawn on the edges of a custom polygon
+ */
+enum class EmissionShape
+{
+    Point,      ///< Single point emission (default)
+    Circle,     ///< Emit from circle edge
+    Rectangle,  ///< Emit from rectangle edges
+    Line,       ///< Emit along a line segment
+    Polygon     ///< Emit from polygon edges
+};
+
+/**
  * @brief Individual particle data structure
  */
 struct Particle
@@ -109,9 +128,46 @@ public:
     Vec2  getPositionOffset() const;
     void  setPositionOffset(const Vec2& offset);
 
+    // Emission shape configuration
+    EmissionShape getEmissionShape() const;
+    void          setEmissionShape(EmissionShape shape);
+    float         getShapeRadius() const;
+    void          setShapeRadius(float radius);
+    Vec2          getShapeSize() const;
+    void          setShapeSize(const Vec2& size);
+    Vec2          getLineStart() const;
+    void          setLineStart(const Vec2& start);
+    Vec2          getLineEnd() const;
+    void          setLineEnd(const Vec2& end);
+    bool          getEmitFromEdge() const;
+    void          setEmitFromEdge(bool edge);
+    bool          getEmitOutward() const;
+    void          setEmitOutward(bool outward);
+
+    // Polygon shape configuration
+    const std::vector<Vec2>& getPolygonVertices() const;
+    void                     setPolygonVertices(const std::vector<Vec2>& vertices);
+    void                     addPolygonVertex(const Vec2& vertex);
+    void                     clearPolygonVertices();
+
+    /**
+     * @brief Set polygon vertices from a collection of points, computing convex hull
+     *
+     * Takes a set of vertices (e.g., from multiple collider fixtures) and computes
+     * the convex hull to get the outer boundary. Useful for extracting emission
+     * shape from complex multi-fixture colliders.
+     *
+     * @param vertices All vertices to compute hull from
+     */
+    void setPolygonFromConvexHull(const std::vector<Vec2>& vertices);
+
     // Texture management
     sf::Texture* getTexture() const;
     void         setTexture(sf::Texture* tex);
+
+    // Z-index for render ordering
+    int  getZIndex() const;
+    void setZIndex(int zIndex);
 
     // Runtime state access
     std::vector<Particle>&       getParticles();
@@ -142,7 +198,18 @@ private:
     bool  m_shrink           = true;              ///< Should particles shrink over lifetime?
     float m_shrinkEndScale   = 0.1f;              ///< Final size scale when fully shrunk
     int   m_maxParticles     = 200;               ///< Maximum number of particles
+    int   m_zIndex           = 0;                 ///< Render layer (lower = behind)
     Vec2  m_positionOffset   = Vec2(0.0f, 0.0f);  ///< Offset from entity position
+
+    // Emission shape configuration
+    EmissionShape      m_emissionShape   = EmissionShape::Point;  ///< Shape for emission distribution
+    float              m_shapeRadius     = 1.0f;                  ///< Radius for circle shape (meters)
+    Vec2               m_shapeSize       = Vec2(1.0f, 1.0f);      ///< Size for rectangle shape (meters)
+    Vec2               m_lineStart       = Vec2(-0.5f, 0.0f);     ///< Start point for line shape
+    Vec2               m_lineEnd         = Vec2(0.5f, 0.0f);      ///< End point for line shape
+    std::vector<Vec2>  m_polygonVertices;                         ///< Vertices for polygon shape
+    bool               m_emitFromEdge    = true;                  ///< Emit from edge (true) or filled area (false)
+    bool               m_emitOutward     = false;                 ///< Emit in direction away from shape center
 
     // Resources
     sf::Texture* m_texture = nullptr;  ///< Optional texture for particles

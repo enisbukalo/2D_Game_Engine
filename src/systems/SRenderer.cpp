@@ -109,17 +109,17 @@ void SRenderer::render()
                   return renderableA->getZIndex() < renderableB->getZIndex();
               });
 
-    // Render each entity
-    for (Entity* entity : renderableEntities)
-    {
-        renderEntity(entity);
-    }
-
-    // Render particles after entities
+    // Render particles before entities (so they appear behind sprites)
     auto& particleSystem = SParticleSystem::instance();
     if (particleSystem.isInitialized())
     {
         particleSystem.render(m_window.get());
+    }
+
+    // Render each entity
+    for (Entity* entity : renderableEntities)
+    {
+        renderEntity(entity);
     }
 }
 

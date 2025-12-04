@@ -6,6 +6,7 @@
 
 // Forward declarations
 class EntityManager;
+class Entity;
 
 /**
  * @brief Particle system that updates and renders particles from CParticleEmitter components
@@ -54,6 +55,13 @@ public:
      * @param window SFML render window
      */
     void render(sf::RenderWindow* window);
+
+    /**
+     * @brief Renders particles for a single emitter entity
+     * @param entity Entity with CParticleEmitter component
+     * @param window SFML render window
+     */
+    void renderEmitter(Entity* entity, sf::RenderWindow* window);
 
     /**
      * @brief Checks if the particle system is initialized

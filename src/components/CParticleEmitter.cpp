@@ -284,6 +284,161 @@ void CParticleEmitter::setPositionOffset(const Vec2& offset)
     m_positionOffset = offset;
 }
 
+// Emission shape configuration
+EmissionShape CParticleEmitter::getEmissionShape() const
+{
+    return m_emissionShape;
+}
+
+void CParticleEmitter::setEmissionShape(EmissionShape shape)
+{
+    m_emissionShape = shape;
+}
+
+float CParticleEmitter::getShapeRadius() const
+{
+    return m_shapeRadius;
+}
+
+void CParticleEmitter::setShapeRadius(float radius)
+{
+    m_shapeRadius = radius;
+}
+
+Vec2 CParticleEmitter::getShapeSize() const
+{
+    return m_shapeSize;
+}
+
+void CParticleEmitter::setShapeSize(const Vec2& size)
+{
+    m_shapeSize = size;
+}
+
+Vec2 CParticleEmitter::getLineStart() const
+{
+    return m_lineStart;
+}
+
+void CParticleEmitter::setLineStart(const Vec2& start)
+{
+    m_lineStart = start;
+}
+
+Vec2 CParticleEmitter::getLineEnd() const
+{
+    return m_lineEnd;
+}
+
+void CParticleEmitter::setLineEnd(const Vec2& end)
+{
+    m_lineEnd = end;
+}
+
+bool CParticleEmitter::getEmitFromEdge() const
+{
+    return m_emitFromEdge;
+}
+
+void CParticleEmitter::setEmitFromEdge(bool edge)
+{
+    m_emitFromEdge = edge;
+}
+
+bool CParticleEmitter::getEmitOutward() const
+{
+    return m_emitOutward;
+}
+
+void CParticleEmitter::setEmitOutward(bool outward)
+{
+    m_emitOutward = outward;
+}
+
+const std::vector<Vec2>& CParticleEmitter::getPolygonVertices() const
+{
+    return m_polygonVertices;
+}
+
+void CParticleEmitter::setPolygonVertices(const std::vector<Vec2>& vertices)
+{
+    m_polygonVertices = vertices;
+}
+
+void CParticleEmitter::addPolygonVertex(const Vec2& vertex)
+{
+    m_polygonVertices.push_back(vertex);
+}
+
+void CParticleEmitter::clearPolygonVertices()
+{
+    m_polygonVertices.clear();
+}
+
+void CParticleEmitter::setPolygonFromConvexHull(const std::vector<Vec2>& vertices)
+{
+    m_polygonVertices.clear();
+
+    if (vertices.size() < 3)
+    {
+        // Not enough vertices for a polygon
+        m_polygonVertices = vertices;
+        return;
+    }
+
+    // Make a copy to work with
+    std::vector<Vec2> points = vertices;
+
+    // Find the bottom-most point (lowest Y, then lowest X as tiebreaker)
+    size_t startIdx = 0;
+    for (size_t i = 1; i < points.size(); ++i)
+    {
+        if (points[i].y < points[startIdx].y ||
+            (points[i].y == points[startIdx].y && points[i].x < points[startIdx].x))
+        {
+            startIdx = i;
+        }
+    }
+    std::swap(points[0], points[startIdx]);
+    Vec2 pivot = points[0];
+
+    // Sort by polar angle relative to pivot (counter-clockwise)
+    std::sort(points.begin() + 1, points.end(),
+        [&pivot](const Vec2& a, const Vec2& b) {
+            Vec2 da = a - pivot;
+            Vec2 db = b - pivot;
+            float crossProduct = da.x * db.y - da.y * db.x;
+            if (std::abs(crossProduct) < 1e-9f)
+            {
+                // Collinear - sort by distance (closer first)
+                return da.x * da.x + da.y * da.y < db.x * db.x + db.y * db.y;
+            }
+            return crossProduct > 0;  // Counter-clockwise order
+        });
+
+    // Build convex hull using Graham scan
+    std::vector<Vec2> hull;
+    for (const auto& v : points)
+    {
+        // Remove points that make a clockwise turn (or are collinear)
+        while (hull.size() >= 2)
+        {
+            Vec2 a = hull[hull.size() - 2];
+            Vec2 b = hull[hull.size() - 1];
+            Vec2 ab = b - a;
+            Vec2 ac = v - a;
+            float cross = ab.x * ac.y - ab.y * ac.x;
+            if (cross <= 0)
+                hull.pop_back();
+            else
+                break;
+        }
+        hull.push_back(v);
+    }
+
+    m_polygonVertices = hull;
+}
+
 // Texture management
 sf::Texture* CParticleEmitter::getTexture() const
 {
@@ -293,6 +448,17 @@ sf::Texture* CParticleEmitter::getTexture() const
 void CParticleEmitter::setTexture(sf::Texture* tex)
 {
     m_texture = tex;
+}
+
+// Z-index for render ordering
+int CParticleEmitter::getZIndex() const
+{
+    return m_zIndex;
+}
+
+void CParticleEmitter::setZIndex(int zIndex)
+{
+    m_zIndex = zIndex;
 }
 
 // Runtime state access

@@ -66,6 +66,10 @@ private:
 
     // Particle system
     sf::Texture m_bubbleTexture;
+    sf::Texture m_sprayTexture;
+    std::shared_ptr<Entity> m_bubbleTrailEntity = nullptr;   // Separate entity for bubble trail
+    std::shared_ptr<Entity> m_hullSprayEntity = nullptr;     // Separate entity for hull spray
+    CParticleEmitter* m_hullSprayEmitter = nullptr;          // Reference to hull spray emitter for dynamic updates
 
     // Velocity visualization (entity -> velocity line entity mapping)
     std::map<Entity*, std::shared_ptr<Entity>> m_velocityLines;
@@ -157,6 +161,7 @@ public:
         createBoundaryColliders();
         createPlayer();
         createBubbleTrail();
+        createHullSpray();
         createBarrels();
 
         // Force EntityManager to process pending entities
@@ -533,8 +538,16 @@ public:
             return;
         }
 
-        // Add particle emitter directly to the player boat entity
-        auto* emitter = m_player->addComponent<CParticleEmitter>();
+        // Create a separate entity for the bubble trail emitter
+        m_bubbleTrailEntity = m_gameEngine->getEntityManager().addEntity("bubble_trail");
+        
+        // Get player position for initial placement
+        auto* playerTransform = m_player->getComponent<CTransform>();
+        Vec2 playerPos = playerTransform ? playerTransform->getPosition() : Vec2(0, 0);
+        m_bubbleTrailEntity->addComponent<CTransform>(playerPos, Vec2(1.0f, 1.0f), 0.0f);
+
+        // Add particle emitter to the bubble trail entity
+        auto* emitter = m_bubbleTrailEntity->addComponent<CParticleEmitter>();
 
         // Configure particle properties using setters
         // Direction is now in LOCAL SPACE relative to boat rotation
@@ -547,7 +560,7 @@ public:
         emitter->setMaxLifetime(3.0f);
         emitter->setMinSize(0.005f);                   // 5cm (in meters)
         emitter->setMaxSize(0.025f);                   // 25cm (in meters)
-        emitter->setEmissionRate(300.0f);              // Constant 30 particles/sec
+        emitter->setEmissionRate(300.0f);              // Constant 300 particles/sec
         emitter->setStartColor(Color(255, 255, 255));  // White (no tint)
         emitter->setEndColor(Color(255, 255, 255));
         emitter->setStartAlpha(1.0f);  // Fully opaque
@@ -557,7 +570,7 @@ public:
         emitter->setMaxRotationSpeed(2.0f);
         emitter->setFadeOut(true);
         emitter->setShrink(true);
-        emitter->setShrinkEndScale(0.0f);  // Shrink to 5%
+        emitter->setShrinkEndScale(0.0f);  // Shrink to nothing
         emitter->setActive(true);          // Always active
         emitter->setMaxParticles(1000);
         emitter->setTexture(&m_bubbleTexture);  // Use bubble texture
@@ -565,10 +578,164 @@ public:
         // Position emitter at back of boat (stern)
         // Boat forward direction is +Y in local space, so back is -Y
         const float boatLength = PLAYER_SIZE_METERS * 3.5f;          // Match boat dimensions
-        emitter->setPositionOffset(Vec2(0.0f, -boatLength * 0.75));  // 50% back from center
+        emitter->setPositionOffset(Vec2(0.0f, -boatLength * 0.75));  // 75% back from center
 
-        std::cout << "Boat wake particle emitter attached to player with offset (0.0, " << (-boatLength * 0.75)
+        std::cout << "Boat wake particle emitter created as separate entity with offset (0.0, " << (-boatLength * 0.75)
                   << ") meters" << std::endl;
+    }
+
+    void createHullSpray()
+    {
+        if (!m_player)
+        {
+            std::cout << "ERROR: Cannot create hull spray - player not initialized!" << std::endl;
+            return;
+        }
+
+        // Load spray texture (reuse bubble texture or use a different one)
+        if (!m_sprayTexture.loadFromFile("assets/textures/bubble.png"))
+        {
+            std::cout << "WARNING: Could not load spray texture, using bubble texture" << std::endl;
+            m_sprayTexture = m_bubbleTexture;
+        }
+        m_sprayTexture.setSmooth(true);
+
+        // Create a separate entity for the hull spray emitter
+        m_hullSprayEntity = m_gameEngine->getEntityManager().addEntity("hull_spray");
+        
+        // Get player position for initial placement
+        auto* playerTransform = m_player->getComponent<CTransform>();
+        Vec2 playerPos = playerTransform ? playerTransform->getPosition() : Vec2(0, 0);
+        m_hullSprayEntity->addComponent<CTransform>(playerPos, Vec2(1.0f, 1.0f), 0.0f);
+
+        // Create hull spray emitter on the separate entity
+        m_hullSprayEmitter = m_hullSprayEntity->addComponent<CParticleEmitter>();
+
+        // Use polygon shape - extract hull from player's collider
+        m_hullSprayEmitter->setEmissionShape(EmissionShape::Polygon);
+
+        // Get vertices from player's collider and let the emitter compute the convex hull
+        auto* playerCollider = m_player->getComponent<CCollider2D>();
+        if (playerCollider)
+        {
+            std::vector<Vec2> allVertices;
+            const auto& fixtures = playerCollider->getFixtures();
+            
+            for (size_t i = 0; i < fixtures.size(); ++i)
+            {
+                if (fixtures[i].shapeType == ColliderShape::Polygon)
+                {
+                    const b2Vec2* verts = playerCollider->getPolygonVertices(i);
+                    int vertCount = playerCollider->getPolygonVertexCount(i);
+                    
+                    for (int v = 0; v < vertCount; ++v)
+                    {
+                        allVertices.push_back(Vec2(verts[v].x, verts[v].y));
+                    }
+                }
+            }
+
+            // Let the emitter compute the convex hull from all vertices
+            m_hullSprayEmitter->setPolygonFromConvexHull(allVertices);
+        }
+
+        // Emit particles outward from hull edges
+        m_hullSprayEmitter->setEmitOutward(true);
+
+        // Spray particle properties
+        m_hullSprayEmitter->setSpreadAngle(0.4f);           // Moderate spread
+        m_hullSprayEmitter->setMinSpeed(0.8f);
+        m_hullSprayEmitter->setMaxSpeed(2.5f);
+        m_hullSprayEmitter->setMinLifetime(0.5f);
+        m_hullSprayEmitter->setMaxLifetime(1.2f);
+        m_hullSprayEmitter->setMinSize(0.006f);             // Small spray droplets
+        m_hullSprayEmitter->setMaxSize(0.02f);
+        m_hullSprayEmitter->setEmissionRate(0.0f);          // Start at 0, will be updated based on speed
+        m_hullSprayEmitter->setStartColor(Color(220, 240, 255));  // Light blue-white
+        m_hullSprayEmitter->setEndColor(Color(255, 255, 255));
+        m_hullSprayEmitter->setStartAlpha(0.9f);
+        m_hullSprayEmitter->setEndAlpha(0.0f);
+        m_hullSprayEmitter->setGravity(Vec2(0.0f, -0.5f));  // Slight downward gravity
+        m_hullSprayEmitter->setMinRotationSpeed(-3.0f);
+        m_hullSprayEmitter->setMaxRotationSpeed(3.0f);
+        m_hullSprayEmitter->setFadeOut(true);
+        m_hullSprayEmitter->setShrink(true);
+        m_hullSprayEmitter->setShrinkEndScale(0.1f);
+        m_hullSprayEmitter->setActive(true);
+        m_hullSprayEmitter->setMaxParticles(5000);
+        m_hullSprayEmitter->setTexture(&m_sprayTexture);
+
+        std::cout << "Hull spray particle emitter attached to player (speed-based emission)" << std::endl;
+    }
+
+    void updateHullSpray()
+    {
+        if (!m_hullSprayEmitter || !m_playerPhysics || !m_playerPhysics->isInitialized())
+            return;
+
+        // Get current speed
+        b2Vec2 velocity = m_playerPhysics->getLinearVelocity();
+        float speed = std::sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+
+        // Define speed thresholds
+        const float MIN_SPEED_FOR_SPRAY = 0.1f;   // Start spraying at this speed (m/s)
+        const float MAX_SPEED_FOR_SPRAY = 2.25f;   // Maximum spray at this speed (m/s)
+        const float MIN_EMISSION_RATE = 0.0f;     // Emission rate at minimum speed
+        const float MAX_EMISSION_RATE = 5000.0f;   // Emission rate at maximum speed
+
+        // Calculate emission rate based on speed
+        float emissionRate = 0.0f;
+        if (speed > MIN_SPEED_FOR_SPRAY)
+        {
+            // Normalize speed to 0-1 range
+            float normalizedSpeed = (speed - MIN_SPEED_FOR_SPRAY) / (MAX_SPEED_FOR_SPRAY - MIN_SPEED_FOR_SPRAY);
+            normalizedSpeed = std::min(1.0f, std::max(0.0f, normalizedSpeed));
+
+            // Use quadratic curve for more dramatic effect at higher speeds
+            emissionRate = MIN_EMISSION_RATE + (MAX_EMISSION_RATE - MIN_EMISSION_RATE) * (normalizedSpeed * normalizedSpeed);
+        }
+
+        m_hullSprayEmitter->setEmissionRate(emissionRate);
+
+        // Also scale particle speed based on boat speed
+        float speedMultiplier = 1.0f + (speed / MAX_SPEED_FOR_SPRAY) * 0.5f;
+        m_hullSprayEmitter->setMinSpeed(0.1f * speedMultiplier);
+        m_hullSprayEmitter->setMaxSpeed(0.4f * speedMultiplier);
+    }
+
+    void updateParticleEmitterPositions()
+    {
+        if (!m_player)
+            return;
+
+        auto* playerTransform = m_player->getComponent<CTransform>();
+        if (!playerTransform)
+            return;
+
+        Vec2 playerPos = playerTransform->getPosition();
+        float playerRotation = playerTransform->getRotation();
+
+        // Update bubble trail entity to follow player
+        if (m_bubbleTrailEntity && m_bubbleTrailEntity->isAlive())
+        {
+            auto* trailTransform = m_bubbleTrailEntity->getComponent<CTransform>();
+            if (trailTransform)
+            {
+                trailTransform->setPosition(playerPos);
+                trailTransform->setRotation(playerRotation);
+            }
+        }
+
+        // Update hull spray entity to follow player
+        if (m_hullSprayEntity && m_hullSprayEntity->isAlive())
+        {
+            auto* sprayTransform = m_hullSprayEntity->getComponent<CTransform>();
+            if (sprayTransform)
+            {
+                sprayTransform->setPosition(playerPos);
+                sprayTransform->setRotation(playerRotation);
+            }
+        }
     }
 
     void updateOceanShaderUniforms()
@@ -758,6 +925,7 @@ public:
         createBoundaryColliders();
         createPlayer();
         createBubbleTrail();
+        createHullSpray();
         createBarrels();
 
         // Recreate velocity lines if vectors are visible
@@ -947,6 +1115,12 @@ public:
 
         // Update Box2D physics
         m_gameEngine->getPhysics().update(dt);
+
+        // Update particle emitter positions to follow the player
+        updateParticleEmitterPositions();
+
+        // Update hull spray emission rate based on boat speed
+        updateHullSpray();
 
         // Update particle system
         m_gameEngine->getParticleSystem().update(dt);
