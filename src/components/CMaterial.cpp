@@ -13,6 +13,10 @@ void CMaterial::serialize(JsonBuilder& builder) const
     builder.addKey("cMaterial");
     builder.beginObject();
 
+    // Serialize component GUID
+    builder.addKey("guid");
+    builder.addString(getGuid());
+
     // Serialize texture GUID
     builder.addKey("textureGuid");
     builder.addString(m_textureGuid);
@@ -49,6 +53,12 @@ void CMaterial::serialize(JsonBuilder& builder) const
 void CMaterial::deserialize(const JsonValue& value)
 {
     const auto& material = value["cMaterial"];
+
+    // Deserialize component GUID
+    if (material.hasKey("guid"))
+    {
+        setGuid(material["guid"].getString());
+    }
 
     // Deserialize texture GUID
     m_textureGuid = material["textureGuid"].getString();

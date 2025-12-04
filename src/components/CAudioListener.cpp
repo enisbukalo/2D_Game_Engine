@@ -55,6 +55,9 @@ void CAudioListener::serialize(JsonBuilder& builder) const
     builder.addKey("data");
     builder.beginObject();
 
+    builder.addKey("guid");
+    builder.addString(getGuid());
+
     builder.addKey("isDefaultListener");
     builder.addBool(m_isDefaultListener);
 
@@ -111,6 +114,11 @@ void CAudioListener::deserialize(const JsonValue& value)
     if (!data.isObject())
     {
         return;
+    }
+
+    if (data.hasKey("guid"))
+    {
+        setGuid(data["guid"].getString());
     }
 
     if (data.hasKey("isDefaultListener"))

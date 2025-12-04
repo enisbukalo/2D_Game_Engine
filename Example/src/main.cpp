@@ -12,8 +12,10 @@
 #include <Entity.h>
 #include <GameEngine.h>
 #include <Input/MouseButton.h>
+#include <SceneManager.h>
 #include <Vec2.h>
 #include <SFML/Graphics.hpp>
+#include <filesystem>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -53,6 +55,9 @@ const float MAX_MUSIC_VOLUME          = 0.80f;  // 80% max volume
 const float VOLUME_ADJUSTMENT_STEP    = 0.05f;  // Volume change per key press (5%)
 const float INITIAL_VOLUME            = 0.15f;  // 15% initial volume
 
+// Scene file path
+const std::string SCENE_FILE_PATH = "saved_games/main_scene.json";
+
 class BounceGame
 {
 private:
@@ -80,6 +85,9 @@ private:
 
     // Velocity visualization (entity -> velocity line entity mapping)
     std::map<Entity*, std::shared_ptr<Entity>> m_velocityLines;
+
+    // Scene loading state
+    bool m_sceneLoaded = false;
 
     // Helper function to convert meters to pixels for rendering (used for debug visualization)
     sf::Vector2f metersToPixels(const Vec2& meters) const
@@ -135,6 +143,218 @@ public:
         m_gameEngine->getAudioSystem().shutdown();
     }
 
+    /**
+     * @brief Saves the current scene to a file
+     * @param filepath Path to save the scene to
+     */
+    void saveScene(const std::string& filepath)
+    {
+        try
+        {
+            // Ensure the directory exists
+            std::cout << "Saving scene to: " << filepath << std::endl;
+            std::filesystem::path path(filepath);
+            if (path.has_parent_path() && !std::filesystem::exists(path.parent_path()))
+            {
+                std::filesystem::create_directories(path.parent_path());
+            }
+
+            m_gameEngine->getSceneManager().saveScene(filepath);
+            std::cout << "Scene saved to: " << filepath << std::endl;
+        }
+        catch (const std::exception& e)
+        {
+            std::cerr << "Failed to save scene: " << e.what() << std::endl;
+        }
+    }
+
+    /**
+     * @brief Attempts to load a scene from a file
+     * @param filepath Path to the scene file
+     * @return true if scene was loaded successfully, false otherwise
+     */
+    bool loadScene(const std::string& filepath)
+    {
+        if (!std::filesystem::exists(filepath))
+        {
+            std::cout << "Scene file not found: " << filepath << std::endl;
+            return false;
+        }
+
+        try
+        {
+            m_gameEngine->getSceneManager().loadScene(filepath);
+            std::cout << "Scene loaded from: " << filepath << std::endl;
+
+            // Post-load: bind runtime resources that aren't serialized
+            bindRuntimeResources();
+
+            m_sceneLoaded = true;
+            return true;
+        }
+        catch (const std::exception& e)
+        {
+            std::cerr << "Failed to load scene: " << e.what() << std::endl;
+            return false;
+        }
+    }
+
+    /**
+     * @brief Binds runtime resources after loading a scene
+     *
+     * This handles resources that truly cannot be serialized:
+     * - Particle emitter textures (sf::Texture* pointers)
+     * - Cached entity references (m_player, m_oceanBackground, etc.)
+     * - Input controller callbacks (function pointers)
+     *
+     * Note: Physics bodies, colliders, textures, and shaders are initialized
+     * automatically by the engine during deserialization.
+     */
+    void bindRuntimeResources()
+    {
+        auto& entityManager = m_gameEngine->getEntityManager();
+
+        // Find and cache key entity references
+        auto players = entityManager.getEntitiesByTag("player");
+        if (!players.empty())
+        {
+            m_player        = players[0];
+            m_playerPhysics = m_player->getComponent<CPhysicsBody2D>();
+
+            // Re-bind input controller callbacks (not serialized)
+            bindPlayerInputCallbacks();
+        }
+
+        auto oceans = entityManager.getEntitiesByTag("ocean");
+        if (!oceans.empty())
+        {
+            m_oceanBackground = oceans[0];
+        }
+
+        // Find particle emitter entities and bind textures
+        auto bubbleTrails = entityManager.getEntitiesByTag("bubble_trail");
+        if (!bubbleTrails.empty())
+        {
+            m_bubbleTrailEntity = bubbleTrails[0];
+            auto* emitter       = m_bubbleTrailEntity->getComponent<CParticleEmitter>();
+            if (emitter)
+            {
+                // Load and bind bubble texture
+                if (m_bubbleTexture.loadFromFile("assets/textures/bubble.png"))
+                {
+                    m_bubbleTexture.setSmooth(true);
+                    emitter->setTexture(&m_bubbleTexture);
+                }
+            }
+        }
+
+        auto hullSprays = entityManager.getEntitiesByTag("hull_spray");
+        if (!hullSprays.empty())
+        {
+            m_hullSprayEntity  = hullSprays[0];
+            m_hullSprayEmitter = m_hullSprayEntity->getComponent<CParticleEmitter>();
+            if (m_hullSprayEmitter)
+            {
+                // Load and bind spray texture
+                if (m_sprayTexture.loadFromFile("assets/textures/bubble.png"))
+                {
+                    m_sprayTexture.setSmooth(true);
+                    m_hullSprayEmitter->setTexture(&m_sprayTexture);
+                }
+            }
+        }
+
+        // Count barrels to sync m_barrelAmount
+        auto barrels   = entityManager.getEntitiesByTag("barrel");
+        m_barrelAmount = static_cast<int>(barrels.size());
+
+        std::cout << "Runtime resources bound successfully" << std::endl;
+    }
+
+    /**
+     * @brief Binds input controller callbacks to the player entity
+     *
+     * Input callbacks are function pointers that can't be serialized,
+     * so they must be re-bound after loading a scene.
+     */
+    void bindPlayerInputCallbacks()
+    {
+        if (!m_player)
+            return;
+
+        auto* inputController = m_player->getComponent<CInputController>();
+        if (!inputController)
+            return;
+
+        // Set callbacks for movement actions
+        inputController->setActionCallback("MoveForward",
+                                           [this](ActionState state)
+                                           {
+                                               if ((state == ActionState::Held || state == ActionState::Pressed)
+                                                   && m_playerPhysics && m_playerPhysics->isInitialized())
+                                               {
+                                                   b2Vec2 forward = m_playerPhysics->getForwardVector();
+                                                   b2Vec2 force = {forward.x * PLAYER_FORCE, forward.y * PLAYER_FORCE};
+                                                   m_playerPhysics->applyForceToCenter(force);
+                                                   startMotorBoat();
+                                               }
+                                               else if (state == ActionState::Released)
+                                               {
+                                                   checkStopMotorBoat();
+                                               }
+                                           });
+
+        inputController->setActionCallback("MoveBackward",
+                                           [this](ActionState state)
+                                           {
+                                               if ((state == ActionState::Held || state == ActionState::Pressed)
+                                                   && m_playerPhysics && m_playerPhysics->isInitialized())
+                                               {
+                                                   b2Vec2 forward = m_playerPhysics->getForwardVector();
+                                                   b2Vec2 force = {-forward.x * PLAYER_FORCE, -forward.y * PLAYER_FORCE};
+                                                   m_playerPhysics->applyForceToCenter(force);
+                                                   startMotorBoat();
+                                               }
+                                               else if (state == ActionState::Released)
+                                               {
+                                                   checkStopMotorBoat();
+                                               }
+                                           });
+
+        inputController->setActionCallback("RotateLeft",
+                                           [this](ActionState state)
+                                           {
+                                               if ((state == ActionState::Held || state == ActionState::Pressed)
+                                                   && m_playerPhysics && m_playerPhysics->isInitialized())
+                                               {
+                                                   m_playerPhysics->applyTorque(PLAYER_TURNING_FORCE);
+                                               }
+                                           });
+
+        inputController->setActionCallback("RotateRight",
+                                           [this](ActionState state)
+                                           {
+                                               if ((state == ActionState::Held || state == ActionState::Pressed)
+                                                   && m_playerPhysics && m_playerPhysics->isInitialized())
+                                               {
+                                                   m_playerPhysics->applyTorque(-PLAYER_TURNING_FORCE);
+                                               }
+                                           });
+    }
+
+    /**
+     * @brief Creates the scene manually (used when no saved scene exists)
+     */
+    void createSceneManually()
+    {
+        createOceanBackground();
+        createBoundaryColliders();
+        createPlayer();
+        createBubbleTrail();
+        createHullSpray();
+        createBarrels();
+    }
+
     void init()
     {
         // Initialize audio system
@@ -164,12 +384,12 @@ public:
         auto& particleSystem = m_gameEngine->getParticleSystem();
         particleSystem.initialize(getWindow(), PIXELS_PER_METER);
 
-        createOceanBackground();
-        createBoundaryColliders();
-        createPlayer();
-        createBubbleTrail();
-        createHullSpray();
-        createBarrels();
+        // Try to load scene from file, otherwise create manually
+        if (!loadScene(SCENE_FILE_PATH))
+        {
+            std::cout << "Creating scene manually..." << std::endl;
+            createSceneManually();
+        }
 
         // Force EntityManager to process pending entities
         m_gameEngine->getEntityManager().update(0.0f);
@@ -183,6 +403,8 @@ public:
         std::cout << "  G               : Toggle gravity" << std::endl;
         std::cout << "  C               : Toggle collider visibility" << std::endl;
         std::cout << "  V               : Toggle vector visualization" << std::endl;
+        std::cout << "  F5              : Save scene" << std::endl;
+        std::cout << "  F9              : Load scene" << std::endl;
         std::cout << "  Escape          : Exit" << std::endl;
         std::cout << "Number of barrels:" << m_barrelAmount << std::endl;
         std::cout << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << std::endl;
@@ -923,13 +1145,19 @@ public:
         auto& physics = m_gameEngine->getPhysics();
         physics.setGravity({0.0f, m_gravityEnabled ? GRAVITY_FORCE : 0.0f});
 
-        // Recreate ocean background, boundary colliders, player, and barrels
-        createOceanBackground();
-        createBoundaryColliders();
-        createPlayer();
-        createBubbleTrail();
-        createHullSpray();
-        createBarrels();
+        // Try to reload from scene file if one was previously loaded, otherwise create manually
+        if (m_sceneLoaded && std::filesystem::exists(SCENE_FILE_PATH))
+        {
+            if (!loadScene(SCENE_FILE_PATH))
+            {
+                std::cout << "Failed to reload scene, creating manually..." << std::endl;
+                createSceneManually();
+            }
+        }
+        else
+        {
+            createSceneManually();
+        }
 
         // Recreate velocity lines if vectors are visible
         if (m_showVectors)
@@ -1114,6 +1342,32 @@ public:
             float newVolume     = std::max(currentVolume - VOLUME_ADJUSTMENT_STEP, 0.0f);
             audioSystem.setMasterVolume(newVolume);
             std::cout << "Master Volume: " << static_cast<int>(newVolume * 100.0f) << "%" << std::endl;
+        }
+        if (im.wasKeyPressed(KeyCode::F5))
+        {
+            std::cout << "Saving scene to " << SCENE_FILE_PATH << std::endl;
+            saveScene(SCENE_FILE_PATH);
+        }
+        if (im.wasKeyPressed(KeyCode::F9))
+        {
+            // Clear and reload scene
+            std::cout << "Reloading scene from " << SCENE_FILE_PATH << std::endl;
+            m_velocityLines.clear();
+            m_gameEngine->getEntityManager().clear();
+            if (loadScene(SCENE_FILE_PATH))
+            {
+                if (m_showVectors)
+                {
+                    createVelocityLines();
+                }
+                m_gameEngine->getEntityManager().update(0.0f);
+            }
+            else
+            {
+                std::cout << "No saved scene to load, creating manually..." << std::endl;
+                createSceneManually();
+                m_gameEngine->getEntityManager().update(0.0f);
+            }
         }
 
         // Update Box2D physics

@@ -13,6 +13,10 @@ void CRenderable::serialize(JsonBuilder& builder) const
     builder.addKey("cRenderable");
     builder.beginObject();
 
+    // Serialize component GUID
+    builder.addKey("guid");
+    builder.addString(getGuid());
+
     // Serialize visual type
     builder.addKey("visualType");
     builder.addNumber(static_cast<int>(m_visualType));
@@ -68,6 +72,12 @@ void CRenderable::serialize(JsonBuilder& builder) const
 void CRenderable::deserialize(const JsonValue& value)
 {
     const auto& renderable = value["cRenderable"];
+
+    // Deserialize component GUID
+    if (renderable.hasKey("guid"))
+    {
+        setGuid(renderable["guid"].getString());
+    }
 
     // Deserialize visual type
     m_visualType = static_cast<VisualType>(static_cast<int>(renderable["visualType"].getNumber()));

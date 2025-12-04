@@ -12,6 +12,8 @@ void CShader::serialize(JsonBuilder& builder) const
     builder.beginObject();
     builder.addKey("cShader");
     builder.beginObject();
+    builder.addKey("guid");
+    builder.addString(getGuid());
     builder.addKey("vertexShaderPath");
     builder.addString(m_vertexShaderPath);
     builder.addKey("fragmentShaderPath");
@@ -22,7 +24,11 @@ void CShader::serialize(JsonBuilder& builder) const
 
 void CShader::deserialize(const JsonValue& value)
 {
-    const auto& shader   = value["cShader"];
+    const auto& shader = value["cShader"];
+    if (shader.hasKey("guid"))
+    {
+        setGuid(shader["guid"].getString());
+    }
     m_vertexShaderPath   = shader["vertexShaderPath"].getString();
     m_fragmentShaderPath = shader["fragmentShaderPath"].getString();
 }

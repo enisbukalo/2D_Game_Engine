@@ -95,6 +95,8 @@ void CInputController::serialize(JsonBuilder& builder) const
     builder.beginObject();
     builder.addKey("cInputController");
     builder.beginObject();
+    builder.addKey("guid");
+    builder.addString(getGuid());
     builder.addKey("actions");
     builder.beginArray();
 
@@ -154,6 +156,10 @@ void CInputController::deserialize(const JsonValue& value)
     const auto& comp = value["cInputController"];
     if (comp.isNull())
         return;
+    if (comp.hasKey("guid"))
+    {
+        setGuid(comp["guid"].getString());
+    }
     const auto& actions = comp["actions"].getArray();
     for (size_t i = 0; i < actions.size(); ++i)
     {

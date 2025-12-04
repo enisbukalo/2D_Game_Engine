@@ -34,6 +34,10 @@ void CParticleEmitter::serialize(JsonBuilder& builder) const
     builder.addKey("cParticleEmitter");
     builder.beginObject();
 
+    // Component GUID
+    builder.addKey("guid");
+    builder.addString(getGuid());
+
     // Base component properties
     builder.addKey("active");
     builder.addBool(Component::isActive());
@@ -199,6 +203,12 @@ void CParticleEmitter::serialize(JsonBuilder& builder) const
 void CParticleEmitter::deserialize(const JsonValue& value)
 {
     const auto& emitter = value["cParticleEmitter"];
+
+    // Component GUID
+    if (emitter.hasKey("guid"))
+    {
+        setGuid(emitter["guid"].getString());
+    }
 
     // Base component properties
     if (emitter["active"].isBool())
@@ -383,9 +393,10 @@ void CParticleEmitter::deserialize(const JsonValue& value)
     if (polygonVertices.isArray())
     {
         m_polygonVertices.clear();
-        for (size_t i = 0; i < polygonVertices.size(); ++i)
+        const auto& verticesArray = polygonVertices.getArray();
+        for (size_t i = 0; i < verticesArray.size(); ++i)
         {
-            const auto& vertex = polygonVertices[i];
+            const auto& vertex = verticesArray[i];
             if (vertex.isObject())
             {
                 Vec2 v;

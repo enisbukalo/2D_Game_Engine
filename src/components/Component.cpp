@@ -27,3 +27,8 @@ const std::string& Component::getGuid() const
 {
     return m_guid;
 }
+
+void Component::setGuid(const std::string& guid)
+{
+    m_guid = guid;
+}

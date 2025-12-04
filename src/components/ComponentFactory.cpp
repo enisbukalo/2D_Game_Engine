@@ -5,6 +5,7 @@
 #include "CInputController.h"
 #include "CMaterial.h"
 #include "CName.h"
+#include "CParticleEmitter.h"
 #include "CPhysicsBody2D.h"
 #include "CRenderable.h"
 #include "CShader.h"
@@ -60,4 +61,8 @@ void ComponentFactory::registerBuiltInComponents()
     registerComponent<CShader>("Shader");  // Alias for easier JSON usage
     registerComponent<CMaterial>("CMaterial");
     registerComponent<CMaterial>("Material");  // Alias for easier JSON usage
+
+    // Particle system components
+    registerComponent<CParticleEmitter>("CParticleEmitter");
+    registerComponent<CParticleEmitter>("ParticleEmitter");  // Alias for easier JSON usage
 }

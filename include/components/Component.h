@@ -89,6 +89,12 @@ public:
      */
     const std::string& getGuid() const;
 
+    /**
+     * @brief Sets the GUID of this component (used during deserialization)
+     * @param guid The GUID string to set
+     */
+    void setGuid(const std::string& guid);
+
 private:
     Entity*     m_owner  = nullptr;  ///< Pointer to the entity that owns this component
     bool        m_active = true;     ///< Flag indicating if the component is active

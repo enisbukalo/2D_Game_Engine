@@ -304,6 +304,10 @@ void CPhysicsBody2D::serialize(JsonBuilder& builder) const
     builder.addKey("cPhysicsBody2D");
     builder.beginObject();
 
+    // Component GUID
+    builder.addKey("guid");
+    builder.addString(getGuid());
+
     // Body type
     builder.addKey("bodyType");
     switch (m_bodyType)
@@ -349,6 +353,12 @@ void CPhysicsBody2D::deserialize(const JsonValue& value)
     const auto& body = value["cPhysicsBody2D"];
     if (!body.isObject())
         return;
+
+    // Component GUID
+    if (body.hasKey("guid"))
+    {
+        setGuid(body["guid"].getString());
+    }
 
     // Body type
     const auto& bodyTypeValue = body["bodyType"];

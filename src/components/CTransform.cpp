@@ -12,6 +12,8 @@ void CTransform::serialize(JsonBuilder& builder) const
     builder.beginObject();
     builder.addKey("cTransform");
     builder.beginObject();
+    builder.addKey("guid");
+    builder.addString(getGuid());
     builder.addKey("position");
     builder.beginObject();
     builder.addKey("x");
@@ -42,6 +44,12 @@ void CTransform::serialize(JsonBuilder& builder) const
 void CTransform::deserialize(const JsonValue& value)
 {
     const auto& transform = value["cTransform"];
+
+    // Deserialize GUID if present
+    if (transform.hasKey("guid"))
+    {
+        setGuid(transform["guid"].getString());
+    }
 
     // Deserialize position
     const auto& pos = transform["position"];
