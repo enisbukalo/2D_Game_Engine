@@ -3,8 +3,12 @@
 #include "CAudioSource.h"
 #include "CCollider2D.h"
 #include "CInputController.h"
+#include "CMaterial.h"
 #include "CName.h"
 #include "CPhysicsBody2D.h"
+#include "CRenderable.h"
+#include "CShader.h"
+#include "CTexture.h"
 #include "CTransform.h"
 
 ComponentFactory::ComponentFactory()
@@ -46,4 +50,14 @@ void ComponentFactory::registerBuiltInComponents()
     registerComponent<CAudioSource>("AudioSource");  // Alias for easier JSON usage
     registerComponent<CAudioListener>("CAudioListener");
     registerComponent<CAudioListener>("AudioListener");  // Alias for easier JSON usage
+
+    // Rendering components
+    registerComponent<CRenderable>("CRenderable");
+    registerComponent<CRenderable>("Renderable");  // Alias for easier JSON usage
+    registerComponent<CTexture>("CTexture");
+    registerComponent<CTexture>("Texture");  // Alias for easier JSON usage
+    registerComponent<CShader>("CShader");
+    registerComponent<CShader>("Shader");  // Alias for easier JSON usage
+    registerComponent<CMaterial>("CMaterial");
+    registerComponent<CMaterial>("Material");  // Alias for easier JSON usage
 }

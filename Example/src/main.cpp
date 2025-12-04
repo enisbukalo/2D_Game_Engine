@@ -1,27 +1,47 @@
 #include <AudioTypes.h>
 #include <CCollider2D.h>
 #include <CInputController.h>
+#include <CMaterial.h>
+#include <CParticleEmitter.h>
 #include <CPhysicsBody2D.h>
+#include <CRenderable.h>
+#include <CShader.h>
+#include <CTexture.h>
 #include <CTransform.h>
+#include <Color.h>
 #include <Entity.h>
 #include <GameEngine.h>
 #include <Input/MouseButton.h>
 #include <Vec2.h>
 #include <SFML/Graphics.hpp>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <sstream>
 
 // Define Screen Size
-const int   SCREEN_WIDTH              = 1600;
-const int   SCREEN_HEIGHT             = 1000;
-const int   INITIAL_BALL_COUNT        = 100;
-const bool  INITIAL_GRAVITY_ENABLED   = false;
-const float TIME_STEP                 = 1.0f / 60.0f;  // 60 FPS
-const float GRAVITY_FORCE             = -10.0f;        // Box2D gravity (m/s²), negative = downward
-const float PIXELS_PER_METER          = 100.0f;        // Rendering scale: 100 pixels = 1 meter
-const float RESTITUTION               = 0.5f;   // Bounciness factor (lowered from 0.8 to reduce collision energy)
-const float BALL_RADIUS_METERS        = 0.1f;   // Radius in meters
+const int   SCREEN_WIDTH            = 1600;
+const int   SCREEN_HEIGHT           = 1000;
+const bool  INITIAL_GRAVITY_ENABLED = false;
+const float TIME_STEP               = 1.0f / 60.0f;  // 60 FPS
+const float GRAVITY_FORCE           = -10.0f;        // Box2D gravity (m/s²), negative = downward
+const float PIXELS_PER_METER        = 100.0f;        // Rendering scale: 100 pixels = 1 meter
+const float RESTITUTION             = 0.5f;          // Bounciness factor (lowered from 0.8 to reduce collision energy)
+
+// Barrel Constants
+const int   INITIAL_BARREL_COUNT = 0;      // Initial number of barrels
+const float BARREL_RADIUS_METERS = 0.10f;  // Barrel radius in meters
+const float BARREL_LINEAR_DRAG   = 1.5f;   // Linear drag for barrels
+const float BARREL_ANGULAR_DRAG  = 2.0f;   // Angular drag for barrels
+const float BARREL_DENSITY       = 0.5f;   // Density for barrels
+
+// Rendering Constants
+const int BOAT_INDEX         = 10;  // Z-index for boat rendering
+const int BARREL_INDEX       = 10;  // Z-index for barrel rendering
+const int BACKGROUND_INDEX   = 0;   // Z-index for background rendering
+const int BUBBLE_TRAIL_INDEX = 5;   // Z-index for bubble trail rendering
+const int HULL_SPRAY_INDEX   = 5;   // Z-index for hull spray rendering
+
 const float BOUNDARY_THICKNESS_METERS = 0.5f;   // Thickness in meters
 const float RANDOM_VELOCITY_RANGE     = 2.0f;   // Random velocity range: -2 to +2 m/s
 const float PLAYER_SIZE_METERS        = 0.25f;  // Player square half-width/height in meters
@@ -36,10 +56,9 @@ const float INITIAL_VOLUME            = 0.15f;  // 15% initial volume
 class BounceGame
 {
 private:
-    sf::RenderWindow            m_window;
     std::unique_ptr<GameEngine> m_gameEngine;
     sf::Font                    m_font;
-    int                         m_ballAmount;
+    int                         m_barrelAmount;
     bool                        m_running;
     bool                        m_fontLoaded;
     bool                        m_gravityEnabled;
@@ -47,42 +66,57 @@ private:
     bool                        m_showVectors;
     CPhysicsBody2D*             m_playerPhysics;
     std::shared_ptr<Entity>     m_player;
+    std::shared_ptr<Entity>     m_oceanBackground;
 
     // Audio state
     AudioHandle m_motorBoatHandle;
 
-    // Helper function to convert meters to pixels for rendering
+    // Particle system
+    sf::Texture             m_bubbleTexture;
+    sf::Texture             m_sprayTexture;
+    std::shared_ptr<Entity> m_bubbleTrailEntity = nullptr;  // Separate entity for bubble trail
+    std::shared_ptr<Entity> m_hullSprayEntity   = nullptr;  // Separate entity for hull spray
+    CParticleEmitter*       m_hullSprayEmitter  = nullptr;  // Reference to hull spray emitter for dynamic updates
+
+    // Velocity visualization (entity -> velocity line entity mapping)
+    std::map<Entity*, std::shared_ptr<Entity>> m_velocityLines;
+
+    // Helper function to convert meters to pixels for rendering (used for debug visualization)
     sf::Vector2f metersToPixels(const Vec2& meters) const
     {
         // Note: Y-flip for screen coordinates (Box2D Y-up -> Screen Y-down)
         return sf::Vector2f(meters.x * PIXELS_PER_METER, SCREEN_HEIGHT - (meters.y * PIXELS_PER_METER));
     }
 
-    // Helper function to generate random velocity in a symmetric range
-    Vec2 getRandomVelocity() const
+    // Helper to get window from renderer
+    sf::RenderWindow* getWindow() const
     {
-        float velX = static_cast<float>((rand() % static_cast<int>(RANDOM_VELOCITY_RANGE * 2000 + 1)) - RANDOM_VELOCITY_RANGE * 1000)
-                     / 1000.0f;
-        float velY = static_cast<float>((rand() % static_cast<int>(RANDOM_VELOCITY_RANGE * 2000 + 1)) - RANDOM_VELOCITY_RANGE * 1000)
-                     / 1000.0f;
-        return Vec2(velX, velY);
+        return m_gameEngine->getRenderer().getWindow();
     }
 
 public:
     BounceGame()
-        : m_window(sf::VideoMode(SCREEN_WIDTH, SCREEN_HEIGHT), "Bouncing Balls Example - Box2D"),
-          m_gameEngine(std::make_unique<GameEngine>(&m_window, sf::Vector2f(0.0f, GRAVITY_FORCE))),
-          m_running(true),
-          m_ballAmount(INITIAL_BALL_COUNT),
+        : m_running(true),
+          m_barrelAmount(INITIAL_BARREL_COUNT),
           m_fontLoaded(false),
           m_gravityEnabled(INITIAL_GRAVITY_ENABLED),
           m_showColliders(false),
           m_showVectors(false),
           m_player(nullptr),
           m_playerPhysics(nullptr),
+          m_oceanBackground(nullptr),
           m_motorBoatHandle(AudioHandle::invalid())
     {
-        m_window.setFramerateLimit(60);
+        // Create window configuration
+        WindowConfig windowConfig;
+        windowConfig.width      = SCREEN_WIDTH;
+        windowConfig.height     = SCREEN_HEIGHT;
+        windowConfig.title      = "Bouncing Barrels Example - ECS Rendering";
+        windowConfig.vsync      = true;
+        windowConfig.frameLimit = 60;
+
+        // Initialize game engine with window config
+        m_gameEngine = std::make_unique<GameEngine>(windowConfig, Vec2(0.0f, GRAVITY_FORCE));
 
         // Try to load a system font (optional, will work without it)
         if (!m_font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf"))
@@ -126,9 +160,16 @@ public:
         auto& physics = m_gameEngine->getPhysics();
         physics.setGravity({0.0f, m_gravityEnabled ? GRAVITY_FORCE : 0.0f});
 
+        // Initialize particle system
+        auto& particleSystem = m_gameEngine->getParticleSystem();
+        particleSystem.initialize(getWindow(), PIXELS_PER_METER);
+
+        createOceanBackground();
         createBoundaryColliders();
         createPlayer();
-        createBalls();
+        createBubbleTrail();
+        createHullSpray();
+        createBarrels();
 
         // Force EntityManager to process pending entities
         m_gameEngine->getEntityManager().update(0.0f);
@@ -137,13 +178,13 @@ public:
         std::cout << "Physics: Box2D v3.1.1 (1 unit = 1 meter, Y-up)" << std::endl;
         std::cout << "Controls:" << std::endl;
         std::cout << "  WASD            : Move player boat (W=forward, S=backward, A/D=turn)" << std::endl;
-        std::cout << "  Left/Right      : Adjust ball count" << std::endl;
+        std::cout << "  Left/Right      : Adjust barrel count" << std::endl;
         std::cout << "  R               : Restart scenario" << std::endl;
         std::cout << "  G               : Toggle gravity" << std::endl;
         std::cout << "  C               : Toggle collider visibility" << std::endl;
         std::cout << "  V               : Toggle vector visualization" << std::endl;
         std::cout << "  Escape          : Exit" << std::endl;
-        std::cout << "Number of balls: " << m_ballAmount << std::endl;
+        std::cout << "Number of barrels:" << m_barrelAmount << std::endl;
         std::cout << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << std::endl;
     }
 
@@ -187,6 +228,42 @@ public:
         topWall->addComponent<CCollider2D>()->createBox(screenWidthMeters / 2.0f, BOUNDARY_THICKNESS_METERS / 2.0f);
     }
 
+    void createOceanBackground()
+    {
+        // Screen dimensions in meters
+        const float screenWidthMeters  = SCREEN_WIDTH / PIXELS_PER_METER;
+        const float screenHeightMeters = SCREEN_HEIGHT / PIXELS_PER_METER;
+
+        // Create ocean background entity
+        m_oceanBackground = m_gameEngine->getEntityManager().addEntity("ocean");
+
+        // Position at screen center, covering entire play area
+        m_oceanBackground->addComponent<CTransform>(Vec2(screenWidthMeters / 2.0f, screenHeightMeters / 2.0f), Vec2(1.0f, 1.0f), 0.0f);
+
+        // Create large rectangle covering the screen
+        auto* oceanRenderable = m_oceanBackground->addComponent<CRenderable>(VisualType::Rectangle,
+                                                                             Color::Blue,
+                                                                             -10  // Render behind everything
+        );
+        oceanRenderable->setVisible(true);
+
+        // Add box collider to define size (no physics body, just for rendering dimensions)
+        auto* oceanCollider = m_oceanBackground->addComponent<CCollider2D>();
+        oceanCollider->createBox(screenWidthMeters / 2.0f,    // half-width
+                                 screenHeightMeters / 2.0f);  // half-height
+
+        // Add ocean shader
+        auto* oceanShader = m_oceanBackground->addComponent<CShader>("assets/shaders/water.vert",
+                                                                     "assets/shaders/water.frag");
+
+        // Add material to bind shader
+        auto* oceanMaterial = m_oceanBackground->addComponent<CMaterial>();
+        oceanMaterial->setShaderGuid(oceanShader->getGuid());
+        oceanMaterial->setTint(Color::White);
+        oceanMaterial->setOpacity(1.0f);
+        oceanMaterial->setBlendMode(BlendMode::Alpha);
+    }
+
     void createPlayer()
     {
         // Screen dimensions in meters
@@ -199,7 +276,15 @@ public:
 
         // Create player entity
         m_player = m_gameEngine->getEntityManager().addEntity("player");
-        m_player->addComponent<CTransform>(Vec2(centerX, centerY), Vec2(1.0f, 1.0f), 0.0f);
+
+        // Boat dimensions for proper sprite scaling
+        const float boatLength = PLAYER_SIZE_METERS * 3.5f;  // 0.875 meters
+        const float boatWidth  = PLAYER_SIZE_METERS * 1.8f;  // 0.45 meters
+
+        // Scale factor to make sprite match collider size
+        const float boatSpriteScale = 1.0f;  // Use 1.0 for natural size matching
+
+        m_player->addComponent<CTransform>(Vec2(centerX, centerY), Vec2(boatSpriteScale, boatSpriteScale), 0.0f);
 
         // Add physics body
         m_playerPhysics = m_player->addComponent<CPhysicsBody2D>();
@@ -209,8 +294,7 @@ public:
 
         // Create boat shape with curved bow using multiple polygon segments
         // Boat points from stern (back) to bow (front), with Y-axis as forward
-        const float boatLength = PLAYER_SIZE_METERS * 3.5f;  // Total length (increased)
-        const float boatWidth  = PLAYER_SIZE_METERS * 1.8f;  // Width at widest point (increased)
+        // const float boatLength and boatWidth already defined above
 
         // Create single collider that will hold multiple polygon fixtures
         auto* collider = m_player->addComponent<CCollider2D>();
@@ -261,6 +345,18 @@ public:
             // Add this polygon as an additional fixture
             collider->addPolygon(sliceVertices.data(), sliceVertices.size(), 0.02f);
         }
+
+        // Add rendering components for player boat texture
+        auto boatTexture    = m_player->addComponent<CTexture>("assets/textures/boat.png");
+        auto boatRenderable = m_player->addComponent<CRenderable>(VisualType::Sprite, Color::White, BOAT_INDEX);
+        boatRenderable->setVisible(true);
+
+        // Add material for the boat
+        auto boatMaterial = m_player->addComponent<CMaterial>();
+        boatMaterial->setTextureGuid(boatTexture->getGuid());
+        boatMaterial->setTint(Color::White);
+        boatMaterial->setOpacity(1.0f);
+        boatMaterial->setBlendMode(BlendMode::Alpha);
 
         // Add input controller with action bindings
         auto* inputController = m_player->addComponent<CInputController>();
@@ -344,40 +440,11 @@ public:
                                            });
     }
 
-    void createBalls()
+    void createBarrels()
     {
-        // Screen dimensions in meters
-        const float screenWidthMeters  = SCREEN_WIDTH / PIXELS_PER_METER;
-        const float screenHeightMeters = SCREEN_HEIGHT / PIXELS_PER_METER;
-
-        // Calculate spawn boundaries accounting for boundary thickness and ball radius
-        const float MIN_X = BOUNDARY_THICKNESS_METERS + BALL_RADIUS_METERS;
-        const float MAX_X = screenWidthMeters - BOUNDARY_THICKNESS_METERS - BALL_RADIUS_METERS;
-        const float MIN_Y = BOUNDARY_THICKNESS_METERS + BALL_RADIUS_METERS;
-        const float MAX_Y = screenHeightMeters - BOUNDARY_THICKNESS_METERS - BALL_RADIUS_METERS;
-
-        for (int i = 0; i < m_ballAmount; i++)
+        for (int i = 0; i < m_barrelAmount; i++)
         {
-            // Random position within safe spawn area (in meters)
-            float randomX = MIN_X + static_cast<float>(rand()) / RAND_MAX * (MAX_X - MIN_X);
-            float randomY = MIN_Y + static_cast<float>(rand()) / RAND_MAX * (MAX_Y - MIN_Y);
-
-            auto ball = m_gameEngine->getEntityManager().addEntity("ball");
-            ball->addComponent<CTransform>(Vec2(randomX, randomY), Vec2(1.0f, 1.0f), 0.0f);
-
-            auto* physicsBody = ball->addComponent<CPhysicsBody2D>();
-            physicsBody->initialize({randomX, randomY}, BodyType::Dynamic);
-
-            auto* collider = ball->addComponent<CCollider2D>();
-            collider->createCircle(BALL_RADIUS_METERS);
-            collider->setRestitution(RESTITUTION);
-            collider->setDensity(1.0f);  // Set ball density (lighter than player)
-
-            // Add damping to gradually reduce velocity (prevents balls from maintaining excessive speeds)
-            physicsBody->setLinearDamping(0.125f);
-
-            // Randomize initial velocity
-            physicsBody->setLinearVelocity({getRandomVelocity().x, getRandomVelocity().y});
+            spawnRandomBarrel();
         }
     }
 
@@ -408,6 +475,341 @@ public:
     {
         m_showVectors = !m_showVectors;
         std::cout << "Vectors: " << (m_showVectors ? "ON" : "OFF") << std::endl;
+
+        if (m_showVectors)
+        {
+            createVelocityLines();
+        }
+        else
+        {
+            destroyVelocityLines();
+        }
+    }
+
+    void createVelocityLines()
+    {
+        // Create velocity line entities for all physics objects
+        auto player     = m_gameEngine->getEntityManager().getEntitiesByTag("player");
+        auto allBarrels = m_gameEngine->getEntityManager().getEntitiesByTag("barrel");
+
+        auto allEntities = allBarrels;
+        if (!player.empty())
+        {
+            allEntities.push_back(player[0]);
+        }
+
+        for (auto& entity : allEntities)
+        {
+            if (entity->hasComponent<CPhysicsBody2D>())
+            {
+                auto velocityLine = m_gameEngine->getEntityManager().addEntity("velocity_line");
+                velocityLine->addComponent<CTransform>(Vec2(0, 0), Vec2(1.0f, 1.0f), 0.0f);
+                auto* renderable = velocityLine->addComponent<CRenderable>(VisualType::Line, Color::Yellow, 1000, true);
+                renderable->setLineStart(Vec2(0.0f, 0.0f));
+                renderable->setLineEnd(Vec2(0.0f, 0.0f));
+                renderable->setLineThickness(2.0f);
+
+                m_velocityLines[entity.get()] = velocityLine;
+            }
+        }
+    }
+
+    void destroyVelocityLines()
+    {
+        for (auto& [entity, line] : m_velocityLines)
+        {
+            line->destroy();
+        }
+        m_velocityLines.clear();
+    }
+
+    void createBubbleTrail()
+    {
+        // Load bubble texture
+        if (!m_bubbleTexture.loadFromFile("assets/textures/bubble.png"))
+        {
+            std::cout << "ERROR: Could not load bubble.png texture!" << std::endl;
+            return;
+        }
+
+        m_bubbleTexture.setSmooth(true);
+        std::cout << "SUCCESS: Loaded bubble.png texture (" << m_bubbleTexture.getSize().x << "x"
+                  << m_bubbleTexture.getSize().y << ")" << std::endl;
+
+        if (!m_player)
+        {
+            std::cout << "ERROR: Cannot create bubble trail - player not initialized!" << std::endl;
+            return;
+        }
+
+        // Create a separate entity for the bubble trail emitter
+        m_bubbleTrailEntity = m_gameEngine->getEntityManager().addEntity("bubble_trail");
+
+        // Get player position for initial placement
+        auto* playerTransform = m_player->getComponent<CTransform>();
+        Vec2  playerPos       = playerTransform ? playerTransform->getPosition() : Vec2(0, 0);
+        m_bubbleTrailEntity->addComponent<CTransform>(playerPos, Vec2(1.0f, 1.0f), 0.0f);
+
+        // Add particle emitter to the bubble trail entity
+        auto* emitter = m_bubbleTrailEntity->addComponent<CParticleEmitter>();
+
+        // Configure particle properties using setters
+        // Direction is now in LOCAL SPACE relative to boat rotation
+        // Boat's forward is +Y, so stern (back) is -Y
+        emitter->setDirection(Vec2(0.0f, -1.0f));  // Emit from back of boat in local space
+        emitter->setSpreadAngle(1.20f);            // Wide spread
+        emitter->setMinSpeed(0.05f);
+        emitter->setMaxSpeed(0.2f);
+        emitter->setMinLifetime(3.0f);
+        emitter->setMaxLifetime(3.0f);
+        emitter->setMinSize(0.005f);                   // 5cm (in meters)
+        emitter->setMaxSize(0.025f);                   // 25cm (in meters)
+        emitter->setEmissionRate(300.0f);              // Constant 300 particles/sec
+        emitter->setStartColor(Color(255, 255, 255));  // White (no tint)
+        emitter->setEndColor(Color(255, 255, 255));
+        emitter->setStartAlpha(1.0f);  // Fully opaque
+        emitter->setEndAlpha(0.5f);
+        emitter->setGravity(Vec2(0, 0));
+        emitter->setMinRotationSpeed(-2.0f);
+        emitter->setMaxRotationSpeed(2.0f);
+        emitter->setFadeOut(true);
+        emitter->setShrink(true);
+        emitter->setShrinkEndScale(0.0f);  // Shrink to nothing
+        emitter->setActive(true);          // Always active
+        emitter->setMaxParticles(1000);
+        emitter->setTexture(&m_bubbleTexture);   // Use bubble texture
+        emitter->setZIndex(BUBBLE_TRAIL_INDEX);  // Render behind boat
+
+        // Position emitter at back of boat (stern)
+        // Boat forward direction is +Y in local space, so back is -Y
+        const float boatLength = PLAYER_SIZE_METERS * 3.5f;          // Match boat dimensions
+        emitter->setPositionOffset(Vec2(0.0f, -boatLength * 0.75));  // 75% back from center
+
+        std::cout << "Boat wake particle emitter created as separate entity with offset (0.0, " << (-boatLength * 0.75)
+                  << ") meters" << std::endl;
+    }
+
+    void createHullSpray()
+    {
+        if (!m_player)
+        {
+            std::cout << "ERROR: Cannot create hull spray - player not initialized!" << std::endl;
+            return;
+        }
+
+        // Load spray texture (reuse bubble texture or use a different one)
+        if (!m_sprayTexture.loadFromFile("assets/textures/bubble.png"))
+        {
+            std::cout << "WARNING: Could not load spray texture, using bubble texture" << std::endl;
+            m_sprayTexture = m_bubbleTexture;
+        }
+        m_sprayTexture.setSmooth(true);
+
+        // Create a separate entity for the hull spray emitter
+        m_hullSprayEntity = m_gameEngine->getEntityManager().addEntity("hull_spray");
+
+        // Get player position for initial placement
+        auto* playerTransform = m_player->getComponent<CTransform>();
+        Vec2  playerPos       = playerTransform ? playerTransform->getPosition() : Vec2(0, 0);
+        m_hullSprayEntity->addComponent<CTransform>(playerPos, Vec2(1.0f, 1.0f), 0.0f);
+
+        // Create hull spray emitter on the separate entity
+        m_hullSprayEmitter = m_hullSprayEntity->addComponent<CParticleEmitter>();
+
+        // Use polygon shape - extract hull from player's collider
+        m_hullSprayEmitter->setEmissionShape(EmissionShape::Polygon);
+
+        // Get vertices from player's collider and let the emitter compute the convex hull
+        auto* playerCollider = m_player->getComponent<CCollider2D>();
+        if (playerCollider)
+        {
+            std::vector<Vec2> allVertices;
+            const auto&       fixtures = playerCollider->getFixtures();
+
+            for (size_t i = 0; i < fixtures.size(); ++i)
+            {
+                if (fixtures[i].shapeType == ColliderShape::Polygon)
+                {
+                    const b2Vec2* verts     = playerCollider->getPolygonVertices(i);
+                    int           vertCount = playerCollider->getPolygonVertexCount(i);
+
+                    for (int v = 0; v < vertCount; ++v)
+                    {
+                        allVertices.push_back(Vec2(verts[v].x, verts[v].y));
+                    }
+                }
+            }
+
+            // Let the emitter compute the convex hull from all vertices
+            m_hullSprayEmitter->setPolygonFromConvexHull(allVertices);
+        }
+
+        // Emit particles outward from hull edges
+        m_hullSprayEmitter->setEmitOutward(true);
+
+        // Spray particle properties
+        m_hullSprayEmitter->setSpreadAngle(0.4f);  // Moderate spread
+        m_hullSprayEmitter->setMinSpeed(0.8f);
+        m_hullSprayEmitter->setMaxSpeed(2.5f);
+        m_hullSprayEmitter->setMinLifetime(0.5f);
+        m_hullSprayEmitter->setMaxLifetime(1.2f);
+        m_hullSprayEmitter->setMinSize(0.006f);  // Small spray droplets
+        m_hullSprayEmitter->setMaxSize(0.02f);
+        m_hullSprayEmitter->setEmissionRate(0.0f);                // Start at 0, will be updated based on speed
+        m_hullSprayEmitter->setStartColor(Color(220, 240, 255));  // Light blue-white
+        m_hullSprayEmitter->setEndColor(Color(255, 255, 255));
+        m_hullSprayEmitter->setStartAlpha(0.9f);
+        m_hullSprayEmitter->setEndAlpha(0.0f);
+        m_hullSprayEmitter->setGravity(Vec2(0.0f, -0.5f));  // Slight downward gravity
+        m_hullSprayEmitter->setMinRotationSpeed(-3.0f);
+        m_hullSprayEmitter->setMaxRotationSpeed(3.0f);
+        m_hullSprayEmitter->setFadeOut(true);
+        m_hullSprayEmitter->setShrink(true);
+        m_hullSprayEmitter->setShrinkEndScale(0.1f);
+        m_hullSprayEmitter->setActive(true);
+        m_hullSprayEmitter->setMaxParticles(5000);
+        m_hullSprayEmitter->setTexture(&m_sprayTexture);
+        m_hullSprayEmitter->setZIndex(HULL_SPRAY_INDEX);  // Render behind boat
+
+        std::cout << "Hull spray particle emitter attached to player (speed-based emission)" << std::endl;
+    }
+
+    void updateHullSpray()
+    {
+        if (!m_hullSprayEmitter || !m_playerPhysics || !m_playerPhysics->isInitialized())
+            return;
+
+        // Get current speed
+        b2Vec2 velocity = m_playerPhysics->getLinearVelocity();
+        float  speed    = std::sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+
+        // Define speed thresholds
+        const float MIN_SPEED_FOR_SPRAY = 0.1f;     // Start spraying at this speed (m/s)
+        const float MAX_SPEED_FOR_SPRAY = 2.25f;    // Maximum spray at this speed (m/s)
+        const float MIN_EMISSION_RATE   = 0.0f;     // Emission rate at minimum speed
+        const float MAX_EMISSION_RATE   = 5000.0f;  // Emission rate at maximum speed
+
+        // Calculate emission rate based on speed
+        float emissionRate = 0.0f;
+        if (speed > MIN_SPEED_FOR_SPRAY)
+        {
+            // Normalize speed to 0-1 range
+            float normalizedSpeed = (speed - MIN_SPEED_FOR_SPRAY) / (MAX_SPEED_FOR_SPRAY - MIN_SPEED_FOR_SPRAY);
+            normalizedSpeed       = std::min(1.0f, std::max(0.0f, normalizedSpeed));
+
+            // Use quadratic curve for more dramatic effect at higher speeds
+            emissionRate = MIN_EMISSION_RATE + (MAX_EMISSION_RATE - MIN_EMISSION_RATE) * (normalizedSpeed * normalizedSpeed);
+        }
+
+        m_hullSprayEmitter->setEmissionRate(emissionRate);
+
+        // Also scale particle speed based on boat speed
+        float speedMultiplier = 1.0f + (speed / MAX_SPEED_FOR_SPRAY) * 0.5f;
+        m_hullSprayEmitter->setMinSpeed(0.1f * speedMultiplier);
+        m_hullSprayEmitter->setMaxSpeed(0.4f * speedMultiplier);
+    }
+
+    void updateParticleEmitterPositions()
+    {
+        if (!m_player)
+            return;
+
+        auto* playerTransform = m_player->getComponent<CTransform>();
+        if (!playerTransform)
+            return;
+
+        Vec2  playerPos      = playerTransform->getPosition();
+        float playerRotation = playerTransform->getRotation();
+
+        // Update bubble trail entity to follow player
+        if (m_bubbleTrailEntity && m_bubbleTrailEntity->isAlive())
+        {
+            auto* trailTransform = m_bubbleTrailEntity->getComponent<CTransform>();
+            if (trailTransform)
+            {
+                trailTransform->setPosition(playerPos);
+                trailTransform->setRotation(playerRotation);
+            }
+        }
+
+        // Update hull spray entity to follow player
+        if (m_hullSprayEntity && m_hullSprayEntity->isAlive())
+        {
+            auto* sprayTransform = m_hullSprayEntity->getComponent<CTransform>();
+            if (sprayTransform)
+            {
+                sprayTransform->setPosition(playerPos);
+                sprayTransform->setRotation(playerRotation);
+            }
+        }
+    }
+
+    void updateOceanShaderUniforms()
+    {
+        if (!m_oceanBackground)
+            return;
+
+        // Get the shader from the material component
+        auto* material = m_oceanBackground->getComponent<CMaterial>();
+        if (!material)
+            return;
+
+        std::string shaderGuid = material->getShaderGuid();
+        if (shaderGuid.empty())
+            return;
+
+        auto* shaderComp = m_oceanBackground->getComponent<CShader>();
+        if (!shaderComp)
+            return;
+
+        // Get the SFML shader from SRenderer cache
+        auto& renderer = SRenderer::instance();
+        const sf::Shader* shader = renderer.loadShader(shaderComp->getVertexShaderPath(), shaderComp->getFragmentShaderPath());
+        if (!shader)
+            return;
+
+        // Collect positions of all physics objects (player + barrels)
+        std::vector<sf::Vector2f> positions;
+        const int                 MAX_OBJECTS = 50;
+
+        // Get player position
+        auto players = m_gameEngine->getEntityManager().getEntitiesByTag("player");
+        for (const auto& player : players)
+        {
+            if (positions.size() >= MAX_OBJECTS)
+                break;
+            auto* transform = player->getComponent<CTransform>();
+            if (transform)
+            {
+                Vec2 pos = transform->getPosition();
+                // Convert to normalized screen coordinates (0 to 1)
+                float normX = pos.x * PIXELS_PER_METER / SCREEN_WIDTH;
+                float normY = pos.y * PIXELS_PER_METER / SCREEN_HEIGHT;  // Don't flip - shader uses gl_FragCoord
+                positions.push_back(sf::Vector2f(normX, normY));
+            }
+        }
+
+        // Get barrel positions
+        auto barrels = m_gameEngine->getEntityManager().getEntitiesByTag("barrel");
+        for (const auto& barrel : barrels)
+        {
+            if (positions.size() >= MAX_OBJECTS)
+                break;
+            auto* transform = barrel->getComponent<CTransform>();
+            if (transform)
+            {
+                Vec2 pos = transform->getPosition();
+                // Convert to normalized screen coordinates (0 to 1)
+                float normX = pos.x * PIXELS_PER_METER / SCREEN_WIDTH;
+                float normY = pos.y * PIXELS_PER_METER / SCREEN_HEIGHT;  // Don't flip - shader uses gl_FragCoord
+                positions.push_back(sf::Vector2f(normX, normY));
+            }
+        }
+
+        // Set shader uniforms (need mutable shader)
+        sf::Shader* mutableShader = const_cast<sf::Shader*>(shader);
+        mutableShader->setUniform("u_objectCount", static_cast<int>(positions.size()));
+        mutableShader->setUniformArray("u_objectPositions", positions.data(), positions.size());
     }
 
     void startMotorBoat()
@@ -442,55 +844,65 @@ public:
         }
     }
 
-    void spawnRandomBall()
+    void spawnRandomBarrel()
     {
         // Screen dimensions in meters
         const float screenWidthMeters  = SCREEN_WIDTH / PIXELS_PER_METER;
         const float screenHeightMeters = SCREEN_HEIGHT / PIXELS_PER_METER;
 
         // Calculate spawn boundaries
-        const float MIN_X = BOUNDARY_THICKNESS_METERS + BALL_RADIUS_METERS;
-        const float MAX_X = screenWidthMeters - BOUNDARY_THICKNESS_METERS - BALL_RADIUS_METERS;
-        const float MIN_Y = BOUNDARY_THICKNESS_METERS + BALL_RADIUS_METERS;
-        const float MAX_Y = screenHeightMeters - BOUNDARY_THICKNESS_METERS - BALL_RADIUS_METERS;
+        const float MIN_X = BOUNDARY_THICKNESS_METERS + BARREL_RADIUS_METERS;
+        const float MAX_X = screenWidthMeters - BOUNDARY_THICKNESS_METERS - BARREL_RADIUS_METERS;
+        const float MIN_Y = BOUNDARY_THICKNESS_METERS + BARREL_RADIUS_METERS;
+        const float MAX_Y = screenHeightMeters - BOUNDARY_THICKNESS_METERS - BARREL_RADIUS_METERS;
 
         // Random position within safe spawn area (in meters)
         float randomX = MIN_X + static_cast<float>(rand()) / RAND_MAX * (MAX_X - MIN_X);
         float randomY = MIN_Y + static_cast<float>(rand()) / RAND_MAX * (MAX_Y - MIN_Y);
 
-        auto ball = m_gameEngine->getEntityManager().addEntity("ball");
-        ball->addComponent<CTransform>(Vec2(randomX, randomY), Vec2(1.0f, 1.0f), 0.0f);
+        auto barrel = m_gameEngine->getEntityManager().addEntity("barrel");
+        barrel->addComponent<CTransform>(Vec2(randomX, randomY), Vec2(1.0f, 1.0f), 0.0f);
 
-        auto* physicsBody = ball->addComponent<CPhysicsBody2D>();
+        auto* physicsBody = barrel->addComponent<CPhysicsBody2D>();
         physicsBody->initialize({randomX, randomY}, BodyType::Dynamic);
 
-        auto* collider = ball->addComponent<CCollider2D>();
-        collider->createCircle(BALL_RADIUS_METERS);
+        auto* collider = barrel->addComponent<CCollider2D>();
+        collider->createCircle(BARREL_RADIUS_METERS);
         collider->setRestitution(RESTITUTION);
-        collider->setDensity(1.0f);  // Set ball density (lighter than player)
+        collider->setDensity(BARREL_DENSITY);
 
-        // Add damping to gradually reduce velocity (prevents balls from maintaining excessive speeds)
-        physicsBody->setLinearDamping(0.2f);
+        // Add damping to gradually reduce velocity (prevents barrels from maintaining excessive speeds)
+        physicsBody->setLinearDamping(BARREL_LINEAR_DRAG);
+        physicsBody->setAngularDamping(BARREL_ANGULAR_DRAG);
 
-        // Randomize initial velocity
-        physicsBody->setLinearVelocity({getRandomVelocity().x, getRandomVelocity().y});
+        // Add rendering components for barrel sprite
+        auto barrelTexture    = barrel->addComponent<CTexture>("assets/textures/barrel.png");
+        auto barrelRenderable = barrel->addComponent<CRenderable>(VisualType::Sprite, Color::White, BARREL_INDEX);
+        barrelRenderable->setVisible(true);
+
+        // Add material for the barrel
+        auto barrelMaterial = barrel->addComponent<CMaterial>();
+        barrelMaterial->setTextureGuid(barrelTexture->getGuid());
+        barrelMaterial->setTint(Color::White);
+        barrelMaterial->setOpacity(1.0f);
+        barrelMaterial->setBlendMode(BlendMode::Alpha);
     }
 
-    void removeRandomBall()
+    void removeRandomBarrel()
     {
-        auto balls = m_gameEngine->getEntityManager().getEntitiesByTag("ball");
-        if (!balls.empty())
+        auto barrels = m_gameEngine->getEntityManager().getEntitiesByTag("barrel");
+        if (!barrels.empty())
         {
-            // Pick a random ball to remove
-            int randomIndex = rand() % balls.size();
-            balls[randomIndex]->destroy();
+            // Pick a random barrel to remove
+            int randomIndex = rand() % barrels.size();
+            barrels[randomIndex]->destroy();
         }
     }
 
     void restart()
     {
         std::cout << "\n=== Restarting scenario ===" << std::endl;
-        std::cout << "Ball count: " << m_ballAmount << std::endl;
+        std::cout << "Barrel count:" << m_barrelAmount << std::endl;
         std::cout << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << std::endl;
 
         // Stop motor boat if playing
@@ -501,6 +913,9 @@ public:
             m_motorBoatHandle = AudioHandle::invalid();
         }
 
+        // Clear velocity lines
+        m_velocityLines.clear();
+
         // Clear all entities
         m_gameEngine->getEntityManager().clear();
 
@@ -508,10 +923,19 @@ public:
         auto& physics = m_gameEngine->getPhysics();
         physics.setGravity({0.0f, m_gravityEnabled ? GRAVITY_FORCE : 0.0f});
 
-        // Recreate boundary colliders, player, and balls
+        // Recreate ocean background, boundary colliders, player, and barrels
+        createOceanBackground();
         createBoundaryColliders();
         createPlayer();
-        createBalls();
+        createBubbleTrail();
+        createHullSpray();
+        createBarrels();
+
+        // Recreate velocity lines if vectors are visible
+        if (m_showVectors)
+        {
+            createVelocityLines();
+        }
 
         // Force EntityManager to process pending entities
         m_gameEngine->getEntityManager().update(0.0f);
@@ -536,7 +960,85 @@ public:
         line[1].position = endPixels;
         line[1].color    = color;
 
-        m_window.draw(line);
+        auto* window = getWindow();
+        if (window)
+        {
+            window->draw(line);
+        }
+    }
+
+    void updateVelocityLines()
+    {
+        const float VELOCITY_SCALE = 0.5f;  // Scale factor for velocity visualization
+
+        // Update existing velocity lines
+        auto allEntitiesToUpdate = m_velocityLines;
+        for (auto& [entity, line] : allEntitiesToUpdate)
+        {
+            if (!entity || !entity->isAlive())
+            {
+                // Remove velocity line if entity is destroyed
+                if (line)
+                {
+                    line->destroy();
+                }
+                m_velocityLines.erase(entity);
+                continue;
+            }
+
+            auto* physicsBody = entity->getComponent<CPhysicsBody2D>();
+            auto* transform   = entity->getComponent<CTransform>();
+            auto* lineRender  = line->getComponent<CRenderable>();
+
+            if (physicsBody && transform && lineRender)
+            {
+                // Get velocity
+                b2Vec2 velocity = physicsBody->getLinearVelocity();
+                Vec2   velocityVec(velocity.x, velocity.y);
+                float  speed = velocityVec.length();
+
+                if (speed > 0.01f)  // Only show if velocity is significant
+                {
+                    // Update line position to entity position
+                    line->getComponent<CTransform>()->setPosition(transform->getPosition());
+
+                    // Update line endpoints (local space)
+                    lineRender->setLineStart(Vec2(0.0f, 0.0f));
+                    lineRender->setLineEnd(velocityVec * VELOCITY_SCALE);
+                    lineRender->setVisible(true);
+                }
+                else
+                {
+                    lineRender->setVisible(false);
+                }
+            }
+        }
+
+        // Check for new entities that need velocity lines
+        auto player     = m_gameEngine->getEntityManager().getEntitiesByTag("player");
+        auto allBarrels = m_gameEngine->getEntityManager().getEntitiesByTag("barrel");
+
+        auto allEntities = allBarrels;
+        if (!player.empty())
+        {
+            allEntities.push_back(player[0]);
+        }
+
+        for (auto& entity : allEntities)
+        {
+            if (entity->hasComponent<CPhysicsBody2D>() && m_velocityLines.find(entity.get()) == m_velocityLines.end())
+            {
+                // Create new velocity line for this entity
+                auto velocityLine = m_gameEngine->getEntityManager().addEntity("velocity_line");
+                velocityLine->addComponent<CTransform>(Vec2(0, 0), Vec2(1.0f, 1.0f), 0.0f);
+                auto* renderable = velocityLine->addComponent<CRenderable>(VisualType::Line, Color::Yellow, 1000, true);
+                renderable->setLineStart(Vec2(0.0f, 0.0f));
+                renderable->setLineEnd(Vec2(0.0f, 0.0f));
+                renderable->setLineThickness(2.0f);
+
+                m_velocityLines[entity.get()] = velocityLine;
+            }
+        }
     }
 
     void update(float dt)
@@ -565,20 +1067,20 @@ public:
         }
         if (im.wasKeyPressed(KeyCode::Left))
         {
-            if (m_ballAmount > 1)
+            if (m_barrelAmount > 1)
             {
-                m_ballAmount--;
-                removeRandomBall();
-                std::cout << "Ball count: " << m_ballAmount << std::endl;
+                m_barrelAmount--;
+                removeRandomBarrel();
+                std::cout << "Barrel count: " << m_barrelAmount << std::endl;
             }
         }
         if (im.wasKeyPressed(KeyCode::Right))
         {
-            if (m_ballAmount < 1000)
+            if (m_barrelAmount < 1000)
             {
-                m_ballAmount++;
-                spawnRandomBall();
-                std::cout << "Ball count: " << m_ballAmount << std::endl;
+                m_barrelAmount++;
+                spawnRandomBarrel();
+                std::cout << "Barrel count: " << m_barrelAmount << std::endl;
             }
         }
         if (im.wasKeyPressed(KeyCode::R))
@@ -617,6 +1119,24 @@ public:
         // Update Box2D physics
         m_gameEngine->getPhysics().update(dt);
 
+        // Update particle emitter positions to follow the player
+        updateParticleEmitterPositions();
+
+        // Update hull spray emission rate based on boat speed
+        updateHullSpray();
+
+        // Update particle system
+        m_gameEngine->getParticleSystem().update(dt);
+
+        // Update ocean shader uniforms with object positions
+        updateOceanShaderUniforms();
+
+        // Update velocity lines if visible
+        if (m_showVectors)
+        {
+            updateVelocityLines();
+        }
+
         // Update Audio System
         m_gameEngine->getAudioSystem().update(dt);
 
@@ -626,8 +1146,14 @@ public:
 
     void render()
     {
-        m_window.clear(sf::Color(50, 50, 50));  // Dark gray background
+        auto* window = getWindow();
+        if (!window)
+            return;
 
+        // Use GameEngine's complete render pipeline (includes particles)
+        m_gameEngine->render();
+
+        // Manual drawing for debug visualization (colliders, vectors, UI)
         // Draw boundary colliders
         std::vector<std::string> boundaryTags = {"floor", "rightWall", "leftWall", "topWall"};
         for (const auto& tag : boundaryTags)
@@ -656,201 +1182,150 @@ public:
                     shape.setOutlineColor(sf::Color(0, 255, 0));  // Lime green
                     shape.setOutlineThickness(2.0f);
                 }
-                m_window.draw(shape);
+                window->draw(shape);
             }
         }
 
-        // Draw balls
-        auto balls     = m_gameEngine->getEntityManager().getEntitiesByTag("ball");
-        int  ballIndex = 0;
-        for (auto& ball : balls)
+        // Only draw debug colliders if enabled
+        if (m_showColliders)
         {
-            if (!ball->hasComponent<CTransform>() || !ball->hasComponent<CCollider2D>())
-                continue;
-
-            auto* transform = ball->getComponent<CTransform>();
-            auto* collider  = ball->getComponent<CCollider2D>();
-
-            Vec2         posMeters    = transform->getPosition();
-            sf::Vector2f posPixels    = metersToPixels(posMeters);
-            float        radiusPixels = collider->getCircleRadius() * PIXELS_PER_METER;
-
-            sf::CircleShape ballShape(radiusPixels);
-            ballShape.setOrigin(radiusPixels, radiusPixels);
-            ballShape.setPosition(posPixels);
-
-            // Set a random color for each ball
-            sf::Color color;
-            switch (ballIndex % 5)
+            auto barrels = m_gameEngine->getEntityManager().getEntitiesByTag("barrel");
+            for (auto& barrel : barrels)
             {
-                case 0:
-                    color = sf::Color::Red;
-                    break;
-                case 1:
-                    color = sf::Color::Green;
-                    break;
-                case 2:
-                    color = sf::Color::Blue;
-                    break;
-                case 3:
-                    color = sf::Color::Yellow;
-                    break;
-                case 4:
-                    color = sf::Color::Cyan;
-                    break;
-            }
-            ballShape.setFillColor(color);
-            if (m_showColliders)
-            {
-                ballShape.setOutlineColor(sf::Color(0, 255, 0));  // Lime green
-                ballShape.setOutlineThickness(2.0f);
-            }
-
-            m_window.draw(ballShape);
-            ballIndex++;
-        }
-
-        // Draw player boat
-        auto players = m_gameEngine->getEntityManager().getEntitiesByTag("player");
-        for (auto& player : players)
-        {
-            if (!player->hasComponent<CTransform>() || !player->hasComponent<CCollider2D>())
-                continue;
-
-            auto* transform = player->getComponent<CTransform>();
-            auto* collider  = player->getComponent<CCollider2D>();
-
-            Vec2         posMeters = transform->getPosition();
-            sf::Vector2f posPixels = metersToPixels(posMeters);
-            float        rotation  = transform->getRotation();  // Get rotation in radians
-
-            // Draw all polygon fixtures in the collider
-            const auto& fixtures = collider->getFixtures();
-            for (size_t fixtureIdx = 0; fixtureIdx < fixtures.size(); ++fixtureIdx)
-            {
-                const auto& fixture = fixtures[fixtureIdx];
-
-                if (fixture.shapeType == ColliderShape::Polygon)
-                {
-                    const b2Vec2* vertices    = collider->getPolygonVertices(fixtureIdx);
-                    int           vertexCount = collider->getPolygonVertexCount(fixtureIdx);
-
-                    if (vertices && vertexCount > 0)
-                    {
-                        sf::ConvexShape boatShape(vertexCount);
-
-                        // Transform and set each vertex
-                        for (int i = 0; i < vertexCount; ++i)
-                        {
-                            // Rotate vertex around origin
-                            float cosR     = std::cos(rotation);
-                            float sinR     = std::sin(rotation);
-                            float rotatedX = vertices[i].x * cosR - vertices[i].y * sinR;
-                            float rotatedY = vertices[i].x * sinR + vertices[i].y * cosR;
-
-                            // Convert to pixels (note: Y-flip for screen coordinates)
-                            float pixelX = rotatedX * PIXELS_PER_METER;
-                            float pixelY = -rotatedY * PIXELS_PER_METER;  // Negative for screen Y-down
-
-                            boatShape.setPoint(i, sf::Vector2f(pixelX, pixelY));
-                        }
-
-                        boatShape.setPosition(posPixels);
-                        boatShape.setFillColor(sf::Color(200, 150, 100));  // Brownish color for boat
-                        if (m_showColliders)
-                        {
-                            boatShape.setOutlineColor(sf::Color::Magenta);  // Magenta outline for player
-                            boatShape.setOutlineThickness(3.0f);
-                        }
-                        m_window.draw(boatShape);
-                    }
-                }
-                else if (fixture.shapeType == ColliderShape::Segment || fixture.shapeType == ColliderShape::ChainSegment)
-                {
-                    // Get segment endpoints
-                    b2Vec2 p1, p2;
-                    if (fixture.shapeType == ColliderShape::Segment)
-                    {
-                        p1 = fixture.shapeData.segment.point1;
-                        p2 = fixture.shapeData.segment.point2;
-                    }
-                    else  // ChainSegment
-                    {
-                        p1 = fixture.shapeData.chainSegment.point1;
-                        p2 = fixture.shapeData.chainSegment.point2;
-                    }
-
-                    // Rotate endpoints around origin
-                    float cosR = std::cos(rotation);
-                    float sinR = std::sin(rotation);
-
-                    float rotatedX1 = p1.x * cosR - p1.y * sinR;
-                    float rotatedY1 = p1.x * sinR + p1.y * cosR;
-                    float rotatedX2 = p2.x * cosR - p2.y * sinR;
-                    float rotatedY2 = p2.x * sinR + p2.y * cosR;
-
-                    // Convert to pixels
-                    float pixelX1 = rotatedX1 * PIXELS_PER_METER;
-                    float pixelY1 = -rotatedY1 * PIXELS_PER_METER;
-                    float pixelX2 = rotatedX2 * PIXELS_PER_METER;
-                    float pixelY2 = -rotatedY2 * PIXELS_PER_METER;
-
-                    // Draw line segment
-                    sf::Vertex line[] = {sf::Vertex(sf::Vector2f(posPixels.x + pixelX1, posPixels.y + pixelY1),
-                                                    sf::Color(200, 150, 100)),
-                                         sf::Vertex(sf::Vector2f(posPixels.x + pixelX2, posPixels.y + pixelY2),
-                                                    sf::Color(200, 150, 100))};
-                    m_window.draw(line, 2, sf::Lines);
-
-                    // Draw thicker line if colliders are shown
-                    if (m_showColliders)
-                    {
-                        sf::Vertex thickLine[] = {sf::Vertex(sf::Vector2f(posPixels.x + pixelX1, posPixels.y + pixelY1),
-                                                             sf::Color::Magenta),
-                                                  sf::Vertex(sf::Vector2f(posPixels.x + pixelX2, posPixels.y + pixelY2),
-                                                             sf::Color::Magenta)};
-                        // Draw multiple times for thickness
-                        for (int offset = -1; offset <= 1; ++offset)
-                        {
-                            thickLine[0].position.x += offset;
-                            thickLine[1].position.x += offset;
-                            m_window.draw(thickLine, 2, sf::Lines);
-                            thickLine[0].position.y += offset;
-                            thickLine[1].position.y += offset;
-                            m_window.draw(thickLine, 2, sf::Lines);
-                        }
-                    }
-                }
-            }
-        }
-
-        // Draw velocity vectors
-        if (m_showVectors)
-        {
-            // Get all entities and check all entities have CTransform and CPhysicsBody2D
-            auto player   = m_gameEngine->getEntityManager().getEntitiesByTag("player")[0];
-            auto allBalls = m_gameEngine->getEntityManager().getEntitiesByTag("ball");
-
-            // Combine balls and players into one itertable list
-            auto allEntities = allBalls;
-            allEntities.push_back(player);
-
-            for (auto& entity : allEntities)
-            {
-                if (!entity->hasComponent<CTransform>() || !entity->hasComponent<CPhysicsBody2D>())
+                if (!barrel->hasComponent<CTransform>() || !barrel->hasComponent<CCollider2D>())
                     continue;
 
-                auto* transform   = entity->getComponent<CTransform>();
-                auto* physicsBody = entity->getComponent<CPhysicsBody2D>();
+                auto* transform = barrel->getComponent<CTransform>();
+                auto* collider  = barrel->getComponent<CCollider2D>();
 
-                Vec2 posMeters = transform->getPosition();
+                Vec2         posMeters    = transform->getPosition();
+                sf::Vector2f posPixels    = metersToPixels(posMeters);
+                float        radiusPixels = collider->getCircleRadius() * PIXELS_PER_METER;
 
-                // Draw velocity vector (yellow)
-                b2Vec2 velocity = physicsBody->getLinearVelocity();
-                Vec2   velocityMeters(velocity.x, velocity.y);
-                if (velocityMeters.length() > 0.01f)  // Only draw if velocity is non-negligible
+                sf::CircleShape colliderShape(radiusPixels);
+                colliderShape.setOrigin(radiusPixels, radiusPixels);
+                colliderShape.setPosition(posPixels);
+                colliderShape.setFillColor(sf::Color::Transparent);
+                colliderShape.setOutlineColor(sf::Color::Green);
+                colliderShape.setOutlineThickness(2.0f);
+
+                window->draw(colliderShape);
+            }
+        }
+
+        // Draw player boat debug colliders
+        if (m_showColliders)
+        {
+            auto players = m_gameEngine->getEntityManager().getEntitiesByTag("player");
+            for (auto& player : players)
+            {
+                if (!player->hasComponent<CTransform>() || !player->hasComponent<CCollider2D>())
+                    continue;
+
+                auto* transform = player->getComponent<CTransform>();
+                auto* collider  = player->getComponent<CCollider2D>();
+
+                Vec2         posMeters = transform->getPosition();
+                sf::Vector2f posPixels = metersToPixels(posMeters);
+                float        rotation  = transform->getRotation();  // Get rotation in radians
+
+                // Draw all polygon fixtures in the collider
+                const auto& fixtures = collider->getFixtures();
+                for (size_t fixtureIdx = 0; fixtureIdx < fixtures.size(); ++fixtureIdx)
                 {
-                    drawVector(posMeters, velocityMeters, sf::Color::Yellow, 0.5f);
+                    const auto& fixture = fixtures[fixtureIdx];
+
+                    if (fixture.shapeType == ColliderShape::Polygon)
+                    {
+                        const b2Vec2* vertices    = collider->getPolygonVertices(fixtureIdx);
+                        int           vertexCount = collider->getPolygonVertexCount(fixtureIdx);
+
+                        if (vertices && vertexCount > 0)
+                        {
+                            sf::ConvexShape boatShape(vertexCount);
+
+                            // Transform and set each vertex
+                            for (int i = 0; i < vertexCount; ++i)
+                            {
+                                // Rotate vertex around origin
+                                float cosR     = std::cos(rotation);
+                                float sinR     = std::sin(rotation);
+                                float rotatedX = vertices[i].x * cosR - vertices[i].y * sinR;
+                                float rotatedY = vertices[i].x * sinR + vertices[i].y * cosR;
+
+                                // Convert to pixels (note: Y-flip for screen coordinates)
+                                float pixelX = rotatedX * PIXELS_PER_METER;
+                                float pixelY = -rotatedY * PIXELS_PER_METER;  // Negative for screen Y-down
+
+                                boatShape.setPoint(i, sf::Vector2f(pixelX, pixelY));
+                            }
+
+                            boatShape.setPosition(posPixels);
+                            boatShape.setFillColor(sf::Color(200, 150, 100));  // Brownish color for boat
+                            if (m_showColliders)
+                            {
+                                boatShape.setOutlineColor(sf::Color::Magenta);  // Magenta outline for player
+                                boatShape.setOutlineThickness(3.0f);
+                            }
+                            window->draw(boatShape);
+                        }
+                    }
+                    else if (fixture.shapeType == ColliderShape::Segment || fixture.shapeType == ColliderShape::ChainSegment)
+                    {
+                        // Get segment endpoints
+                        b2Vec2 p1, p2;
+                        if (fixture.shapeType == ColliderShape::Segment)
+                        {
+                            p1 = fixture.shapeData.segment.point1;
+                            p2 = fixture.shapeData.segment.point2;
+                        }
+                        else  // ChainSegment
+                        {
+                            p1 = fixture.shapeData.chainSegment.point1;
+                            p2 = fixture.shapeData.chainSegment.point2;
+                        }
+
+                        // Rotate endpoints around origin
+                        float cosR = std::cos(rotation);
+                        float sinR = std::sin(rotation);
+
+                        float rotatedX1 = p1.x * cosR - p1.y * sinR;
+                        float rotatedY1 = p1.x * sinR + p1.y * cosR;
+                        float rotatedX2 = p2.x * cosR - p2.y * sinR;
+                        float rotatedY2 = p2.x * sinR + p2.y * cosR;
+
+                        // Convert to pixels
+                        float pixelX1 = rotatedX1 * PIXELS_PER_METER;
+                        float pixelY1 = -rotatedY1 * PIXELS_PER_METER;
+                        float pixelX2 = rotatedX2 * PIXELS_PER_METER;
+                        float pixelY2 = -rotatedY2 * PIXELS_PER_METER;
+
+                        // Draw line segment
+                        sf::Vertex line[] = {sf::Vertex(sf::Vector2f(posPixels.x + pixelX1, posPixels.y + pixelY1),
+                                                        sf::Color(200, 150, 100)),
+                                             sf::Vertex(sf::Vector2f(posPixels.x + pixelX2, posPixels.y + pixelY2),
+                                                        sf::Color(200, 150, 100))};
+                        window->draw(line, 2, sf::Lines);
+
+                        // Draw thicker line if colliders are shown
+                        if (m_showColliders)
+                        {
+                            sf::Vertex thickLine[] = {sf::Vertex(sf::Vector2f(posPixels.x + pixelX1, posPixels.y + pixelY1),
+                                                                 sf::Color::Magenta),
+                                                      sf::Vertex(sf::Vector2f(posPixels.x + pixelX2, posPixels.y + pixelY2),
+                                                                 sf::Color::Magenta)};
+                            // Draw multiple times for thickness
+                            for (int offset = -1; offset <= 1; ++offset)
+                            {
+                                thickLine[0].position.x += offset;
+                                thickLine[1].position.x += offset;
+                                window->draw(thickLine, 2, sf::Lines);
+                                thickLine[0].position.y += offset;
+                                thickLine[1].position.y += offset;
+                                window->draw(thickLine, 2, sf::Lines);
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -862,8 +1337,8 @@ public:
             float       currentVolume = audioSystem.getMasterVolume();
 
             std::ostringstream oss;
-            oss << "Box2D Physics (1 unit = 1 meter, Y-up)\n";
-            oss << "Ball Count: " << m_ballAmount << " (Use Left/Right to add/remove)\n";
+            oss << "Box2D Physics (1 unit = 1 meter, Y-up) - ECS Rendering Pipeline\n";
+            oss << "Barrel Count: " << m_barrelAmount << " (Use Left/Right to add/remove)\n";
             oss << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << " (Press G to toggle)\n";
             oss << "Colliders: " << (m_showColliders ? "ON" : "OFF") << " (Press C to toggle)\n";
             oss << "Vectors: " << (m_showVectors ? "ON" : "OFF") << " (Press V to toggle)\n";
@@ -875,10 +1350,8 @@ public:
             text.setCharacterSize(20);
             text.setFillColor(sf::Color::White);
             text.setPosition(10.0f, 10.0f);
-            m_window.draw(text);
+            window->draw(text);
         }
-
-        m_window.display();
     }
 
     void run()
@@ -887,7 +1360,8 @@ public:
 
         sf::Clock clock;
         clock.restart();  // Reset clock after init to get proper first frame delta
-        while (m_running && m_window.isOpen())
+        auto* window = getWindow();
+        while (m_running && window && window->isOpen())
         {
             float dt = clock.restart().asSeconds();
 
@@ -895,7 +1369,10 @@ public:
             render();
         }
 
-        m_window.close();
+        if (window)
+        {
+            window->close();
+        }
     }
 };
 

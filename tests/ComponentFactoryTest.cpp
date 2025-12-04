@@ -4,6 +4,10 @@
 #include "CPhysicsBody2D.h"
 #include "CCollider2D.h"
 #include "CInputController.h"
+#include "CRenderable.h"
+#include "CTexture.h"
+#include "CShader.h"
+#include "CMaterial.h"
 #include "ComponentFactory.h"
 
 // Test helper component.
@@ -55,6 +59,23 @@ TEST(ComponentFactoryTest, CreateComponents)
     ASSERT_NE(inputControllerAlias, nullptr);
     EXPECT_EQ(inputControllerAlias->getType(), "CInputController");
 
+    // Test rendering components
+    auto renderable = factory.createComponent("Renderable");
+    ASSERT_NE(renderable, nullptr);
+    EXPECT_EQ(renderable->getType(), "Renderable");
+
+    auto texture = factory.createComponent("Texture");
+    ASSERT_NE(texture, nullptr);
+    EXPECT_EQ(texture->getType(), "Texture");
+
+    auto shader = factory.createComponent("Shader");
+    ASSERT_NE(shader, nullptr);
+    EXPECT_EQ(shader->getType(), "Shader");
+
+    auto material = factory.createComponent("Material");
+    ASSERT_NE(material, nullptr);
+    EXPECT_EQ(material->getType(), "Material");
+
     // Test invalid component type
     auto invalid = factory.createComponent("InvalidType");
     EXPECT_EQ(invalid, nullptr);
@@ -66,6 +87,10 @@ TEST(ComponentFactoryTest, CreateComponents)
     delete collider;
     delete inputController;
     delete inputControllerAlias;
+    delete renderable;
+    delete texture;
+    delete shader;
+    delete material;
 }
 
 TEST(ComponentFactoryTest, RegisterCustomComponent)
@@ -132,4 +157,24 @@ TEST(ComponentFactoryTest, ComponentTypeCorrectness)
     ASSERT_NE(inputController, nullptr);
     EXPECT_NE(dynamic_cast<CInputController*>(inputController), nullptr);
     delete inputController;
+
+    auto renderable = factory.createComponent("Renderable");
+    ASSERT_NE(renderable, nullptr);
+    EXPECT_NE(dynamic_cast<CRenderable*>(renderable), nullptr);
+    delete renderable;
+
+    auto texture = factory.createComponent("Texture");
+    ASSERT_NE(texture, nullptr);
+    EXPECT_NE(dynamic_cast<CTexture*>(texture), nullptr);
+    delete texture;
+
+    auto shader = factory.createComponent("Shader");
+    ASSERT_NE(shader, nullptr);
+    EXPECT_NE(dynamic_cast<CShader*>(shader), nullptr);
+    delete shader;
+
+    auto material = factory.createComponent("Material");
+    ASSERT_NE(material, nullptr);
+    EXPECT_NE(dynamic_cast<CMaterial*>(material), nullptr);
+    delete material;
 }

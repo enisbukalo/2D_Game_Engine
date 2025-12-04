@@ -303,6 +303,14 @@ public:
      */
     float getPolygonRadius(size_t fixtureIndex = 0) const;
 
+    /**
+     * @brief Calculate the axis-aligned bounding box of all fixtures
+     * @param outWidth Output width of the bounding box in meters
+     * @param outHeight Output height of the bounding box in meters
+     * @return True if bounds were calculated, false if no fixtures exist
+     */
+    bool getBounds(float& outWidth, float& outHeight) const;
+
     // Component interface
     void        init() override;
     void        serialize(JsonBuilder& builder) const override;

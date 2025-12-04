@@ -585,3 +585,127 @@ TEST_F(CCollider2DPolygonTest, CreateCarChassisShape)
     EXPECT_EQ(collider->getShapeType(), ColliderShape::Polygon);
     EXPECT_EQ(collider->getPolygonVertexCount(), 6);
 }
+
+// ============================================================================
+// Bounding Box Tests
+// ============================================================================
+
+TEST_F(CCollider2DPolygonTest, GetBoundsForCircle)
+{
+    auto entity = createPhysicsEntity();
+    auto collider = entity->addComponent<CCollider2D>();
+    
+    collider->createCircle(0.5f, {0.0f, 0.0f});
+    
+    float width, height;
+    bool result = collider->getBounds(width, height);
+    
+    EXPECT_TRUE(result);
+    EXPECT_NEAR(width, 1.0f, 0.001f);   // diameter = 2 * radius
+    EXPECT_NEAR(height, 1.0f, 0.001f);
+}
+
+TEST_F(CCollider2DPolygonTest, GetBoundsForBox)
+{
+    auto entity = createPhysicsEntity();
+    auto collider = entity->addComponent<CCollider2D>();
+    
+    collider->createBox(1.5f, 2.0f);  // halfWidth, halfHeight
+    
+    float width, height;
+    bool result = collider->getBounds(width, height);
+    
+    EXPECT_TRUE(result);
+    EXPECT_NEAR(width, 3.0f, 0.001f);   // 2 * halfWidth
+    EXPECT_NEAR(height, 4.0f, 0.001f);  // 2 * halfHeight
+}
+
+TEST_F(CCollider2DPolygonTest, GetBoundsForSinglePolygon)
+{
+    auto entity = createPhysicsEntity();
+    auto collider = entity->addComponent<CCollider2D>();
+    
+    // Square polygon
+    b2Vec2 vertices[4] = {{-1.0f, -1.0f}, {1.0f, -1.0f}, {1.0f, 1.0f}, {-1.0f, 1.0f}};
+    collider->createPolygon(vertices, 4);
+    
+    float width, height;
+    bool result = collider->getBounds(width, height);
+    
+    EXPECT_TRUE(result);
+    EXPECT_NEAR(width, 2.0f, 0.001f);
+    EXPECT_NEAR(height, 2.0f, 0.001f);
+}
+
+TEST_F(CCollider2DPolygonTest, GetBoundsForMultiplePolygons)
+{
+    auto entity = createPhysicsEntity();
+    auto collider = entity->addComponent<CCollider2D>();
+    
+    // Create first polygon (hull)
+    b2Vec2 hull[4] = {{-0.5f, -1.0f}, {0.5f, -1.0f}, {0.5f, 0.0f}, {-0.5f, 0.0f}};
+    collider->createPolygon(hull, 4);
+    
+    // Add second polygon (bow)
+    b2Vec2 bow[3] = {{-0.3f, 0.0f}, {0.3f, 0.0f}, {0.0f, 1.5f}};
+    collider->addPolygon(bow, 3);
+    
+    float width, height;
+    bool result = collider->getBounds(width, height);
+    
+    EXPECT_TRUE(result);
+    EXPECT_NEAR(width, 1.0f, 0.001f);   // -0.5 to 0.5
+    EXPECT_NEAR(height, 2.5f, 0.001f);  // -1.0 to 1.5
+}
+
+TEST_F(CCollider2DPolygonTest, GetBoundsForEmptyCollider)
+{
+    auto entity = createPhysicsEntity();
+    auto collider = entity->addComponent<CCollider2D>();
+    
+    // Don't create any shape
+    float width, height;
+    bool result = collider->getBounds(width, height);
+    
+    EXPECT_FALSE(result);
+    EXPECT_FLOAT_EQ(width, 0.0f);
+    EXPECT_FLOAT_EQ(height, 0.0f);
+}
+
+TEST_F(CCollider2DPolygonTest, GetBoundsForComplexBoatShape)
+{
+    auto entity = createPhysicsEntity();
+    auto collider = entity->addComponent<CCollider2D>();
+    
+    // Simulate boat hull (like in the example)
+    const float boatLength = 0.875f;  // 0.25 * 3.5
+    const float boatWidth = 0.45f;    // 0.25 * 1.8
+    
+    b2Vec2 hullVertices[6] = {
+        {-boatWidth * 0.35f, -boatLength * 0.45f},  // Back left
+        {boatWidth * 0.35f, -boatLength * 0.45f},   // Back right
+        {boatWidth * 0.5f, -boatLength * 0.1f},     // Mid-back right
+        {boatWidth * 0.5f, 0.0f},                   // Front right
+        {-boatWidth * 0.5f, 0.0f},                  // Front left
+        {-boatWidth * 0.5f, -boatLength * 0.1f}     // Mid-back left
+    };
+    collider->createPolygon(hullVertices, 6);
+    
+    // Add bow polygon
+    const float bowLength = boatLength * 0.55f;
+    b2Vec2 bowVertices[4] = {
+        {-boatWidth * 0.5f, 0.0f},
+        {boatWidth * 0.5f, 0.0f},
+        {boatWidth * 0.25f, bowLength},
+        {-boatWidth * 0.25f, bowLength}
+    };
+    collider->addPolygon(bowVertices, 4);
+    
+    float width, height;
+    bool result = collider->getBounds(width, height);
+    
+    EXPECT_TRUE(result);
+    EXPECT_NEAR(width, boatWidth, 0.001f);  // Full width
+    EXPECT_GT(height, boatLength * 0.45f);  // Should include hull back
+    EXPECT_GT(height, bowLength);            // Should include bow
+}
