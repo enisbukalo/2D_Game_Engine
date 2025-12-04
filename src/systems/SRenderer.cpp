@@ -39,9 +39,11 @@ bool SRenderer::initialize(const WindowConfig& config)
                                                   config.getStyleFlags(),
                                                   config.getContextSettings());
 
-    if (!m_window)
+    // Check if window was created and is open
+    if (!m_window->isOpen())
     {
         spdlog::error("SRenderer: Failed to create render window");
+        m_window.reset();
         return false;
     }
 
