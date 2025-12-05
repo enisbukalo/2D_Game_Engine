@@ -598,6 +598,10 @@ void CCollider2D::serialize(JsonBuilder& builder) const
     builder.addKey("cCollider2D");
     builder.beginObject();
 
+    // Component GUID
+    builder.addKey("guid");
+    builder.addString(getGuid());
+
     // Serialize fixture properties
     builder.addKey("isSensor");
     builder.addBool(m_isSensor);
@@ -751,6 +755,12 @@ void CCollider2D::deserialize(const JsonValue& value)
     const auto& collider = value["cCollider2D"];
     if (!collider.isObject())
         return;
+
+    // Component GUID
+    if (collider.hasKey("guid"))
+    {
+        setGuid(collider["guid"].getString());
+    }
 
     // Fixture properties
     const auto& isSensorValue = collider["isSensor"];

@@ -60,6 +60,7 @@ target_include_directories(unit_tests PRIVATE
     ${COMPONENT_DIR}
     ${SYSTEM_DIR}
     ${UTILITY_DIR}
+    ${PHYSICS_DIR}
 )
 
 # Copy required DLLs to the test executable directory on Windows

@@ -139,6 +139,42 @@ static KeyCode keyCodeFromSFML(sf::Keyboard::Key k)
             return KeyCode::Up;
         case K::Down:
             return KeyCode::Down;
+        case K::F1:
+            return KeyCode::F1;
+        case K::F2:
+            return KeyCode::F2;
+        case K::F3:
+            return KeyCode::F3;
+        case K::F4:
+            return KeyCode::F4;
+        case K::F5:
+            return KeyCode::F5;
+        case K::F6:
+            return KeyCode::F6;
+        case K::F7:
+            return KeyCode::F7;
+        case K::F8:
+            return KeyCode::F8;
+        case K::F9:
+            return KeyCode::F9;
+        case K::F10:
+            return KeyCode::F10;
+        case K::F11:
+            return KeyCode::F11;
+        case K::F12:
+            return KeyCode::F12;
+        case K::LControl:
+            return KeyCode::LControl;
+        case K::RControl:
+            return KeyCode::RControl;
+        case K::LShift:
+            return KeyCode::LShift;
+        case K::RShift:
+            return KeyCode::RShift;
+        case K::LAlt:
+            return KeyCode::LAlt;
+        case K::RAlt:
+            return KeyCode::RAlt;
         default:
             return KeyCode::Unknown;
     }

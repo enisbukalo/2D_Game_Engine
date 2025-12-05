@@ -49,6 +49,9 @@ void CAudioSource::serialize(JsonBuilder& builder) const
     builder.addKey("data");
     builder.beginObject();
 
+    builder.addKey("guid");
+    builder.addString(getGuid());
+
     builder.addKey("clip");
     builder.addString(m_clipId);
 
@@ -91,6 +94,11 @@ void CAudioSource::deserialize(const JsonValue& value)
     if (!data.isObject())
     {
         return;
+    }
+
+    if (data.hasKey("guid"))
+    {
+        setGuid(data["guid"].getString());
     }
 
     if (data.hasKey("clip"))

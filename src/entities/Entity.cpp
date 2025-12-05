@@ -53,11 +53,6 @@ void Entity::serialize(JsonBuilder& builder) const
     builder.beginArray();
     for (auto& [type, component] : m_components)
     {
-        builder.beginObject();
-        builder.addKey("guid");
-        builder.addString(component->getGuid());
-        builder.endObject();
-
         component->serialize(builder);
     }
     builder.endArray();
@@ -82,15 +77,42 @@ void Entity::deserialize(const JsonValue& value)
         const auto& obj = component.getObject();
         if (!obj.empty())
         {
-            type = obj.begin()->first;
-            if (type == "cTransform")
-                type = "Transform";
-            else if (type == "cName")
-                type = "Name";
-            else if (type == "cPhysicsBody2D")
-                type = "CPhysicsBody2D";
-            else if (type == "cCollider2D")
-                type = "CCollider2D";
+            // First check for audio components that use "type" and "data" keys
+            // (std::map sorts alphabetically, so "data" comes before "type")
+            if (component.hasKey("type") && component.hasKey("data"))
+            {
+                type = component["type"].getString();
+            }
+            else
+            {
+                type = obj.begin()->first;
+
+                // Map JSON keys to registered component type names
+                if (type == "cTransform")
+                    type = "Transform";
+                else if (type == "cName")
+                    type = "Name";
+                else if (type == "cPhysicsBody2D")
+                    type = "CPhysicsBody2D";
+                else if (type == "cCollider2D")
+                    type = "CCollider2D";
+                else if (type == "cRenderable")
+                    type = "CRenderable";
+                else if (type == "cTexture")
+                    type = "CTexture";
+                else if (type == "cShader")
+                    type = "CShader";
+                else if (type == "cMaterial")
+                    type = "CMaterial";
+                else if (type == "cInputController")
+                    type = "CInputController";
+                else if (type == "cParticleEmitter")
+                    type = "CParticleEmitter";
+                else if (type == "cAudioSource")
+                    type = "CAudioSource";
+                else if (type == "cAudioListener")
+                    type = "CAudioListener";
+            }
         }
 
         Component* comp = ComponentFactory::instance().createComponent(type);
@@ -104,9 +126,31 @@ void Entity::deserialize(const JsonValue& value)
     }
 
     // Initialize all components after deserialization
+    // Order matters: CPhysicsBody2D must be initialized before CCollider2D
+    // because colliders need to attach to physics bodies
+
+    // First pass: Initialize physics bodies
     for (auto& [type, component] : m_components)
     {
-        if (component)
+        if (component && component->getType() == "CPhysicsBody2D")
+        {
+            component->init();
+        }
+    }
+
+    // Second pass: Initialize colliders (they need physics bodies to exist)
+    for (auto& [type, component] : m_components)
+    {
+        if (component && component->getType() == "CCollider2D")
+        {
+            component->init();
+        }
+    }
+
+    // Third pass: Initialize all other components
+    for (auto& [type, component] : m_components)
+    {
+        if (component && component->getType() != "CPhysicsBody2D" && component->getType() != "CCollider2D")
         {
             component->init();
         }

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(BounceGameExample
+project(FishingGameExample
     VERSION 1.0.0
     DESCRIPTION "Example game using GameEngine library"
     LANGUAGES CXX)
@@ -34,12 +34,12 @@ find_package(OpenGL REQUIRED)
 find_package(GameEngine REQUIRED)
 
 # Create executable
-add_executable(BounceGame
+add_executable(FishingGame
     src/main.cpp
 )
 
 # Link against GameEngine and its dependencies
-target_link_libraries(BounceGame
+target_link_libraries(FishingGame
     PRIVATE
     GameEngine::GameEngine
     sfml-graphics
@@ -50,7 +50,7 @@ target_link_libraries(BounceGame
 )
 
 # Set target properties
-set_target_properties(BounceGame PROPERTIES
+set_target_properties(FishingGame PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin"
     RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin"
@@ -65,52 +65,52 @@ if(WIN32 OR MINGW)
     endif()
 
     # Copy GameEngine shared library to output directory using the imported target's file
-    add_custom_command(TARGET BounceGame POST_BUILD
+    add_custom_command(TARGET FishingGame POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "$<TARGET_FILE:GameEngine::GameEngine>"
-            "$<TARGET_FILE_DIR:BounceGame>"
+            "$<TARGET_FILE_DIR:FishingGame>"
         COMMENT "Copying GameEngine runtime library to output directory"
     )
 
     # Copy SFML DLLs from container's SFML installation
     if(DEFINED ENV{SFML_WINDOWS_ROOT})
         foreach(component graphics window system audio)
-            add_custom_command(TARGET BounceGame POST_BUILD
+            add_custom_command(TARGET FishingGame POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different
                     "$ENV{SFML_WINDOWS_ROOT}/bin/sfml-${component}${DLL_SUFFIX}-2.dll"
-                    "$<TARGET_FILE_DIR:BounceGame>"
+                    "$<TARGET_FILE_DIR:FishingGame>"
                 COMMENT "Copying SFML ${component} DLL"
             )
         endforeach()
         
         # Copy OpenAL DLL (required by SFML audio)
-        add_custom_command(TARGET BounceGame POST_BUILD
+        add_custom_command(TARGET FishingGame POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 "$ENV{SFML_WINDOWS_ROOT}/bin/openal32.dll"
-                "$<TARGET_FILE_DIR:BounceGame>"
+                "$<TARGET_FILE_DIR:FishingGame>"
             COMMENT "Copying OpenAL DLL"
         )
     endif()
 
     # Copy MinGW runtime DLLs
-    add_custom_command(TARGET BounceGame POST_BUILD
+    add_custom_command(TARGET FishingGame POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "/usr/lib/gcc/x86_64-w64-mingw32/13-posix/libgcc_s_seh-1.dll"
-            "$<TARGET_FILE_DIR:BounceGame>"
+            "$<TARGET_FILE_DIR:FishingGame>"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "/usr/lib/gcc/x86_64-w64-mingw32/13-posix/libstdc++-6.dll"
-            "$<TARGET_FILE_DIR:BounceGame>"
+            "$<TARGET_FILE_DIR:FishingGame>"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "/usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll"
-            "$<TARGET_FILE_DIR:BounceGame>"
+            "$<TARGET_FILE_DIR:FishingGame>"
         COMMENT "Copying MinGW runtime DLLs"
     )
     
     # Copy assets folder to output directory
-    add_custom_command(TARGET BounceGame POST_BUILD
+    add_custom_command(TARGET FishingGame POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_SOURCE_DIR}/assets"
-            "$<TARGET_FILE_DIR:BounceGame>/assets"
+            "$<TARGET_FILE_DIR:FishingGame>/assets"
         COMMENT "Copying assets to output directory"
     )
 endif()

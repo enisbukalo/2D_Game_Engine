@@ -10,6 +10,8 @@ void CName::serialize(JsonBuilder& builder) const
     builder.beginObject();
     builder.addKey("cName");
     builder.beginObject();
+    builder.addKey("guid");
+    builder.addString(getGuid());
     builder.addKey("name");
     builder.addString(m_name);
     builder.endObject();
@@ -19,7 +21,11 @@ void CName::serialize(JsonBuilder& builder) const
 void CName::deserialize(const JsonValue& value)
 {
     const auto& nameComp = value["cName"];
-    m_name               = nameComp["name"].getString();
+    if (nameComp.hasKey("guid"))
+    {
+        setGuid(nameComp["guid"].getString());
+    }
+    m_name = nameComp["name"].getString();
 }
 
 const std::string& CName::getName() const
