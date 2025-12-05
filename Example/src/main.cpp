@@ -14,6 +14,7 @@
 #include <Input/MouseButton.h>
 #include <SceneManager.h>
 #include <Vec2.h>
+#include <windows.h>
 #include <SFML/Graphics.hpp>
 #include <filesystem>
 #include <iostream>
@@ -30,16 +31,8 @@ const float GRAVITY_FORCE           = -10.0f;        // Box2D gravity (m/s²), n
 const float PIXELS_PER_METER        = 100.0f;        // Rendering scale: 100 pixels = 1 meter
 const float RESTITUTION             = 0.5f;          // Bounciness factor (lowered from 0.8 to reduce collision energy)
 
-// Barrel Constants
-const int   INITIAL_BARREL_COUNT = 0;      // Initial number of barrels
-const float BARREL_RADIUS_METERS = 0.10f;  // Barrel radius in meters
-const float BARREL_LINEAR_DRAG   = 1.5f;   // Linear drag for barrels
-const float BARREL_ANGULAR_DRAG  = 2.0f;   // Angular drag for barrels
-const float BARREL_DENSITY       = 0.5f;   // Density for barrels
-
 // Rendering Constants
 const int BOAT_INDEX         = 10;  // Z-index for boat rendering
-const int BARREL_INDEX       = 10;  // Z-index for barrel rendering
 const int BACKGROUND_INDEX   = 0;   // Z-index for background rendering
 const int BUBBLE_TRAIL_INDEX = 5;   // Z-index for bubble trail rendering
 const int HULL_SPRAY_INDEX   = 5;   // Z-index for hull spray rendering
@@ -55,15 +48,101 @@ const float MAX_MUSIC_VOLUME          = 0.80f;  // 80% max volume
 const float VOLUME_ADJUSTMENT_STEP    = 0.05f;  // Volume change per key press (5%)
 const float INITIAL_VOLUME            = 0.15f;  // 15% initial volume
 
-// Scene file path
-const std::string SCENE_FILE_PATH = "saved_games/main_scene.json";
+// Scene file name (will be combined with getBasePath())
+const std::string SCENE_FILE_NAME = "main_scene.json";
 
-class BounceGame
+/**
+ * @brief Gets the directory containing the executable
+ * @return std::filesystem::path The path to the executable's directory
+ */
+std::filesystem::path getExecutableDir()
+{
+    char path[MAX_PATH];
+    GetModuleFileNameA(NULL, path, MAX_PATH);
+    return std::filesystem::path(path).parent_path();
+}
+
+/**
+ * @brief Gets the base path for the Example project directory
+ *
+ * This function finds the Example directory by looking for the saved_games
+ * and assets folders, starting from the executable location and walking up.
+ *
+ * @return std::filesystem::path The path to the Example directory
+ */
+std::filesystem::path getBasePath()
+{
+    // Start from executable directory
+    std::filesystem::path searchPath = getExecutableDir();
+
+    // Walk up the directory tree looking for the Example directory
+    // We identify it by the presence of saved_games AND assets folder together
+    for (int i = 0; i < 10; ++i)  // Limit search depth
+    {
+        if (std::filesystem::exists(searchPath / "saved_games") && std::filesystem::exists(searchPath / "assets"))
+        {
+            return searchPath;
+        }
+
+        auto parentPath = searchPath.parent_path();
+        if (parentPath == searchPath)
+        {
+            // Reached root, stop searching
+            break;
+        }
+        searchPath = parentPath;
+    }
+
+    // Fallback: return executable directory's parent (assumes we're in build/)
+    std::cerr << "WARNING: Could not find Example directory with saved_games and assets folders" << std::endl;
+    return getExecutableDir().parent_path();
+}
+
+/**
+ * @brief Gets the full path to the scene file
+ * @return std::string The absolute path to the scene file
+ */
+std::string getSceneFilePath()
+{
+    return (getBasePath() / "saved_games" / SCENE_FILE_NAME).string();
+}
+
+/**
+ * @brief Creates a backup of the scene file
+ * @param filepath Path to the scene file to backup
+ * @return true if backup was created successfully, false otherwise
+ */
+bool createSceneBackup(const std::string& filepath)
+{
+    if (!std::filesystem::exists(filepath))
+    {
+        std::cout << "No scene file to backup: " << filepath << std::endl;
+        return false;
+    }
+
+    try
+    {
+        std::filesystem::path originalPath(filepath);
+        std::filesystem::path backupPath = originalPath.parent_path()
+                                           / (originalPath.stem().string() + "_backup" + originalPath.extension().string());
+
+        std::filesystem::copy_file(originalPath, backupPath, std::filesystem::copy_options::overwrite_existing);
+
+        std::cout << "Scene backup created: " << backupPath.string() << std::endl;
+        return true;
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "Failed to create scene backup: " << e.what() << std::endl;
+        return false;
+    }
+}
+
+class FishingGame
 {
 private:
     std::unique_ptr<GameEngine> m_gameEngine;
     sf::Font                    m_font;
-    int                         m_barrelAmount;
     bool                        m_running;
     bool                        m_fontLoaded;
     bool                        m_gravityEnabled;
@@ -103,9 +182,8 @@ private:
     }
 
 public:
-    BounceGame()
+    FishingGame()
         : m_running(true),
-          m_barrelAmount(INITIAL_BARREL_COUNT),
           m_fontLoaded(false),
           m_gravityEnabled(INITIAL_GRAVITY_ENABLED),
           m_showColliders(false),
@@ -119,7 +197,7 @@ public:
         WindowConfig windowConfig;
         windowConfig.width      = SCREEN_WIDTH;
         windowConfig.height     = SCREEN_HEIGHT;
-        windowConfig.title      = "Bouncing Barrels Example - ECS Rendering";
+        windowConfig.title      = "Boat Example - ECS Rendering";
         windowConfig.vsync      = true;
         windowConfig.frameLimit = 60;
 
@@ -137,7 +215,7 @@ public:
         }
     }
 
-    ~BounceGame()
+    ~FishingGame()
     {
         // Cleanup audio
         m_gameEngine->getAudioSystem().shutdown();
@@ -185,6 +263,9 @@ public:
         {
             m_gameEngine->getSceneManager().loadScene(filepath);
             std::cout << "Scene loaded from: " << filepath << std::endl;
+
+            // Process pending entities so they're available in entity map
+            m_gameEngine->getEntityManager().update(0.0f);
 
             // Post-load: bind runtime resources that aren't serialized
             bindRuntimeResources();
@@ -264,9 +345,16 @@ public:
             }
         }
 
-        // Count barrels to sync m_barrelAmount
-        auto barrels   = entityManager.getEntitiesByTag("barrel");
-        m_barrelAmount = static_cast<int>(barrels.size());
+        // Bind textures to barrel emitters
+        auto barrels = entityManager.getEntitiesByTag("barrel");
+        for (auto& barrel : barrels)
+        {
+            auto* emitter = barrel->getComponent<CParticleEmitter>();
+            if (emitter)
+            {
+                emitter->setTexture(&m_sprayTexture);
+            }
+        }
 
         std::cout << "Runtime resources bound successfully" << std::endl;
     }
@@ -344,15 +432,21 @@ public:
 
     /**
      * @brief Creates the scene manually (used when no saved scene exists)
+     * @note This is now a fallback - the game expects a saved scene file to exist.
+     *       To create a new scene, temporarily uncomment the creation calls below,
+     *       run the game, and press F5 to save.
      */
     void createSceneManually()
     {
-        createOceanBackground();
-        createBoundaryColliders();
-        createPlayer();
-        createBubbleTrail();
-        createHullSpray();
-        createBarrels();
+        std::cerr << "ERROR: No saved scene found at " << getSceneFilePath() << std::endl;
+        std::cerr << "Please ensure a valid scene file exists, or uncomment the creation code below." << std::endl;
+
+        // Uncomment these lines to create a new scene from scratch:
+        // createOceanBackground();
+        // createBoundaryColliders();
+        // createPlayer();
+        // createBubbleTrail();
+        // createHullSpray();
     }
 
     void init()
@@ -384,8 +478,18 @@ public:
         auto& particleSystem = m_gameEngine->getParticleSystem();
         particleSystem.initialize(getWindow(), PIXELS_PER_METER);
 
+        // Pre-load particle textures for effects
+        if (m_sprayTexture.loadFromFile("assets/textures/bubble.png"))
+        {
+            m_sprayTexture.setSmooth(true);
+            std::cout << "Loaded spray texture for emitters" << std::endl;
+        }
+
+        // Create a backup of the scene file before loading
+        createSceneBackup(getSceneFilePath());
+
         // Try to load scene from file, otherwise create manually
-        if (!loadScene(SCENE_FILE_PATH))
+        if (!loadScene(getSceneFilePath()))
         {
             std::cout << "Creating scene manually..." << std::endl;
             createSceneManually();
@@ -398,7 +502,6 @@ public:
         std::cout << "Physics: Box2D v3.1.1 (1 unit = 1 meter, Y-up)" << std::endl;
         std::cout << "Controls:" << std::endl;
         std::cout << "  WASD            : Move player boat (W=forward, S=backward, A/D=turn)" << std::endl;
-        std::cout << "  Left/Right      : Adjust barrel count" << std::endl;
         std::cout << "  R               : Restart scenario" << std::endl;
         std::cout << "  G               : Toggle gravity" << std::endl;
         std::cout << "  C               : Toggle collider visibility" << std::endl;
@@ -406,268 +509,7 @@ public:
         std::cout << "  F5              : Save scene" << std::endl;
         std::cout << "  F9              : Load scene" << std::endl;
         std::cout << "  Escape          : Exit" << std::endl;
-        std::cout << "Number of barrels:" << m_barrelAmount << std::endl;
         std::cout << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << std::endl;
-    }
-
-    void createBoundaryColliders()
-    {
-        // Screen dimensions in meters
-        const float screenWidthMeters  = SCREEN_WIDTH / PIXELS_PER_METER;
-        const float screenHeightMeters = SCREEN_HEIGHT / PIXELS_PER_METER;
-
-        // Create boundary collider entities
-        auto floor     = m_gameEngine->getEntityManager().addEntity("floor");
-        auto rightWall = m_gameEngine->getEntityManager().addEntity("rightWall");
-        auto leftWall  = m_gameEngine->getEntityManager().addEntity("leftWall");
-        auto topWall   = m_gameEngine->getEntityManager().addEntity("topWall");
-
-        // Position the boundary colliders in meters (Box2D Y-up coordinates)
-        floor->addComponent<CTransform>(Vec2(screenWidthMeters / 2.0f, BOUNDARY_THICKNESS_METERS / 2.0f), Vec2(1.0f, 1.0f), 0.0f);
-        rightWall->addComponent<CTransform>(Vec2(screenWidthMeters - BOUNDARY_THICKNESS_METERS / 2.0f, screenHeightMeters / 2.0f),
-                                            Vec2(1.0f, 1.0f),
-                                            0.0f);
-        leftWall->addComponent<CTransform>(Vec2(BOUNDARY_THICKNESS_METERS / 2.0f, screenHeightMeters / 2.0f), Vec2(1.0f, 1.0f), 0.0f);
-        topWall->addComponent<CTransform>(Vec2(screenWidthMeters / 2.0f, screenHeightMeters - BOUNDARY_THICKNESS_METERS / 2.0f),
-                                          Vec2(1.0f, 1.0f),
-                                          0.0f);
-
-        // Create physics bodies and colliders
-        auto* floorBody = floor->addComponent<CPhysicsBody2D>();
-        floorBody->initialize({screenWidthMeters / 2.0f, BOUNDARY_THICKNESS_METERS / 2.0f}, BodyType::Static);
-        floor->addComponent<CCollider2D>()->createBox(screenWidthMeters / 2.0f, BOUNDARY_THICKNESS_METERS / 2.0f);
-
-        auto* rightBody = rightWall->addComponent<CPhysicsBody2D>();
-        rightBody->initialize({screenWidthMeters - BOUNDARY_THICKNESS_METERS / 2.0f, screenHeightMeters / 2.0f}, BodyType::Static);
-        rightWall->addComponent<CCollider2D>()->createBox(BOUNDARY_THICKNESS_METERS / 2.0f, screenHeightMeters / 2.0f);
-
-        auto* leftBody = leftWall->addComponent<CPhysicsBody2D>();
-        leftBody->initialize({BOUNDARY_THICKNESS_METERS / 2.0f, screenHeightMeters / 2.0f}, BodyType::Static);
-        leftWall->addComponent<CCollider2D>()->createBox(BOUNDARY_THICKNESS_METERS / 2.0f, screenHeightMeters / 2.0f);
-
-        auto* topBody = topWall->addComponent<CPhysicsBody2D>();
-        topBody->initialize({screenWidthMeters / 2.0f, screenHeightMeters - BOUNDARY_THICKNESS_METERS / 2.0f}, BodyType::Static);
-        topWall->addComponent<CCollider2D>()->createBox(screenWidthMeters / 2.0f, BOUNDARY_THICKNESS_METERS / 2.0f);
-    }
-
-    void createOceanBackground()
-    {
-        // Screen dimensions in meters
-        const float screenWidthMeters  = SCREEN_WIDTH / PIXELS_PER_METER;
-        const float screenHeightMeters = SCREEN_HEIGHT / PIXELS_PER_METER;
-
-        // Create ocean background entity
-        m_oceanBackground = m_gameEngine->getEntityManager().addEntity("ocean");
-
-        // Position at screen center, covering entire play area
-        m_oceanBackground->addComponent<CTransform>(Vec2(screenWidthMeters / 2.0f, screenHeightMeters / 2.0f), Vec2(1.0f, 1.0f), 0.0f);
-
-        // Create large rectangle covering the screen
-        auto* oceanRenderable = m_oceanBackground->addComponent<CRenderable>(VisualType::Rectangle,
-                                                                             Color::Blue,
-                                                                             -10  // Render behind everything
-        );
-        oceanRenderable->setVisible(true);
-
-        // Add box collider to define size (no physics body, just for rendering dimensions)
-        auto* oceanCollider = m_oceanBackground->addComponent<CCollider2D>();
-        oceanCollider->createBox(screenWidthMeters / 2.0f,    // half-width
-                                 screenHeightMeters / 2.0f);  // half-height
-
-        // Add ocean shader
-        auto* oceanShader = m_oceanBackground->addComponent<CShader>("assets/shaders/water.vert",
-                                                                     "assets/shaders/water.frag");
-
-        // Add material to bind shader
-        auto* oceanMaterial = m_oceanBackground->addComponent<CMaterial>();
-        oceanMaterial->setShaderGuid(oceanShader->getGuid());
-        oceanMaterial->setTint(Color::White);
-        oceanMaterial->setOpacity(1.0f);
-        oceanMaterial->setBlendMode(BlendMode::Alpha);
-    }
-
-    void createPlayer()
-    {
-        // Screen dimensions in meters
-        const float screenWidthMeters  = SCREEN_WIDTH / PIXELS_PER_METER;
-        const float screenHeightMeters = SCREEN_HEIGHT / PIXELS_PER_METER;
-
-        // Calculate center position
-        const float centerX = screenWidthMeters / 2.0f;
-        const float centerY = screenHeightMeters / 2.0f;
-
-        // Create player entity
-        m_player = m_gameEngine->getEntityManager().addEntity("player");
-
-        // Boat dimensions for proper sprite scaling
-        const float boatLength = PLAYER_SIZE_METERS * 3.5f;  // 0.875 meters
-        const float boatWidth  = PLAYER_SIZE_METERS * 1.8f;  // 0.45 meters
-
-        // Scale factor to make sprite match collider size
-        const float boatSpriteScale = 1.0f;  // Use 1.0 for natural size matching
-
-        m_player->addComponent<CTransform>(Vec2(centerX, centerY), Vec2(boatSpriteScale, boatSpriteScale), 0.0f);
-
-        // Add physics body
-        m_playerPhysics = m_player->addComponent<CPhysicsBody2D>();
-        m_playerPhysics->initialize({centerX, centerY}, BodyType::Dynamic);
-        m_playerPhysics->setAngularDamping(0.75f);  // Damping to reduce spin over time
-        m_playerPhysics->setLinearDamping(0.75f);   // Some linear damping for better control
-
-        // Create boat shape with curved bow using multiple polygon segments
-        // Boat points from stern (back) to bow (front), with Y-axis as forward
-        // const float boatLength and boatWidth already defined above
-
-        // Create single collider that will hold multiple polygon fixtures
-        auto* collider = m_player->addComponent<CCollider2D>();
-
-        // 1. Create main hull body (trapezoidal section narrowing toward stern)
-        {
-            std::vector<b2Vec2> hullVertices;
-            hullVertices.push_back({-boatWidth * 0.35f, -boatLength * 0.45f});  // Back left (narrower)
-            hullVertices.push_back({boatWidth * 0.35f, -boatLength * 0.45f});   // Back right (narrower)
-            hullVertices.push_back({boatWidth * 0.5f, -boatLength * 0.1f});     // Mid-back right
-            hullVertices.push_back({boatWidth * 0.5f, 0.0f});                   // Front right (widest)
-            hullVertices.push_back({-boatWidth * 0.5f, 0.0f});                  // Front left (widest)
-            hullVertices.push_back({-boatWidth * 0.5f, -boatLength * 0.1f});    // Mid-back left
-
-            collider->createPolygon(hullVertices.data(), hullVertices.size(), 0.02f);
-            collider->setRestitution(0.125f);
-            collider->setDensity(5.0f);
-            collider->setFriction(0.5f);
-        }
-
-        // 2. Create curved bow using multiple small polygon segments
-        // More segments = smoother curve
-        const int   numBowSegments = 12;                  // Increased for smoother curve
-        const float bowLength      = boatLength * 0.55f;  // Length of bow section
-
-        // Create bow segments arranged in a smooth parabolic curve
-        for (int i = 0; i < numBowSegments; ++i)
-        {
-            // Calculate normalized position along the bow (0 to 1)
-            float t1 = static_cast<float>(i) / static_cast<float>(numBowSegments);
-            float t2 = static_cast<float>(i + 1) / static_cast<float>(numBowSegments);
-
-            // Use parabolic curve for natural boat bow shape
-            // Width decreases more gradually at first, then rapidly near the tip
-            float width1 = boatWidth * 0.5f * (1.0f - t1 * t1);  // Parabolic taper
-            float width2 = boatWidth * 0.5f * (1.0f - t2 * t2);
-
-            float y1 = t1 * bowLength;
-            float y2 = t2 * bowLength;
-
-            // Create quad segments for smoother appearance
-            std::vector<b2Vec2> sliceVertices;
-            sliceVertices.push_back({-width1, y1});  // Left side at segment start
-            sliceVertices.push_back({width1, y1});   // Right side at segment start
-            sliceVertices.push_back({width2, y2});   // Right side at segment end
-            sliceVertices.push_back({-width2, y2});  // Left side at segment end
-
-            // Add this polygon as an additional fixture
-            collider->addPolygon(sliceVertices.data(), sliceVertices.size(), 0.02f);
-        }
-
-        // Add rendering components for player boat texture
-        auto boatTexture    = m_player->addComponent<CTexture>("assets/textures/boat.png");
-        auto boatRenderable = m_player->addComponent<CRenderable>(VisualType::Sprite, Color::White, BOAT_INDEX);
-        boatRenderable->setVisible(true);
-
-        // Add material for the boat
-        auto boatMaterial = m_player->addComponent<CMaterial>();
-        boatMaterial->setTextureGuid(boatTexture->getGuid());
-        boatMaterial->setTint(Color::White);
-        boatMaterial->setOpacity(1.0f);
-        boatMaterial->setBlendMode(BlendMode::Alpha);
-
-        // Add input controller with action bindings
-        auto* inputController = m_player->addComponent<CInputController>();
-
-        // Bind movement actions
-        ActionBinding moveForwardBinding;
-        moveForwardBinding.keys.push_back(KeyCode::W);
-        moveForwardBinding.trigger = ActionTrigger::Held;
-        inputController->bindAction("MoveForward", moveForwardBinding);
-
-        ActionBinding moveBackwardBinding;
-        moveBackwardBinding.keys.push_back(KeyCode::S);
-        moveBackwardBinding.trigger = ActionTrigger::Held;
-        inputController->bindAction("MoveBackward", moveBackwardBinding);
-
-        ActionBinding rotateLeftBinding;
-        rotateLeftBinding.keys.push_back(KeyCode::A);
-        rotateLeftBinding.trigger = ActionTrigger::Held;
-        inputController->bindAction("RotateLeft", rotateLeftBinding);
-
-        ActionBinding rotateRightBinding;
-        rotateRightBinding.keys.push_back(KeyCode::D);
-        rotateRightBinding.trigger = ActionTrigger::Held;
-        inputController->bindAction("RotateRight", rotateRightBinding);
-
-        // Set callbacks for movement actions
-        inputController->setActionCallback("MoveForward",
-                                           [this](ActionState state)
-                                           {
-                                               if ((state == ActionState::Held || state == ActionState::Pressed)
-                                                   && m_playerPhysics && m_playerPhysics->isInitialized())
-                                               {
-                                                   // Get the forward direction based on current rotation
-                                                   b2Vec2 forward = m_playerPhysics->getForwardVector();
-                                                   b2Vec2 force = {forward.x * PLAYER_FORCE, forward.y * PLAYER_FORCE};
-                                                   m_playerPhysics->applyForceToCenter(force);
-                                                   startMotorBoat();
-                                               }
-                                               else if (state == ActionState::Released)
-                                               {
-                                                   checkStopMotorBoat();
-                                               }
-                                           });
-
-        inputController->setActionCallback("MoveBackward",
-                                           [this](ActionState state)
-                                           {
-                                               if ((state == ActionState::Held || state == ActionState::Pressed)
-                                                   && m_playerPhysics && m_playerPhysics->isInitialized())
-                                               {
-                                                   // Get the forward direction and move backward (negative)
-                                                   b2Vec2 forward = m_playerPhysics->getForwardVector();
-                                                   b2Vec2 force = {-forward.x * PLAYER_FORCE, -forward.y * PLAYER_FORCE};
-                                                   m_playerPhysics->applyForceToCenter(force);
-                                                   startMotorBoat();
-                                               }
-                                               else if (state == ActionState::Released)
-                                               {
-                                                   checkStopMotorBoat();
-                                               }
-                                           });
-
-        inputController->setActionCallback("RotateLeft",
-                                           [this](ActionState state)
-                                           {
-                                               if ((state == ActionState::Held || state == ActionState::Pressed)
-                                                   && m_playerPhysics && m_playerPhysics->isInitialized())
-                                               {
-                                                   m_playerPhysics->applyTorque(PLAYER_TURNING_FORCE);
-                                               }
-                                           });
-
-        inputController->setActionCallback("RotateRight",
-                                           [this](ActionState state)
-                                           {
-                                               if ((state == ActionState::Held || state == ActionState::Pressed)
-                                                   && m_playerPhysics && m_playerPhysics->isInitialized())
-                                               {
-                                                   m_playerPhysics->applyTorque(-PLAYER_TURNING_FORCE);
-                                               }
-                                           });
-    }
-
-    void createBarrels()
-    {
-        for (int i = 0; i < m_barrelAmount; i++)
-        {
-            spawnRandomBarrel();
-        }
     }
 
     void toggleGravity()
@@ -710,17 +552,10 @@ public:
 
     void createVelocityLines()
     {
-        // Create velocity line entities for all physics objects
-        auto player     = m_gameEngine->getEntityManager().getEntitiesByTag("player");
-        auto allBarrels = m_gameEngine->getEntityManager().getEntitiesByTag("barrel");
+        // Create velocity line entities for physics objects
+        auto players = m_gameEngine->getEntityManager().getEntitiesByTag("player");
 
-        auto allEntities = allBarrels;
-        if (!player.empty())
-        {
-            allEntities.push_back(player[0]);
-        }
-
-        for (auto& entity : allEntities)
+        for (auto& entity : players)
         {
             if (entity->hasComponent<CPhysicsBody2D>())
             {
@@ -743,157 +578,6 @@ public:
             line->destroy();
         }
         m_velocityLines.clear();
-    }
-
-    void createBubbleTrail()
-    {
-        // Load bubble texture
-        if (!m_bubbleTexture.loadFromFile("assets/textures/bubble.png"))
-        {
-            std::cout << "ERROR: Could not load bubble.png texture!" << std::endl;
-            return;
-        }
-
-        m_bubbleTexture.setSmooth(true);
-        std::cout << "SUCCESS: Loaded bubble.png texture (" << m_bubbleTexture.getSize().x << "x"
-                  << m_bubbleTexture.getSize().y << ")" << std::endl;
-
-        if (!m_player)
-        {
-            std::cout << "ERROR: Cannot create bubble trail - player not initialized!" << std::endl;
-            return;
-        }
-
-        // Create a separate entity for the bubble trail emitter
-        m_bubbleTrailEntity = m_gameEngine->getEntityManager().addEntity("bubble_trail");
-
-        // Get player position for initial placement
-        auto* playerTransform = m_player->getComponent<CTransform>();
-        Vec2  playerPos       = playerTransform ? playerTransform->getPosition() : Vec2(0, 0);
-        m_bubbleTrailEntity->addComponent<CTransform>(playerPos, Vec2(1.0f, 1.0f), 0.0f);
-
-        // Add particle emitter to the bubble trail entity
-        auto* emitter = m_bubbleTrailEntity->addComponent<CParticleEmitter>();
-
-        // Configure particle properties using setters
-        // Direction is now in LOCAL SPACE relative to boat rotation
-        // Boat's forward is +Y, so stern (back) is -Y
-        emitter->setDirection(Vec2(0.0f, -1.0f));  // Emit from back of boat in local space
-        emitter->setSpreadAngle(1.20f);            // Wide spread
-        emitter->setMinSpeed(0.05f);
-        emitter->setMaxSpeed(0.2f);
-        emitter->setMinLifetime(3.0f);
-        emitter->setMaxLifetime(3.0f);
-        emitter->setMinSize(0.005f);                   // 5cm (in meters)
-        emitter->setMaxSize(0.025f);                   // 25cm (in meters)
-        emitter->setEmissionRate(300.0f);              // Constant 300 particles/sec
-        emitter->setStartColor(Color(255, 255, 255));  // White (no tint)
-        emitter->setEndColor(Color(255, 255, 255));
-        emitter->setStartAlpha(1.0f);  // Fully opaque
-        emitter->setEndAlpha(0.5f);
-        emitter->setGravity(Vec2(0, 0));
-        emitter->setMinRotationSpeed(-2.0f);
-        emitter->setMaxRotationSpeed(2.0f);
-        emitter->setFadeOut(true);
-        emitter->setShrink(true);
-        emitter->setShrinkEndScale(0.0f);  // Shrink to nothing
-        emitter->setActive(true);          // Always active
-        emitter->setMaxParticles(1000);
-        emitter->setTexture(&m_bubbleTexture);   // Use bubble texture
-        emitter->setZIndex(BUBBLE_TRAIL_INDEX);  // Render behind boat
-
-        // Position emitter at back of boat (stern)
-        // Boat forward direction is +Y in local space, so back is -Y
-        const float boatLength = PLAYER_SIZE_METERS * 3.5f;          // Match boat dimensions
-        emitter->setPositionOffset(Vec2(0.0f, -boatLength * 0.75));  // 75% back from center
-
-        std::cout << "Boat wake particle emitter created as separate entity with offset (0.0, " << (-boatLength * 0.75)
-                  << ") meters" << std::endl;
-    }
-
-    void createHullSpray()
-    {
-        if (!m_player)
-        {
-            std::cout << "ERROR: Cannot create hull spray - player not initialized!" << std::endl;
-            return;
-        }
-
-        // Load spray texture (reuse bubble texture or use a different one)
-        if (!m_sprayTexture.loadFromFile("assets/textures/bubble.png"))
-        {
-            std::cout << "WARNING: Could not load spray texture, using bubble texture" << std::endl;
-            m_sprayTexture = m_bubbleTexture;
-        }
-        m_sprayTexture.setSmooth(true);
-
-        // Create a separate entity for the hull spray emitter
-        m_hullSprayEntity = m_gameEngine->getEntityManager().addEntity("hull_spray");
-
-        // Get player position for initial placement
-        auto* playerTransform = m_player->getComponent<CTransform>();
-        Vec2  playerPos       = playerTransform ? playerTransform->getPosition() : Vec2(0, 0);
-        m_hullSprayEntity->addComponent<CTransform>(playerPos, Vec2(1.0f, 1.0f), 0.0f);
-
-        // Create hull spray emitter on the separate entity
-        m_hullSprayEmitter = m_hullSprayEntity->addComponent<CParticleEmitter>();
-
-        // Use polygon shape - extract hull from player's collider
-        m_hullSprayEmitter->setEmissionShape(EmissionShape::Polygon);
-
-        // Get vertices from player's collider and let the emitter compute the convex hull
-        auto* playerCollider = m_player->getComponent<CCollider2D>();
-        if (playerCollider)
-        {
-            std::vector<Vec2> allVertices;
-            const auto&       fixtures = playerCollider->getFixtures();
-
-            for (size_t i = 0; i < fixtures.size(); ++i)
-            {
-                if (fixtures[i].shapeType == ColliderShape::Polygon)
-                {
-                    const b2Vec2* verts     = playerCollider->getPolygonVertices(i);
-                    int           vertCount = playerCollider->getPolygonVertexCount(i);
-
-                    for (int v = 0; v < vertCount; ++v)
-                    {
-                        allVertices.push_back(Vec2(verts[v].x, verts[v].y));
-                    }
-                }
-            }
-
-            // Let the emitter compute the convex hull from all vertices
-            m_hullSprayEmitter->setPolygonFromConvexHull(allVertices);
-        }
-
-        // Emit particles outward from hull edges
-        m_hullSprayEmitter->setEmitOutward(true);
-
-        // Spray particle properties
-        m_hullSprayEmitter->setSpreadAngle(0.4f);  // Moderate spread
-        m_hullSprayEmitter->setMinSpeed(0.8f);
-        m_hullSprayEmitter->setMaxSpeed(2.5f);
-        m_hullSprayEmitter->setMinLifetime(0.5f);
-        m_hullSprayEmitter->setMaxLifetime(1.2f);
-        m_hullSprayEmitter->setMinSize(0.006f);  // Small spray droplets
-        m_hullSprayEmitter->setMaxSize(0.02f);
-        m_hullSprayEmitter->setEmissionRate(0.0f);                // Start at 0, will be updated based on speed
-        m_hullSprayEmitter->setStartColor(Color(220, 240, 255));  // Light blue-white
-        m_hullSprayEmitter->setEndColor(Color(255, 255, 255));
-        m_hullSprayEmitter->setStartAlpha(0.9f);
-        m_hullSprayEmitter->setEndAlpha(0.0f);
-        m_hullSprayEmitter->setGravity(Vec2(0.0f, -0.5f));  // Slight downward gravity
-        m_hullSprayEmitter->setMinRotationSpeed(-3.0f);
-        m_hullSprayEmitter->setMaxRotationSpeed(3.0f);
-        m_hullSprayEmitter->setFadeOut(true);
-        m_hullSprayEmitter->setShrink(true);
-        m_hullSprayEmitter->setShrinkEndScale(0.1f);
-        m_hullSprayEmitter->setActive(true);
-        m_hullSprayEmitter->setMaxParticles(5000);
-        m_hullSprayEmitter->setTexture(&m_sprayTexture);
-        m_hullSprayEmitter->setZIndex(HULL_SPRAY_INDEX);  // Render behind boat
-
-        std::cout << "Hull spray particle emitter attached to player (speed-based emission)" << std::endl;
     }
 
     void updateHullSpray()
@@ -931,6 +615,53 @@ public:
         m_hullSprayEmitter->setMaxSpeed(0.4f * speedMultiplier);
     }
 
+    void updateBarrelSprays()
+    {
+        // Get all barrel entities and update their spray emitters based on velocity
+        auto barrels = m_gameEngine->getEntityManager().getEntitiesByTag("barrel");
+
+        for (auto& barrel : barrels)
+        {
+            if (!barrel || !barrel->isAlive())
+                continue;
+
+            auto* physicsBody = barrel->getComponent<CPhysicsBody2D>();
+            auto* emitter     = barrel->getComponent<CParticleEmitter>();
+
+            if (!physicsBody || !physicsBody->isInitialized() || !emitter)
+                continue;
+
+            // Get current velocity
+            b2Vec2 velocity = physicsBody->getLinearVelocity();
+            float  speed    = std::sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+
+            // Define speed thresholds for barrels
+            const float MIN_SPEED_FOR_SPRAY = 0.05f;    // Start spraying at this speed (m/s)
+            const float MAX_SPEED_FOR_SPRAY = 1.0f;     // Maximum spray at this speed (m/s)
+            const float MIN_EMISSION_RATE   = 0.0f;     // Emission rate at minimum speed
+            const float MAX_EMISSION_RATE   = 1250.0f;  // Emission rate at maximum speed
+
+            // Calculate emission rate based on speed
+            float emissionRate = 0.0f;
+            if (speed > MIN_SPEED_FOR_SPRAY)
+            {
+                // Normalize speed to 0-1 range
+                float normalizedSpeed = (speed - MIN_SPEED_FOR_SPRAY) / (MAX_SPEED_FOR_SPRAY - MIN_SPEED_FOR_SPRAY);
+                normalizedSpeed       = std::min(1.0f, std::max(0.0f, normalizedSpeed));
+
+                // Use quadratic curve for more dramatic effect at higher speeds
+                emissionRate = MIN_EMISSION_RATE + (MAX_EMISSION_RATE - MIN_EMISSION_RATE) * (normalizedSpeed * normalizedSpeed);
+
+                // Scale particle speed based on barrel speed for more realistic spray
+                float speedMultiplier = 0.5f + (normalizedSpeed * 0.5f);
+                emitter->setMinSpeed(0.15f * speedMultiplier);
+                emitter->setMaxSpeed(0.5f * speedMultiplier);
+            }
+
+            emitter->setEmissionRate(emissionRate);
+        }
+    }
+
     void updateParticleEmitterPositions()
     {
         if (!m_player)
@@ -966,74 +697,6 @@ public:
         }
     }
 
-    void updateOceanShaderUniforms()
-    {
-        if (!m_oceanBackground)
-            return;
-
-        // Get the shader from the material component
-        auto* material = m_oceanBackground->getComponent<CMaterial>();
-        if (!material)
-            return;
-
-        std::string shaderGuid = material->getShaderGuid();
-        if (shaderGuid.empty())
-            return;
-
-        auto* shaderComp = m_oceanBackground->getComponent<CShader>();
-        if (!shaderComp)
-            return;
-
-        // Get the SFML shader from SRenderer cache
-        auto& renderer = SRenderer::instance();
-        const sf::Shader* shader = renderer.loadShader(shaderComp->getVertexShaderPath(), shaderComp->getFragmentShaderPath());
-        if (!shader)
-            return;
-
-        // Collect positions of all physics objects (player + barrels)
-        std::vector<sf::Vector2f> positions;
-        const int                 MAX_OBJECTS = 50;
-
-        // Get player position
-        auto players = m_gameEngine->getEntityManager().getEntitiesByTag("player");
-        for (const auto& player : players)
-        {
-            if (positions.size() >= MAX_OBJECTS)
-                break;
-            auto* transform = player->getComponent<CTransform>();
-            if (transform)
-            {
-                Vec2 pos = transform->getPosition();
-                // Convert to normalized screen coordinates (0 to 1)
-                float normX = pos.x * PIXELS_PER_METER / SCREEN_WIDTH;
-                float normY = pos.y * PIXELS_PER_METER / SCREEN_HEIGHT;  // Don't flip - shader uses gl_FragCoord
-                positions.push_back(sf::Vector2f(normX, normY));
-            }
-        }
-
-        // Get barrel positions
-        auto barrels = m_gameEngine->getEntityManager().getEntitiesByTag("barrel");
-        for (const auto& barrel : barrels)
-        {
-            if (positions.size() >= MAX_OBJECTS)
-                break;
-            auto* transform = barrel->getComponent<CTransform>();
-            if (transform)
-            {
-                Vec2 pos = transform->getPosition();
-                // Convert to normalized screen coordinates (0 to 1)
-                float normX = pos.x * PIXELS_PER_METER / SCREEN_WIDTH;
-                float normY = pos.y * PIXELS_PER_METER / SCREEN_HEIGHT;  // Don't flip - shader uses gl_FragCoord
-                positions.push_back(sf::Vector2f(normX, normY));
-            }
-        }
-
-        // Set shader uniforms (need mutable shader)
-        sf::Shader* mutableShader = const_cast<sf::Shader*>(shader);
-        mutableShader->setUniform("u_objectCount", static_cast<int>(positions.size()));
-        mutableShader->setUniformArray("u_objectPositions", positions.data(), positions.size());
-    }
-
     void startMotorBoat()
     {
         auto& audioSystem = m_gameEngine->getAudioSystem();
@@ -1066,65 +729,9 @@ public:
         }
     }
 
-    void spawnRandomBarrel()
-    {
-        // Screen dimensions in meters
-        const float screenWidthMeters  = SCREEN_WIDTH / PIXELS_PER_METER;
-        const float screenHeightMeters = SCREEN_HEIGHT / PIXELS_PER_METER;
-
-        // Calculate spawn boundaries
-        const float MIN_X = BOUNDARY_THICKNESS_METERS + BARREL_RADIUS_METERS;
-        const float MAX_X = screenWidthMeters - BOUNDARY_THICKNESS_METERS - BARREL_RADIUS_METERS;
-        const float MIN_Y = BOUNDARY_THICKNESS_METERS + BARREL_RADIUS_METERS;
-        const float MAX_Y = screenHeightMeters - BOUNDARY_THICKNESS_METERS - BARREL_RADIUS_METERS;
-
-        // Random position within safe spawn area (in meters)
-        float randomX = MIN_X + static_cast<float>(rand()) / RAND_MAX * (MAX_X - MIN_X);
-        float randomY = MIN_Y + static_cast<float>(rand()) / RAND_MAX * (MAX_Y - MIN_Y);
-
-        auto barrel = m_gameEngine->getEntityManager().addEntity("barrel");
-        barrel->addComponent<CTransform>(Vec2(randomX, randomY), Vec2(1.0f, 1.0f), 0.0f);
-
-        auto* physicsBody = barrel->addComponent<CPhysicsBody2D>();
-        physicsBody->initialize({randomX, randomY}, BodyType::Dynamic);
-
-        auto* collider = barrel->addComponent<CCollider2D>();
-        collider->createCircle(BARREL_RADIUS_METERS);
-        collider->setRestitution(RESTITUTION);
-        collider->setDensity(BARREL_DENSITY);
-
-        // Add damping to gradually reduce velocity (prevents barrels from maintaining excessive speeds)
-        physicsBody->setLinearDamping(BARREL_LINEAR_DRAG);
-        physicsBody->setAngularDamping(BARREL_ANGULAR_DRAG);
-
-        // Add rendering components for barrel sprite
-        auto barrelTexture    = barrel->addComponent<CTexture>("assets/textures/barrel.png");
-        auto barrelRenderable = barrel->addComponent<CRenderable>(VisualType::Sprite, Color::White, BARREL_INDEX);
-        barrelRenderable->setVisible(true);
-
-        // Add material for the barrel
-        auto barrelMaterial = barrel->addComponent<CMaterial>();
-        barrelMaterial->setTextureGuid(barrelTexture->getGuid());
-        barrelMaterial->setTint(Color::White);
-        barrelMaterial->setOpacity(1.0f);
-        barrelMaterial->setBlendMode(BlendMode::Alpha);
-    }
-
-    void removeRandomBarrel()
-    {
-        auto barrels = m_gameEngine->getEntityManager().getEntitiesByTag("barrel");
-        if (!barrels.empty())
-        {
-            // Pick a random barrel to remove
-            int randomIndex = rand() % barrels.size();
-            barrels[randomIndex]->destroy();
-        }
-    }
-
     void restart()
     {
         std::cout << "\n=== Restarting scenario ===" << std::endl;
-        std::cout << "Barrel count:" << m_barrelAmount << std::endl;
         std::cout << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << std::endl;
 
         // Stop motor boat if playing
@@ -1146,9 +753,9 @@ public:
         physics.setGravity({0.0f, m_gravityEnabled ? GRAVITY_FORCE : 0.0f});
 
         // Try to reload from scene file if one was previously loaded, otherwise create manually
-        if (m_sceneLoaded && std::filesystem::exists(SCENE_FILE_PATH))
+        if (m_sceneLoaded && std::filesystem::exists(getSceneFilePath()))
         {
-            if (!loadScene(SCENE_FILE_PATH))
+            if (!loadScene(getSceneFilePath()))
             {
                 std::cout << "Failed to reload scene, creating manually..." << std::endl;
                 createSceneManually();
@@ -1243,16 +850,9 @@ public:
         }
 
         // Check for new entities that need velocity lines
-        auto player     = m_gameEngine->getEntityManager().getEntitiesByTag("player");
-        auto allBarrels = m_gameEngine->getEntityManager().getEntitiesByTag("barrel");
+        auto players = m_gameEngine->getEntityManager().getEntitiesByTag("player");
 
-        auto allEntities = allBarrels;
-        if (!player.empty())
-        {
-            allEntities.push_back(player[0]);
-        }
-
-        for (auto& entity : allEntities)
+        for (auto& entity : players)
         {
             if (entity->hasComponent<CPhysicsBody2D>() && m_velocityLines.find(entity.get()) == m_velocityLines.end())
             {
@@ -1293,24 +893,6 @@ public:
         {
             m_running = false;
         }
-        if (im.wasKeyPressed(KeyCode::Left))
-        {
-            if (m_barrelAmount > 1)
-            {
-                m_barrelAmount--;
-                removeRandomBarrel();
-                std::cout << "Barrel count: " << m_barrelAmount << std::endl;
-            }
-        }
-        if (im.wasKeyPressed(KeyCode::Right))
-        {
-            if (m_barrelAmount < 1000)
-            {
-                m_barrelAmount++;
-                spawnRandomBarrel();
-                std::cout << "Barrel count: " << m_barrelAmount << std::endl;
-            }
-        }
         if (im.wasKeyPressed(KeyCode::R))
         {
             restart();
@@ -1345,16 +927,16 @@ public:
         }
         if (im.wasKeyPressed(KeyCode::F5))
         {
-            std::cout << "Saving scene to " << SCENE_FILE_PATH << std::endl;
-            saveScene(SCENE_FILE_PATH);
+            std::cout << "Saving scene to " << getSceneFilePath() << std::endl;
+            saveScene(getSceneFilePath());
         }
         if (im.wasKeyPressed(KeyCode::F9))
         {
             // Clear and reload scene
-            std::cout << "Reloading scene from " << SCENE_FILE_PATH << std::endl;
+            std::cout << "Reloading scene from " << getSceneFilePath() << std::endl;
             m_velocityLines.clear();
             m_gameEngine->getEntityManager().clear();
-            if (loadScene(SCENE_FILE_PATH))
+            if (loadScene(getSceneFilePath()))
             {
                 if (m_showVectors)
                 {
@@ -1379,11 +961,14 @@ public:
         // Update hull spray emission rate based on boat speed
         updateHullSpray();
 
+        // Update barrel spray emission rates based on their speeds
+        updateBarrelSprays();
+
         // Update particle system
         m_gameEngine->getParticleSystem().update(dt);
 
         // Update ocean shader uniforms with object positions
-        updateOceanShaderUniforms();
+        // updateOceanShaderUniforms();
 
         // Update velocity lines if visible
         if (m_showVectors)
@@ -1437,33 +1022,6 @@ public:
                     shape.setOutlineThickness(2.0f);
                 }
                 window->draw(shape);
-            }
-        }
-
-        // Only draw debug colliders if enabled
-        if (m_showColliders)
-        {
-            auto barrels = m_gameEngine->getEntityManager().getEntitiesByTag("barrel");
-            for (auto& barrel : barrels)
-            {
-                if (!barrel->hasComponent<CTransform>() || !barrel->hasComponent<CCollider2D>())
-                    continue;
-
-                auto* transform = barrel->getComponent<CTransform>();
-                auto* collider  = barrel->getComponent<CCollider2D>();
-
-                Vec2         posMeters    = transform->getPosition();
-                sf::Vector2f posPixels    = metersToPixels(posMeters);
-                float        radiusPixels = collider->getCircleRadius() * PIXELS_PER_METER;
-
-                sf::CircleShape colliderShape(radiusPixels);
-                colliderShape.setOrigin(radiusPixels, radiusPixels);
-                colliderShape.setPosition(posPixels);
-                colliderShape.setFillColor(sf::Color::Transparent);
-                colliderShape.setOutlineColor(sf::Color::Green);
-                colliderShape.setOutlineThickness(2.0f);
-
-                window->draw(colliderShape);
             }
         }
 
@@ -1592,7 +1150,6 @@ public:
 
             std::ostringstream oss;
             oss << "Box2D Physics (1 unit = 1 meter, Y-up) - ECS Rendering Pipeline\n";
-            oss << "Barrel Count: " << m_barrelAmount << " (Use Left/Right to add/remove)\n";
             oss << "Gravity: " << (m_gravityEnabled ? "ON" : "OFF") << " (Press G to toggle)\n";
             oss << "Colliders: " << (m_showColliders ? "ON" : "OFF") << " (Press C to toggle)\n";
             oss << "Vectors: " << (m_showVectors ? "ON" : "OFF") << " (Press V to toggle)\n";
@@ -1634,7 +1191,7 @@ int main()
 {
     try
     {
-        BounceGame game;
+        FishingGame game;
         game.run();
     }
     catch (const std::exception& e)
