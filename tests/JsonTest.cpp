@@ -3,9 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include <sstream>
-#include "JsonBuilder.h"
-#include "JsonParser.h"
-#include "JsonValue.h"
+#include "systems/SSerialization.h"
 #include "TestUtils.h"
 
 TEST(JsonTest, ParseEntityFile)

@@ -2,8 +2,7 @@
 #include "CTexture.h"
 #include "Entity.h"
 #include "EntityManager.h"
-#include "JsonBuilder.h"
-#include "JsonValue.h"
+#include "systems/SSerialization.h"
 
 class CTextureTest : public ::testing::Test
 {

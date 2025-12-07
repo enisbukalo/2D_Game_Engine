@@ -1,6 +1,5 @@
 #include "CShader.h"
-#include "JsonBuilder.h"
-#include "JsonParser.h"
+#include "systems/SSerialization.h"
 
 std::string CShader::getType() const
 {

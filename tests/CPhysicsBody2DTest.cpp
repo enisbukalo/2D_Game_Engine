@@ -2,8 +2,7 @@
 #include "CPhysicsBody2D.h"
 #include "Entity.h"
 #include "EntityManager.h"
-#include "JsonBuilder.h"
-#include "JsonValue.h"
+#include "systems/SSerialization.h"
 
 class CPhysicsBody2DTest : public ::testing::Test
 {

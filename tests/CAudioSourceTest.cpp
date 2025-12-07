@@ -4,9 +4,7 @@
 #include "Entity.h"
 #include "EntityManager.h"
 #include "SAudioSystem.h"
-#include "JsonBuilder.h"
-#include "JsonParser.h"
-#include "JsonValue.h"
+#include "systems/SSerialization.h"
 
 class CAudioSourceTest : public ::testing::Test
 {

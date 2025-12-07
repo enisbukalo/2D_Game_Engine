@@ -1,8 +1,7 @@
 #include "CInputController.h"
 #include <spdlog/spdlog.h>
 #include "SInputManager.h"
-#include "utility/JsonBuilder.h"
-#include "utility/JsonValue.h"
+#include "systems/SSerialization.h"
 
 CInputController::CInputController() {}
 

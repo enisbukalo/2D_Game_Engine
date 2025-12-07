@@ -2,8 +2,7 @@
 #include "CParticleEmitter.h"
 #include "Color.h"
 #include "Vec2.h"
-#include "JsonBuilder.h"
-#include "JsonValue.h"
+#include "systems/SSerialization.h"
 #include <vector>
 
 /**

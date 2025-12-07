@@ -1,6 +1,5 @@
 #include "CRenderable.h"
-#include "JsonBuilder.h"
-#include "JsonParser.h"
+#include "systems/SSerialization.h"
 
 std::string CRenderable::getType() const
 {

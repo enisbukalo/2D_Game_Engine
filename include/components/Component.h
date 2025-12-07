@@ -1,8 +1,7 @@
 #ifndef COMPONENT_H
 #define COMPONENT_H
 
-#include <JsonBuilder.h>
-#include <JsonValue.h>
+#include <systems/SSerialization.h>
 #include <string>
 
 class Entity;  // Forward declaration

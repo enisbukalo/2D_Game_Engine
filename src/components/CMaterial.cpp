@@ -1,6 +1,5 @@
 #include "CMaterial.h"
-#include "JsonBuilder.h"
-#include "JsonParser.h"
+#include "systems/SSerialization.h"
 
 std::string CMaterial::getType() const
 {

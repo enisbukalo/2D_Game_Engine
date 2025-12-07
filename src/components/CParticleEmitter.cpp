@@ -1,7 +1,6 @@
 #include "components/CParticleEmitter.h"
 #include <algorithm>
-#include "JsonBuilder.h"
-#include "JsonValue.h"
+#include "systems/SSerialization.h"
 
 // Particle constructor
 Particle::Particle()
