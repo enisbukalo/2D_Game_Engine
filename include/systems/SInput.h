@@ -15,11 +15,10 @@
 using ListenerId = size_t;
 using BindingId  = size_t;
 
-class SInputManager : public System
+class SInput : public System
 {
 private:
-    static SInputManager* s_instance;
-    SInputManager();
+    SInput();
 
     sf::RenderWindow* m_window      = nullptr;
     bool              m_passToImGui = true;
@@ -45,9 +44,15 @@ private:
     ListenerId                                                             m_nextListenerId = 1;
 
 public:
-    ~SInputManager();
+    ~SInput();
 
-    static SInputManager& instance();
+    // Delete copy and move constructors/assignment operators
+    SInput(const SInput&)            = delete;
+    SInput(SInput&&)                 = delete;
+    SInput& operator=(const SInput&) = delete;
+    SInput& operator=(SInput&&)      = delete;
+
+    static SInput& instance();
 
     void initialize(sf::RenderWindow* window, bool passToImGui = true);
     void shutdown();

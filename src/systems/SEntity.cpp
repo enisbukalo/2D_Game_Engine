@@ -1,15 +1,15 @@
-#include "EntityManager.h"
+#include "SEntity.h"
 #include <algorithm>
 #include <fstream>
 #include "FileUtilities.h"
 
-EntityManager& EntityManager::instance()
+SEntity& SEntity::instance()
 {
-    static EntityManager instance;
+    static SEntity instance;
     return instance;
 }
 
-void EntityManager::update(float deltaTime)
+void SEntity::update(float deltaTime)
 {
     // Add any pending entities
     for (auto& entity : m_entitiesToAdd)
@@ -32,31 +32,31 @@ void EntityManager::update(float deltaTime)
     removeDeadEntities();
 }
 
-std::shared_ptr<Entity> EntityManager::addEntity(const std::string& tag)
+std::shared_ptr<Entity> SEntity::addEntity(const std::string& tag)
 {
     auto entity = std::shared_ptr<Entity>(new Entity(tag, m_totalEntities++));
     m_entitiesToAdd.push_back(entity);
     return entity;
 }
 
-void EntityManager::removeEntity(std::shared_ptr<Entity> entity)
+void SEntity::removeEntity(std::shared_ptr<Entity> entity)
 {
     entity->destroy();
 }
 
-const std::vector<std::shared_ptr<Entity>>& EntityManager::getEntities() const
+const std::vector<std::shared_ptr<Entity>>& SEntity::getEntities() const
 {
     return m_entities;
 }
 
-std::vector<std::shared_ptr<Entity>> EntityManager::getEntitiesByTag(const std::string& tag)
+std::vector<std::shared_ptr<Entity>> SEntity::getEntitiesByTag(const std::string& tag)
 {
     return m_entityMap[tag];
 }
 
-void EntityManager::saveToFile(const std::string& filename)
+void SEntity::saveToFile(const std::string& filename)
 {
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
 
     // Start the root object
     builder.beginObject();
@@ -81,11 +81,11 @@ void EntityManager::saveToFile(const std::string& filename)
     FileUtilities::writeFile(filename, builder.toString());
 }
 
-void EntityManager::loadFromFile(const std::string& filename)
+void SEntity::loadFromFile(const std::string& filename)
 {
-    std::string json = FileUtilities::readFile(filename);
-    JsonParser  parser(json);
-    JsonValue   root = JsonValue::parse(parser);
+    std::string                              json = FileUtilities::readFile(filename);
+    Serialization::JsonParser                parser(json);
+    Serialization::SSerialization::JsonValue root = Serialization::SSerialization::JsonValue::parse(parser);
 
     if (!root.isObject())
     {
@@ -100,7 +100,7 @@ void EntityManager::loadFromFile(const std::string& filename)
     }
 }
 
-void EntityManager::clear()
+void SEntity::clear()
 {
     m_entities.clear();
     m_entitiesToAdd.clear();
@@ -108,7 +108,7 @@ void EntityManager::clear()
     m_totalEntities = 0;
 }
 
-void EntityManager::removeDeadEntities()
+void SEntity::removeDeadEntities()
 {
     // Remove from main entity vector
     m_entities.erase(std::remove_if(m_entities.begin(),

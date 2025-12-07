@@ -1,14 +1,13 @@
-#include "SceneManager.h"
+#include "SScene.h"
 #include <spdlog/spdlog.h>
 #include <filesystem>
 #include <stdexcept>
-#include "EntityManager.h"
 #include "FileUtilities.h"
-#include "JsonParser.h"
-#include "JsonValue.h"
-#include "SAudioSystem.h"
+#include "SAudio.h"
+#include "SEntity.h"
+#include "SSerialization.h"
 
-void SceneManager::loadScene(const std::string& scenePath)
+void SScene::loadScene(const std::string& scenePath)
 {
     // Check if file exists before attempting to load
     if (!std::filesystem::exists(scenePath))
@@ -18,13 +17,13 @@ void SceneManager::loadScene(const std::string& scenePath)
 
     try
     {
-        EntityManager::instance().clear();  // Clear existing entities
-        EntityManager::instance().loadFromFile(scenePath);
+        SEntity::instance().clear();  // Clear existing entities
+        SEntity::instance().loadFromFile(scenePath);
 
         // Load scene-level audio settings
-        std::string json = FileUtilities::readFile(scenePath);
-        JsonParser  parser(json);
-        JsonValue   root = JsonValue::parse(parser);
+        std::string                              json = FileUtilities::readFile(scenePath);
+        Serialization::JsonParser                parser(json);
+        Serialization::SSerialization::JsonValue root = Serialization::SSerialization::JsonValue::parse(parser);
 
         if (root.isObject() && root.hasKey("settings"))
         {
@@ -36,7 +35,7 @@ void SceneManager::loadScene(const std::string& scenePath)
                 std::string musicId = settings["music"].getString();
                 if (!musicId.empty())
                 {
-                    auto& audioSystem = SAudioSystem::instance();
+                    auto& audioSystem = SAudio::instance();
 
                     // For now, assume music files are in a default location or use the ID as path
                     // In a production system, you'd use an asset manifest to map IDs to paths
@@ -65,7 +64,7 @@ void SceneManager::loadScene(const std::string& scenePath)
     }
 }
 
-void SceneManager::saveCurrentScene()
+void SScene::saveCurrentScene()
 {
     if (m_currentScene == "")
     {
@@ -74,7 +73,7 @@ void SceneManager::saveCurrentScene()
 
     try
     {
-        EntityManager::instance().saveToFile(m_currentScene);
+        SEntity::instance().saveToFile(m_currentScene);
     }
     catch (const std::exception& e)
     {
@@ -82,7 +81,7 @@ void SceneManager::saveCurrentScene()
     }
 }
 
-void SceneManager::saveScene(const std::string& scenePath)
+void SScene::saveScene(const std::string& scenePath)
 {
     try
     {
@@ -93,7 +92,7 @@ void SceneManager::saveScene(const std::string& scenePath)
             throw std::runtime_error("Directory does not exist: " + directory.string());
         }
 
-        EntityManager::instance().saveToFile(scenePath);
+        SEntity::instance().saveToFile(scenePath);
         m_currentScene = scenePath;
     }
     catch (const std::exception& e)
@@ -102,16 +101,16 @@ void SceneManager::saveScene(const std::string& scenePath)
     }
 }
 
-const std::string& SceneManager::getCurrentScenePath() const
+const std::string& SScene::getCurrentScenePath() const
 {
     return m_currentScene;
 }
 
-void SceneManager::clearScene()
+void SScene::clearScene()
 {
     // Stop any playing music
-    SAudioSystem::instance().stopMusic();
+    SAudio::instance().stopMusic();
 
-    EntityManager::instance().clear();
+    SEntity::instance().clear();
     m_currentScene = "";
 }

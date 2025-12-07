@@ -4,8 +4,8 @@
 #include "CPhysicsBody2D.h"
 #include "CTransform.h"
 #include "Entity.h"
-#include "EntityManager.h"
-#include "SBox2DPhysics.h"
+#include "SEntity.h"
+#include "S2DPhysics.h"
 #include "Vec2.h"
 #include "box2d/box2d.h"
 
@@ -15,7 +15,7 @@ protected:
     void SetUp() override
     {
         // Ensure physics system is initialized
-        SBox2DPhysics::instance();
+        S2DPhysics::instance();
     }
 
     void TearDown() override
@@ -27,7 +27,7 @@ protected:
     std::shared_ptr<Entity> createPhysicsEntity(const Vec2& pos = Vec2(0.0f, 0.0f),
                                                 BodyType type = BodyType::Dynamic)
     {
-        auto& manager = EntityManager::instance();
+        auto& manager = SEntity::instance();
         auto  entity  = manager.addEntity("test_entity");
 
         auto transform = entity->addComponent<CTransform>();
@@ -326,7 +326,7 @@ TEST_F(CCollider2DPolygonTest, PolygonFallsUnderGravity)
     // Simulate for 1 second
     for (int i = 0; i < 60; ++i)
     {
-        SBox2DPhysics::instance().update(1.0f / 60.0f);
+        S2DPhysics::instance().update(1.0f / 60.0f);
     }
 
     b2Vec2 finalPos = physicsBody->getPosition();
@@ -354,7 +354,7 @@ TEST_F(CCollider2DPolygonTest, PolygonCollidesWithBox)
     // Simulate until polygon settles on ground
     for (int i = 0; i < 200; ++i)
     {
-        SBox2DPhysics::instance().update(1.0f / 60.0f);
+        S2DPhysics::instance().update(1.0f / 60.0f);
     }
 
     b2Vec2 finalPos = physicsBody->getPosition();
@@ -389,7 +389,7 @@ TEST_F(CCollider2DPolygonTest, PolygonCollidesWithPolygon)
     // Simulate
     for (int i = 0; i < 200; ++i)
     {
-        SBox2DPhysics::instance().update(1.0f / 60.0f);
+        S2DPhysics::instance().update(1.0f / 60.0f);
     }
 
     b2Vec2 finalPos = physicsBody->getPosition();
@@ -416,7 +416,7 @@ TEST_F(CCollider2DPolygonTest, SerializePolygon)
     collider->setFriction(0.7f);
     collider->setRestitution(0.3f);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     collider->serialize(builder);
 
     std::string json = builder.toString();
@@ -446,10 +446,7 @@ TEST_F(CCollider2DPolygonTest, DeserializePolygon)
             "friction": 0.5,
             "restitution": 0.2
         }
-    })";
-
-    JsonParser parser(json);
-    JsonValue value = JsonValue::parse(parser);
+    })";    Serialization::SSerialization::JsonValue value(json);
 
     auto entity = createPhysicsEntity();
     auto collider = entity->addComponent<CCollider2D>();
@@ -477,13 +474,12 @@ TEST_F(CCollider2DPolygonTest, SerializeDeserializeRoundTrip)
     collider1->setDensity(1.2f);
 
     // Serialize
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     collider1->serialize(builder);
     std::string json = builder.toString();
 
     // Deserialize into new collider
-    JsonParser parser(json);
-    JsonValue value = JsonValue::parse(parser);
+    Serialization::SSerialization::JsonValue value(json);
 
     auto entity2 = createPhysicsEntity();
     auto collider2 = entity2->addComponent<CCollider2D>();
@@ -535,7 +531,7 @@ TEST_F(CCollider2DPolygonTest, RecreatePolygonShape)
 
 TEST_F(CCollider2DPolygonTest, CreatePolygonWithoutPhysicsBody)
 {
-    auto& manager = EntityManager::instance();
+    auto& manager = SEntity::instance();
     auto entity = manager.addEntity("no_physics");
 
     auto transform = entity->addComponent<CTransform>();

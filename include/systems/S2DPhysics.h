@@ -21,11 +21,9 @@ class Entity;
  * Units: 1 unit = 1 meter
  * Default Gravity: (0, -10) m/s²
  */
-class SBox2DPhysics : public System
+class S2DPhysics : public System
 {
 private:
-    static SBox2DPhysics* s_instance;
-
     b2WorldId m_worldId;
 
     // Entity to b2BodyId mapping
@@ -35,15 +33,21 @@ private:
     float m_timeStep;
     int   m_subStepCount;
 
-    SBox2DPhysics();
+    S2DPhysics();
 
 public:
-    ~SBox2DPhysics();
+    ~S2DPhysics();
+
+    // Delete copy and move constructors/assignment operators
+    S2DPhysics(const S2DPhysics&)            = delete;
+    S2DPhysics(S2DPhysics&&)                 = delete;
+    S2DPhysics& operator=(const S2DPhysics&) = delete;
+    S2DPhysics& operator=(S2DPhysics&&)      = delete;
 
     /**
      * @brief Get the singleton instance of the physics system
      */
-    static SBox2DPhysics& instance();
+    static S2DPhysics& instance();
 
     /**
      * @brief Update the physics simulation

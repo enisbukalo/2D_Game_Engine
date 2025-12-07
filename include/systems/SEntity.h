@@ -1,5 +1,5 @@
-#ifndef ENTITYMANAGER_H
-#define ENTITYMANAGER_H
+#ifndef SENTITY_H
+#define SENTITY_H
 
 #include <memory>
 #include <string>
@@ -8,27 +8,27 @@
 #include "Entity.h"
 
 /**
- * @brief Manager class for handling entities in the game engine
+ * @brief System for handling entities in the game engine
  *
  * @description
- * EntityManager is a singleton class responsible for creating, destroying, and managing all entities
+ * SEntity is a singleton class responsible for creating, destroying, and managing all entities
  * in the game. It provides functionality for entity lifecycle management, querying
- * entities by tags or components, and serialization of the game state. The manager
+ * entities by tags or components, and serialization of the game state. The system
  * uses a deferred system for entity creation and destruction to prevent issues
  * during iteration.
  */
-class EntityManager
+class SEntity
 {
 public:
     /**
-     * @brief Gets the singleton instance of the EntityManager
-     * @return Reference to the EntityManager instance
+     * @brief Gets the singleton instance of the SEntity
+     * @return Reference to the SEntity instance
      */
-    static EntityManager& instance();
+    static SEntity& instance();
 
     // Delete copy constructor and assignment operator
-    EntityManager(const EntityManager&)            = delete;
-    EntityManager& operator=(const EntityManager&) = delete;
+    SEntity(const SEntity&)            = delete;
+    SEntity& operator=(const SEntity&) = delete;
 
     /**
      * @brief Updates all active entities and processes pending operations
@@ -122,9 +122,9 @@ public:
 
 private:
     // Private constructor to prevent direct instantiation
-    EntityManager() = default;
+    SEntity() = default;
     // Private destructor to prevent deletion through pointers
-    ~EntityManager() = default;
+    ~SEntity() = default;
 
     /**
      * @brief Removes entities that have been marked for destruction
@@ -137,4 +137,4 @@ private:
     size_t m_totalEntities = 0;  ///< Counter for generating unique entity IDs
 };
 
-#endif  // ENTITYMANAGER_H
+#endif  // SENTITY_H

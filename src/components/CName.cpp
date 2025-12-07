@@ -5,7 +5,7 @@ std::string CName::getType() const
     return "Name";
 }
 
-void CName::serialize(JsonBuilder& builder) const
+void CName::serialize(Serialization::JsonBuilder& builder) const
 {
     builder.beginObject();
     builder.addKey("cName");
@@ -18,7 +18,7 @@ void CName::serialize(JsonBuilder& builder) const
     builder.endObject();
 }
 
-void CName::deserialize(const JsonValue& value)
+void CName::deserialize(const Serialization::SSerialization::JsonValue& value)
 {
     const auto& nameComp = value["cName"];
     if (nameComp.hasKey("guid"))

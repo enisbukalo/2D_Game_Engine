@@ -45,7 +45,7 @@ GameEngine::GameEngine(const WindowConfig& windowConfig, Vec2 gravity, uint8_t s
     m_gameRunning = true;
 
     // Configure physics system
-    auto& physics = SBox2DPhysics::instance();
+    auto& physics = S2DPhysics::instance();
     physics.setGravity({gravity.x, gravity.y});  // Box2D uses Y-up convention
     // Use the stored member values so the members are read/used and
     // do not trigger "unused member" style warnings from static analyzers
@@ -53,8 +53,8 @@ GameEngine::GameEngine(const WindowConfig& windowConfig, Vec2 gravity, uint8_t s
     physics.setTimeStep(m_timeStep);          // Set fixed timestep
 
     // Initialize input manager and register window event handling
-    SInputManager::instance().initialize(SRenderer::instance().getWindow(), true);
-    SInputManager::instance().subscribe(
+    SInput::instance().initialize(SRenderer::instance().getWindow(), true);
+    SInput::instance().subscribe(
         [this](const InputEvent& ev)
         {
             if (ev.type == InputEventType::WindowClosed)
@@ -72,7 +72,7 @@ GameEngine::GameEngine(const WindowConfig& windowConfig, Vec2 gravity, uint8_t s
 GameEngine::~GameEngine()
 {
     // Shutdown input manager
-    SInputManager::instance().shutdown();
+    SInput::instance().shutdown();
 
     // Shutdown renderer
     SRenderer::instance().shutdown();
@@ -87,13 +87,13 @@ GameEngine::~GameEngine()
 
 void GameEngine::readInputs()
 {
-    // Intentionally empty - SInputManager polls SFML events and dispatches them.
+    // Intentionally empty - SInput polls SFML events and dispatches them.
 }
 
 void GameEngine::update(float deltaTime)
 {
     // Handle input events before any updates
-    SInputManager::instance().update(deltaTime);
+    SInput::instance().update(deltaTime);
     // Accumulate time for fixed timestep updates
     m_accumulator += deltaTime;
 
@@ -108,13 +108,13 @@ void GameEngine::update(float deltaTime)
     while (m_accumulator >= m_timeStep)
     {
         // Box2D physics update (handles its own sub-stepping)
-        SBox2DPhysics::instance().update(m_timeStep);
+        S2DPhysics::instance().update(m_timeStep);
 
         m_accumulator -= m_timeStep;
     }
 
     // Update entity manager with the actual frame delta time
-    EntityManager::instance().update(deltaTime);
+    SEntity::instance().update(deltaTime);
 }
 
 void GameEngine::render()
@@ -135,14 +135,14 @@ std::shared_ptr<spdlog::logger> GameEngine::getLogger()
     return spdlog::get("GameEngine");
 }
 
-EntityManager& GameEngine::getEntityManager()
+SEntity& GameEngine::getEntityManager()
 {
-    return EntityManager::instance();
+    return SEntity::instance();
 }
 
-SceneManager& GameEngine::getSceneManager()
+SScene& GameEngine::getSceneManager()
 {
-    return SceneManager::instance();
+    return SScene::instance();
 }
 
 ComponentFactory& GameEngine::getComponentFactory()
@@ -150,19 +150,19 @@ ComponentFactory& GameEngine::getComponentFactory()
     return ComponentFactory::instance();
 }
 
-SBox2DPhysics& GameEngine::getPhysics()
+S2DPhysics& GameEngine::getPhysics()
 {
-    return SBox2DPhysics::instance();
+    return S2DPhysics::instance();
 }
 
-SInputManager& GameEngine::getInputManager()
+SInput& GameEngine::getInputManager()
 {
-    return SInputManager::instance();
+    return SInput::instance();
 }
 
-SAudioSystem& GameEngine::getAudioSystem()
+SAudio& GameEngine::getAudioSystem()
 {
-    return SAudioSystem::instance();
+    return SAudio::instance();
 }
 
 SRenderer& GameEngine::getRenderer()
@@ -170,7 +170,7 @@ SRenderer& GameEngine::getRenderer()
     return SRenderer::instance();
 }
 
-SParticleSystem& GameEngine::getParticleSystem()
+SParticle& GameEngine::getParticleSystem()
 {
-    return SParticleSystem::instance();
+    return SParticle::instance();
 }

@@ -4,14 +4,14 @@
 #include "CTransform.h"
 #include "Component.h"
 #include "Entity.h"
-#include "EntityManager.h"
+#include "SEntity.h"
 #include "TestUtils.h"
 #include "Vec2.h"
 #include "CPhysicsBody2D.h"
 #include "CCollider2D.h"
 #include "CInputController.h"
 #include "Input/KeyCode.h"
-#include "SInputManager.h"
+#include "SInput.h"
 
 // Define the source directory path
 #ifndef SOURCE_DIR
@@ -25,22 +25,22 @@ protected:
     void SetUp() override
     {
         // Clear the EntityManager before each test
-        EntityManager::instance().clear();
+        SEntity::instance().clear();
         // Initialize SInputManager for components that rely on it (e.g., CInputController)
-        SInputManager::instance().shutdown();
-        SInputManager::instance().initialize(nullptr, false);
+        SInput::instance().shutdown();
+        SInput::instance().initialize(nullptr, false);
     }
 
     void TearDown() override
     {
         // Shutdown SInputManager after tests
-        SInputManager::instance().shutdown();
+        SInput::instance().shutdown();
     }
 };
 
 TEST_F(EntityManagerTest, EntityCreation)
 {
-    auto&                   manager = EntityManager::instance();
+    auto&                   manager = SEntity::instance();
     std::shared_ptr<Entity> entity  = manager.addEntity("test");
     EXPECT_NE(entity, nullptr);
     EXPECT_EQ(entity->getTag(), "test");
@@ -49,7 +49,7 @@ TEST_F(EntityManagerTest, EntityCreation)
 
 TEST_F(EntityManagerTest, EntityRemoval)
 {
-    auto&                   manager = EntityManager::instance();
+    auto&                   manager = SEntity::instance();
     std::shared_ptr<Entity> entity  = manager.addEntity("test");
 
     manager.update(0.0f);  // Process pending entities
@@ -62,7 +62,7 @@ TEST_F(EntityManagerTest, EntityRemoval)
 
 TEST_F(EntityManagerTest, EntityTagging)
 {
-    auto& manager = EntityManager::instance();
+    auto& manager = SEntity::instance();
     manager.addEntity("typeA");
     manager.addEntity("typeA");
     manager.addEntity("typeB");
@@ -78,7 +78,7 @@ TEST_F(EntityManagerTest, EntityTagging)
 
 TEST_F(EntityManagerTest, EntityComponentQuery)
 {
-    auto& manager = EntityManager::instance();
+    auto& manager = SEntity::instance();
 
     std::shared_ptr<Entity> entity1 = manager.addEntity("test1");
     entity1->addComponent<CTransform>();
@@ -99,7 +99,7 @@ TEST_F(EntityManagerTest, EntityComponentQuery)
 
 TEST_F(EntityManagerTest, EntityUpdateSystem)
 {
-    auto& manager   = EntityManager::instance();
+    auto& manager   = SEntity::instance();
     auto  entity    = manager.addEntity("test");
     auto  transform = entity->addComponent<CTransform>();
     auto  name      = entity->addComponent<CName>();
@@ -113,7 +113,7 @@ TEST_F(EntityManagerTest, EntityUpdateSystem)
 
 TEST_F(EntityManagerTest, EntitySerialization)
 {
-    auto& manager = EntityManager::instance();
+    auto& manager = SEntity::instance();
 
     // Create first entity with Transform
     auto entity1    = manager.addEntity("transform_object");
@@ -174,7 +174,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
 
     // Read and parse the saved JSON file
     std::string json = readFile(testFile);
-    JsonValue   root(json);
+   Serialization::SSerialization::JsonValue   root(json);
 
     // Test entities array
     const auto& entities = root["entities"].getArray();
@@ -186,7 +186,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
     const auto& physicsComponents = physics["components"].getArray();
 
     // Find and verify Transform component
-    const JsonValue* transformData = nullptr;
+    const Serialization::SSerialization::JsonValue* transformData = nullptr;
     for (const auto& comp : physicsComponents)
     {
         if (!comp["cTransform"].isNull())
@@ -210,7 +210,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
     const auto& namedComponents = named["components"].getArray();
 
     // Find and verify Transform component
-    const JsonValue* transform2Data = nullptr;
+    const Serialization::SSerialization::JsonValue* transform2Data = nullptr;
     for (const auto& comp : namedComponents)
     {
         if (!comp["cTransform"].isNull())
@@ -225,7 +225,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
     EXPECT_TRUE(approxEqual(pos2["y"].getNumber(), 75.0));
 
     // Find and verify Name component
-    const JsonValue* name2Data = nullptr;
+    const Serialization::SSerialization::JsonValue* name2Data = nullptr;
     for (const auto& comp : namedComponents)
     {
         if (!comp["cName"].isNull())
@@ -243,7 +243,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
     const auto& completeComponents = complete["components"].getArray();
 
     // Find and verify Transform component
-    const JsonValue* transform3Data = nullptr;
+    const Serialization::SSerialization::JsonValue* transform3Data = nullptr;
     for (const auto& comp : completeComponents)
     {
         if (!comp["cTransform"].isNull())
@@ -259,7 +259,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
     EXPECT_TRUE(approxEqual((*transform3Data)["rotation"].getNumber(), 90.0));
 
     // Find and verify Name component
-    const JsonValue* name3JsonData = nullptr;
+    const Serialization::SSerialization::JsonValue* name3JsonData = nullptr;
     for (const auto& comp : completeComponents)
     {
         if (!comp["cName"].isNull())
@@ -275,7 +275,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
     const auto& physicsObject = entities[3];
     EXPECT_EQ(physicsObject["tag"].getString(), "physics_object");
     const auto& physicsObjectComponents = physicsObject["components"].getArray();
-    const JsonValue* physicsBody3JsonData = nullptr;
+    const Serialization::SSerialization::JsonValue* physicsBody3JsonData = nullptr;
     for (const auto& comp : physicsObjectComponents)
     {
         if (!comp["cPhysicsBody2D"].isNull())
@@ -295,7 +295,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
     EXPECT_TRUE(approxEqual((*physicsBody3JsonData)["gravityScale"].getNumber(), 1.0f));
 
     // Find and verify CircleCollider component from the PhysicsBody2D entity
-    const JsonValue* collider4JsonData = nullptr;
+    const Serialization::SSerialization::JsonValue* collider4JsonData = nullptr;
     for (const auto& comp : physicsObjectComponents)
     {
         if (!comp["cCollider2D"].isNull())
@@ -314,7 +314,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
     EXPECT_TRUE(approxEqual(fixtures[0]["radius"].getNumber(), 5.0f));
 
     // Find controller entity and verify it has cInputController
-    const JsonValue* controllerJsonData = nullptr;
+    const Serialization::SSerialization::JsonValue* controllerJsonData = nullptr;
     for (const auto& ent : entities)
     {
         if (ent["tag"].getString() == "controller_object")
@@ -347,7 +347,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
 
 TEST_F(EntityManagerTest, SaveAndLoadEntities)
 {
-    auto& manager = EntityManager::instance();
+    auto& manager = SEntity::instance();
 
     // Create first entity with Transform and Gravity
     auto entity1    = manager.addEntity("physics_object");
@@ -372,7 +372,7 @@ TEST_F(EntityManagerTest, SaveAndLoadEntities)
     manager.saveToFile(testFile);
 
     // Create a new manager and load the file
-    EntityManager::instance().clear();  // Clear current state
+    SEntity::instance().clear();  // Clear current state
     manager.loadFromFile(testFile);
     manager.update(0.0f);  // Process loaded entities
 

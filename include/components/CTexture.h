@@ -34,12 +34,12 @@ public:
     /**
      * @brief Serializes the texture data
      */
-    void serialize(JsonBuilder& builder) const override;
+    void serialize(Serialization::JsonBuilder& builder) const override;
 
     /**
-     * @brief Deserializes texture data
+     * @brief Deserializes texture data from JSON value
      */
-    void deserialize(const JsonValue& value) override;
+    void deserialize(const Serialization::SSerialization::JsonValue& value) override;
 
     /**
      * @brief Gets the texture file path

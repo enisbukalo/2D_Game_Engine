@@ -1,7 +1,6 @@
-#include "components/CParticleEmitter.h"
+#include "CParticleEmitter.h"
 #include <algorithm>
-#include "JsonBuilder.h"
-#include "JsonValue.h"
+#include "SSerialization.h"
 
 // Particle constructor
 Particle::Particle()
@@ -28,7 +27,7 @@ std::string CParticleEmitter::getType() const
     return "CParticleEmitter";
 }
 
-void CParticleEmitter::serialize(JsonBuilder& builder) const
+void CParticleEmitter::serialize(Serialization::JsonBuilder& builder) const
 {
     builder.beginObject();
     builder.addKey("cParticleEmitter");
@@ -200,7 +199,7 @@ void CParticleEmitter::serialize(JsonBuilder& builder) const
     builder.endObject();
 }
 
-void CParticleEmitter::deserialize(const JsonValue& value)
+void CParticleEmitter::deserialize(const Serialization::SSerialization::JsonValue& value)
 {
     const auto& emitter = value["cParticleEmitter"];
 

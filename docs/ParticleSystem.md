@@ -2,7 +2,7 @@
 
 ## Overview
 
-The particle system (`SParticleSystem`) provides efficient particle rendering and simulation for visual effects like smoke, fire, water splashes, bubble trails, and more. It uses SFML's vertex arrays for batched rendering and follows the ECS architecture with `CParticleEmitter` components.
+The particle system (`SParticle`) provides efficient particle rendering and simulation for visual effects like smoke, fire, water splashes, bubble trails, and more. It uses SFML's vertex arrays for batched rendering and follows the ECS architecture with `CParticleEmitter` components.
 
 ## Features
 
@@ -53,7 +53,7 @@ The particle system (`SParticleSystem`) provides efficient particle rendering an
    - Emit outward option for shape-based emission
    - Optional texture for particles
 
-3. **SParticleSystem** - Singleton system that:
+3. **SParticle** - Singleton system that:
    - Updates all entities with CParticleEmitter components
    - Renders particles per emitter with vertex arrays
    - Handles coordinate conversion (world to screen)
@@ -67,7 +67,7 @@ The particle system (`SParticleSystem`) provides efficient particle rendering an
 GameEngine engine(windowConfig, gravity);
 
 // Initialize particle system (typically in your game's init)
-auto& particleSystem = SParticleSystem::instance();
+auto& particleSystem = SParticle::instance();
 particleSystem.initialize(&window, PIXELS_PER_METER);
 
 // Update particle system each frame
@@ -81,7 +81,7 @@ particleSystem.update(deltaTime);
 
 ```cpp
 // Create an entity with a particle emitter component
-auto& entityManager = EntityManager::instance();
+auto& entityManager = SEntity::instance();
 auto* bubbleEntity = entityManager.addEntity("BubbleTrail");
 
 // Add required components
@@ -211,11 +211,11 @@ emitter->setEmissionRate(25.0f);
 
 ## API Reference
 
-### SParticleSystem
+### SParticle
 
 #### Initialization
 ```cpp
-static SParticleSystem& instance();  // Singleton access
+static SParticle& instance();  // Singleton access
 bool initialize(sf::RenderWindow* window, float pixelsPerMeter = 100.0f);
 void shutdown();
 bool isInitialized() const;

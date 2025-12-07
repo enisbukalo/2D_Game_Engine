@@ -1,4 +1,4 @@
-#include "SAudioSystem.h"
+#include "SAudio.h"
 #include <spdlog/spdlog.h>
 #include <SFML/Audio.hpp>
 #include <algorithm>
@@ -8,25 +8,25 @@
 #include <unistd.h>
 #endif
 
-SAudioSystem::SAudioSystem(size_t poolSize) : m_soundPool(poolSize) {}
+SAudio::SAudio(size_t poolSize) : m_soundPool(poolSize) {}
 
-SAudioSystem::~SAudioSystem()
+SAudio::~SAudio()
 {
     // Call shutdown directly without virtual dispatch
-    SAudioSystem::shutdown();
+    SAudio::shutdown();
 }
 
-SAudioSystem& SAudioSystem::instance()
+SAudio& SAudio::instance()
 {
-    static SAudioSystem instance;
+    static SAudio instance;
     return instance;
 }
 
-bool SAudioSystem::initialize()
+bool SAudio::initialize()
 {
     if (m_initialized)
     {
-        spdlog::warn("SAudioSystem already initialized");
+        spdlog::warn("SAudio already initialized");
         return true;
     }
 
@@ -70,7 +70,7 @@ bool SAudioSystem::initialize()
     return true;
 }
 
-void SAudioSystem::shutdown()
+void SAudio::shutdown()
 {
     if (!m_initialized)
     {
@@ -105,7 +105,7 @@ void SAudioSystem::shutdown()
     spdlog::info("Audio system shut down");
 }
 
-bool SAudioSystem::loadSound(const std::string& id, const std::string& filepath, AudioType type)
+bool SAudio::loadSound(const std::string& id, const std::string& filepath, AudioType type)
 {
     if (!m_initialized)
     {
@@ -165,7 +165,7 @@ bool SAudioSystem::loadSound(const std::string& id, const std::string& filepath,
     }
 }
 
-void SAudioSystem::unloadSound(const std::string& id)
+void SAudio::unloadSound(const std::string& id)
 {
     // Try to unload SFX buffer
     auto bufferIt = m_soundBuffers.find(id);
@@ -198,7 +198,7 @@ void SAudioSystem::unloadSound(const std::string& id)
     }
 }
 
-AudioHandle SAudioSystem::playSFX(const std::string& id, float volume, float pitch, bool loop)
+AudioHandle SAudio::playSFX(const std::string& id, float volume, float pitch, bool loop)
 {
     if (!m_initialized)
     {
@@ -242,7 +242,7 @@ AudioHandle SAudioSystem::playSFX(const std::string& id, float volume, float pit
 }
 
 AudioHandle
-SAudioSystem::playSpatialSFX(const std::string& id, const Vec2& position, float volume, float pitch, bool loop, float minDistance, float attenuation)
+SAudio::playSpatialSFX(const std::string& id, const Vec2& position, float volume, float pitch, bool loop, float minDistance, float attenuation)
 {
     if (!m_initialized)
     {
@@ -287,7 +287,7 @@ SAudioSystem::playSpatialSFX(const std::string& id, const Vec2& position, float 
     return handle;
 }
 
-void SAudioSystem::stopSFX(AudioHandle handle)
+void SAudio::stopSFX(AudioHandle handle)
 {
     if (!isHandleValid(handle))
     {
@@ -300,7 +300,7 @@ void SAudioSystem::stopSFX(AudioHandle handle)
     slot.generation++;
 }
 
-void SAudioSystem::pauseSFX(AudioHandle handle)
+void SAudio::pauseSFX(AudioHandle handle)
 {
     if (!isHandleValid(handle))
     {
@@ -310,7 +310,7 @@ void SAudioSystem::pauseSFX(AudioHandle handle)
     m_soundPool[handle.index].sound.pause();
 }
 
-void SAudioSystem::resumeSFX(AudioHandle handle)
+void SAudio::resumeSFX(AudioHandle handle)
 {
     if (!isHandleValid(handle))
     {
@@ -324,7 +324,7 @@ void SAudioSystem::resumeSFX(AudioHandle handle)
     }
 }
 
-bool SAudioSystem::isPlayingSFX(AudioHandle handle) const
+bool SAudio::isPlayingSFX(AudioHandle handle) const
 {
     if (!isHandleValid(handle))
     {
@@ -334,7 +334,7 @@ bool SAudioSystem::isPlayingSFX(AudioHandle handle) const
     return m_soundPool[handle.index].sound.getStatus() == sf::Sound::Playing;
 }
 
-void SAudioSystem::setSFXPosition(AudioHandle handle, const Vec2& position)
+void SAudio::setSFXPosition(AudioHandle handle, const Vec2& position)
 {
     if (!isHandleValid(handle))
     {
@@ -344,7 +344,7 @@ void SAudioSystem::setSFXPosition(AudioHandle handle, const Vec2& position)
     m_soundPool[handle.index].sound.setPosition(position.x, position.y, 0.0f);
 }
 
-void SAudioSystem::setSFXVolume(AudioHandle handle, float volume)
+void SAudio::setSFXVolume(AudioHandle handle, float volume)
 {
     if (!isHandleValid(handle))
     {
@@ -357,7 +357,7 @@ void SAudioSystem::setSFXVolume(AudioHandle handle, float volume)
     m_soundPool[handle.index].sound.setVolume(calculateEffectiveSFXVolume(volume) * 100.0f);
 }
 
-bool SAudioSystem::playMusic(const std::string& id, bool loop, float volume)
+bool SAudio::playMusic(const std::string& id, bool loop, float volume)
 {
     if (!m_initialized)
     {
@@ -424,7 +424,7 @@ bool SAudioSystem::playMusic(const std::string& id, bool loop, float volume)
     return true;
 }
 
-void SAudioSystem::stopMusic()
+void SAudio::stopMusic()
 {
     if (m_currentMusic)
     {
@@ -435,7 +435,7 @@ void SAudioSystem::stopMusic()
     }
 }
 
-void SAudioSystem::pauseMusic()
+void SAudio::pauseMusic()
 {
     if (m_currentMusic && m_currentMusic->getStatus() == sf::Music::Playing)
     {
@@ -444,7 +444,7 @@ void SAudioSystem::pauseMusic()
     }
 }
 
-void SAudioSystem::resumeMusic()
+void SAudio::resumeMusic()
 {
     if (m_currentMusic && m_currentMusic->getStatus() == sf::Music::Paused)
     {
@@ -453,12 +453,12 @@ void SAudioSystem::resumeMusic()
     }
 }
 
-bool SAudioSystem::isMusicPlaying() const
+bool SAudio::isMusicPlaying() const
 {
     return m_currentMusic && m_currentMusic->getStatus() == sf::Music::Playing;
 }
 
-void SAudioSystem::setMasterVolume(float volume)
+void SAudio::setMasterVolume(float volume)
 {
     m_masterVolume = std::clamp(volume, AudioConstants::MIN_VOLUME, AudioConstants::MAX_VOLUME);
 
@@ -480,7 +480,7 @@ void SAudioSystem::setMasterVolume(float volume)
     spdlog::debug("Master volume set to {}", m_masterVolume);
 }
 
-void SAudioSystem::setSFXVolume(float volume)
+void SAudio::setSFXVolume(float volume)
 {
     m_sfxVolume = std::clamp(volume, AudioConstants::MIN_VOLUME, AudioConstants::MAX_VOLUME);
 
@@ -496,7 +496,7 @@ void SAudioSystem::setSFXVolume(float volume)
     spdlog::debug("SFX volume set to {}", m_sfxVolume);
 }
 
-void SAudioSystem::setMusicVolume(float volume)
+void SAudio::setMusicVolume(float volume)
 {
     m_musicVolume = std::clamp(volume, AudioConstants::MIN_VOLUME, AudioConstants::MAX_VOLUME);
 
@@ -509,27 +509,27 @@ void SAudioSystem::setMusicVolume(float volume)
     spdlog::debug("Music volume set to {}", m_musicVolume);
 }
 
-float SAudioSystem::getMasterVolume() const
+float SAudio::getMasterVolume() const
 {
     return m_masterVolume;
 }
 
-float SAudioSystem::getSFXVolume() const
+float SAudio::getSFXVolume() const
 {
     return m_sfxVolume;
 }
 
-float SAudioSystem::getMusicVolume() const
+float SAudio::getMusicVolume() const
 {
     return m_musicVolume;
 }
 
-void SAudioSystem::setListenerPosition(const Vec2& position)
+void SAudio::setListenerPosition(const Vec2& position)
 {
     sf::Listener::setPosition(position.x, position.y, 0.0f);
 }
 
-void SAudioSystem::update(float deltaTime)
+void SAudio::update(float deltaTime)
 {
     if (!m_initialized)
     {
@@ -565,7 +565,7 @@ void SAudioSystem::update(float deltaTime)
     }
 }
 
-int SAudioSystem::findAvailableSlot()
+int SAudio::findAvailableSlot()
 {
     for (size_t i = 0; i < m_soundPool.size(); ++i)
     {
@@ -577,7 +577,7 @@ int SAudioSystem::findAvailableSlot()
     return -1;
 }
 
-bool SAudioSystem::isHandleValid(AudioHandle handle) const
+bool SAudio::isHandleValid(AudioHandle handle) const
 {
     if (!handle.isValid() || handle.index >= m_soundPool.size())
     {
@@ -588,17 +588,17 @@ bool SAudioSystem::isHandleValid(AudioHandle handle) const
     return slot.inUse && slot.generation == handle.generation;
 }
 
-float SAudioSystem::calculateEffectiveSFXVolume(float baseVolume) const
+float SAudio::calculateEffectiveSFXVolume(float baseVolume) const
 {
     return std::clamp(baseVolume * m_sfxVolume * m_masterVolume, AudioConstants::MIN_VOLUME, AudioConstants::MAX_VOLUME);
 }
 
-float SAudioSystem::calculateEffectiveMusicVolume(float baseVolume) const
+float SAudio::calculateEffectiveMusicVolume(float baseVolume) const
 {
     return std::clamp(baseVolume * m_musicVolume * m_masterVolume, AudioConstants::MIN_VOLUME, AudioConstants::MAX_VOLUME);
 }
 
-AudioHandle SAudioSystem::playSFXWithFade(const std::string& id, float volume, float pitch, bool loop, const FadeConfig& fadeConfig)
+AudioHandle SAudio::playSFXWithFade(const std::string& id, float volume, float pitch, bool loop, const FadeConfig& fadeConfig)
 {
     // Start at 0 volume if fading in, otherwise use target volume
     float       startVolume = (fadeConfig.duration > 0.0f) ? 0.0f : volume;
@@ -624,7 +624,7 @@ AudioHandle SAudioSystem::playSFXWithFade(const std::string& id, float volume, f
     return handle;
 }
 
-AudioHandle SAudioSystem::playSpatialSFXWithFade(
+AudioHandle SAudio::playSpatialSFXWithFade(
     const std::string& id, const Vec2& position, float volume, float pitch, bool loop, float minDistance, float attenuation, const FadeConfig& fadeConfig)
 {
     // Start at 0 volume if fading in, otherwise use target volume
@@ -651,7 +651,7 @@ AudioHandle SAudioSystem::playSpatialSFXWithFade(
     return handle;
 }
 
-bool SAudioSystem::fadeSFX(AudioHandle handle, float targetVolume, const FadeConfig& fadeConfig)
+bool SAudio::fadeSFX(AudioHandle handle, float targetVolume, const FadeConfig& fadeConfig)
 {
     if (!isHandleValid(handle))
     {
@@ -696,7 +696,7 @@ bool SAudioSystem::fadeSFX(AudioHandle handle, float targetVolume, const FadeCon
     return true;
 }
 
-void SAudioSystem::stopSFXWithFade(AudioHandle handle, const FadeConfig& fadeConfig)
+void SAudio::stopSFXWithFade(AudioHandle handle, const FadeConfig& fadeConfig)
 {
     if (!isHandleValid(handle))
     {
@@ -735,7 +735,7 @@ void SAudioSystem::stopSFXWithFade(AudioHandle handle, const FadeConfig& fadeCon
     slot.stopAfterFade  = true;
 }
 
-void SAudioSystem::cancelFade(AudioHandle handle)
+void SAudio::cancelFade(AudioHandle handle)
 {
     if (!isHandleValid(handle))
     {
@@ -748,7 +748,7 @@ void SAudioSystem::cancelFade(AudioHandle handle)
     slot.stopAfterFade  = false;
 }
 
-bool SAudioSystem::playMusicWithFade(const std::string& id, bool loop, float volume, const FadeConfig& fadeConfig)
+bool SAudio::playMusicWithFade(const std::string& id, bool loop, float volume, const FadeConfig& fadeConfig)
 {
     // Start at 0 volume if fading in, otherwise use target volume
     float startVolume = (fadeConfig.duration > 0.0f) ? 0.0f : volume;
@@ -773,7 +773,7 @@ bool SAudioSystem::playMusicWithFade(const std::string& id, bool loop, float vol
     return true;
 }
 
-bool SAudioSystem::fadeMusic(float targetVolume, const FadeConfig& fadeConfig)
+bool SAudio::fadeMusic(float targetVolume, const FadeConfig& fadeConfig)
 {
     if (!m_currentMusic)
     {
@@ -816,7 +816,7 @@ bool SAudioSystem::fadeMusic(float targetVolume, const FadeConfig& fadeConfig)
     return true;
 }
 
-void SAudioSystem::stopMusicWithFade(const FadeConfig& fadeConfig)
+void SAudio::stopMusicWithFade(const FadeConfig& fadeConfig)
 {
     if (!m_currentMusic)
     {
@@ -853,14 +853,14 @@ void SAudioSystem::stopMusicWithFade(const FadeConfig& fadeConfig)
     m_musicStopAfterFade  = true;
 }
 
-void SAudioSystem::cancelMusicFade()
+void SAudio::cancelMusicFade()
 {
     m_musicFadeState      = FadeState::None;
     m_musicOnFadeComplete = nullptr;
     m_musicStopAfterFade  = false;
 }
 
-float SAudioSystem::applyFadeCurve(float t, FadeCurve curve) const
+float SAudio::applyFadeCurve(float t, FadeCurve curve) const
 {
     t = std::clamp(t, 0.0f, 1.0f);
 
@@ -886,7 +886,7 @@ float SAudioSystem::applyFadeCurve(float t, FadeCurve curve) const
     }
 }
 
-void SAudioSystem::updateSoundFade(SoundSlot& slot, float deltaTime)
+void SAudio::updateSoundFade(SoundSlot& slot, float deltaTime)
 {
     slot.fadeElapsed += deltaTime;
 
@@ -926,7 +926,7 @@ void SAudioSystem::updateSoundFade(SoundSlot& slot, float deltaTime)
     }
 }
 
-void SAudioSystem::updateMusicFade(float deltaTime)
+void SAudio::updateMusicFade(float deltaTime)
 {
     m_musicFadeElapsed += deltaTime;
 

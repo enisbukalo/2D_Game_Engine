@@ -1,43 +1,49 @@
-#include "JsonValue.h"
+#include "SSerialization.h"
+#include <cctype>
+#include <cmath>
+#include "Entity.h"
+#include "JsonBuilder.h"
 #include "JsonParser.h"
 
-// Static null value for returning when key/index not found
-const JsonValue JsonValue::NULL_VALUE;
+namespace Serialization
+{
 
-JsonValue::JsonValue(const std::string& json)
+const SSerialization::JsonValue SSerialization::JsonValue::NULL_VALUE;
+
+SSerialization::JsonValue::JsonValue(const std::string& json)
 {
     JsonParser parser(json);
     *this = parse(parser);
 }
 
-bool JsonValue::getBool(bool defaultValue) const
+bool SSerialization::JsonValue::getBool(bool defaultValue) const
 {
     return isBool() ? std::get<bool>(m_value) : defaultValue;
 }
 
-double JsonValue::getNumber(double defaultValue) const
+double SSerialization::JsonValue::getNumber(double defaultValue) const
 {
     return isNumber() ? std::get<double>(m_value) : defaultValue;
 }
 
-std::string JsonValue::getString(const std::string& defaultValue) const
+std::string SSerialization::JsonValue::getString(const std::string& defaultValue) const
 {
     return isString() ? std::get<std::string>(m_value) : defaultValue;
 }
 
-const JsonValue::Array& JsonValue::getArray() const
+const SSerialization::JsonValue::Array& SSerialization::JsonValue::getArray() const
 {
     static const Array empty;
     return isArray() ? std::get<Array>(m_value) : empty;
 }
 
-const JsonValue::Object& JsonValue::getObject() const
+const SSerialization::JsonValue::Object& SSerialization::JsonValue::getObject() const
 {
     static const Object empty;
     return isObject() ? std::get<Object>(m_value) : empty;
 }
 
-const JsonValue& JsonValue::operator[](const std::string& key) const
+const SSerialization::JsonValue& SSerialization::JsonValue::operator[](const std::string& key) const
 {
     if (!isObject())
         return NULL_VALUE;
@@ -46,7 +52,7 @@ const JsonValue& JsonValue::operator[](const std::string& key) const
     return it != obj.end() ? it->second : NULL_VALUE;
 }
 
-const JsonValue& JsonValue::operator[](size_t index) const
+const SSerialization::JsonValue& SSerialization::JsonValue::operator[](size_t index) const
 {
     if (!isArray())
         return NULL_VALUE;
@@ -54,7 +60,7 @@ const JsonValue& JsonValue::operator[](size_t index) const
     return index < arr.size() ? arr[index] : NULL_VALUE;
 }
 
-JsonValue JsonValue::parse(JsonParser& parser)
+SSerialization::JsonValue SSerialization::JsonValue::parse(JsonParser& parser)
 {
     JsonValue value;
     parser.skipWhitespace();
@@ -114,7 +120,7 @@ JsonValue JsonValue::parse(JsonParser& parser)
     return value;
 }
 
-JsonValue::Array JsonValue::parseArray(JsonParser& parser)
+SSerialization::JsonValue::Array SSerialization::JsonValue::parseArray(JsonParser& parser)
 {
     Array array;
     parser.beginArray();
@@ -151,7 +157,7 @@ JsonValue::Array JsonValue::parseArray(JsonParser& parser)
     throw std::runtime_error("Unterminated array");
 }
 
-JsonValue::Object JsonValue::parseObject(JsonParser& parser)
+SSerialization::JsonValue::Object SSerialization::JsonValue::parseObject(JsonParser& parser)
 {
     Object object;
     parser.beginObject();
@@ -188,10 +194,12 @@ JsonValue::Object JsonValue::parseObject(JsonParser& parser)
     throw std::runtime_error("Unterminated object");
 }
 
-bool JsonValue::hasKey(const std::string& key) const
+bool SSerialization::JsonValue::hasKey(const std::string& key) const
 {
     if (!isObject())
         return false;
     const auto& obj = getObject();
     return obj.find(key) != obj.end();
 }
+
+}  // namespace Serialization

@@ -1,26 +1,26 @@
-#ifndef SCENEMANAGER_H
-#define SCENEMANAGER_H
+#ifndef SSCENE_H
+#define SSCENE_H
 
 #include <string>
 
 /**
- * @brief Manages game scenes and scene transitions
+ * @brief System for managing game scenes and scene transitions
  *
  * @description
- * SceneManager is a singleton class responsible for managing game scenes,
+ * SScene is a singleton class responsible for managing game scenes,
  * handling scene transitions, and maintaining the scene stack. It ensures
- * that only one instance of the scene manager exists throughout the application.
+ * that only one instance of the scene system exists throughout the application.
  */
-class SceneManager
+class SScene
 {
 public:
     /**
-     * @brief Gets the singleton instance of the SceneManager
-     * @return Reference to the SceneManager instance
+     * @brief Gets the singleton instance of the SScene
+     * @return Reference to the SScene instance
      */
-    static SceneManager& instance()
+    static SScene& instance()
     {
-        static SceneManager instance;
+        static SScene instance;
         return instance;
     }
 
@@ -56,14 +56,14 @@ public:
     void clearScene();
 
     // Delete copy constructor and assignment operator
-    SceneManager(const SceneManager&)            = delete;
-    SceneManager& operator=(const SceneManager&) = delete;
+    SScene(const SScene&)            = delete;
+    SScene& operator=(const SScene&) = delete;
 
 private:
     // Private constructor to prevent direct instantiation
-    SceneManager() = default;
+    SScene() = default;
     // Private destructor to prevent deletion through pointers
-    ~SceneManager() = default;
+    ~SScene() = default;
 
     std::string m_currentScene = "";  ///< Path to the currently loaded scene
 };

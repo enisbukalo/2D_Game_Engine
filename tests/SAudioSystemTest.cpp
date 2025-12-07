@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "SAudioSystem.h"
+#include "SAudio.h"
 #include "AudioTypes.h"
 #include <fstream>
 #include <cmath>
@@ -24,7 +24,7 @@ protected:
 
     void TearDown() override
     {
-        SAudioSystem::instance().shutdown();
+        SAudio::instance().shutdown();
         std::remove("test_sound.wav");
         std::remove("test_music.wav");
     }
@@ -88,7 +88,7 @@ protected:
 
 TEST_F(SAudioSystemTest, InitializeAndShutdown)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
 
     EXPECT_TRUE(audioSystem.initialize());
     EXPECT_TRUE(audioSystem.initialize());  // Should handle double initialization
@@ -99,7 +99,7 @@ TEST_F(SAudioSystemTest, InitializeAndShutdown)
 
 TEST_F(SAudioSystemTest, LoadAndUnloadSFX)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
 
     // Load a sound effect
@@ -117,7 +117,7 @@ TEST_F(SAudioSystemTest, LoadAndUnloadSFX)
 
 TEST_F(SAudioSystemTest, LoadAndUnloadMusic)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
 
     // Load music (just registers the path)
@@ -129,7 +129,7 @@ TEST_F(SAudioSystemTest, LoadAndUnloadMusic)
 
 TEST_F(SAudioSystemTest, PlaySFXReturnsValidHandle)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_sfx", "test_sound.wav", AudioType::SFX);
 
@@ -150,7 +150,7 @@ TEST_F(SAudioSystemTest, PlaySFXReturnsValidHandle)
 
 TEST_F(SAudioSystemTest, SpatialSFXReturnsValidHandle)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_sfx", "test_sound.wav", AudioType::SFX);
 
@@ -169,7 +169,7 @@ TEST_F(SAudioSystemTest, SpatialSFXReturnsValidHandle)
 
 TEST_F(SAudioSystemTest, PauseAndResumeSFXDoesNotCrash)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_sfx", "test_sound.wav", AudioType::SFX);
 
@@ -187,7 +187,7 @@ TEST_F(SAudioSystemTest, PauseAndResumeSFXDoesNotCrash)
 
 TEST_F(SAudioSystemTest, MusicLoadAndPlayAPI)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_music", "test_music.wav", AudioType::Music);
 
@@ -202,7 +202,7 @@ TEST_F(SAudioSystemTest, MusicLoadAndPlayAPI)
 
 TEST_F(SAudioSystemTest, MusicPauseResumeDoesNotCrash)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_music", "test_music.wav", AudioType::Music);
 
@@ -218,7 +218,7 @@ TEST_F(SAudioSystemTest, MusicPauseResumeDoesNotCrash)
 
 TEST_F(SAudioSystemTest, VolumeControl)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
 
     // Test master volume
@@ -243,7 +243,7 @@ TEST_F(SAudioSystemTest, VolumeControl)
 
 TEST_F(SAudioSystemTest, ListenerPosition)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
 
     // Set listener position (should not crash)
@@ -253,7 +253,7 @@ TEST_F(SAudioSystemTest, ListenerPosition)
 
 TEST_F(SAudioSystemTest, SoundPoolExhaustion)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_sfx", "test_sound.wav", AudioType::SFX);
 
@@ -288,7 +288,7 @@ TEST_F(SAudioSystemTest, SoundPoolExhaustion)
 
 TEST_F(SAudioSystemTest, UpdateFreesFinishedSounds)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_sfx", "test_sound.wav", AudioType::SFX);
 
@@ -309,7 +309,7 @@ TEST_F(SAudioSystemTest, UpdateFreesFinishedSounds)
 
 TEST_F(SAudioSystemTest, InvalidOperations)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
 
     // Operations before initialization should fail gracefully
     EXPECT_FALSE(audioSystem.loadSound("test", "test.wav", AudioType::SFX));
@@ -332,7 +332,7 @@ TEST_F(SAudioSystemTest, InvalidOperations)
 
 TEST_F(SAudioSystemTest, MasterVolumePreservesIndividualSFXVolumes)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_sfx", "test_sound.wav", AudioType::SFX);
 
@@ -365,7 +365,7 @@ TEST_F(SAudioSystemTest, MasterVolumePreservesIndividualSFXVolumes)
 
 TEST_F(SAudioSystemTest, MasterVolumePreservesMusicVolume)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_music", "test_music.wav", AudioType::Music);
 
@@ -393,7 +393,7 @@ TEST_F(SAudioSystemTest, MasterVolumePreservesMusicVolume)
 
 TEST_F(SAudioSystemTest, CategoryVolumePreservesIndividualVolumes)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_sfx", "test_sound.wav", AudioType::SFX);
 
@@ -417,7 +417,7 @@ TEST_F(SAudioSystemTest, CategoryVolumePreservesIndividualVolumes)
 
 TEST_F(SAudioSystemTest, IndividualSFXVolumeChange)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_sfx", "test_sound.wav", AudioType::SFX);
 
@@ -443,7 +443,7 @@ TEST_F(SAudioSystemTest, IndividualSFXVolumeChange)
 
 TEST_F(SAudioSystemTest, MultipleVolumeChangesDoNotCompound)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_sfx", "test_sound.wav", AudioType::SFX);
 
@@ -490,7 +490,7 @@ TEST_F(SAudioSystemTest, FadeConfigLinearCreation)
 
 TEST_F(SAudioSystemTest, PlaySFXWithInstantFade)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_sfx", "test_sound.wav", AudioType::SFX);
 
@@ -504,7 +504,7 @@ TEST_F(SAudioSystemTest, PlaySFXWithInstantFade)
 
 TEST_F(SAudioSystemTest, PlaySFXWithFadeIn)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_sfx", "test_sound.wav", AudioType::SFX);
 
@@ -524,7 +524,7 @@ TEST_F(SAudioSystemTest, PlaySFXWithFadeIn)
 
 TEST_F(SAudioSystemTest, PlaySpatialSFXWithFadeIn)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_sfx", "test_sound.wav", AudioType::SFX);
 
@@ -548,7 +548,7 @@ TEST_F(SAudioSystemTest, PlaySpatialSFXWithFadeIn)
 
 TEST_F(SAudioSystemTest, FadeSFXToTargetVolume)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_sfx", "test_sound.wav", AudioType::SFX);
 
@@ -572,7 +572,7 @@ TEST_F(SAudioSystemTest, FadeSFXToTargetVolume)
 
 TEST_F(SAudioSystemTest, FadeSFXWithInvalidHandle)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
 
     // Try to fade with invalid handle
@@ -584,7 +584,7 @@ TEST_F(SAudioSystemTest, FadeSFXWithInvalidHandle)
 
 TEST_F(SAudioSystemTest, StopSFXWithFadeOut)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_sfx", "test_sound.wav", AudioType::SFX);
 
@@ -620,7 +620,7 @@ TEST_F(SAudioSystemTest, StopSFXWithFadeOut)
 
 TEST_F(SAudioSystemTest, StopSFXWithInstantFade)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_sfx", "test_sound.wav", AudioType::SFX);
 
@@ -638,7 +638,7 @@ TEST_F(SAudioSystemTest, StopSFXWithInstantFade)
 
 TEST_F(SAudioSystemTest, FadeInterruption_Interruptible)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_sfx", "test_sound.wav", AudioType::SFX);
 
@@ -681,7 +681,7 @@ TEST_F(SAudioSystemTest, FadeInterruption_Interruptible)
 
 TEST_F(SAudioSystemTest, FadeInterruption_NonInterruptible)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_sfx", "test_sound.wav", AudioType::SFX);
 
@@ -710,7 +710,7 @@ TEST_F(SAudioSystemTest, FadeInterruption_NonInterruptible)
 
 TEST_F(SAudioSystemTest, CancelFade)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_sfx", "test_sound.wav", AudioType::SFX);
 
@@ -743,7 +743,7 @@ TEST_F(SAudioSystemTest, CancelFade)
 
 TEST_F(SAudioSystemTest, FadeCallback)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_sfx", "test_sound.wav", AudioType::SFX);
 
@@ -787,7 +787,7 @@ TEST_F(SAudioSystemTest, FadeCallback)
 
 TEST_F(SAudioSystemTest, FadeCurveTypes)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_sfx", "test_sound.wav", AudioType::SFX);
 
@@ -820,7 +820,7 @@ TEST_F(SAudioSystemTest, FadeCurveTypes)
 
 TEST_F(SAudioSystemTest, PlayMusicWithFadeIn)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_music", "test_music.wav", AudioType::Music);
 
@@ -840,7 +840,7 @@ TEST_F(SAudioSystemTest, PlayMusicWithFadeIn)
 
 TEST_F(SAudioSystemTest, FadeMusicToTargetVolume)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_music", "test_music.wav", AudioType::Music);
 
@@ -863,7 +863,7 @@ TEST_F(SAudioSystemTest, FadeMusicToTargetVolume)
 
 TEST_F(SAudioSystemTest, StopMusicWithFadeOut)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_music", "test_music.wav", AudioType::Music);
 
@@ -885,7 +885,7 @@ TEST_F(SAudioSystemTest, StopMusicWithFadeOut)
 
 TEST_F(SAudioSystemTest, CancelMusicFade)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_music", "test_music.wav", AudioType::Music);
 
@@ -916,7 +916,7 @@ TEST_F(SAudioSystemTest, CancelMusicFade)
 
 TEST_F(SAudioSystemTest, MusicFadeInterruption_NonInterruptible)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_music", "test_music.wav", AudioType::Music);
 
@@ -943,7 +943,7 @@ TEST_F(SAudioSystemTest, MusicFadeInterruption_NonInterruptible)
 
 TEST_F(SAudioSystemTest, MusicFadeCallback)
 {
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
     audioSystem.initialize();
     audioSystem.loadSound("test_music", "test_music.wav", AudioType::Music);
 

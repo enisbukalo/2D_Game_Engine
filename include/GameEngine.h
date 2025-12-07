@@ -6,13 +6,13 @@
 
 // Include system and manager headers
 #include <ComponentFactory.h>
-#include <EntityManager.h>
-#include <SAudioSystem.h>
-#include <SBox2DPhysics.h>
-#include <SInputManager.h>
-#include <SParticleSystem.h>
+#include <S2DPhysics.h>
+#include <SAudio.h>
+#include <SEntity.h>
+#include <SInput.h>
+#include <SParticle.h>
 #include <SRenderer.h>
-#include <SceneManager.h>
+#include <SScene.h>
 
 /**
  * @brief Main game engine class handling core game loop and systems
@@ -74,15 +74,15 @@ public:
 
     /**
      * @brief Gets the entity manager instance
-     * @return Reference to the EntityManager singleton
+     * @return Reference to the SEntity singleton
      */
-    EntityManager& getEntityManager();
+    SEntity& getEntityManager();
 
     /**
      * @brief Gets the scene manager instance
-     * @return Reference to the SceneManager singleton
+     * @return Reference to the SScene singleton
      */
-    SceneManager& getSceneManager();
+    SScene& getSceneManager();
 
     /**
      * @brief Gets the component factory instance
@@ -92,21 +92,21 @@ public:
 
     /**
      * @brief Gets the Box2D physics system instance
-     * @return Reference to the SBox2DPhysics singleton
+     * @return Reference to the S2DPhysics singleton
      */
-    SBox2DPhysics& getPhysics();
+    S2DPhysics& getPhysics();
 
     /**
      * @brief Gets the input manager instance
-     * @return Reference to the SInputManager singleton
+     * @return Reference to the SInput singleton
      */
-    SInputManager& getInputManager();
+    SInput& getInputManager();
 
     /**
      * @brief Gets the audio system instance
-     * @return Reference to the SAudioSystem singleton
+     * @return Reference to the SAudio singleton
      */
-    SAudioSystem& getAudioSystem();
+    SAudio& getAudioSystem();
 
     /**
      * @brief Gets the renderer system instance
@@ -116,9 +116,9 @@ public:
 
     /**
      * @brief Gets the particle system instance
-     * @return Reference to the SParticleSystem singleton
+     * @return Reference to the SParticle singleton
      */
-    SParticleSystem& getParticleSystem();
+    SParticle& getParticleSystem();
 
 private:
     const uint8_t m_subStepCount;  ///< Number of physics sub-steps per update

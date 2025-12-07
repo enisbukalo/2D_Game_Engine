@@ -313,8 +313,8 @@ public:
 
     // Component interface
     void        init() override;
-    void        serialize(JsonBuilder& builder) const override;
-    void        deserialize(const JsonValue& value) override;
+    void        serialize(Serialization::JsonBuilder& builder) const override;
+    void        deserialize(const Serialization::SSerialization::JsonValue& value) override;
     std::string getType() const override;
 
 private:

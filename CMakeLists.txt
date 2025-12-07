@@ -181,6 +181,7 @@ target_include_directories(GameEngine
     $<BUILD_INTERFACE:${ENGINE_COMPONENT_DIR}>
     $<BUILD_INTERFACE:${ENGINE_ENTITIES_DIR}>
     $<BUILD_INTERFACE:${ENGINE_SYSTEM_DIR}>
+    $<BUILD_INTERFACE:${ENGINE_SYSTEM_DIR}/serialization>
     $<BUILD_INTERFACE:${ENGINE_UTILITY_DIR}>
     $<BUILD_INTERFACE:${ENGINE_PHYSICS_DIR}>
     $<BUILD_INTERFACE:${uuid_v4_SOURCE_DIR}>
@@ -188,6 +189,7 @@ target_include_directories(GameEngine
     $<INSTALL_INTERFACE:include/GameEngine/components>
     $<INSTALL_INTERFACE:include/GameEngine/entities>
     $<INSTALL_INTERFACE:include/GameEngine/systems>
+    $<INSTALL_INTERFACE:include/GameEngine/systems/serialization>
     $<INSTALL_INTERFACE:include/GameEngine/utility>
     $<INSTALL_INTERFACE:include/GameEngine/physics>
     $<INSTALL_INTERFACE:include>

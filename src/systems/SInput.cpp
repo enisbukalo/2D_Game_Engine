@@ -1,32 +1,30 @@
-#include "SInputManager.h"
+#include "SInput.h"
 
 #include <imgui-SFML.h>
 #include <imgui.h>
 #include <spdlog/spdlog.h>
 #include <algorithm>
 
-SInputManager* SInputManager::s_instance = nullptr;
+SInput::SInput() = default;
 
-SInputManager::SInputManager() = default;
-
-SInputManager::~SInputManager() = default;
-
-SInputManager& SInputManager::instance()
+SInput::~SInput()
 {
-    if (!s_instance)
-    {
-        s_instance = new SInputManager();
-    }
-    return *s_instance;
+    shutdown();
 }
 
-void SInputManager::initialize(sf::RenderWindow* window, bool passToImGui)
+SInput& SInput::instance()
+{
+    static SInput instance;
+    return instance;
+}
+
+void SInput::initialize(sf::RenderWindow* window, bool passToImGui)
 {
     m_window      = window;
     m_passToImGui = passToImGui;
 }
 
-void SInputManager::shutdown()
+void SInput::shutdown()
 {
     m_window = nullptr;
     m_keyDown.clear();
@@ -199,7 +197,7 @@ static MouseButton mouseButtonFromSFML(sf::Mouse::Button mb)
     }
 }
 
-BindingId SInputManager::bindAction(const std::string& actionName, const ActionBinding& binding)
+BindingId SInput::bindAction(const std::string& actionName, const ActionBinding& binding)
 {
     BindingId id = m_nextBindingId++;
     m_actionBindings[actionName].push_back({id, binding});
@@ -207,7 +205,7 @@ BindingId SInputManager::bindAction(const std::string& actionName, const ActionB
     return id;
 }
 
-void SInputManager::unbindAction(const std::string& actionName, BindingId id)
+void SInput::unbindAction(const std::string& actionName, BindingId id)
 {
     auto it = m_actionBindings.find(actionName);
     if (it == m_actionBindings.end())
@@ -221,13 +219,13 @@ void SInputManager::unbindAction(const std::string& actionName, BindingId id)
     }
 }
 
-void SInputManager::unbindAction(const std::string& actionName)
+void SInput::unbindAction(const std::string& actionName)
 {
     m_actionBindings.erase(actionName);
     m_actionStates.erase(actionName);
 }
 
-void SInputManager::processEvent(const sf::Event& event)
+void SInput::processEvent(const sf::Event& event)
 {
     bool imguiCaptured = false;
     if (m_passToImGui)
@@ -407,7 +405,7 @@ void SInputManager::processEvent(const sf::Event& event)
     }
 }
 
-void SInputManager::update(float /*deltaTime*/)
+void SInput::update(float /*deltaTime*/)
 {
     // Clear transient states (pressed/released) at start of update
     for (auto& kv : m_actionStates)
@@ -529,73 +527,73 @@ void SInputManager::update(float /*deltaTime*/)
     }
 }
 
-ListenerId SInputManager::subscribe(std::function<void(const InputEvent&)> cb)
+ListenerId SInput::subscribe(std::function<void(const InputEvent&)> cb)
 {
     ListenerId id = m_nextListenerId++;
     m_subscribers.insert({id, cb});
     return id;
 }
 
-void SInputManager::unsubscribe(ListenerId id)
+void SInput::unsubscribe(ListenerId id)
 {
     m_subscribers.erase(id);
 }
 
-void SInputManager::addListener(IInputListener* listener)
+void SInput::addListener(IInputListener* listener)
 {
     if (!listener)
         return;
     m_listenerPointers.push_back(listener);
 }
 
-void SInputManager::removeListener(IInputListener* listener)
+void SInput::removeListener(IInputListener* listener)
 {
     m_listenerPointers.erase(std::remove(m_listenerPointers.begin(), m_listenerPointers.end(), listener),
                              m_listenerPointers.end());
 }
 
-bool SInputManager::isKeyDown(KeyCode key) const
+bool SInput::isKeyDown(KeyCode key) const
 {
     auto it = m_keyDown.find(key);
     return (it != m_keyDown.end()) && it->second;
 }
 
-bool SInputManager::wasKeyPressed(KeyCode key) const
+bool SInput::wasKeyPressed(KeyCode key) const
 {
     auto it = m_keyPressed.find(key);
     return (it != m_keyPressed.end()) && it->second;
 }
 
-bool SInputManager::wasKeyReleased(KeyCode key) const
+bool SInput::wasKeyReleased(KeyCode key) const
 {
     auto it = m_keyReleased.find(key);
     return (it != m_keyReleased.end()) && it->second;
 }
 
-bool SInputManager::isMouseDown(MouseButton button) const
+bool SInput::isMouseDown(MouseButton button) const
 {
     auto it = m_mouseDown.find(button);
     return (it != m_mouseDown.end()) && it->second;
 }
 
-bool SInputManager::wasMousePressed(MouseButton button) const
+bool SInput::wasMousePressed(MouseButton button) const
 {
     auto it = m_mousePressed.find(button);
     return (it != m_mousePressed.end()) && it->second;
 }
 
-bool SInputManager::wasMouseReleased(MouseButton button) const
+bool SInput::wasMouseReleased(MouseButton button) const
 {
     auto it = m_mouseReleased.find(button);
     return (it != m_mouseReleased.end()) && it->second;
 }
 
-sf::Vector2i SInputManager::getMousePositionWindow() const
+sf::Vector2i SInput::getMousePositionWindow() const
 {
     return m_mousePosition;
 }
 
-ActionState SInputManager::getActionState(const std::string& actionName) const
+ActionState SInput::getActionState(const std::string& actionName) const
 {
     auto it = m_actionStates.find(actionName);
     if (it == m_actionStates.end())

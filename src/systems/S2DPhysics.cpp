@@ -1,13 +1,11 @@
-#include "SBox2DPhysics.h"
+#include "S2DPhysics.h"
 #include "CPhysicsBody2D.h"
 #include "CTransform.h"
 #include "Entity.h"
-#include "EntityManager.h"
+#include "SEntity.h"
 #include "Vec2.h"
 
-SBox2DPhysics* SBox2DPhysics::s_instance = nullptr;
-
-SBox2DPhysics::SBox2DPhysics() : m_timeStep(1.0f / 60.0f), m_subStepCount(6)
+S2DPhysics::S2DPhysics() : m_timeStep(1.0f / 60.0f), m_subStepCount(6)
 {
     // Create Box2D world with default gravity (Y-up: negative Y = downward)
     b2WorldDef worldDef = b2DefaultWorldDef();
@@ -20,7 +18,7 @@ SBox2DPhysics::SBox2DPhysics() : m_timeStep(1.0f / 60.0f), m_subStepCount(6)
     m_worldId = b2CreateWorld(&worldDef);
 }
 
-SBox2DPhysics::~SBox2DPhysics()
+S2DPhysics::~S2DPhysics()
 {
     // Destroy all bodies
     for (auto& pair : m_entityBodyMap)
@@ -37,20 +35,15 @@ SBox2DPhysics::~SBox2DPhysics()
     {
         b2DestroyWorld(m_worldId);
     }
-
-    s_instance = nullptr;
 }
 
-SBox2DPhysics& SBox2DPhysics::instance()
+S2DPhysics& S2DPhysics::instance()
 {
-    if (!s_instance)
-    {
-        s_instance = new SBox2DPhysics();
-    }
-    return *s_instance;
+    static S2DPhysics instance;
+    return instance;
 }
 
-void SBox2DPhysics::update(float deltaTime)
+void S2DPhysics::update(float deltaTime)
 {
     // Step the Box2D world with fixed timestep
     b2World_Step(m_worldId, m_timeStep, m_subStepCount);
@@ -72,17 +65,17 @@ void SBox2DPhysics::update(float deltaTime)
     }
 }
 
-void SBox2DPhysics::setGravity(const b2Vec2& gravity)
+void S2DPhysics::setGravity(const b2Vec2& gravity)
 {
     b2World_SetGravity(m_worldId, gravity);
 }
 
-b2Vec2 SBox2DPhysics::getGravity() const
+b2Vec2 S2DPhysics::getGravity() const
 {
     return b2World_GetGravity(m_worldId);
 }
 
-b2BodyId SBox2DPhysics::createBody(Entity* entity, const b2BodyDef& bodyDef)
+b2BodyId S2DPhysics::createBody(Entity* entity, const b2BodyDef& bodyDef)
 {
     if (!entity)
     {
@@ -109,7 +102,7 @@ b2BodyId SBox2DPhysics::createBody(Entity* entity, const b2BodyDef& bodyDef)
     return bodyId;
 }
 
-void SBox2DPhysics::destroyBody(const Entity* entity)
+void S2DPhysics::destroyBody(const Entity* entity)
 {
     if (!entity)
     {
@@ -127,7 +120,7 @@ void SBox2DPhysics::destroyBody(const Entity* entity)
     }
 }
 
-b2BodyId SBox2DPhysics::getBody(const Entity* entity)
+b2BodyId S2DPhysics::getBody(const Entity* entity)
 {
     if (!entity)
     {
@@ -143,13 +136,13 @@ b2BodyId SBox2DPhysics::getBody(const Entity* entity)
     return b2_nullBodyId;
 }
 
-void SBox2DPhysics::queryAABB(const b2AABB& aabb, b2OverlapResultFcn* callback, void* context)
+void S2DPhysics::queryAABB(const b2AABB& aabb, b2OverlapResultFcn* callback, void* context)
 {
     b2QueryFilter filter = b2DefaultQueryFilter();
     b2World_OverlapAABB(m_worldId, aabb, filter, callback, context);
 }
 
-void SBox2DPhysics::rayCast(const b2Vec2& origin, const b2Vec2& translation, b2CastResultFcn* callback, void* context)
+void S2DPhysics::rayCast(const b2Vec2& origin, const b2Vec2& translation, b2CastResultFcn* callback, void* context)
 {
     b2QueryFilter filter = b2DefaultQueryFilter();
     b2World_CastRay(m_worldId, origin, translation, filter, callback, context);

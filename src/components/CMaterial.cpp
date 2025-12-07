@@ -1,13 +1,12 @@
 #include "CMaterial.h"
-#include "JsonBuilder.h"
-#include "JsonParser.h"
+#include "SSerialization.h"
 
 std::string CMaterial::getType() const
 {
     return "Material";
 }
 
-void CMaterial::serialize(JsonBuilder& builder) const
+void CMaterial::serialize(Serialization::JsonBuilder& builder) const
 {
     builder.beginObject();
     builder.addKey("cMaterial");
@@ -50,7 +49,7 @@ void CMaterial::serialize(JsonBuilder& builder) const
     builder.endObject();
 }
 
-void CMaterial::deserialize(const JsonValue& value)
+void CMaterial::deserialize(const Serialization::SSerialization::JsonValue& value)
 {
     const auto& material = value["cMaterial"];
 

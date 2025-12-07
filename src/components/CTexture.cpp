@@ -1,13 +1,12 @@
 #include "CTexture.h"
-#include "JsonBuilder.h"
-#include "JsonParser.h"
+#include "SSerialization.h"
 
 std::string CTexture::getType() const
 {
     return "Texture";
 }
 
-void CTexture::serialize(JsonBuilder& builder) const
+void CTexture::serialize(Serialization::JsonBuilder& builder) const
 {
     builder.beginObject();
     builder.addKey("cTexture");
@@ -20,7 +19,7 @@ void CTexture::serialize(JsonBuilder& builder) const
     builder.endObject();
 }
 
-void CTexture::deserialize(const JsonValue& value)
+void CTexture::deserialize(const Serialization::SSerialization::JsonValue& value)
 {
     const auto& texture = value["cTexture"];
     if (texture.hasKey("guid"))

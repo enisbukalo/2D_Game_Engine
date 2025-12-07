@@ -1,13 +1,12 @@
 #include "CTransform.h"
-#include "JsonBuilder.h"
-#include "JsonParser.h"
+#include "SSerialization.h"
 
 std::string CTransform::getType() const
 {
     return "Transform";
 }
 
-void CTransform::serialize(JsonBuilder& builder) const
+void CTransform::serialize(Serialization::JsonBuilder& builder) const
 {
     builder.beginObject();
     builder.addKey("cTransform");
@@ -41,7 +40,7 @@ void CTransform::serialize(JsonBuilder& builder) const
     builder.endObject();
 }
 
-void CTransform::deserialize(const JsonValue& value)
+void CTransform::deserialize(const Serialization::SSerialization::JsonValue& value)
 {
     const auto& transform = value["cTransform"];
 

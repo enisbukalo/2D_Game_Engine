@@ -2,8 +2,7 @@
 #include "CParticleEmitter.h"
 #include "Color.h"
 #include "Vec2.h"
-#include "JsonBuilder.h"
-#include "JsonValue.h"
+#include "SSerialization.h"
 #include <vector>
 
 /**
@@ -362,7 +361,7 @@ TEST_F(CParticleEmitterTest, SerializationContainsAllFields)
     m_emitter->setEmitOutward(true);
     m_emitter->setActive(false);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     m_emitter->serialize(builder);
     std::string json = builder.toString();
 
@@ -443,9 +442,7 @@ TEST_F(CParticleEmitterTest, DeserializationAllFields)
                 { "x": 1.0, "y": 1.0 }
             ]
         }
-    })";
-
-    JsonValue value(json);
+    })";    Serialization::SSerialization::JsonValue value(json);
     m_emitter->deserialize(value);
 
     EXPECT_FALSE(m_emitter->isActive());
@@ -564,13 +561,13 @@ TEST_F(CParticleEmitterTest, SerializeDeserializeRoundTrip)
     m_emitter->setPolygonVertices(vertices);
 
     // Serialize
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     m_emitter->serialize(builder);
     std::string json = builder.toString();
 
     // Deserialize into a new emitter
     CParticleEmitter emitter2;
-    JsonValue        value(json);
+   Serialization::SSerialization::JsonValue        value(json);
     emitter2.deserialize(value);
 
     // Compare all values
@@ -670,7 +667,7 @@ TEST_F(CParticleEmitterTest, BackwardCompatibilityOldFormat)
         }
     })";
 
-    JsonValue value(oldJson);
+   Serialization::SSerialization::JsonValue value(oldJson);
     m_emitter->deserialize(value);
 
     // Check that the old fields are read correctly
@@ -696,12 +693,12 @@ TEST_F(CParticleEmitterTest, EmissionShapeEnumSerialization)
     {
         m_emitter->setEmissionShape(shapes[i]);
 
-        JsonBuilder builder;
+        Serialization::JsonBuilder builder;
         m_emitter->serialize(builder);
         std::string json = builder.toString();
 
         CParticleEmitter emitter2;
-        JsonValue        value(json);
+       Serialization::SSerialization::JsonValue        value(json);
         emitter2.deserialize(value);
 
         EXPECT_EQ(m_emitter->getEmissionShape(), emitter2.getEmissionShape());
@@ -712,16 +709,14 @@ TEST_F(CParticleEmitterTest, EmptyPolygonVerticesSerialization)
 {
     m_emitter->clearPolygonVertices();
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     m_emitter->serialize(builder);
     std::string json = builder.toString();
 
     CParticleEmitter emitter2;
     // Set some vertices first, they should be cleared after deserialization
     emitter2.addPolygonVertex(Vec2(1, 1));
-    emitter2.addPolygonVertex(Vec2(2, 2));
-
-    JsonValue value(json);
+    emitter2.addPolygonVertex(Vec2(2, 2));    Serialization::SSerialization::JsonValue value(json);
     emitter2.deserialize(value);
 
     EXPECT_TRUE(emitter2.getPolygonVertices().empty());
@@ -732,12 +727,12 @@ TEST_F(CParticleEmitterTest, ColorAlphaChannelSerialization)
     m_emitter->setStartColor(Color(128, 64, 32, 200));
     m_emitter->setEndColor(Color(255, 128, 64, 100));
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     m_emitter->serialize(builder);
     std::string json = builder.toString();
 
     CParticleEmitter emitter2;
-    JsonValue        value(json);
+   Serialization::SSerialization::JsonValue        value(json);
     emitter2.deserialize(value);
 
     Color sc = emitter2.getStartColor();
@@ -761,12 +756,12 @@ TEST_F(CParticleEmitterTest, NegativeValuesSerialization)
     m_emitter->setMinRotationSpeed(-3.0f);
     m_emitter->setMaxRotationSpeed(-1.0f);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     m_emitter->serialize(builder);
     std::string json = builder.toString();
 
     CParticleEmitter emitter2;
-    JsonValue        value(json);
+   Serialization::SSerialization::JsonValue        value(json);
     emitter2.deserialize(value);
 
     Vec2 gravity = emitter2.getGravity();
@@ -790,12 +785,12 @@ TEST_F(CParticleEmitterTest, ZeroValuesSerialization)
     m_emitter->setBurstCount(0.0f);
     m_emitter->setGravity(Vec2(0.0f, 0.0f));
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     m_emitter->serialize(builder);
     std::string json = builder.toString();
 
     CParticleEmitter emitter2;
-    JsonValue        value(json);
+   Serialization::SSerialization::JsonValue        value(json);
     emitter2.deserialize(value);
 
     EXPECT_FLOAT_EQ(emitter2.getSpreadAngle(), 0.0f);

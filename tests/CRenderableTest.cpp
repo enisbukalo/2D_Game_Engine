@@ -1,27 +1,26 @@
 #include <gtest/gtest.h>
 #include "CRenderable.h"
 #include "Entity.h"
-#include "EntityManager.h"
-#include "JsonBuilder.h"
-#include "JsonValue.h"
+#include "SEntity.h"
+#include "SSerialization.h"
 
 class CRenderableTest : public ::testing::Test
 {
 protected:
     void SetUp() override
     {
-        EntityManager::instance().clear();
+        SEntity::instance().clear();
     }
 
     void TearDown() override
     {
-        EntityManager::instance().clear();
+        SEntity::instance().clear();
     }
 };
 
 TEST_F(CRenderableTest, ComponentCreationAndDefaults)
 {
-    auto entity     = EntityManager::instance().addEntity("test");
+    auto entity     = SEntity::instance().addEntity("test");
     auto* renderable = entity->addComponent<CRenderable>();
 
     ASSERT_NE(renderable, nullptr);
@@ -35,7 +34,7 @@ TEST_F(CRenderableTest, ComponentCreationAndDefaults)
 
 TEST_F(CRenderableTest, ParameterizedConstruction)
 {
-    auto entity     = EntityManager::instance().addEntity("test");
+    auto entity     = SEntity::instance().addEntity("test");
     auto* renderable = entity->addComponent<CRenderable>(VisualType::Circle, Color::Red, 5, false);
 
     EXPECT_EQ(renderable->getVisualType(), VisualType::Circle);
@@ -46,7 +45,7 @@ TEST_F(CRenderableTest, ParameterizedConstruction)
 
 TEST_F(CRenderableTest, SettersAndGetters)
 {
-    auto entity     = EntityManager::instance().addEntity("test");
+    auto entity     = SEntity::instance().addEntity("test");
     auto* renderable = entity->addComponent<CRenderable>();
 
     renderable->setVisualType(VisualType::Rectangle);
@@ -68,7 +67,7 @@ TEST_F(CRenderableTest, SettersAndGetters)
 
 TEST_F(CRenderableTest, VisualTypeEnumeration)
 {
-    auto entity     = EntityManager::instance().addEntity("test");
+    auto entity     = SEntity::instance().addEntity("test");
     auto* renderable = entity->addComponent<CRenderable>();
 
     // Test all visual types
@@ -90,9 +89,9 @@ TEST_F(CRenderableTest, VisualTypeEnumeration)
 
 TEST_F(CRenderableTest, ZIndexOrdering)
 {
-    auto entity1 = EntityManager::instance().addEntity("entity1");
-    auto entity2 = EntityManager::instance().addEntity("entity2");
-    auto entity3 = EntityManager::instance().addEntity("entity3");
+    auto entity1 = SEntity::instance().addEntity("entity1");
+    auto entity2 = SEntity::instance().addEntity("entity2");
+    auto entity3 = SEntity::instance().addEntity("entity3");
 
     auto* r1 = entity1->addComponent<CRenderable>(VisualType::Rectangle, Color::White, -5);
     auto* r2 = entity2->addComponent<CRenderable>(VisualType::Rectangle, Color::White, 0);
@@ -104,10 +103,10 @@ TEST_F(CRenderableTest, ZIndexOrdering)
 
 TEST_F(CRenderableTest, Serialization)
 {
-    auto entity     = EntityManager::instance().addEntity("test");
+    auto entity     = SEntity::instance().addEntity("test");
     auto* renderable = entity->addComponent<CRenderable>(VisualType::Sprite, Color(255, 128, 64, 200), 7, false);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     renderable->serialize(builder);
 
     std::string json = builder.toString();
@@ -133,11 +132,9 @@ TEST_F(CRenderableTest, Deserialization)
             "zIndex": 5,
             "visible": false
         }
-    })";
+    })";    Serialization::SSerialization::JsonValue value(json);
 
-    JsonValue value(json);
-
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     auto* renderable = entity->addComponent<CRenderable>();
     renderable->deserialize(value);
 
@@ -152,16 +149,14 @@ TEST_F(CRenderableTest, Deserialization)
 
 TEST_F(CRenderableTest, SerializeDeserializeRoundTrip)
 {
-    auto entity      = EntityManager::instance().addEntity("test");
+    auto entity      = SEntity::instance().addEntity("test");
     auto* renderable1 = entity->addComponent<CRenderable>(VisualType::Rectangle, Color(64, 128, 192, 255), -3, true);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     renderable1->serialize(builder);
-    std::string json = builder.toString();
+    std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
-    JsonValue value(json);
-
-    auto  entity2  = EntityManager::instance().addEntity("test2");
+    auto  entity2  = SEntity::instance().addEntity("test2");
     auto* renderable2 = entity2->addComponent<CRenderable>();
     renderable2->deserialize(value);
 
@@ -173,7 +168,7 @@ TEST_F(CRenderableTest, SerializeDeserializeRoundTrip)
 
 TEST_F(CRenderableTest, VisibilityToggle)
 {
-    auto entity     = EntityManager::instance().addEntity("test");
+    auto entity     = SEntity::instance().addEntity("test");
     auto* renderable = entity->addComponent<CRenderable>();
 
     EXPECT_TRUE(renderable->isVisible());
@@ -197,7 +192,7 @@ TEST_F(CRenderableTest, ColorEquality)
 
 TEST_F(CRenderableTest, LineVisualType)
 {
-    auto entity     = EntityManager::instance().addEntity("test");
+    auto entity     = SEntity::instance().addEntity("test");
     auto* renderable = entity->addComponent<CRenderable>();
 
     renderable->setVisualType(VisualType::Line);
@@ -206,7 +201,7 @@ TEST_F(CRenderableTest, LineVisualType)
 
 TEST_F(CRenderableTest, LineEndpoints)
 {
-    auto entity     = EntityManager::instance().addEntity("test");
+    auto entity     = SEntity::instance().addEntity("test");
     auto* renderable = entity->addComponent<CRenderable>(VisualType::Line);
 
     // Test default endpoints
@@ -231,7 +226,7 @@ TEST_F(CRenderableTest, LineEndpoints)
 
 TEST_F(CRenderableTest, LineThickness)
 {
-    auto entity     = EntityManager::instance().addEntity("test");
+    auto entity     = SEntity::instance().addEntity("test");
     auto* renderable = entity->addComponent<CRenderable>(VisualType::Line);
 
     // Test default thickness
@@ -247,14 +242,14 @@ TEST_F(CRenderableTest, LineThickness)
 
 TEST_F(CRenderableTest, LineSerializationDeserialization)
 {
-    auto entity     = EntityManager::instance().addEntity("test");
+    auto entity     = SEntity::instance().addEntity("test");
     auto* renderable = entity->addComponent<CRenderable>(VisualType::Line, Color::Yellow, 3, true);
 
     renderable->setLineStart(Vec2(-1.5f, 2.5f));
     renderable->setLineEnd(Vec2(3.5f, -4.5f));
     renderable->setLineThickness(3.5f);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     renderable->serialize(builder);
     std::string json = builder.toString();
 
@@ -264,8 +259,8 @@ TEST_F(CRenderableTest, LineSerializationDeserialization)
     EXPECT_TRUE(json.find("\"lineThickness\"") != std::string::npos);
 
     // Deserialize and verify
-    JsonValue value(json);
-    auto  entity2  = EntityManager::instance().addEntity("test2");
+    Serialization::SSerialization::JsonValue value(json);
+    auto  entity2  = SEntity::instance().addEntity("test2");
     auto* renderable2 = entity2->addComponent<CRenderable>();
     renderable2->deserialize(value);
 
@@ -279,7 +274,7 @@ TEST_F(CRenderableTest, LineSerializationDeserialization)
 
 TEST_F(CRenderableTest, NonLineTypeDoesNotSerializeLineProperties)
 {
-    auto entity     = EntityManager::instance().addEntity("test");
+    auto entity     = SEntity::instance().addEntity("test");
     auto* renderable = entity->addComponent<CRenderable>(VisualType::Rectangle);
 
     // Set line properties (should be ignored for non-Line types)
@@ -287,7 +282,7 @@ TEST_F(CRenderableTest, NonLineTypeDoesNotSerializeLineProperties)
     renderable->setLineEnd(Vec2(3.0f, 4.0f));
     renderable->setLineThickness(5.0f);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     renderable->serialize(builder);
     std::string json = builder.toString();
 

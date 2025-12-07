@@ -3,27 +3,26 @@
 #include "CTexture.h"
 #include "CShader.h"
 #include "Entity.h"
-#include "EntityManager.h"
-#include "JsonBuilder.h"
-#include "JsonValue.h"
+#include "SEntity.h"
+#include "SSerialization.h"
 
 class CMaterialTest : public ::testing::Test
 {
 protected:
     void SetUp() override
     {
-        EntityManager::instance().clear();
+        SEntity::instance().clear();
     }
 
     void TearDown() override
     {
-        EntityManager::instance().clear();
+        SEntity::instance().clear();
     }
 };
 
 TEST_F(CMaterialTest, ComponentCreationAndDefaults)
 {
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     auto* material = entity->addComponent<CMaterial>();
 
     ASSERT_NE(material, nullptr);
@@ -38,7 +37,7 @@ TEST_F(CMaterialTest, ComponentCreationAndDefaults)
 
 TEST_F(CMaterialTest, ParameterizedConstruction)
 {
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     auto* material = entity->addComponent<CMaterial>(
         "texture-guid-123",
         "shader-guid-456",
@@ -56,7 +55,7 @@ TEST_F(CMaterialTest, ParameterizedConstruction)
 
 TEST_F(CMaterialTest, SettersAndGetters)
 {
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     auto* material = entity->addComponent<CMaterial>();
 
     material->setTextureGuid("texture-abc");
@@ -77,7 +76,7 @@ TEST_F(CMaterialTest, SettersAndGetters)
 
 TEST_F(CMaterialTest, BlendModeEnumeration)
 {
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     auto* material = entity->addComponent<CMaterial>();
 
     material->setBlendMode(BlendMode::Alpha);
@@ -95,7 +94,7 @@ TEST_F(CMaterialTest, BlendModeEnumeration)
 
 TEST_F(CMaterialTest, OpacityBounds)
 {
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     auto* material = entity->addComponent<CMaterial>();
 
     material->setOpacity(0.0f);
@@ -114,7 +113,7 @@ TEST_F(CMaterialTest, OpacityBounds)
 
 TEST_F(CMaterialTest, IntegrationWithTextureComponent)
 {
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     auto* texture = entity->addComponent<CTexture>("assets/sprite.png");
     auto* material = entity->addComponent<CMaterial>();
 
@@ -124,7 +123,7 @@ TEST_F(CMaterialTest, IntegrationWithTextureComponent)
 
 TEST_F(CMaterialTest, IntegrationWithShaderComponent)
 {
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     auto* shader = entity->addComponent<CShader>("vertex.glsl", "fragment.glsl");
     auto* material = entity->addComponent<CMaterial>();
 
@@ -134,7 +133,7 @@ TEST_F(CMaterialTest, IntegrationWithShaderComponent)
 
 TEST_F(CMaterialTest, Serialization)
 {
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     auto* material = entity->addComponent<CMaterial>(
         "texture-guid-001",
         "shader-guid-002",
@@ -143,7 +142,7 @@ TEST_F(CMaterialTest, Serialization)
         0.8f
     );
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     material->serialize(builder);
     std::string json = builder.toString();
 
@@ -172,11 +171,9 @@ TEST_F(CMaterialTest, Deserialization)
             "blendMode": 2,
             "opacity": 0.6
         }
-    })";
+    })";    Serialization::SSerialization::JsonValue value(json);
 
-    JsonValue value(json);
-
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     auto* material = entity->addComponent<CMaterial>();
     material->deserialize(value);
 
@@ -192,7 +189,7 @@ TEST_F(CMaterialTest, Deserialization)
 
 TEST_F(CMaterialTest, SerializeDeserializeRoundTrip)
 {
-    auto entity1 = EntityManager::instance().addEntity("test1");
+    auto entity1 = SEntity::instance().addEntity("test1");
     auto* material1 = entity1->addComponent<CMaterial>(
         "tex-123",
         "shader-456",
@@ -201,13 +198,11 @@ TEST_F(CMaterialTest, SerializeDeserializeRoundTrip)
         0.45f
     );
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     material1->serialize(builder);
-    std::string json = builder.toString();
+    std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
-    JsonValue value(json);
-
-    auto entity2 = EntityManager::instance().addEntity("test2");
+    auto entity2 = SEntity::instance().addEntity("test2");
     auto* material2 = entity2->addComponent<CMaterial>();
     material2->deserialize(value);
 
@@ -220,16 +215,14 @@ TEST_F(CMaterialTest, SerializeDeserializeRoundTrip)
 
 TEST_F(CMaterialTest, EmptyGuidsSerializtion)
 {
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     auto* material = entity->addComponent<CMaterial>();
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     material->serialize(builder);
-    std::string json = builder.toString();
+    std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
-    JsonValue value(json);
-
-    auto entity2 = EntityManager::instance().addEntity("test2");
+    auto entity2 = SEntity::instance().addEntity("test2");
     auto* material2 = entity2->addComponent<CMaterial>();
     material2->deserialize(value);
 
@@ -239,12 +232,12 @@ TEST_F(CMaterialTest, EmptyGuidsSerializtion)
 
 TEST_F(CMaterialTest, ComponentGuid)
 {
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     auto* material = entity->addComponent<CMaterial>();
 
     EXPECT_FALSE(material->getGuid().empty());
 
-    auto entity2 = EntityManager::instance().addEntity("test2");
+    auto entity2 = SEntity::instance().addEntity("test2");
     auto* material2 = entity2->addComponent<CMaterial>();
 
     EXPECT_NE(material->getGuid(), material2->getGuid());
@@ -252,7 +245,7 @@ TEST_F(CMaterialTest, ComponentGuid)
 
 TEST_F(CMaterialTest, BlendModeStringConversion)
 {
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     auto* material = entity->addComponent<CMaterial>();
 
     // Test each blend mode through serialization
@@ -267,25 +260,23 @@ TEST_F(CMaterialTest, BlendModeStringConversion)
     {
         material->setBlendMode(mode);
 
-        JsonBuilder builder;
+        Serialization::JsonBuilder builder;
         material->serialize(builder);
-        std::string json = builder.toString();
+        std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
-        JsonValue value(json);
-
-        auto entity2 = EntityManager::instance().addEntity("test_mode");
+        auto entity2 = SEntity::instance().addEntity("test_mode");
         auto* material2 = entity2->addComponent<CMaterial>();
         material2->deserialize(value);
 
         EXPECT_EQ(material->getBlendMode(), material2->getBlendMode());
 
-        EntityManager::instance().removeEntity(entity2);
+        SEntity::instance().removeEntity(entity2);
     }
 }
 
 TEST_F(CMaterialTest, TintColorTransparency)
 {
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     auto* material = entity->addComponent<CMaterial>();
 
     // Test fully transparent tint

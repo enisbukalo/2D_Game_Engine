@@ -24,7 +24,7 @@
 class Entity : public std::enable_shared_from_this<Entity>
 {
 public:
-    friend class EntityManager;
+    friend class SEntity;
     friend class TestEntity;
 
     virtual ~Entity() = default;
@@ -177,12 +177,12 @@ public:
     /**
      * @brief Serializes the entity to binary data
      */
-    void serialize(JsonBuilder &builder) const;
+    void serialize(Serialization::JsonBuilder &builder) const;
 
     /**
      * @brief Deserializes the entity from binary data
      */
-    void deserialize(const JsonValue &value);
+    void deserialize(const Serialization::SSerialization::JsonValue &value);
 
 protected:
     /**

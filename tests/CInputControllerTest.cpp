@@ -1,10 +1,9 @@
 #include <gtest/gtest.h>
 #include "CInputController.h"
-#include "SInputManager.h"
+#include "SInput.h"
 #include "Input/ActionBinding.h"
 #include "Input/InputEvents.h"
-#include "utility/JsonBuilder.h"
-#include "utility/JsonValue.h"
+#include "SSerialization.h"
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Keyboard.hpp>
 
@@ -15,15 +14,15 @@ protected:
     void SetUp() override
     {
         // Reset and initialize SInputManager with no window and ImGui disabled
-        SInputManager::instance().shutdown();
-        SInputManager::instance().initialize(nullptr, false);
+        SInput::instance().shutdown();
+        SInput::instance().initialize(nullptr, false);
     }
 
     void TearDown() override
     {
         // Ensure any components are destroyed before shutting down manager
         // Clean up after each test
-        SInputManager::instance().shutdown();
+        SInput::instance().shutdown();
     }
 
     // Helper to create a KeyPressed event
@@ -157,24 +156,24 @@ TEST_F(CInputControllerTest, SerializeDeserializeRoundtrip)
     controller1.bindAction("Jump", binding2);
 
     // Serialize
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     controller1.serialize(builder);
     std::string json1 = builder.toString();
 
     // Deserialize into new controller
-    JsonValue jsonValue(json1);
+   Serialization::SSerialization::JsonValue jsonValue(json1);
     CInputController controller2;
     controller2.init();
     controller2.deserialize(jsonValue);
 
     // Serialize again
-    JsonBuilder builder2;
+    Serialization::JsonBuilder builder2;
     controller2.serialize(builder2);
     std::string json2 = builder2.toString();
 
     // Parse both JSONs and verify content matches (order-independent)
-    JsonValue parsed1(json1);
-    JsonValue parsed2(json2);
+   Serialization::SSerialization::JsonValue parsed1(json1);
+   Serialization::SSerialization::JsonValue parsed2(json2);
 
     // Verify both have cInputController
     ASSERT_FALSE(parsed1["cInputController"].isNull());
@@ -189,8 +188,8 @@ TEST_F(CInputControllerTest, SerializeDeserializeRoundtrip)
     EXPECT_EQ(actions1.size(), 2);
 
     // Build maps to compare actions by name (order-independent)
-    std::map<std::string, const JsonValue*> actionMap1;
-    std::map<std::string, const JsonValue*> actionMap2;
+    std::map<std::string, const Serialization::SSerialization::JsonValue*> actionMap1;
+    std::map<std::string, const Serialization::SSerialization::JsonValue*> actionMap2;
 
     for (const auto& action : actions1) {
         actionMap1[action["action"].getString()] = &action;
@@ -228,7 +227,7 @@ TEST_F(CInputControllerTest, DeserializeEmptyJson)
     CInputController controller;
     controller.init();
 
-    JsonValue emptyJson("{}");
+   Serialization::SSerialization::JsonValue emptyJson("{}");
     
     // Should not crash
     controller.deserialize(emptyJson);
@@ -398,7 +397,7 @@ TEST_F(CInputControllerTest, SerializeWithNoBindings)
     CInputController controller;
     controller.init();
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     controller.serialize(builder);
     std::string json = builder.toString();
 
@@ -422,7 +421,7 @@ TEST_F(CInputControllerTest, SerializeMultipleKeys)
 
     controller.bindAction("MultiKey", binding);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     controller.serialize(builder);
     std::string json = builder.toString();
 
@@ -443,7 +442,7 @@ TEST_F(CInputControllerTest, SerializeMouseButtons)
 
     controller.bindAction("Shoot", binding);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     controller.serialize(builder);
     std::string json = builder.toString();
 
@@ -471,7 +470,7 @@ TEST_F(CInputControllerTest, SerializeDifferentTriggers)
     releasedBinding.trigger = ActionTrigger::Released;
     controller.bindAction("Weapon3", releasedBinding);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     controller.serialize(builder);
     std::string json = builder.toString();
 
