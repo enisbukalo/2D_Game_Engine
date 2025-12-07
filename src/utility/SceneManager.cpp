@@ -4,8 +4,8 @@
 #include <stdexcept>
 #include "EntityManager.h"
 #include "FileUtilities.h"
-#include "systems/SSerialization.h"
 #include "SAudioSystem.h"
+#include "systems/SSerialization.h"
 
 void SceneManager::loadScene(const std::string& scenePath)
 {

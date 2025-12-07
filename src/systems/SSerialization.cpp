@@ -1,7 +1,7 @@
 #include "systems/SSerialization.h"
-#include "entities/Entity.h"
 #include <cctype>
 #include <cmath>
+#include "entities/Entity.h"
 
 // ============================================================================
 // SSerialization System Methods

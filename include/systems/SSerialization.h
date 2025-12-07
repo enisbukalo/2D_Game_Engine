@@ -133,12 +133,30 @@ public:
         explicit JsonValue(const std::string& json);
 
         // Type checking
-        bool isNull() const { return std::holds_alternative<std::nullptr_t>(m_value); }
-        bool isBool() const { return std::holds_alternative<bool>(m_value); }
-        bool isNumber() const { return std::holds_alternative<double>(m_value); }
-        bool isString() const { return std::holds_alternative<std::string>(m_value); }
-        bool isArray() const { return std::holds_alternative<Array>(m_value); }
-        bool isObject() const { return std::holds_alternative<Object>(m_value); }
+        bool isNull() const
+        {
+            return std::holds_alternative<std::nullptr_t>(m_value);
+        }
+        bool isBool() const
+        {
+            return std::holds_alternative<bool>(m_value);
+        }
+        bool isNumber() const
+        {
+            return std::holds_alternative<double>(m_value);
+        }
+        bool isString() const
+        {
+            return std::holds_alternative<std::string>(m_value);
+        }
+        bool isArray() const
+        {
+            return std::holds_alternative<Array>(m_value);
+        }
+        bool isObject() const
+        {
+            return std::holds_alternative<Object>(m_value);
+        }
 
         // Value getters
         bool          getBool(bool defaultValue = false) const;
