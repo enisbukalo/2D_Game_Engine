@@ -18,7 +18,6 @@ using BindingId  = size_t;
 class SInputManager : public System
 {
 private:
-    static SInputManager* s_instance;
     SInputManager();
 
     sf::RenderWindow* m_window      = nullptr;
@@ -46,6 +45,12 @@ private:
 
 public:
     ~SInputManager();
+
+    // Delete copy and move constructors/assignment operators
+    SInputManager(const SInputManager&)            = delete;
+    SInputManager(SInputManager&&)                 = delete;
+    SInputManager& operator=(const SInputManager&) = delete;
+    SInputManager& operator=(SInputManager&&)      = delete;
 
     static SInputManager& instance();
 

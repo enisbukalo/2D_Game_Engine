@@ -6,7 +6,8 @@
 #include <stdexcept>
 #include <string>
 
-namespace Serialization {
+namespace Serialization
+{
 
 class JsonParser
 {
@@ -34,6 +35,6 @@ private:
     size_t      m_pos;
 };
 
-} // namespace Serialization
+}  // namespace Serialization
 
-#endif // JSONPARSER_H
+#endif  // JSONPARSER_H

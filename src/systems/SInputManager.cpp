@@ -5,19 +5,17 @@
 #include <spdlog/spdlog.h>
 #include <algorithm>
 
-SInputManager* SInputManager::s_instance = nullptr;
-
 SInputManager::SInputManager() = default;
 
-SInputManager::~SInputManager() = default;
+SInputManager::~SInputManager()
+{
+    shutdown();
+}
 
 SInputManager& SInputManager::instance()
 {
-    if (!s_instance)
-    {
-        s_instance = new SInputManager();
-    }
-    return *s_instance;
+    static SInputManager instance;
+    return instance;
 }
 
 void SInputManager::initialize(sf::RenderWindow* window, bool passToImGui)

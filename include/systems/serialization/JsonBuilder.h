@@ -4,7 +4,8 @@
 #include <sstream>
 #include <string>
 
-namespace Serialization {
+namespace Serialization
+{
 
 class JsonBuilder
 {
@@ -29,6 +30,6 @@ private:
     bool              m_needsComma;  ///< Flag indicating if a comma is needed before next value
 };
 
-} // namespace Serialization
+}  // namespace Serialization
 
-#endif // JSONBUILDER_H
+#endif  // JSONBUILDER_H

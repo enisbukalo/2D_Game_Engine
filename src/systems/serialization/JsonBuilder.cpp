@@ -1,6 +1,7 @@
 #include "JsonBuilder.h"
 
-namespace Serialization {
+namespace Serialization
+{
 
 JsonBuilder::JsonBuilder() : m_needsComma(false) {}
 
@@ -104,4 +105,4 @@ std::string JsonBuilder::escapeString(const std::string& str)
     return result;
 }
 
-} // namespace Serialization
+}  // namespace Serialization

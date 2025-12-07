@@ -173,6 +173,12 @@ public:
      */
     static SAudioSystem& instance();
 
+    // Delete copy and move constructors/assignment operators
+    SAudioSystem(const SAudioSystem&)            = delete;
+    SAudioSystem(SAudioSystem&&)                 = delete;
+    SAudioSystem& operator=(const SAudioSystem&) = delete;
+    SAudioSystem& operator=(SAudioSystem&&)      = delete;
+
 private:
     /**
      * @brief Sound pool slot with generation tracking and fade state

@@ -24,8 +24,6 @@ class Entity;
 class SBox2DPhysics : public System
 {
 private:
-    static SBox2DPhysics* s_instance;
-
     b2WorldId m_worldId;
 
     // Entity to b2BodyId mapping
@@ -39,6 +37,12 @@ private:
 
 public:
     ~SBox2DPhysics();
+
+    // Delete copy and move constructors/assignment operators
+    SBox2DPhysics(const SBox2DPhysics&)            = delete;
+    SBox2DPhysics(SBox2DPhysics&&)                 = delete;
+    SBox2DPhysics& operator=(const SBox2DPhysics&) = delete;
+    SBox2DPhysics& operator=(SBox2DPhysics&&)      = delete;
 
     /**
      * @brief Get the singleton instance of the physics system

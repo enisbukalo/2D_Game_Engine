@@ -5,8 +5,6 @@
 #include "EntityManager.h"
 #include "Vec2.h"
 
-SBox2DPhysics* SBox2DPhysics::s_instance = nullptr;
-
 SBox2DPhysics::SBox2DPhysics() : m_timeStep(1.0f / 60.0f), m_subStepCount(6)
 {
     // Create Box2D world with default gravity (Y-up: negative Y = downward)
@@ -37,17 +35,12 @@ SBox2DPhysics::~SBox2DPhysics()
     {
         b2DestroyWorld(m_worldId);
     }
-
-    s_instance = nullptr;
 }
 
 SBox2DPhysics& SBox2DPhysics::instance()
 {
-    if (!s_instance)
-    {
-        s_instance = new SBox2DPhysics();
-    }
-    return *s_instance;
+    static SBox2DPhysics instance;
+    return instance;
 }
 
 void SBox2DPhysics::update(float deltaTime)

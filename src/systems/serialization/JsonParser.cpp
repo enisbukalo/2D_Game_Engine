@@ -5,7 +5,8 @@
 #include <sstream>
 #include <stdexcept>
 
-namespace Serialization {
+namespace Serialization
+{
 
 JsonParser JsonParser::fromFile(const std::string& path)
 {
@@ -228,4 +229,4 @@ void JsonParser::skipWhitespace()
     }
 }
 
-} // namespace Serialization
+}  // namespace Serialization
