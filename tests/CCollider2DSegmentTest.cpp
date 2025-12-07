@@ -4,8 +4,8 @@
 #include "CPhysicsBody2D.h"
 #include "CTransform.h"
 #include "Entity.h"
-#include "EntityManager.h"
-#include "SBox2DPhysics.h"
+#include "SEntity.h"
+#include "S2DPhysics.h"
 #include "Vec2.h"
 #include "box2d/box2d.h"
 
@@ -15,7 +15,7 @@ protected:
     void SetUp() override
     {
         // Ensure physics system is initialized
-        SBox2DPhysics::instance();
+        S2DPhysics::instance();
     }
 
     void TearDown() override
@@ -27,7 +27,7 @@ protected:
     std::shared_ptr<Entity> createPhysicsEntity(const Vec2& pos = Vec2(0.0f, 0.0f),
                                                 BodyType type = BodyType::Dynamic)
     {
-        auto& manager = EntityManager::instance();
+        auto& manager = SEntity::instance();
         auto  entity  = manager.addEntity("test_entity");
 
         auto transform = entity->addComponent<CTransform>();
@@ -225,7 +225,7 @@ TEST_F(CCollider2DSegmentTest, BallCollidesWithSegmentWall)
     // Simulate
     for (int i = 0; i < 200; ++i)
     {
-        SBox2DPhysics::instance().update(1.0f / 60.0f);
+        S2DPhysics::instance().update(1.0f / 60.0f);
     }
 
     b2Vec2 finalPos = ballPhysics->getPosition();
@@ -255,7 +255,7 @@ TEST_F(CCollider2DSegmentTest, BallRollsAlongInclinedSegment)
     // Simulate
     for (int i = 0; i < 300; ++i)
     {
-        SBox2DPhysics::instance().update(1.0f / 60.0f);
+        S2DPhysics::instance().update(1.0f / 60.0f);
     }
 
     b2Vec2 finalPos = ballPhysics->getPosition();
@@ -286,7 +286,7 @@ TEST_F(CCollider2DSegmentTest, BoxCollidesWithSegmentContainer)
     // Simulate
     for (int i = 0; i < 300; ++i)
     {
-        SBox2DPhysics::instance().update(1.0f / 60.0f);
+        S2DPhysics::instance().update(1.0f / 60.0f);
     }
 
     b2Vec2 finalPos = boxPhysics->getPosition();
@@ -498,7 +498,7 @@ TEST_F(CCollider2DSegmentTest, MixedPolygonAndSegments)
 
 TEST_F(CCollider2DSegmentTest, CreateSegmentWithoutPhysicsBody)
 {
-    auto& manager = EntityManager::instance();
+    auto& manager = SEntity::instance();
     auto entity = manager.addEntity("no_physics");
 
     auto transform = entity->addComponent<CTransform>();

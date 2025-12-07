@@ -1,5 +1,5 @@
-#ifndef SAUDIOSYSTEM_H
-#define SAUDIOSYSTEM_H
+#ifndef SAUDIO_H
+#define SAUDIO_H
 
 #include <SFML/Audio.hpp>
 #include <memory>
@@ -12,7 +12,7 @@
  * @brief SFML-based implementation of the audio system
  *
  * @description
- * SAudioSystem implements audio playback using SFML's audio module.
+ * SAudio implements audio playback using SFML's audio module.
  * It manages a fixed-size pool of sf::Sound objects for SFX playback
  * and a single sf::Music object for streamed music playback.
  *
@@ -26,19 +26,19 @@
  * All methods should be called from the main thread. SFML audio operations
  * are not guaranteed to be thread-safe.
  */
-class SAudioSystem : public IAudioSystem
+class SAudio : public IAudioSystem
 {
 public:
     /**
      * @brief Construct audio system with specified pool size
      * @param poolSize Number of simultaneous sound effects (default 32)
      */
-    explicit SAudioSystem(size_t poolSize = AudioConstants::DEFAULT_SFX_POOL_SIZE);
+    explicit SAudio(size_t poolSize = AudioConstants::DEFAULT_SFX_POOL_SIZE);
 
     /**
      * @brief Destructor - ensures proper cleanup
      */
-    ~SAudioSystem() override;
+    ~SAudio() override;
 
     // IAudioSystem interface implementation
     bool initialize() override;
@@ -171,13 +171,13 @@ public:
      * @brief Get singleton instance
      * @return Reference to the audio system instance
      */
-    static SAudioSystem& instance();
+    static SAudio& instance();
 
     // Delete copy and move constructors/assignment operators
-    SAudioSystem(const SAudioSystem&)            = delete;
-    SAudioSystem(SAudioSystem&&)                 = delete;
-    SAudioSystem& operator=(const SAudioSystem&) = delete;
-    SAudioSystem& operator=(SAudioSystem&&)      = delete;
+    SAudio(const SAudio&)            = delete;
+    SAudio(SAudio&&)                 = delete;
+    SAudio& operator=(const SAudio&) = delete;
+    SAudio& operator=(SAudio&&)      = delete;
 
 private:
     /**
@@ -274,4 +274,4 @@ private:
     float m_musicVolume  = AudioConstants::DEFAULT_MUSIC_VOLUME;
 };
 
-#endif  // SAUDIOSYSTEM_H
+#endif  // SAUDIO_H

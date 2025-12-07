@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "CInputController.h"
-#include "SInputManager.h"
+#include "SInput.h"
 #include "Input/ActionBinding.h"
 #include "Input/InputEvents.h"
 #include "SSerialization.h"
@@ -14,15 +14,15 @@ protected:
     void SetUp() override
     {
         // Reset and initialize SInputManager with no window and ImGui disabled
-        SInputManager::instance().shutdown();
-        SInputManager::instance().initialize(nullptr, false);
+        SInput::instance().shutdown();
+        SInput::instance().initialize(nullptr, false);
     }
 
     void TearDown() override
     {
         // Ensure any components are destroyed before shutting down manager
         // Clean up after each test
-        SInputManager::instance().shutdown();
+        SInput::instance().shutdown();
     }
 
     // Helper to create a KeyPressed event

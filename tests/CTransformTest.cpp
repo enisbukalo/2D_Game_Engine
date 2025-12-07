@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "CTransform.h"
 #include "Entity.h"
-#include "EntityManager.h"
+#include "SEntity.h"
 #include "SSerialization.h"
 
 class CTransformTest : public ::testing::Test
@@ -9,12 +9,12 @@ class CTransformTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        EntityManager::instance().clear();
+        SEntity::instance().clear();
     }
 
     void TearDown() override
     {
-        EntityManager::instance().clear();
+        SEntity::instance().clear();
     }
 };
 
@@ -24,7 +24,7 @@ protected:
 
 TEST_F(CTransformTest, ComponentCreationAndDefaults)
 {
-    auto  entity    = EntityManager::instance().addEntity("test");
+    auto  entity    = SEntity::instance().addEntity("test");
     auto* transform = entity->addComponent<CTransform>();
 
     ASSERT_NE(transform, nullptr);
@@ -51,7 +51,7 @@ TEST_F(CTransformTest, ComponentCreationAndDefaults)
 
 TEST_F(CTransformTest, PositionCanBeSet)
 {
-    auto  entity    = EntityManager::instance().addEntity("test");
+    auto  entity    = SEntity::instance().addEntity("test");
     auto* transform = entity->addComponent<CTransform>();
 
     transform->setPosition(Vec2(10.5f, -20.3f));
@@ -63,7 +63,7 @@ TEST_F(CTransformTest, PositionCanBeSet)
 
 TEST_F(CTransformTest, VelocityCanBeSet)
 {
-    auto  entity    = EntityManager::instance().addEntity("test");
+    auto  entity    = SEntity::instance().addEntity("test");
     auto* transform = entity->addComponent<CTransform>();
 
     transform->setVelocity(Vec2(5.0f, -3.5f));
@@ -75,7 +75,7 @@ TEST_F(CTransformTest, VelocityCanBeSet)
 
 TEST_F(CTransformTest, ScaleCanBeSet)
 {
-    auto  entity    = EntityManager::instance().addEntity("test");
+    auto  entity    = SEntity::instance().addEntity("test");
     auto* transform = entity->addComponent<CTransform>();
 
     transform->setScale(Vec2(2.0f, 0.5f));
@@ -87,7 +87,7 @@ TEST_F(CTransformTest, ScaleCanBeSet)
 
 TEST_F(CTransformTest, RotationCanBeSet)
 {
-    auto  entity    = EntityManager::instance().addEntity("test");
+    auto  entity    = SEntity::instance().addEntity("test");
     auto* transform = entity->addComponent<CTransform>();
 
     transform->setRotation(3.14159f);
@@ -97,7 +97,7 @@ TEST_F(CTransformTest, RotationCanBeSet)
 
 TEST_F(CTransformTest, NegativeRotation)
 {
-    auto  entity    = EntityManager::instance().addEntity("test");
+    auto  entity    = SEntity::instance().addEntity("test");
     auto* transform = entity->addComponent<CTransform>();
 
     transform->setRotation(-1.5708f);
@@ -111,7 +111,7 @@ TEST_F(CTransformTest, NegativeRotation)
 
 TEST_F(CTransformTest, Serialization)
 {
-    auto  entity    = EntityManager::instance().addEntity("test");
+    auto  entity    = SEntity::instance().addEntity("test");
     auto* transform = entity->addComponent<CTransform>();
 
     transform->setPosition(Vec2(100.0f, 200.0f));
@@ -141,7 +141,7 @@ TEST_F(CTransformTest, Deserialization)
         }
     })";    Serialization::SSerialization::JsonValue value(json);
 
-    auto  entity    = EntityManager::instance().addEntity("test");
+    auto  entity    = SEntity::instance().addEntity("test");
     auto* transform = entity->addComponent<CTransform>();
     transform->deserialize(value);
 
@@ -162,7 +162,7 @@ TEST_F(CTransformTest, Deserialization)
 
 TEST_F(CTransformTest, SerializeDeserializeRoundTrip)
 {
-    auto  entity1    = EntityManager::instance().addEntity("test1");
+    auto  entity1    = SEntity::instance().addEntity("test1");
     auto* transform1 = entity1->addComponent<CTransform>();
 
     transform1->setPosition(Vec2(123.456f, -789.012f));
@@ -174,7 +174,7 @@ TEST_F(CTransformTest, SerializeDeserializeRoundTrip)
     transform1->serialize(builder);
     std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
-    auto  entity2    = EntityManager::instance().addEntity("test2");
+    auto  entity2    = SEntity::instance().addEntity("test2");
     auto* transform2 = entity2->addComponent<CTransform>();
     transform2->deserialize(value);
 
@@ -198,7 +198,7 @@ TEST_F(CTransformTest, SerializeDeserializeRoundTrip)
 
 TEST_F(CTransformTest, ZeroValuesRoundTrip)
 {
-    auto  entity1    = EntityManager::instance().addEntity("test1");
+    auto  entity1    = SEntity::instance().addEntity("test1");
     auto* transform1 = entity1->addComponent<CTransform>();
 
     transform1->setPosition(Vec2(0.0f, 0.0f));
@@ -210,7 +210,7 @@ TEST_F(CTransformTest, ZeroValuesRoundTrip)
     transform1->serialize(builder);
     std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
-    auto  entity2    = EntityManager::instance().addEntity("test2");
+    auto  entity2    = SEntity::instance().addEntity("test2");
     auto* transform2 = entity2->addComponent<CTransform>();
     transform2->deserialize(value);
 
@@ -231,7 +231,7 @@ TEST_F(CTransformTest, ZeroValuesRoundTrip)
 
 TEST_F(CTransformTest, NegativeValuesRoundTrip)
 {
-    auto  entity1    = EntityManager::instance().addEntity("test1");
+    auto  entity1    = SEntity::instance().addEntity("test1");
     auto* transform1 = entity1->addComponent<CTransform>();
 
     transform1->setPosition(Vec2(-100.0f, -200.0f));
@@ -243,7 +243,7 @@ TEST_F(CTransformTest, NegativeValuesRoundTrip)
     transform1->serialize(builder);
     std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
-    auto  entity2    = EntityManager::instance().addEntity("test2");
+    auto  entity2    = SEntity::instance().addEntity("test2");
     auto* transform2 = entity2->addComponent<CTransform>();
     transform2->deserialize(value);
 
@@ -264,7 +264,7 @@ TEST_F(CTransformTest, NegativeValuesRoundTrip)
 
 TEST_F(CTransformTest, LargeValuesRoundTrip)
 {
-    auto  entity1    = EntityManager::instance().addEntity("test1");
+    auto  entity1    = SEntity::instance().addEntity("test1");
     auto* transform1 = entity1->addComponent<CTransform>();
 
     transform1->setPosition(Vec2(1000000.0f, 2000000.0f));
@@ -276,7 +276,7 @@ TEST_F(CTransformTest, LargeValuesRoundTrip)
     transform1->serialize(builder);
     std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
-    auto  entity2    = EntityManager::instance().addEntity("test2");
+    auto  entity2    = SEntity::instance().addEntity("test2");
     auto* transform2 = entity2->addComponent<CTransform>();
     transform2->deserialize(value);
 

@@ -2,8 +2,8 @@
 #include "CAudioSource.h"
 #include "CTransform.h"
 #include "Entity.h"
-#include "EntityManager.h"
-#include "SAudioSystem.h"
+#include "SEntity.h"
+#include "SAudio.h"
 #include "SSerialization.h"
 
 class CAudioSourceTest : public ::testing::Test
@@ -11,14 +11,14 @@ class CAudioSourceTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        SAudioSystem::instance().initialize();
-        entity = EntityManager::instance().addEntity("test");
+        SAudio::instance().initialize();
+        entity = SEntity::instance().addEntity("test");
     }
 
     void TearDown() override
     {
-        EntityManager::instance().clear();
-        SAudioSystem::instance().shutdown();
+        SEntity::instance().clear();
+        SAudio::instance().shutdown();
     }
 
     std::shared_ptr<Entity> entity;

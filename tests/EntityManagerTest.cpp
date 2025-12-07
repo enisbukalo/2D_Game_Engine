@@ -4,14 +4,14 @@
 #include "CTransform.h"
 #include "Component.h"
 #include "Entity.h"
-#include "EntityManager.h"
+#include "SEntity.h"
 #include "TestUtils.h"
 #include "Vec2.h"
 #include "CPhysicsBody2D.h"
 #include "CCollider2D.h"
 #include "CInputController.h"
 #include "Input/KeyCode.h"
-#include "SInputManager.h"
+#include "SInput.h"
 
 // Define the source directory path
 #ifndef SOURCE_DIR
@@ -25,22 +25,22 @@ protected:
     void SetUp() override
     {
         // Clear the EntityManager before each test
-        EntityManager::instance().clear();
+        SEntity::instance().clear();
         // Initialize SInputManager for components that rely on it (e.g., CInputController)
-        SInputManager::instance().shutdown();
-        SInputManager::instance().initialize(nullptr, false);
+        SInput::instance().shutdown();
+        SInput::instance().initialize(nullptr, false);
     }
 
     void TearDown() override
     {
         // Shutdown SInputManager after tests
-        SInputManager::instance().shutdown();
+        SInput::instance().shutdown();
     }
 };
 
 TEST_F(EntityManagerTest, EntityCreation)
 {
-    auto&                   manager = EntityManager::instance();
+    auto&                   manager = SEntity::instance();
     std::shared_ptr<Entity> entity  = manager.addEntity("test");
     EXPECT_NE(entity, nullptr);
     EXPECT_EQ(entity->getTag(), "test");
@@ -49,7 +49,7 @@ TEST_F(EntityManagerTest, EntityCreation)
 
 TEST_F(EntityManagerTest, EntityRemoval)
 {
-    auto&                   manager = EntityManager::instance();
+    auto&                   manager = SEntity::instance();
     std::shared_ptr<Entity> entity  = manager.addEntity("test");
 
     manager.update(0.0f);  // Process pending entities
@@ -62,7 +62,7 @@ TEST_F(EntityManagerTest, EntityRemoval)
 
 TEST_F(EntityManagerTest, EntityTagging)
 {
-    auto& manager = EntityManager::instance();
+    auto& manager = SEntity::instance();
     manager.addEntity("typeA");
     manager.addEntity("typeA");
     manager.addEntity("typeB");
@@ -78,7 +78,7 @@ TEST_F(EntityManagerTest, EntityTagging)
 
 TEST_F(EntityManagerTest, EntityComponentQuery)
 {
-    auto& manager = EntityManager::instance();
+    auto& manager = SEntity::instance();
 
     std::shared_ptr<Entity> entity1 = manager.addEntity("test1");
     entity1->addComponent<CTransform>();
@@ -99,7 +99,7 @@ TEST_F(EntityManagerTest, EntityComponentQuery)
 
 TEST_F(EntityManagerTest, EntityUpdateSystem)
 {
-    auto& manager   = EntityManager::instance();
+    auto& manager   = SEntity::instance();
     auto  entity    = manager.addEntity("test");
     auto  transform = entity->addComponent<CTransform>();
     auto  name      = entity->addComponent<CName>();
@@ -113,7 +113,7 @@ TEST_F(EntityManagerTest, EntityUpdateSystem)
 
 TEST_F(EntityManagerTest, EntitySerialization)
 {
-    auto& manager = EntityManager::instance();
+    auto& manager = SEntity::instance();
 
     // Create first entity with Transform
     auto entity1    = manager.addEntity("transform_object");
@@ -347,7 +347,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
 
 TEST_F(EntityManagerTest, SaveAndLoadEntities)
 {
-    auto& manager = EntityManager::instance();
+    auto& manager = SEntity::instance();
 
     // Create first entity with Transform and Gravity
     auto entity1    = manager.addEntity("physics_object");
@@ -372,7 +372,7 @@ TEST_F(EntityManagerTest, SaveAndLoadEntities)
     manager.saveToFile(testFile);
 
     // Create a new manager and load the file
-    EntityManager::instance().clear();  // Clear current state
+    SEntity::instance().clear();  // Clear current state
     manager.loadFromFile(testFile);
     manager.update(0.0f);  // Process loaded entities
 

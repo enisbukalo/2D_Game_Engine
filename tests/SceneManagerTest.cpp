@@ -4,8 +4,8 @@
 #include "CTransform.h"
 #include "CPhysicsBody2D.h"
 #include "CCollider2D.h"
-#include "EntityManager.h"
-#include "SceneManager.h"
+#include "SEntity.h"
+#include "SScene.h"
 #include "TestUtils.h"
 
 // Test fixture for scene manager tests
@@ -14,7 +14,7 @@ class SceneManagerTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        EntityManager::instance().clear();
+        SEntity::instance().clear();
 
         // Create test directory if it doesn't exist
         if (!std::filesystem::exists("tests/test_data"))
@@ -36,7 +36,7 @@ protected:
     // Helper method to create a test scene with some entities
     void createTestScene()
     {
-        auto& manager = EntityManager::instance();
+        auto& manager = SEntity::instance();
 
         // Create an entity with Transform, PhysicsBody2D and Collider2D
         auto entity1    = manager.addEntity("physics_object");
@@ -66,26 +66,26 @@ TEST_F(SceneManagerTest, SaveAndLoadScene)
 
     // Create and save a test scene
     createTestScene();
-    auto& sceneManager = SceneManager::instance();
+    auto& sceneManager = SScene::instance();
     EXPECT_NO_THROW(sceneManager.saveScene(testFile));
     EXPECT_EQ(sceneManager.getCurrentScenePath(), testFile);
 
     // Clear the entity manager
-    EntityManager::instance().clear();
-    EntityManager::instance().update(0.0f);  // Process the clear
-    EXPECT_TRUE(EntityManager::instance().getEntities().empty());
+    SEntity::instance().clear();
+    SEntity::instance().update(0.0f);  // Process the clear
+    EXPECT_TRUE(SEntity::instance().getEntities().empty());
 
     // Load the scene back
     EXPECT_NO_THROW(sceneManager.loadScene(testFile));
-    EntityManager::instance().update(0.0f);  // Process loaded entities
+    SEntity::instance().update(0.0f);  // Process loaded entities
     EXPECT_EQ(sceneManager.getCurrentScenePath(), testFile);
 
     // Verify loaded entities
-    const auto& entities = EntityManager::instance().getEntities();
+    const auto& entities = SEntity::instance().getEntities();
     ASSERT_EQ(entities.size(), 2);
 
     // Verify physics_object
-    auto physicsObjects = EntityManager::instance().getEntitiesByTag("physics_object");
+    auto physicsObjects = SEntity::instance().getEntitiesByTag("physics_object");
     ASSERT_EQ(physicsObjects.size(), 1);
     auto physicsEntity = physicsObjects[0];
 
@@ -103,7 +103,7 @@ TEST_F(SceneManagerTest, SaveAndLoadScene)
     EXPECT_FALSE(collider1->isSensor());
 
     // Verify named_object
-    auto namedObjects = EntityManager::instance().getEntitiesByTag("named_object");
+    auto namedObjects = SEntity::instance().getEntitiesByTag("named_object");
     ASSERT_EQ(namedObjects.size(), 1);
     auto namedEntity = namedObjects[0];
 
@@ -122,34 +122,34 @@ TEST_F(SceneManagerTest, SaveCurrentScene)
 
     // Create and save a test scene
     createTestScene();
-    auto& sceneManager = SceneManager::instance();
+    auto& sceneManager = SScene::instance();
 
     // First save to establish current scene
     EXPECT_NO_THROW(sceneManager.saveScene(testFile));
 
     // Modify scene
-    auto entity = EntityManager::instance().addEntity("new_object");
+    auto entity = SEntity::instance().addEntity("new_object");
     entity->addComponent<CName>()->setName("NewObject");
-    EntityManager::instance().update(0.0f);  // Process the new entity
+    SEntity::instance().update(0.0f);  // Process the new entity
 
     // Save current scene
     EXPECT_NO_THROW(sceneManager.saveCurrentScene());
 
     // Clear and reload
-    EntityManager::instance().clear();
-    EntityManager::instance().update(0.0f);  // Process the clear
+    SEntity::instance().clear();
+    SEntity::instance().update(0.0f);  // Process the clear
     EXPECT_NO_THROW(sceneManager.loadScene(testFile));
-    EntityManager::instance().update(0.0f);  // Process loaded entities
+    SEntity::instance().update(0.0f);  // Process loaded entities
 
     // Verify new entity was saved
-    auto newObjects = EntityManager::instance().getEntitiesByTag("new_object");
+    auto newObjects = SEntity::instance().getEntitiesByTag("new_object");
     ASSERT_EQ(newObjects.size(), 1);
     EXPECT_EQ(newObjects[0]->getComponent<CName>()->getName(), "NewObject");
 }
 
 TEST_F(SceneManagerTest, ErrorHandling)
 {
-    auto& sceneManager = SceneManager::instance();
+    auto& sceneManager = SScene::instance();
 
     // Test loading non-existent file
     EXPECT_THROW(sceneManager.loadScene("nonexistent.json"), std::runtime_error);
@@ -168,28 +168,28 @@ TEST_F(SceneManagerTest, SceneTransitions)
     const std::string testFile1 = "tests/test_data/test_scene1.json";
     const std::string testFile2 = "tests/test_data/test_scene2.json";
 
-    auto& sceneManager = SceneManager::instance();
+    auto& sceneManager = SScene::instance();
 
     // Create and save first scene
     createTestScene();
     EXPECT_NO_THROW(sceneManager.saveScene(testFile1));
 
     // Create and save second scene
-    EntityManager::instance().clear();
-    EntityManager::instance().update(0.0f);  // Process the clear
-    auto entity = EntityManager::instance().addEntity("unique_object");
+    SEntity::instance().clear();
+    SEntity::instance().update(0.0f);  // Process the clear
+    auto entity = SEntity::instance().addEntity("unique_object");
     entity->addComponent<CName>()->setName("UniqueObject");
-    EntityManager::instance().update(0.0f);  // Process the new entity
+    SEntity::instance().update(0.0f);  // Process the new entity
     EXPECT_NO_THROW(sceneManager.saveScene(testFile2));
 
     // Test transitioning between scenes
     EXPECT_NO_THROW(sceneManager.loadScene(testFile1));
-    EntityManager::instance().update(0.0f);  // Process loaded entities
-    ASSERT_EQ(EntityManager::instance().getEntitiesByTag("physics_object").size(), 1);
+    SEntity::instance().update(0.0f);  // Process loaded entities
+    ASSERT_EQ(SEntity::instance().getEntitiesByTag("physics_object").size(), 1);
 
     EXPECT_NO_THROW(sceneManager.loadScene(testFile2));
-    EntityManager::instance().update(0.0f);  // Process loaded entities
-    ASSERT_EQ(EntityManager::instance().getEntitiesByTag("unique_object").size(), 1);
+    SEntity::instance().update(0.0f);  // Process loaded entities
+    ASSERT_EQ(SEntity::instance().getEntitiesByTag("unique_object").size(), 1);
 
     // Clean up second test file
     if (std::filesystem::exists(testFile1))
@@ -200,7 +200,7 @@ TEST_F(SceneManagerTest, SceneTransitions)
 
 TEST_F(SceneManagerTest, ClearScene)
 {
-    auto& sceneManager = SceneManager::instance();
+    auto& sceneManager = SScene::instance();
 
     // Create a test scene
     createTestScene();
@@ -209,5 +209,5 @@ TEST_F(SceneManagerTest, ClearScene)
     sceneManager.clearScene();
 
     // Verify the scene is cleared
-    EXPECT_TRUE(EntityManager::instance().getEntities().empty());
+    EXPECT_TRUE(SEntity::instance().getEntities().empty());
 }

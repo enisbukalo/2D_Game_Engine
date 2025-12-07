@@ -2,7 +2,7 @@
 #include <spdlog/spdlog.h>
 #include "CTransform.h"
 #include "Entity.h"
-#include "SAudioSystem.h"
+#include "SAudio.h"
 
 CAudioListener::CAudioListener() {}
 
@@ -14,7 +14,7 @@ void CAudioListener::init()
         auto* transform = getOwner()->getComponent<CTransform>();
         if (transform)
         {
-            SAudioSystem::instance().setListenerPosition(transform->getPosition());
+            SAudio::instance().setListenerPosition(transform->getPosition());
         }
     }
 }
@@ -30,7 +30,7 @@ void CAudioListener::update(float deltaTime)
     auto* transform = getOwner()->getComponent<CTransform>();
     if (transform)
     {
-        SAudioSystem::instance().setListenerPosition(transform->getPosition());
+        SAudio::instance().setListenerPosition(transform->getPosition());
     }
 
     // Update spatial audio positions for named sources
@@ -39,7 +39,7 @@ void CAudioListener::update(float deltaTime)
         if (config.type == AudioType::SFX && config.spatial && config.playHandle.isValid())
         {
             // Check if sound is still playing
-            if (!SAudioSystem::instance().isPlayingSFX(config.playHandle))
+            if (!SAudio::instance().isPlayingSFX(config.playHandle))
             {
                 config.playHandle = AudioHandle::invalid();
             }
@@ -207,7 +207,7 @@ void CAudioListener::removeAudioSource(const std::string& name)
         // Stop if playing
         if (it->second.type == AudioType::SFX && it->second.playHandle.isValid())
         {
-            SAudioSystem::instance().stopSFX(it->second.playHandle);
+            SAudio::instance().stopSFX(it->second.playHandle);
         }
         m_audioSources.erase(it);
     }
@@ -223,7 +223,7 @@ bool CAudioListener::play(const std::string& name)
     }
 
     auto& config      = it->second;
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
 
     if (config.clipId.empty())
     {
@@ -269,7 +269,7 @@ void CAudioListener::pause(const std::string& name)
     }
 
     auto& config      = it->second;
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
 
     if (config.type == AudioType::SFX && config.playHandle.isValid())
     {
@@ -290,7 +290,7 @@ void CAudioListener::stop(const std::string& name)
     }
 
     auto& config      = it->second;
-    auto& audioSystem = SAudioSystem::instance();
+    auto& audioSystem = SAudio::instance();
 
     if (config.type == AudioType::SFX && config.playHandle.isValid())
     {
@@ -312,7 +312,7 @@ bool CAudioListener::isPlaying(const std::string& name) const
     }
 
     const auto& config      = it->second;
-    const auto& audioSystem = SAudioSystem::instance();
+    const auto& audioSystem = SAudio::instance();
 
     if (config.type == AudioType::SFX)
     {

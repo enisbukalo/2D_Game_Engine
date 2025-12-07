@@ -1,4 +1,4 @@
-#include "SParticleSystem.h"
+#include "SParticle.h"
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -6,7 +6,7 @@
 #include "CParticleEmitter.h"
 #include "CTransform.h"
 #include "Entity.h"
-#include "EntityManager.h"
+#include "SEntity.h"
 
 // Static random number generator
 static std::random_device               s_rd;
@@ -415,26 +415,23 @@ static void emitParticle(CParticleEmitter* emitter, const Vec2& worldPosition, f
 }
 
 //=============================================================================
-// SParticleSystem Implementation
+// SParticle Implementation
 //=============================================================================
 
-SParticleSystem& SParticleSystem::instance()
+SParticle& SParticle::instance()
 {
-    static SParticleSystem instance;
+    static SParticle instance;
     return instance;
 }
 
-SParticleSystem::SParticleSystem()
-    : m_vertexArray(sf::Quads), m_window(nullptr), m_pixelsPerMeter(100.0f), m_initialized(false)
-{
-}
+SParticle::SParticle() : m_vertexArray(sf::Quads), m_window(nullptr), m_pixelsPerMeter(100.0f), m_initialized(false) {}
 
-SParticleSystem::~SParticleSystem()
+SParticle::~SParticle()
 {
     shutdown();
 }
 
-bool SParticleSystem::initialize(sf::RenderWindow* window, float pixelsPerMeter)
+bool SParticle::initialize(sf::RenderWindow* window, float pixelsPerMeter)
 {
     m_window         = window;
     m_pixelsPerMeter = pixelsPerMeter;
@@ -442,13 +439,13 @@ bool SParticleSystem::initialize(sf::RenderWindow* window, float pixelsPerMeter)
     return true;
 }
 
-void SParticleSystem::shutdown()
+void SParticle::shutdown()
 {
     m_initialized = false;
     m_window      = nullptr;
 }
 
-void SParticleSystem::update(float deltaTime)
+void SParticle::update(float deltaTime)
 {
     if (m_initialized == false)
     {
@@ -456,7 +453,7 @@ void SParticleSystem::update(float deltaTime)
     }
 
     // Iterate over all entities with CParticleEmitter component
-    auto entities = EntityManager::instance().getEntities();
+    auto entities = SEntity::instance().getEntities();
 
     for (auto& entity : entities)
     {
@@ -517,7 +514,7 @@ void SParticleSystem::update(float deltaTime)
     }
 }
 
-void SParticleSystem::renderEmitter(Entity* entity, sf::RenderWindow* window)
+void SParticle::renderEmitter(Entity* entity, sf::RenderWindow* window)
 {
     sf::RenderWindow* targetWindow = window ? window : m_window;
 
@@ -632,7 +629,7 @@ void SParticleSystem::renderEmitter(Entity* entity, sf::RenderWindow* window)
     }
 }
 
-sf::Vector2f SParticleSystem::worldToScreen(const Vec2& worldPos) const
+sf::Vector2f SParticle::worldToScreen(const Vec2& worldPos) const
 {
     float screenX      = worldPos.x * m_pixelsPerMeter;
     float screenHeight = m_window ? m_window->getSize().y : 600.0f;
@@ -640,7 +637,7 @@ sf::Vector2f SParticleSystem::worldToScreen(const Vec2& worldPos) const
     return sf::Vector2f(screenX, screenY);
 }
 
-float SParticleSystem::metersToPixels(float meters) const
+float SParticle::metersToPixels(float meters) const
 {
     return meters * m_pixelsPerMeter;
 }

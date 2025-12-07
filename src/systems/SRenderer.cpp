@@ -9,8 +9,8 @@
 #include "CTexture.h"
 #include "CTransform.h"
 #include "Entity.h"
-#include "EntityManager.h"
-#include "SParticleSystem.h"
+#include "SEntity.h"
+#include "SParticle.h"
 
 SRenderer::SRenderer() : System() {}
 
@@ -93,7 +93,7 @@ void SRenderer::render()
     }
 
     // Get all entities with renderable components
-    auto& entityManager      = EntityManager::instance();
+    auto& entityManager      = SEntity::instance();
     auto  renderableEntities = entityManager.getEntitiesWithComponent<CRenderable>();
     auto  emitterEntities    = entityManager.getEntitiesWithComponent<CParticleEmitter>();
 
@@ -133,7 +133,7 @@ void SRenderer::render()
               [](const RenderItem& a, const RenderItem& b) { return a.zIndex < b.zIndex; });
 
     // Render in z-index order
-    auto& particleSystem = SParticleSystem::instance();
+    auto& particleSystem = SParticle::instance();
     for (const RenderItem& item : renderQueue)
     {
         if (item.isParticleEmitter)

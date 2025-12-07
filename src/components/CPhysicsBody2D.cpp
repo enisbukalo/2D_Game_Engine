@@ -1,7 +1,7 @@
 #include "CPhysicsBody2D.h"
 #include "CTransform.h"
 #include "Entity.h"
-#include "SBox2DPhysics.h"
+#include "S2DPhysics.h"
 #include "Vec2.h"
 
 CPhysicsBody2D::CPhysicsBody2D()
@@ -22,7 +22,7 @@ CPhysicsBody2D::~CPhysicsBody2D()
 {
     if (m_initialized && b2Body_IsValid(m_bodyId) && getOwner())
     {
-        SBox2DPhysics::instance().destroyBody(getOwner());
+        S2DPhysics::instance().destroyBody(getOwner());
         m_bodyId      = b2_nullBodyId;
         m_initialized = false;
     }
@@ -35,7 +35,7 @@ void CPhysicsBody2D::initialize(const b2Vec2& position, BodyType type)
         // Already initialized, destroy old body first
         if (b2Body_IsValid(m_bodyId) && getOwner())
         {
-            SBox2DPhysics::instance().destroyBody(getOwner());
+            S2DPhysics::instance().destroyBody(getOwner());
         }
     }
 
@@ -61,7 +61,7 @@ void CPhysicsBody2D::initialize(const b2Vec2& position, BodyType type)
             break;
     }
 
-    m_bodyId      = SBox2DPhysics::instance().createBody(getOwner(), bodyDef);
+    m_bodyId      = S2DPhysics::instance().createBody(getOwner(), bodyDef);
     m_initialized = true;
 
     // Apply persisted properties after body creation

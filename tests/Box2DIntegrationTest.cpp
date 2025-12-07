@@ -3,8 +3,8 @@
 #include "CPhysicsBody2D.h"
 #include "CTransform.h"
 #include "CCollider2D.h"
-#include "EntityManager.h"
-#include "SBox2DPhysics.h"
+#include "SEntity.h"
+#include "S2DPhysics.h"
 #include "Vec2.h"
 
 // Basic test to verify Box2D is properly integrated and headers are accessible
@@ -150,7 +150,7 @@ TEST_F(Box2DIntegrationTest, PhysicsSimulation) {
 // Verify that fixed rotation keeps angular velocity zero
 TEST_F(Box2DIntegrationTest, FixedRotation_ZeroesAngularVelocity)
 {
-    auto& manager = EntityManager::instance();
+    auto& manager = SEntity::instance();
 
     auto entity = manager.addEntity("fixed_body_test");
     ASSERT_NE(entity, nullptr);
@@ -172,7 +172,7 @@ TEST_F(Box2DIntegrationTest, FixedRotation_ZeroesAngularVelocity)
 
     // Give the body some angular impulse then step the world and confirm non-zero
     physicsBody->applyAngularImpulse(5.0f);
-    SBox2DPhysics::instance().update(1.0f / 60.0f);
+    S2DPhysics::instance().update(1.0f / 60.0f);
     float omegaBefore = physicsBody->getAngularVelocity();
     EXPECT_NE(omegaBefore, 0.0f);
 
@@ -183,7 +183,7 @@ TEST_F(Box2DIntegrationTest, FixedRotation_ZeroesAngularVelocity)
 
     // Attempt to apply additional angular impulse (should be ignored), then step world
     physicsBody->applyAngularImpulse(10.0f);
-    SBox2DPhysics::instance().update(1.0f / 60.0f);
+    S2DPhysics::instance().update(1.0f / 60.0f);
     float omegaAfterUpdate = physicsBody->getAngularVelocity();
     EXPECT_EQ(omegaAfterUpdate, 0.0f);
 }

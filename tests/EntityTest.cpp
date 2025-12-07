@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <filesystem>
 #include "Entity.h"
-#include "EntityManager.h"
+#include "SEntity.h"
 #include "ComponentFactory.h"
 #include "CName.h"
 #include "CTransform.h"
@@ -16,9 +16,9 @@
 #include "CAudioSource.h"
 #include "CAudioListener.h"
 #include "SSerialization.h"
-#include "SInputManager.h"
-#include "SBox2DPhysics.h"
-#include "SAudioSystem.h"
+#include "SInput.h"
+#include "S2DPhysics.h"
+#include "SAudio.h"
 #include "TestUtils.h"
 
 // Test fixture for entity tests
@@ -28,19 +28,19 @@ protected:
     void SetUp() override
     {
         // Clear the EntityManager before each test
-        EntityManager::instance().clear();
+        SEntity::instance().clear();
         // Initialize SInputManager for components that rely on it
-        SInputManager::instance().shutdown();
-        SInputManager::instance().initialize(nullptr, false);
+        SInput::instance().shutdown();
+        SInput::instance().initialize(nullptr, false);
         // Initialize audio system
-        SAudioSystem::instance().initialize();
+        SAudio::instance().initialize();
     }
 
     void TearDown() override
     {
         // Shutdown systems after tests
-        SInputManager::instance().shutdown();
-        SAudioSystem::instance().shutdown();
+        SInput::instance().shutdown();
+        SAudio::instance().shutdown();
     }
 };
 
@@ -50,7 +50,7 @@ protected:
 
 TEST_F(EntityTest, EntityCreation)
 {
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     EXPECT_NE(entity, nullptr);
     EXPECT_EQ(entity->getTag(), "test");
     EXPECT_TRUE(entity->isAlive());
@@ -59,7 +59,7 @@ TEST_F(EntityTest, EntityCreation)
 
 TEST_F(EntityTest, EntityDestroy)
 {
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     EXPECT_TRUE(entity->isAlive());
     entity->destroy();
     EXPECT_FALSE(entity->isAlive());
@@ -67,7 +67,7 @@ TEST_F(EntityTest, EntityDestroy)
 
 TEST_F(EntityTest, EntityAddComponent)
 {
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     auto transform = entity->addComponent<CTransform>();
     EXPECT_NE(transform, nullptr);
     EXPECT_EQ(entity->getComponent<CTransform>(), transform);
@@ -75,7 +75,7 @@ TEST_F(EntityTest, EntityAddComponent)
 
 TEST_F(EntityTest, EntityHasComponent)
 {
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     EXPECT_FALSE(entity->hasComponent<CTransform>());
     entity->addComponent<CTransform>();
     EXPECT_TRUE(entity->hasComponent<CTransform>());
@@ -83,7 +83,7 @@ TEST_F(EntityTest, EntityHasComponent)
 
 TEST_F(EntityTest, EntityRemoveComponent)
 {
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     entity->addComponent<CTransform>();
     EXPECT_TRUE(entity->hasComponent<CTransform>());
     entity->removeComponent<CTransform>();
@@ -96,7 +96,7 @@ TEST_F(EntityTest, EntityRemoveComponent)
 
 TEST_F(EntityTest, SerializeBasicEntity)
 {
-    auto entity = EntityManager::instance().addEntity("test_entity");
+    auto entity = SEntity::instance().addEntity("test_entity");
     auto transform = entity->addComponent<CTransform>();
     transform->setPosition(Vec2(100.0f, 200.0f));
     
@@ -112,7 +112,7 @@ TEST_F(EntityTest, SerializeBasicEntity)
 
 TEST_F(EntityTest, SerializeEntityWithMultipleComponents)
 {
-    auto entity = EntityManager::instance().addEntity("multi_component");
+    auto entity = SEntity::instance().addEntity("multi_component");
     entity->addComponent<CTransform>()->setPosition(Vec2(50.0f, 75.0f));
     entity->addComponent<CName>()->setName("TestName");
     entity->addComponent<CRenderable>();
@@ -150,7 +150,7 @@ TEST_F(EntityTest, DeserializeTransformComponent)
     })";
     
    Serialization::SSerialization::JsonValue root(json);
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     entity->deserialize(root);
     
     auto transform = entity->getComponent<CTransform>();
@@ -177,7 +177,7 @@ TEST_F(EntityTest, DeserializeNameComponent)
     })";
     
    Serialization::SSerialization::JsonValue root(json);
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     entity->deserialize(root);
     
     auto name = entity->getComponent<CName>();
@@ -204,7 +204,7 @@ TEST_F(EntityTest, DeserializeRenderableComponent)
     })";
     
    Serialization::SSerialization::JsonValue root(json);
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     entity->deserialize(root);
     
     auto renderable = entity->getComponent<CRenderable>();
@@ -229,7 +229,7 @@ TEST_F(EntityTest, DeserializeTextureComponent)
     })";
     
    Serialization::SSerialization::JsonValue root(json);
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     entity->deserialize(root);
     
     auto texture = entity->getComponent<CTexture>();
@@ -254,7 +254,7 @@ TEST_F(EntityTest, DeserializeShaderComponent)
     })";
     
    Serialization::SSerialization::JsonValue root(json);
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     entity->deserialize(root);
     
     auto shader = entity->getComponent<CShader>();
@@ -281,7 +281,7 @@ TEST_F(EntityTest, DeserializeMaterialComponent)
     })";
     
    Serialization::SSerialization::JsonValue root(json);
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     entity->deserialize(root);
     
     auto material = entity->getComponent<CMaterial>();
@@ -313,7 +313,7 @@ TEST_F(EntityTest, DeserializeInputControllerComponent)
     })";
     
    Serialization::SSerialization::JsonValue root(json);
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     entity->deserialize(root);
     
     auto controller = entity->getComponent<CInputController>();
@@ -339,7 +339,7 @@ TEST_F(EntityTest, DeserializeParticleEmitterComponent)
     })";
     
    Serialization::SSerialization::JsonValue root(json);
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     entity->deserialize(root);
     
     auto emitter = entity->getComponent<CParticleEmitter>();
@@ -375,7 +375,7 @@ TEST_F(EntityTest, DeserializeAudioSourceComponent)
     })";
     
    Serialization::SSerialization::JsonValue root(json);
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     entity->deserialize(root);
     
     auto audioSource = entity->getComponent<CAudioSource>();
@@ -403,7 +403,7 @@ TEST_F(EntityTest, DeserializeAudioListenerComponent)
     })";
     
    Serialization::SSerialization::JsonValue root(json);
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     entity->deserialize(root);
     
     auto audioListener = entity->getComponent<CAudioListener>();
@@ -461,7 +461,7 @@ TEST_F(EntityTest, DeserializePhysicsBodyAndCollider)
     })";
     
    Serialization::SSerialization::JsonValue root(json);
-    auto entity = EntityManager::instance().addEntity("physics_entity");
+    auto entity = SEntity::instance().addEntity("physics_entity");
     entity->deserialize(root);
     
     // Verify physics body was created
@@ -513,7 +513,7 @@ TEST_F(EntityTest, DeserializeColliderBeforePhysicsBody_StillWorks)
     })";
     
    Serialization::SSerialization::JsonValue root(json);
-    auto entity = EntityManager::instance().addEntity("physics_entity");
+    auto entity = SEntity::instance().addEntity("physics_entity");
     entity->deserialize(root);
     
     // Both components should exist
@@ -573,7 +573,7 @@ TEST_F(EntityTest, DeserializeAllComponentTypes)
     })";
     
    Serialization::SSerialization::JsonValue root(json);
-    auto entity = EntityManager::instance().addEntity("full_entity");
+    auto entity = SEntity::instance().addEntity("full_entity");
     entity->deserialize(root);
     
     // Verify all components were created
@@ -599,7 +599,7 @@ TEST_F(EntityTest, DeserializePreservesGuid)
     })";
     
    Serialization::SSerialization::JsonValue root(json);
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     entity->deserialize(root);
     
     EXPECT_EQ(entity->getGuid(), "preserved-guid-12345");
@@ -615,7 +615,7 @@ TEST_F(EntityTest, DeserializePreservesId)
     })";
     
    Serialization::SSerialization::JsonValue root(json);
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     entity->deserialize(root);
     
     EXPECT_EQ(entity->getId(), 999);
@@ -628,7 +628,7 @@ TEST_F(EntityTest, DeserializePreservesId)
 TEST_F(EntityTest, SerializeDeserializeRoundTrip)
 {
     // Create entity with components
-    auto entity1 = EntityManager::instance().addEntity("round_trip");
+    auto entity1 = SEntity::instance().addEntity("round_trip");
     entity1->addComponent<CTransform>()->setPosition(Vec2(50.0f, 100.0f));
     entity1->addComponent<CName>()->setName("RoundTripTest");
     entity1->addComponent<CRenderable>()->setZIndex(5);
@@ -640,7 +640,7 @@ TEST_F(EntityTest, SerializeDeserializeRoundTrip)
     
     // Deserialize into a new entity
    Serialization::SSerialization::JsonValue root(json);
-    auto entity2 = EntityManager::instance().addEntity("round_trip_copy");
+    auto entity2 = SEntity::instance().addEntity("round_trip_copy");
     entity2->deserialize(root);
     
     // Verify round trip preserves values
@@ -663,7 +663,7 @@ TEST_F(EntityTest, SerializeDeserializeRoundTrip)
 TEST_F(EntityTest, SerializeDeserializePhysicsRoundTrip)
 {
     // Create entity with physics components
-    auto entity1 = EntityManager::instance().addEntity("physics_round_trip");
+    auto entity1 = SEntity::instance().addEntity("physics_round_trip");
     auto transform1 = entity1->addComponent<CTransform>();
     transform1->setPosition(Vec2(0.0f, 0.0f));
     
@@ -685,7 +685,7 @@ TEST_F(EntityTest, SerializeDeserializePhysicsRoundTrip)
     
     // Deserialize into a new entity
    Serialization::SSerialization::JsonValue root(json);
-    auto entity2 = EntityManager::instance().addEntity("physics_round_trip_copy");
+    auto entity2 = SEntity::instance().addEntity("physics_round_trip_copy");
     entity2->deserialize(root);
     
     // Verify physics body
@@ -705,7 +705,7 @@ TEST_F(EntityTest, SerializeDeserializePhysicsRoundTrip)
 TEST_F(EntityTest, SerializeDeserializePreservesComponentGuids)
 {
     // Create entity with components that have GUIDs referenced by other components
-    auto entity1 = EntityManager::instance().addEntity("guid_test");
+    auto entity1 = SEntity::instance().addEntity("guid_test");
     auto texture1 = entity1->addComponent<CTexture>();
     texture1->setTexturePath("assets/test.png");
     auto shader1 = entity1->addComponent<CShader>();
@@ -726,7 +726,7 @@ TEST_F(EntityTest, SerializeDeserializePreservesComponentGuids)
     
     // Deserialize into a new entity
    Serialization::SSerialization::JsonValue root(json);
-    auto entity2 = EntityManager::instance().addEntity("guid_test_copy");
+    auto entity2 = SEntity::instance().addEntity("guid_test_copy");
     entity2->deserialize(root);
     
     // Verify component GUIDs are preserved
@@ -761,7 +761,7 @@ TEST_F(EntityTest, DeserializeEmptyComponents)
     })";
     
    Serialization::SSerialization::JsonValue root(json);
-    auto entity = EntityManager::instance().addEntity("empty");
+    auto entity = SEntity::instance().addEntity("empty");
     entity->deserialize(root);
     
     // Entity should have no components
@@ -791,7 +791,7 @@ TEST_F(EntityTest, DeserializeUnknownComponentType)
     })";
     
    Serialization::SSerialization::JsonValue root(json);
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     entity->deserialize(root);
     
     // Unknown component should be skipped, valid one should work
@@ -810,7 +810,7 @@ TEST_F(EntityTest, DeserializeWithoutGuid)
     })";
     
    Serialization::SSerialization::JsonValue root(json);
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     std::string originalGuid = entity->getGuid();
     entity->deserialize(root);
     

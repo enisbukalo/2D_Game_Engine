@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
-#include "SParticleSystem.h"
+#include "SParticle.h"
 #include "CParticleEmitter.h"
 #include "CTransform.h"
 #include "Color.h"
 #include "Entity.h"
-#include "EntityManager.h"
+#include "SEntity.h"
 #include "Vec2.h"
 #include <SFML/Graphics.hpp>
 #include <cmath>
@@ -26,17 +26,17 @@ protected:
         m_window = new sf::RenderWindow(sf::VideoMode(800, 600), "Test", sf::Style::None);
 
         // Initialize particle system with window and test parameters
-        SParticleSystem::instance().initialize(m_window, 100.0f);
+        SParticle::instance().initialize(m_window, 100.0f);
     }
 
     void TearDown() override
     {
         // Clear all entities
-        EntityManager::instance().clear();
-        EntityManager::instance().update(0.0f);
+        SEntity::instance().clear();
+        SEntity::instance().update(0.0f);
 
         // Shutdown system
-        SParticleSystem::instance().shutdown();
+        SParticle::instance().shutdown();
 
         if (m_window)
         {
@@ -53,13 +53,13 @@ protected:
 
 TEST_F(SParticleSystemTest, InitializationSucceeds)
 {
-    auto& ps = SParticleSystem::instance();
+    auto& ps = SParticle::instance();
     EXPECT_TRUE(ps.isInitialized());
 }
 
 TEST_F(SParticleSystemTest, ReinitializeSucceeds)
 {
-    auto& ps = SParticleSystem::instance();
+    auto& ps = SParticle::instance();
 
     // Re-initialize with different parameters
     ps.initialize(m_window, 200.0f);
@@ -72,7 +72,7 @@ TEST_F(SParticleSystemTest, ReinitializeSucceeds)
 
 TEST_F(SParticleSystemTest, UpdateDoesNotCrash)
 {
-    auto& ps = SParticleSystem::instance();
+    auto& ps = SParticle::instance();
 
     // Should not crash even with no emitters
     EXPECT_NO_THROW(ps.update(0.016f));
@@ -80,13 +80,13 @@ TEST_F(SParticleSystemTest, UpdateDoesNotCrash)
 
 TEST_F(SParticleSystemTest, RenderEmitterWithWindowDoesNotCrash)
 {
-    auto& ps = SParticleSystem::instance();
+    auto& ps = SParticle::instance();
 
     // Create an entity with emitter for testing
-    auto entity = EntityManager::instance().addEntity("test_emitter");
+    auto entity = SEntity::instance().addEntity("test_emitter");
     entity->addComponent<CTransform>(Vec2(0, 0), Vec2(1.0f, 1.0f), 0.0f);
     entity->addComponent<CParticleEmitter>();
-    EntityManager::instance().update(0.0f);
+    SEntity::instance().update(0.0f);
 
     // Should not crash
     EXPECT_NO_THROW(ps.renderEmitter(entity.get(), m_window));
@@ -94,13 +94,13 @@ TEST_F(SParticleSystemTest, RenderEmitterWithWindowDoesNotCrash)
 
 TEST_F(SParticleSystemTest, RenderEmitterWithNullWindowDoesNotCrash)
 {
-    auto& ps = SParticleSystem::instance();
+    auto& ps = SParticle::instance();
 
     // Create an entity with emitter for testing
-    auto entity = EntityManager::instance().addEntity("test_emitter");
+    auto entity = SEntity::instance().addEntity("test_emitter");
     entity->addComponent<CTransform>(Vec2(0, 0), Vec2(1.0f, 1.0f), 0.0f);
     entity->addComponent<CParticleEmitter>();
-    EntityManager::instance().update(0.0f);
+    SEntity::instance().update(0.0f);
 
     // Should not crash even with nullptr window
     EXPECT_NO_THROW(ps.renderEmitter(entity.get(), nullptr));
@@ -108,7 +108,7 @@ TEST_F(SParticleSystemTest, RenderEmitterWithNullWindowDoesNotCrash)
 
 TEST_F(SParticleSystemTest, RenderEmitterWithNullEntityDoesNotCrash)
 {
-    auto& ps = SParticleSystem::instance();
+    auto& ps = SParticle::instance();
 
     // Should not crash with nullptr entity
     EXPECT_NO_THROW(ps.renderEmitter(nullptr, m_window));
@@ -116,12 +116,12 @@ TEST_F(SParticleSystemTest, RenderEmitterWithNullEntityDoesNotCrash)
 
 TEST_F(SParticleSystemTest, RenderEmitterWithEntityWithoutEmitterDoesNotCrash)
 {
-    auto& ps = SParticleSystem::instance();
+    auto& ps = SParticle::instance();
 
     // Create an entity without emitter
-    auto entity = EntityManager::instance().addEntity("no_emitter");
+    auto entity = SEntity::instance().addEntity("no_emitter");
     entity->addComponent<CTransform>(Vec2(0, 0), Vec2(1.0f, 1.0f), 0.0f);
-    EntityManager::instance().update(0.0f);
+    SEntity::instance().update(0.0f);
 
     // Should not crash
     EXPECT_NO_THROW(ps.renderEmitter(entity.get(), m_window));

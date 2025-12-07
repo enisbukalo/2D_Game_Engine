@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "SInputManager.h"
+#include "SInput.h"
 #include "Input/InputEvents.h"
 #include "Input/IInputListener.h"
 #include "Input/ActionBinding.h"
@@ -14,14 +14,14 @@ protected:
     void SetUp() override
     {
         // Reset and initialize with no window and ImGui disabled
-        SInputManager::instance().shutdown();
-        SInputManager::instance().initialize(nullptr, false);
+        SInput::instance().shutdown();
+        SInput::instance().initialize(nullptr, false);
     }
 
     void TearDown() override
     {
         // Clean up after each test
-        SInputManager::instance().shutdown();
+        SInput::instance().shutdown();
     }
 
     // Helper to create a KeyPressed event
@@ -125,7 +125,7 @@ public:
 // Test: Key conversion from SFML to engine KeyCode
 TEST_F(SInputManagerTest, KeyCodeConversionFromSFML)
 {
-    auto& manager = SInputManager::instance();
+    auto& manager = SInput::instance();
 
     sf::Event event = createKeyPressedEvent(sf::Keyboard::A);
     manager.processEvent(event);
@@ -138,7 +138,7 @@ TEST_F(SInputManagerTest, KeyCodeConversionFromSFML)
 // Test: Key press and release states
 TEST_F(SInputManagerTest, KeyPressAndReleaseStates)
 {
-    auto& manager = SInputManager::instance();
+    auto& manager = SInput::instance();
 
     // Press key
     sf::Event pressEvent = createKeyPressedEvent(sf::Keyboard::Space);
@@ -159,7 +159,7 @@ TEST_F(SInputManagerTest, KeyPressAndReleaseStates)
 // Test: Key repeat handling
 TEST_F(SInputManagerTest, KeyRepeatHandling)
 {
-    auto& manager = SInputManager::instance();
+    auto& manager = SInput::instance();
 
     // First press (not a repeat)
     sf::Event firstPress = createKeyPressedEvent(sf::Keyboard::W, false);
@@ -178,7 +178,7 @@ TEST_F(SInputManagerTest, KeyRepeatHandling)
 // Test: Mouse button press and release
 TEST_F(SInputManagerTest, MouseButtonPressAndRelease)
 {
-    auto& manager = SInputManager::instance();
+    auto& manager = SInput::instance();
 
     // Press mouse button
     sf::Event pressEvent = createMousePressedEvent(sf::Mouse::Left, 100, 200);
@@ -202,7 +202,7 @@ TEST_F(SInputManagerTest, MouseButtonPressAndRelease)
 // Test: Mouse move updates position
 TEST_F(SInputManagerTest, MouseMoveUpdatesPosition)
 {
-    auto& manager = SInputManager::instance();
+    auto& manager = SInput::instance();
 
     sf::Event moveEvent = createMouseMovedEvent(300, 400);
     manager.processEvent(moveEvent);
@@ -215,7 +215,7 @@ TEST_F(SInputManagerTest, MouseMoveUpdatesPosition)
 // Test: Subscribe callback receives events
 TEST_F(SInputManagerTest, SubscribeCallbackReceivesEvents)
 {
-    auto& manager = SInputManager::instance();
+    auto& manager = SInput::instance();
 
     bool callbackInvoked = false;
     InputEventType receivedType = InputEventType::KeyPressed;
@@ -238,7 +238,7 @@ TEST_F(SInputManagerTest, SubscribeCallbackReceivesEvents)
 // Test: Pointer listener receives events
 TEST_F(SInputManagerTest, PointerListenerReceivesEvents)
 {
-    auto& manager = SInputManager::instance();
+    auto& manager = SInput::instance();
 
     TestListener listener;
     manager.addListener(&listener);
@@ -266,7 +266,7 @@ TEST_F(SInputManagerTest, PointerListenerReceivesEvents)
 // Test: Unsubscribe stops receiving events
 TEST_F(SInputManagerTest, UnsubscribeStopsReceivingEvents)
 {
-    auto& manager = SInputManager::instance();
+    auto& manager = SInput::instance();
 
     int callCount = 0;
     ListenerId id = manager.subscribe([&](const InputEvent&) {
@@ -287,7 +287,7 @@ TEST_F(SInputManagerTest, UnsubscribeStopsReceivingEvents)
 // Test: Remove listener stops receiving events
 TEST_F(SInputManagerTest, RemoveListenerStopsReceivingEvents)
 {
-    auto& manager = SInputManager::instance();
+    auto& manager = SInput::instance();
 
     TestListener listener;
     manager.addListener(&listener);
@@ -306,7 +306,7 @@ TEST_F(SInputManagerTest, RemoveListenerStopsReceivingEvents)
 // Test: Bind action and query state
 TEST_F(SInputManagerTest, BindActionAndQueryState)
 {
-    auto& manager = SInputManager::instance();
+    auto& manager = SInput::instance();
 
     ActionBinding binding;
     binding.keys.push_back(KeyCode::Space);
@@ -322,7 +322,7 @@ TEST_F(SInputManagerTest, BindActionAndQueryState)
 // Test: Unbind action by name
 TEST_F(SInputManagerTest, UnbindActionByName)
 {
-    auto& manager = SInputManager::instance();
+    auto& manager = SInput::instance();
 
     ActionBinding binding;
     binding.keys.push_back(KeyCode::E);
@@ -339,7 +339,7 @@ TEST_F(SInputManagerTest, UnbindActionByName)
 // Test: Unbind action by ID
 TEST_F(SInputManagerTest, UnbindActionById)
 {
-    auto& manager = SInputManager::instance();
+    auto& manager = SInput::instance();
 
     ActionBinding binding;
     binding.keys.push_back(KeyCode::F);
@@ -355,7 +355,7 @@ TEST_F(SInputManagerTest, UnbindActionById)
 // Test: Multiple bindings for same action
 TEST_F(SInputManagerTest, MultipleBindingsForSameAction)
 {
-    auto& manager = SInputManager::instance();
+    auto& manager = SInput::instance();
 
     ActionBinding binding1;
     binding1.keys.push_back(KeyCode::W);
@@ -376,7 +376,7 @@ TEST_F(SInputManagerTest, MultipleBindingsForSameAction)
 // Test: Shutdown clears all state
 TEST_F(SInputManagerTest, ShutdownClearsAllState)
 {
-    auto& manager = SInputManager::instance();
+    auto& manager = SInput::instance();
 
     // Set up some state
     sf::Event event = createKeyPressedEvent(sf::Keyboard::A);
@@ -402,7 +402,7 @@ TEST_F(SInputManagerTest, ShutdownClearsAllState)
 // Test: Multiple keys in single binding
 TEST_F(SInputManagerTest, MultipleKeysInBinding)
 {
-    auto& manager = SInputManager::instance();
+    auto& manager = SInput::instance();
 
     ActionBinding binding;
     binding.keys.push_back(KeyCode::A);
@@ -417,7 +417,7 @@ TEST_F(SInputManagerTest, MultipleKeysInBinding)
 // Test: Mouse button in action binding
 TEST_F(SInputManagerTest, MouseButtonInActionBinding)
 {
-    auto& manager = SInputManager::instance();
+    auto& manager = SInput::instance();
 
     ActionBinding binding;
     binding.mouseButtons.push_back(MouseButton::Left);
@@ -431,7 +431,7 @@ TEST_F(SInputManagerTest, MouseButtonInActionBinding)
 // Test: Initialize resets passToImGui flag
 TEST_F(SInputManagerTest, InitializeSetsPassToImGuiFlag)
 {
-    auto& manager = SInputManager::instance();
+    auto& manager = SInput::instance();
 
     // Re-initialize with passToImGui true
     manager.initialize(nullptr, true);

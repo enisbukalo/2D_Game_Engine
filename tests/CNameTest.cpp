@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "CName.h"
 #include "Entity.h"
-#include "EntityManager.h"
+#include "SEntity.h"
 #include "SSerialization.h"
 
 class CNameTest : public ::testing::Test
@@ -9,12 +9,12 @@ class CNameTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        EntityManager::instance().clear();
+        SEntity::instance().clear();
     }
 
     void TearDown() override
     {
-        EntityManager::instance().clear();
+        SEntity::instance().clear();
     }
 };
 
@@ -24,7 +24,7 @@ protected:
 
 TEST_F(CNameTest, ComponentCreationAndDefaults)
 {
-    auto  entity = EntityManager::instance().addEntity("test");
+    auto  entity = SEntity::instance().addEntity("test");
     auto* name   = entity->addComponent<CName>();
 
     ASSERT_NE(name, nullptr);
@@ -34,7 +34,7 @@ TEST_F(CNameTest, ComponentCreationAndDefaults)
 
 TEST_F(CNameTest, ParameterizedConstruction)
 {
-    auto  entity = EntityManager::instance().addEntity("test");
+    auto  entity = SEntity::instance().addEntity("test");
     auto* name   = entity->addComponent<CName>("Player");
 
     EXPECT_EQ(name->getName(), "Player");
@@ -46,7 +46,7 @@ TEST_F(CNameTest, ParameterizedConstruction)
 
 TEST_F(CNameTest, NameCanBeSet)
 {
-    auto  entity = EntityManager::instance().addEntity("test");
+    auto  entity = SEntity::instance().addEntity("test");
     auto* name   = entity->addComponent<CName>();
 
     name->setName("Enemy");
@@ -55,7 +55,7 @@ TEST_F(CNameTest, NameCanBeSet)
 
 TEST_F(CNameTest, NameCanBeChanged)
 {
-    auto  entity = EntityManager::instance().addEntity("test");
+    auto  entity = SEntity::instance().addEntity("test");
     auto* name   = entity->addComponent<CName>("Initial");
 
     EXPECT_EQ(name->getName(), "Initial");
@@ -66,7 +66,7 @@ TEST_F(CNameTest, NameCanBeChanged)
 
 TEST_F(CNameTest, NameCanBeCleared)
 {
-    auto  entity = EntityManager::instance().addEntity("test");
+    auto  entity = SEntity::instance().addEntity("test");
     auto* name   = entity->addComponent<CName>("SomeName");
 
     name->setName("");
@@ -75,7 +75,7 @@ TEST_F(CNameTest, NameCanBeCleared)
 
 TEST_F(CNameTest, NameWithSpaces)
 {
-    auto  entity = EntityManager::instance().addEntity("test");
+    auto  entity = SEntity::instance().addEntity("test");
     auto* name   = entity->addComponent<CName>();
 
     name->setName("Main Character");
@@ -84,7 +84,7 @@ TEST_F(CNameTest, NameWithSpaces)
 
 TEST_F(CNameTest, NameWithSpecialCharacters)
 {
-    auto  entity = EntityManager::instance().addEntity("test");
+    auto  entity = SEntity::instance().addEntity("test");
     auto* name   = entity->addComponent<CName>();
 
     name->setName("Player_1: 'Hero'");
@@ -93,7 +93,7 @@ TEST_F(CNameTest, NameWithSpecialCharacters)
 
 TEST_F(CNameTest, NameWithUnicode)
 {
-    auto  entity = EntityManager::instance().addEntity("test");
+    auto  entity = SEntity::instance().addEntity("test");
     auto* name   = entity->addComponent<CName>();
 
     name->setName("プレイヤー");
@@ -106,7 +106,7 @@ TEST_F(CNameTest, NameWithUnicode)
 
 TEST_F(CNameTest, Serialization)
 {
-    auto  entity = EntityManager::instance().addEntity("test");
+    auto  entity = SEntity::instance().addEntity("test");
     auto* name   = entity->addComponent<CName>("TestEntity");
 
     Serialization::JsonBuilder builder;
@@ -126,7 +126,7 @@ TEST_F(CNameTest, Deserialization)
         }
     })";    Serialization::SSerialization::JsonValue value(json);
 
-    auto  entity = EntityManager::instance().addEntity("test");
+    auto  entity = SEntity::instance().addEntity("test");
     auto* name   = entity->addComponent<CName>();
     name->deserialize(value);
 
@@ -135,14 +135,14 @@ TEST_F(CNameTest, Deserialization)
 
 TEST_F(CNameTest, SerializeDeserializeRoundTrip)
 {
-    auto  entity1 = EntityManager::instance().addEntity("test1");
+    auto  entity1 = SEntity::instance().addEntity("test1");
     auto* name1   = entity1->addComponent<CName>("RoundTripTest");
 
     Serialization::JsonBuilder builder;
     name1->serialize(builder);
     std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
-    auto  entity2 = EntityManager::instance().addEntity("test2");
+    auto  entity2 = SEntity::instance().addEntity("test2");
     auto* name2   = entity2->addComponent<CName>();
     name2->deserialize(value);
 
@@ -151,14 +151,14 @@ TEST_F(CNameTest, SerializeDeserializeRoundTrip)
 
 TEST_F(CNameTest, EmptyNameRoundTrip)
 {
-    auto  entity1 = EntityManager::instance().addEntity("test1");
+    auto  entity1 = SEntity::instance().addEntity("test1");
     auto* name1   = entity1->addComponent<CName>("");
 
     Serialization::JsonBuilder builder;
     name1->serialize(builder);
     std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
-    auto  entity2 = EntityManager::instance().addEntity("test2");
+    auto  entity2 = SEntity::instance().addEntity("test2");
     auto* name2   = entity2->addComponent<CName>("ShouldBeReplaced");
     name2->deserialize(value);
 
@@ -167,14 +167,14 @@ TEST_F(CNameTest, EmptyNameRoundTrip)
 
 TEST_F(CNameTest, NameWithSpacesRoundTrip)
 {
-    auto  entity1 = EntityManager::instance().addEntity("test1");
+    auto  entity1 = SEntity::instance().addEntity("test1");
     auto* name1   = entity1->addComponent<CName>("Name With Spaces");
 
     Serialization::JsonBuilder builder;
     name1->serialize(builder);
     std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
-    auto  entity2 = EntityManager::instance().addEntity("test2");
+    auto  entity2 = SEntity::instance().addEntity("test2");
     auto* name2   = entity2->addComponent<CName>();
     name2->deserialize(value);
 
@@ -185,14 +185,14 @@ TEST_F(CNameTest, LongNameRoundTrip)
 {
     std::string longName = "This is a very long name that might be used for testing purposes to ensure that the serialization and deserialization work correctly with longer strings";
 
-    auto  entity1 = EntityManager::instance().addEntity("test1");
+    auto  entity1 = SEntity::instance().addEntity("test1");
     auto* name1   = entity1->addComponent<CName>(longName);
 
     Serialization::JsonBuilder builder;
     name1->serialize(builder);
     std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
-    auto  entity2 = EntityManager::instance().addEntity("test2");
+    auto  entity2 = SEntity::instance().addEntity("test2");
     auto* name2   = entity2->addComponent<CName>();
     name2->deserialize(value);
 
@@ -201,14 +201,14 @@ TEST_F(CNameTest, LongNameRoundTrip)
 
 TEST_F(CNameTest, SpecialCharactersRoundTrip)
 {
-    auto  entity1 = EntityManager::instance().addEntity("test1");
+    auto  entity1 = SEntity::instance().addEntity("test1");
     auto* name1   = entity1->addComponent<CName>("Test: \"Quotes\" & <Brackets>");
 
     Serialization::JsonBuilder builder;
     name1->serialize(builder);
     std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
-    auto  entity2 = EntityManager::instance().addEntity("test2");
+    auto  entity2 = SEntity::instance().addEntity("test2");
     auto* name2   = entity2->addComponent<CName>();
     name2->deserialize(value);
 
@@ -217,12 +217,12 @@ TEST_F(CNameTest, SpecialCharactersRoundTrip)
 
 TEST_F(CNameTest, ComponentGuid)
 {
-    auto  entity = EntityManager::instance().addEntity("test");
+    auto  entity = SEntity::instance().addEntity("test");
     auto* name   = entity->addComponent<CName>("TestName");
 
     EXPECT_FALSE(name->getGuid().empty());
 
-    auto  entity2 = EntityManager::instance().addEntity("test2");
+    auto  entity2 = SEntity::instance().addEntity("test2");
     auto* name2   = entity2->addComponent<CName>("TestName2");
 
     EXPECT_NE(name->getGuid(), name2->getGuid());

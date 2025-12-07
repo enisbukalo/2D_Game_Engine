@@ -1,5 +1,5 @@
-#ifndef SPARTICLESYSTEM_H
-#define SPARTICLESYSTEM_H
+#ifndef SPARTICLE_H
+#define SPARTICLE_H
 
 #include <SFML/Graphics.hpp>
 #include "System.h"
@@ -12,7 +12,7 @@ class Entity;
  * @brief Particle system that updates and renders particles from CParticleEmitter components
  *
  * @description
- * SParticleSystem is responsible for updating particle physics and rendering
+ * SParticle is responsible for updating particle physics and rendering
  * particles for all entities that have a CParticleEmitter component. It follows
  * the ECS pattern where the system operates on component data.
  *
@@ -22,14 +22,14 @@ class Entity;
  * - Supports textured and colored particles
  * - Automatic particle lifecycle management
  */
-class SParticleSystem : public System
+class SParticle : public System
 {
 public:
     /**
      * @brief Gets the singleton instance
      * @return Reference to the singleton instance
      */
-    static SParticleSystem& instance();
+    static SParticle& instance();
 
     /**
      * @brief Initializes the particle system
@@ -68,16 +68,16 @@ public:
 
 private:
     /** @brief Private constructor for singleton pattern */
-    SParticleSystem();
+    SParticle();
 
     /** @brief Destructor */
-    ~SParticleSystem() override;
+    ~SParticle() override;
 
     /** @brief Deleted copy constructor */
-    SParticleSystem(const SParticleSystem&) = delete;
+    SParticle(const SParticle&) = delete;
 
     /** @brief Deleted assignment operator */
-    SParticleSystem& operator=(const SParticleSystem&) = delete;
+    SParticle& operator=(const SParticle&) = delete;
 
     /**
      * @brief Converts world coordinates (meters) to screen coordinates (pixels)

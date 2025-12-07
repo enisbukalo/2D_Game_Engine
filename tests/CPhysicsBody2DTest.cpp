@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "CPhysicsBody2D.h"
 #include "Entity.h"
-#include "EntityManager.h"
+#include "SEntity.h"
 #include "SSerialization.h"
 
 class CPhysicsBody2DTest : public ::testing::Test
@@ -9,12 +9,12 @@ class CPhysicsBody2DTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        EntityManager::instance().clear();
+        SEntity::instance().clear();
     }
 
     void TearDown() override
     {
-        EntityManager::instance().clear();
+        SEntity::instance().clear();
     }
 };
 
@@ -24,7 +24,7 @@ protected:
 
 TEST_F(CPhysicsBody2DTest, ComponentCreationAndDefaults)
 {
-    auto  entity = EntityManager::instance().addEntity("test");
+    auto  entity = SEntity::instance().addEntity("test");
     auto* body   = entity->addComponent<CPhysicsBody2D>();
 
     ASSERT_NE(body, nullptr);
@@ -46,7 +46,7 @@ TEST_F(CPhysicsBody2DTest, ComponentCreationAndDefaults)
 
 TEST_F(CPhysicsBody2DTest, BodyTypeCanBeSet)
 {
-    auto  entity = EntityManager::instance().addEntity("test");
+    auto  entity = SEntity::instance().addEntity("test");
     auto* body   = entity->addComponent<CPhysicsBody2D>();
 
     body->setBodyType(BodyType::Static);
@@ -61,7 +61,7 @@ TEST_F(CPhysicsBody2DTest, BodyTypeCanBeSet)
 
 TEST_F(CPhysicsBody2DTest, DensityCanBeSet)
 {
-    auto  entity = EntityManager::instance().addEntity("test");
+    auto  entity = SEntity::instance().addEntity("test");
     auto* body   = entity->addComponent<CPhysicsBody2D>();
 
     body->setDensity(2.5f);
@@ -70,7 +70,7 @@ TEST_F(CPhysicsBody2DTest, DensityCanBeSet)
 
 TEST_F(CPhysicsBody2DTest, FrictionCanBeSet)
 {
-    auto  entity = EntityManager::instance().addEntity("test");
+    auto  entity = SEntity::instance().addEntity("test");
     auto* body   = entity->addComponent<CPhysicsBody2D>();
 
     body->setFriction(0.8f);
@@ -79,7 +79,7 @@ TEST_F(CPhysicsBody2DTest, FrictionCanBeSet)
 
 TEST_F(CPhysicsBody2DTest, RestitutionCanBeSet)
 {
-    auto  entity = EntityManager::instance().addEntity("test");
+    auto  entity = SEntity::instance().addEntity("test");
     auto* body   = entity->addComponent<CPhysicsBody2D>();
 
     body->setRestitution(0.9f);
@@ -88,7 +88,7 @@ TEST_F(CPhysicsBody2DTest, RestitutionCanBeSet)
 
 TEST_F(CPhysicsBody2DTest, FixedRotationCanBeToggled)
 {
-    auto  entity = EntityManager::instance().addEntity("test");
+    auto  entity = SEntity::instance().addEntity("test");
     auto* body   = entity->addComponent<CPhysicsBody2D>();
 
     EXPECT_FALSE(body->isFixedRotation());
@@ -102,7 +102,7 @@ TEST_F(CPhysicsBody2DTest, FixedRotationCanBeToggled)
 
 TEST_F(CPhysicsBody2DTest, LinearDampingCanBeSet)
 {
-    auto  entity = EntityManager::instance().addEntity("test");
+    auto  entity = SEntity::instance().addEntity("test");
     auto* body   = entity->addComponent<CPhysicsBody2D>();
 
     body->setLinearDamping(0.5f);
@@ -111,7 +111,7 @@ TEST_F(CPhysicsBody2DTest, LinearDampingCanBeSet)
 
 TEST_F(CPhysicsBody2DTest, AngularDampingCanBeSet)
 {
-    auto  entity = EntityManager::instance().addEntity("test");
+    auto  entity = SEntity::instance().addEntity("test");
     auto* body   = entity->addComponent<CPhysicsBody2D>();
 
     body->setAngularDamping(0.75f);
@@ -120,7 +120,7 @@ TEST_F(CPhysicsBody2DTest, AngularDampingCanBeSet)
 
 TEST_F(CPhysicsBody2DTest, GravityScaleCanBeSet)
 {
-    auto  entity = EntityManager::instance().addEntity("test");
+    auto  entity = SEntity::instance().addEntity("test");
     auto* body   = entity->addComponent<CPhysicsBody2D>();
 
     body->setGravityScale(0.5f);
@@ -139,7 +139,7 @@ TEST_F(CPhysicsBody2DTest, GravityScaleCanBeSet)
 
 TEST_F(CPhysicsBody2DTest, SerializationDynamicBody)
 {
-    auto  entity = EntityManager::instance().addEntity("test");
+    auto  entity = SEntity::instance().addEntity("test");
     auto* body   = entity->addComponent<CPhysicsBody2D>();
 
     body->setBodyType(BodyType::Dynamic);
@@ -169,7 +169,7 @@ TEST_F(CPhysicsBody2DTest, SerializationDynamicBody)
 
 TEST_F(CPhysicsBody2DTest, SerializationStaticBody)
 {
-    auto  entity = EntityManager::instance().addEntity("test");
+    auto  entity = SEntity::instance().addEntity("test");
     auto* body   = entity->addComponent<CPhysicsBody2D>();
 
     body->setBodyType(BodyType::Static);
@@ -183,7 +183,7 @@ TEST_F(CPhysicsBody2DTest, SerializationStaticBody)
 
 TEST_F(CPhysicsBody2DTest, SerializationKinematicBody)
 {
-    auto  entity = EntityManager::instance().addEntity("test");
+    auto  entity = SEntity::instance().addEntity("test");
     auto* body   = entity->addComponent<CPhysicsBody2D>();
 
     body->setBodyType(BodyType::Kinematic);
@@ -210,7 +210,7 @@ TEST_F(CPhysicsBody2DTest, DeserializationDynamicBody)
         }
     })";    Serialization::SSerialization::JsonValue value(json);
 
-    auto  entity = EntityManager::instance().addEntity("test");
+    auto  entity = SEntity::instance().addEntity("test");
     auto* body   = entity->addComponent<CPhysicsBody2D>();
     body->deserialize(value);
 
@@ -239,7 +239,7 @@ TEST_F(CPhysicsBody2DTest, DeserializationStaticBody)
         }
     })";    Serialization::SSerialization::JsonValue value(json);
 
-    auto  entity = EntityManager::instance().addEntity("test");
+    auto  entity = SEntity::instance().addEntity("test");
     auto* body   = entity->addComponent<CPhysicsBody2D>();
     body->deserialize(value);
 
@@ -261,7 +261,7 @@ TEST_F(CPhysicsBody2DTest, DeserializationKinematicBody)
         }
     })";    Serialization::SSerialization::JsonValue value(json);
 
-    auto  entity = EntityManager::instance().addEntity("test");
+    auto  entity = SEntity::instance().addEntity("test");
     auto* body   = entity->addComponent<CPhysicsBody2D>();
     body->deserialize(value);
 
@@ -270,7 +270,7 @@ TEST_F(CPhysicsBody2DTest, DeserializationKinematicBody)
 
 TEST_F(CPhysicsBody2DTest, SerializeDeserializeRoundTripDynamic)
 {
-    auto  entity1 = EntityManager::instance().addEntity("test1");
+    auto  entity1 = SEntity::instance().addEntity("test1");
     auto* body1   = entity1->addComponent<CPhysicsBody2D>();
 
     body1->setBodyType(BodyType::Dynamic);
@@ -286,7 +286,7 @@ TEST_F(CPhysicsBody2DTest, SerializeDeserializeRoundTripDynamic)
     body1->serialize(builder);
     std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
-    auto  entity2 = EntityManager::instance().addEntity("test2");
+    auto  entity2 = SEntity::instance().addEntity("test2");
     auto* body2   = entity2->addComponent<CPhysicsBody2D>();
     body2->deserialize(value);
 
@@ -302,7 +302,7 @@ TEST_F(CPhysicsBody2DTest, SerializeDeserializeRoundTripDynamic)
 
 TEST_F(CPhysicsBody2DTest, SerializeDeserializeRoundTripStatic)
 {
-    auto  entity1 = EntityManager::instance().addEntity("test1");
+    auto  entity1 = SEntity::instance().addEntity("test1");
     auto* body1   = entity1->addComponent<CPhysicsBody2D>();
 
     body1->setBodyType(BodyType::Static);
@@ -318,7 +318,7 @@ TEST_F(CPhysicsBody2DTest, SerializeDeserializeRoundTripStatic)
     body1->serialize(builder);
     std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
-    auto  entity2 = EntityManager::instance().addEntity("test2");
+    auto  entity2 = SEntity::instance().addEntity("test2");
     auto* body2   = entity2->addComponent<CPhysicsBody2D>();
     body2->deserialize(value);
 
@@ -334,7 +334,7 @@ TEST_F(CPhysicsBody2DTest, SerializeDeserializeRoundTripStatic)
 
 TEST_F(CPhysicsBody2DTest, SerializeDeserializeRoundTripKinematic)
 {
-    auto  entity1 = EntityManager::instance().addEntity("test1");
+    auto  entity1 = SEntity::instance().addEntity("test1");
     auto* body1   = entity1->addComponent<CPhysicsBody2D>();
 
     body1->setBodyType(BodyType::Kinematic);
@@ -350,7 +350,7 @@ TEST_F(CPhysicsBody2DTest, SerializeDeserializeRoundTripKinematic)
     body1->serialize(builder);
     std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
-    auto  entity2 = EntityManager::instance().addEntity("test2");
+    auto  entity2 = SEntity::instance().addEntity("test2");
     auto* body2   = entity2->addComponent<CPhysicsBody2D>();
     body2->deserialize(value);
 
@@ -366,7 +366,7 @@ TEST_F(CPhysicsBody2DTest, SerializeDeserializeRoundTripKinematic)
 
 TEST_F(CPhysicsBody2DTest, ZeroGravityScale)
 {
-    auto  entity1 = EntityManager::instance().addEntity("test1");
+    auto  entity1 = SEntity::instance().addEntity("test1");
     auto* body1   = entity1->addComponent<CPhysicsBody2D>();
 
     body1->setGravityScale(0.0f);
@@ -375,7 +375,7 @@ TEST_F(CPhysicsBody2DTest, ZeroGravityScale)
     body1->serialize(builder);
     std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
-    auto  entity2 = EntityManager::instance().addEntity("test2");
+    auto  entity2 = SEntity::instance().addEntity("test2");
     auto* body2   = entity2->addComponent<CPhysicsBody2D>();
     body2->deserialize(value);
 
@@ -384,7 +384,7 @@ TEST_F(CPhysicsBody2DTest, ZeroGravityScale)
 
 TEST_F(CPhysicsBody2DTest, NegativeGravityScale)
 {
-    auto  entity1 = EntityManager::instance().addEntity("test1");
+    auto  entity1 = SEntity::instance().addEntity("test1");
     auto* body1   = entity1->addComponent<CPhysicsBody2D>();
 
     body1->setGravityScale(-2.0f);
@@ -393,7 +393,7 @@ TEST_F(CPhysicsBody2DTest, NegativeGravityScale)
     body1->serialize(builder);
     std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
-    auto  entity2 = EntityManager::instance().addEntity("test2");
+    auto  entity2 = SEntity::instance().addEntity("test2");
     auto* body2   = entity2->addComponent<CPhysicsBody2D>();
     body2->deserialize(value);
 

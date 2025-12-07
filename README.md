@@ -82,7 +82,7 @@ A modern C++ 2D game engine built with SFML, featuring an Entity Component Syste
 - **Default gravity**: 9.81 m/s² downward in Box2D (equivalent to Earth's gravity)
 
 ### Physics System
-- **SBox2DPhysics**: Box2D v3.1.1 integration with ECS architecture
+- **S2DPhysics**: Box2D v3.1.1 integration with ECS architecture
   - Industry-standard 2D physics engine with native API
   - Manages Box2D world and physics simulation
   - Automatic synchronization between Box2D and CTransform components
@@ -133,7 +133,7 @@ The codebase is organized using pragma regions for better readability with secti
   - Collision detection and response
   - Component-based physics integration
   - Automatic sync between Box2D and ECS components
-- **Audio System (SAudioSystem)**: SFML-based audio engine with advanced features
+- **Audio System (SAudio)**: SFML-based audio engine with advanced features
   - **Music Streaming**: Single streamed music track with seamless playback
   - **SFX Pooling**: Efficient sound effect management with configurable pool size (default 32)
   - **Spatial Audio**: 3D positioned sound effects with distance attenuation
@@ -145,13 +145,13 @@ The codebase is organized using pragma regions for better readability with secti
   - **Pitch Control**: Adjust playback speed and pitch
   - **Audio Handle System**: Track and control playing sounds
   - Access via `gameEngine.getAudioSystem()`
-- **Input Manager (SInputManager)**: Comprehensive input handling system
+- **Input Manager (SInput)**: Comprehensive input handling system
   - Keyboard and mouse input abstraction
   - Action binding system for gameplay events
   - Entity-specific input controllers via `CInputController` component
   - Support for pressed, released, and held states
   - Access via `gameEngine.getInputManager()`
-- **Particle System (SParticleSystem)**: Visual effects system for particles
+- **Particle System (SParticle)**: Visual effects system for particles
   - **ECS Integration**: Particle emitters are `CParticleEmitter` components
   - **Emission Shapes**:
     - Point: Single point emission (default)
@@ -181,7 +181,7 @@ The codebase is organized using pragma regions for better readability with secti
     - Emit outward from shape center
   - **Rendering Integration**: Automatic particle rendering via SRenderer with z-ordering
   - **Efficient Rendering**: Vertex arrays for batched per-emitter rendering
-  - Access via `SParticleSystem::instance()`
+  - Access via `SParticle::instance()`
 - **Component Factory**: Provides a factory pattern for component creation
   - Registers all built-in components
   - Supports custom component registration

@@ -24,7 +24,7 @@
 class Entity : public std::enable_shared_from_this<Entity>
 {
 public:
-    friend class EntityManager;
+    friend class SEntity;
     friend class TestEntity;
 
     virtual ~Entity() = default;

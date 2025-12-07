@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "CTexture.h"
 #include "Entity.h"
-#include "EntityManager.h"
+#include "SEntity.h"
 #include "SSerialization.h"
 
 class CTextureTest : public ::testing::Test
@@ -9,18 +9,18 @@ class CTextureTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        EntityManager::instance().clear();
+        SEntity::instance().clear();
     }
 
     void TearDown() override
     {
-        EntityManager::instance().clear();
+        SEntity::instance().clear();
     }
 };
 
 TEST_F(CTextureTest, ComponentCreationAndDefaults)
 {
-    auto entity  = EntityManager::instance().addEntity("test");
+    auto entity  = SEntity::instance().addEntity("test");
     auto* texture = entity->addComponent<CTexture>();
 
     ASSERT_NE(texture, nullptr);
@@ -31,7 +31,7 @@ TEST_F(CTextureTest, ComponentCreationAndDefaults)
 
 TEST_F(CTextureTest, ParameterizedConstruction)
 {
-    auto entity  = EntityManager::instance().addEntity("test");
+    auto entity  = SEntity::instance().addEntity("test");
     auto* texture = entity->addComponent<CTexture>("assets/textures/sprite.png");
 
     EXPECT_EQ(texture->getTexturePath(), "assets/textures/sprite.png");
@@ -39,7 +39,7 @@ TEST_F(CTextureTest, ParameterizedConstruction)
 
 TEST_F(CTextureTest, SettersAndGetters)
 {
-    auto entity  = EntityManager::instance().addEntity("test");
+    auto entity  = SEntity::instance().addEntity("test");
     auto* texture = entity->addComponent<CTexture>();
 
     texture->setTexturePath("path/to/texture.png");
@@ -54,7 +54,7 @@ TEST_F(CTextureTest, SettersAndGetters)
 
 TEST_F(CTextureTest, PathWithSpaces)
 {
-    auto entity  = EntityManager::instance().addEntity("test");
+    auto entity  = SEntity::instance().addEntity("test");
     auto* texture = entity->addComponent<CTexture>();
 
     texture->setTexturePath("path with spaces/my texture.png");
@@ -63,7 +63,7 @@ TEST_F(CTextureTest, PathWithSpaces)
 
 TEST_F(CTextureTest, PathWithSpecialCharacters)
 {
-    auto entity  = EntityManager::instance().addEntity("test");
+    auto entity  = SEntity::instance().addEntity("test");
     auto* texture = entity->addComponent<CTexture>();
 
     texture->setTexturePath("path/with-special_chars.123/texture.png");
@@ -72,7 +72,7 @@ TEST_F(CTextureTest, PathWithSpecialCharacters)
 
 TEST_F(CTextureTest, Serialization)
 {
-    auto entity  = EntityManager::instance().addEntity("test");
+    auto entity  = SEntity::instance().addEntity("test");
     auto* texture = entity->addComponent<CTexture>("assets/player_sprite.png");
 
     Serialization::JsonBuilder builder;
@@ -93,7 +93,7 @@ TEST_F(CTextureTest, Deserialization)
         }
     })";    Serialization::SSerialization::JsonValue value(json);
 
-    auto entity = EntityManager::instance().addEntity("test");
+    auto entity = SEntity::instance().addEntity("test");
     auto* texture = entity->addComponent<CTexture>();
     texture->deserialize(value);
 
@@ -102,14 +102,14 @@ TEST_F(CTextureTest, Deserialization)
 
 TEST_F(CTextureTest, SerializeDeserializeRoundTrip)
 {
-    auto entity   = EntityManager::instance().addEntity("test");
+    auto entity   = SEntity::instance().addEntity("test");
     auto* texture1 = entity->addComponent<CTexture>("path/to/my/texture.png");
 
     Serialization::JsonBuilder builder;
     texture1->serialize(builder);
     std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
-    auto  entity2  = EntityManager::instance().addEntity("test2");
+    auto  entity2  = SEntity::instance().addEntity("test2");
     auto* texture2 = entity2->addComponent<CTexture>();
     texture2->deserialize(value);
 
@@ -118,14 +118,14 @@ TEST_F(CTextureTest, SerializeDeserializeRoundTrip)
 
 TEST_F(CTextureTest, EmptyPathSerialization)
 {
-    auto entity  = EntityManager::instance().addEntity("test");
+    auto entity  = SEntity::instance().addEntity("test");
     auto* texture = entity->addComponent<CTexture>();
 
     Serialization::JsonBuilder builder;
     texture->serialize(builder);
     std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
-    auto  entity2  = EntityManager::instance().addEntity("test2");
+    auto  entity2  = SEntity::instance().addEntity("test2");
     auto* texture2 = entity2->addComponent<CTexture>();
     texture2->deserialize(value);
 
@@ -134,13 +134,13 @@ TEST_F(CTextureTest, EmptyPathSerialization)
 
 TEST_F(CTextureTest, ComponentGuid)
 {
-    auto entity  = EntityManager::instance().addEntity("test");
+    auto entity  = SEntity::instance().addEntity("test");
     auto* texture = entity->addComponent<CTexture>();
 
     EXPECT_FALSE(texture->getGuid().empty());
 
     // Each component should have a unique GUID
-    auto  entity2  = EntityManager::instance().addEntity("test2");
+    auto  entity2  = SEntity::instance().addEntity("test2");
     auto* texture2 = entity2->addComponent<CTexture>();
 
     EXPECT_NE(texture->getGuid(), texture2->getGuid());

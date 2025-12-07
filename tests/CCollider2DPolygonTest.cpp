@@ -4,8 +4,8 @@
 #include "CPhysicsBody2D.h"
 #include "CTransform.h"
 #include "Entity.h"
-#include "EntityManager.h"
-#include "SBox2DPhysics.h"
+#include "SEntity.h"
+#include "S2DPhysics.h"
 #include "Vec2.h"
 #include "box2d/box2d.h"
 
@@ -15,7 +15,7 @@ protected:
     void SetUp() override
     {
         // Ensure physics system is initialized
-        SBox2DPhysics::instance();
+        S2DPhysics::instance();
     }
 
     void TearDown() override
@@ -27,7 +27,7 @@ protected:
     std::shared_ptr<Entity> createPhysicsEntity(const Vec2& pos = Vec2(0.0f, 0.0f),
                                                 BodyType type = BodyType::Dynamic)
     {
-        auto& manager = EntityManager::instance();
+        auto& manager = SEntity::instance();
         auto  entity  = manager.addEntity("test_entity");
 
         auto transform = entity->addComponent<CTransform>();
@@ -326,7 +326,7 @@ TEST_F(CCollider2DPolygonTest, PolygonFallsUnderGravity)
     // Simulate for 1 second
     for (int i = 0; i < 60; ++i)
     {
-        SBox2DPhysics::instance().update(1.0f / 60.0f);
+        S2DPhysics::instance().update(1.0f / 60.0f);
     }
 
     b2Vec2 finalPos = physicsBody->getPosition();
@@ -354,7 +354,7 @@ TEST_F(CCollider2DPolygonTest, PolygonCollidesWithBox)
     // Simulate until polygon settles on ground
     for (int i = 0; i < 200; ++i)
     {
-        SBox2DPhysics::instance().update(1.0f / 60.0f);
+        S2DPhysics::instance().update(1.0f / 60.0f);
     }
 
     b2Vec2 finalPos = physicsBody->getPosition();
@@ -389,7 +389,7 @@ TEST_F(CCollider2DPolygonTest, PolygonCollidesWithPolygon)
     // Simulate
     for (int i = 0; i < 200; ++i)
     {
-        SBox2DPhysics::instance().update(1.0f / 60.0f);
+        S2DPhysics::instance().update(1.0f / 60.0f);
     }
 
     b2Vec2 finalPos = physicsBody->getPosition();
@@ -531,7 +531,7 @@ TEST_F(CCollider2DPolygonTest, RecreatePolygonShape)
 
 TEST_F(CCollider2DPolygonTest, CreatePolygonWithoutPhysicsBody)
 {
-    auto& manager = EntityManager::instance();
+    auto& manager = SEntity::instance();
     auto entity = manager.addEntity("no_physics");
 
     auto transform = entity->addComponent<CTransform>();
