@@ -174,7 +174,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
 
     // Read and parse the saved JSON file
     std::string json = readFile(testFile);
-    JsonValue   root(json);
+   Serialization::SSerialization::JsonValue   root(json);
 
     // Test entities array
     const auto& entities = root["entities"].getArray();
@@ -186,7 +186,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
     const auto& physicsComponents = physics["components"].getArray();
 
     // Find and verify Transform component
-    const JsonValue* transformData = nullptr;
+    const Serialization::SSerialization::JsonValue* transformData = nullptr;
     for (const auto& comp : physicsComponents)
     {
         if (!comp["cTransform"].isNull())
@@ -210,7 +210,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
     const auto& namedComponents = named["components"].getArray();
 
     // Find and verify Transform component
-    const JsonValue* transform2Data = nullptr;
+    const Serialization::SSerialization::JsonValue* transform2Data = nullptr;
     for (const auto& comp : namedComponents)
     {
         if (!comp["cTransform"].isNull())
@@ -225,7 +225,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
     EXPECT_TRUE(approxEqual(pos2["y"].getNumber(), 75.0));
 
     // Find and verify Name component
-    const JsonValue* name2Data = nullptr;
+    const Serialization::SSerialization::JsonValue* name2Data = nullptr;
     for (const auto& comp : namedComponents)
     {
         if (!comp["cName"].isNull())
@@ -243,7 +243,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
     const auto& completeComponents = complete["components"].getArray();
 
     // Find and verify Transform component
-    const JsonValue* transform3Data = nullptr;
+    const Serialization::SSerialization::JsonValue* transform3Data = nullptr;
     for (const auto& comp : completeComponents)
     {
         if (!comp["cTransform"].isNull())
@@ -259,7 +259,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
     EXPECT_TRUE(approxEqual((*transform3Data)["rotation"].getNumber(), 90.0));
 
     // Find and verify Name component
-    const JsonValue* name3JsonData = nullptr;
+    const Serialization::SSerialization::JsonValue* name3JsonData = nullptr;
     for (const auto& comp : completeComponents)
     {
         if (!comp["cName"].isNull())
@@ -275,7 +275,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
     const auto& physicsObject = entities[3];
     EXPECT_EQ(physicsObject["tag"].getString(), "physics_object");
     const auto& physicsObjectComponents = physicsObject["components"].getArray();
-    const JsonValue* physicsBody3JsonData = nullptr;
+    const Serialization::SSerialization::JsonValue* physicsBody3JsonData = nullptr;
     for (const auto& comp : physicsObjectComponents)
     {
         if (!comp["cPhysicsBody2D"].isNull())
@@ -295,7 +295,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
     EXPECT_TRUE(approxEqual((*physicsBody3JsonData)["gravityScale"].getNumber(), 1.0f));
 
     // Find and verify CircleCollider component from the PhysicsBody2D entity
-    const JsonValue* collider4JsonData = nullptr;
+    const Serialization::SSerialization::JsonValue* collider4JsonData = nullptr;
     for (const auto& comp : physicsObjectComponents)
     {
         if (!comp["cCollider2D"].isNull())
@@ -314,7 +314,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
     EXPECT_TRUE(approxEqual(fixtures[0]["radius"].getNumber(), 5.0f));
 
     // Find controller entity and verify it has cInputController
-    const JsonValue* controllerJsonData = nullptr;
+    const Serialization::SSerialization::JsonValue* controllerJsonData = nullptr;
     for (const auto& ent : entities)
     {
         if (ent["tag"].getString() == "controller_object")

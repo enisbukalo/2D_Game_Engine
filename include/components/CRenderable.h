@@ -55,12 +55,12 @@ public:
     /**
      * @brief Serializes the renderable data
      */
-    void serialize(JsonBuilder& builder) const override;
+    void serialize(Serialization::JsonBuilder& builder) const override;
 
     /**
-     * @brief Deserializes renderable data
+     * @brief Deserializes renderable data from JSON value
      */
-    void deserialize(const JsonValue& value) override;
+    void deserialize(const Serialization::SSerialization::JsonValue& value) override;
 
     /**
      * @brief Gets the visual type

@@ -41,7 +41,7 @@ void CAudioSource::update(float deltaTime)
     }
 }
 
-void CAudioSource::serialize(JsonBuilder& builder) const
+void CAudioSource::serialize(Serialization::JsonBuilder& builder) const
 {
     builder.beginObject();
     builder.addKey("type");
@@ -83,7 +83,7 @@ void CAudioSource::serialize(JsonBuilder& builder) const
     builder.endObject();  // component
 }
 
-void CAudioSource::deserialize(const JsonValue& value)
+void CAudioSource::deserialize(const Serialization::SSerialization::JsonValue& value)
 {
     if (!value.isObject())
     {

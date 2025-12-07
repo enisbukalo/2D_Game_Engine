@@ -3,14 +3,14 @@
 #include <filesystem>
 #include <fstream>
 #include <sstream>
-#include "systems/SSerialization.h"
+#include "SSerialization.h"
 #include "TestUtils.h"
 
 TEST(JsonTest, ParseEntityFile)
 {
     // Read the entity.json test file
     std::string json = readFile("tests/test_data/entity.json");
-    JsonValue   root(json);
+   Serialization::SSerialization::JsonValue   root(json);
 
     // Test basic entity properties
     EXPECT_EQ(root["id"].getNumber(), 1);
@@ -44,7 +44,7 @@ TEST(JsonTest, ParseLevelFile)
 {
     // Read the level.json test file
     std::string json = readFile("tests/test_data/level.json");
-    JsonValue   root(json);
+   Serialization::SSerialization::JsonValue   root(json);
 
     // Test level properties
     EXPECT_EQ(root["name"].getString(), "Level 1");
@@ -86,25 +86,25 @@ TEST(JsonTest, ParseLevelFile)
 TEST(JsonTest, ErrorHandling)
 {
     // Test invalid JSON
-    EXPECT_THROW(JsonValue("{invalid json}"), std::runtime_error);
+    EXPECT_THROW(Serialization::SSerialization::JsonValue("{invalid json}"), std::runtime_error);
 
     // Test accessing non-existent keys
-    JsonValue empty("{}");
+   Serialization::SSerialization::JsonValue empty("{}");
     EXPECT_EQ(empty["nonexistent"].isNull(), true);
 
     // Test accessing wrong types
-    JsonValue num("42");
+   Serialization::SSerialization::JsonValue num("42");
     EXPECT_EQ(num.getString("default"), "default");
     EXPECT_EQ(num.getBool(true), true);
 
     // Test array bounds
-    JsonValue arr("[1,2,3]");
+   Serialization::SSerialization::JsonValue arr("[1,2,3]");
     EXPECT_EQ(arr[5].isNull(), true);
 }
 
 TEST(JsonTest, BuilderSimpleTypes)
 {
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
 
     // Test object with simple types
     builder.beginObject();
@@ -117,7 +117,7 @@ TEST(JsonTest, BuilderSimpleTypes)
     builder.endObject();
 
     // Parse the built JSON to verify structure
-    JsonValue value(builder.toString());
+   Serialization::SSerialization::JsonValue value(builder.toString());
     EXPECT_EQ(value["string"].getString(), "Hello, World!");
     EXPECT_TRUE(approxEqual(value["number"].getNumber(), 42.5));
     EXPECT_EQ(value["boolean"].getBool(), true);
@@ -125,7 +125,7 @@ TEST(JsonTest, BuilderSimpleTypes)
 
 TEST(JsonTest, BuilderArrays)
 {
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
 
     // Test array with mixed types
     builder.beginArray();
@@ -139,7 +139,7 @@ TEST(JsonTest, BuilderArrays)
     builder.endArray();
 
     // Parse and verify
-    JsonValue   value(builder.toString());
+   Serialization::SSerialization::JsonValue   value(builder.toString());
     const auto& arr = value.getArray();
     ASSERT_EQ(arr.size(), 4);
     EXPECT_EQ(arr[0].getString(), "first");
@@ -150,7 +150,7 @@ TEST(JsonTest, BuilderArrays)
 
 TEST(JsonTest, BuilderComplexStructure)
 {
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
 
     // Build a complex entity structure similar to entity.json
     builder.beginObject();
@@ -203,7 +203,7 @@ TEST(JsonTest, BuilderComplexStructure)
     builder.endObject();
 
     // Parse and verify the complex structure
-    JsonValue value(builder.toString());
+   Serialization::SSerialization::JsonValue value(builder.toString());
     EXPECT_EQ(value["id"].getNumber(), 1.0);
     EXPECT_EQ(value["tag"].getString(), "player");
 
@@ -225,7 +225,7 @@ TEST(JsonTest, BuilderComplexStructure)
 
 TEST(JsonTest, BuilderEscapeStrings)
 {
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
 
     builder.beginObject();
     builder.addKey("special\nkey");           // Key with newline
@@ -235,14 +235,14 @@ TEST(JsonTest, BuilderEscapeStrings)
     builder.endObject();
 
     // Parse and verify escaped strings
-    JsonValue value(builder.toString());
+   Serialization::SSerialization::JsonValue value(builder.toString());
     EXPECT_EQ(value["special\nkey"].getString(), "Hello\t\"World\"\n");
     EXPECT_EQ(value["path"].getString(), "C:\\Program Files\\Game");
 }
 
 TEST(JsonTest, BuilderWriteAndReadFile)
 {
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
 
     // Build a complete level structure
     builder.beginObject();
@@ -251,7 +251,7 @@ TEST(JsonTest, BuilderWriteAndReadFile)
     builder.addKey("name");
     builder.addString("Test Level");
     builder.addKey("description");
-    builder.addString("A test level created by JsonBuilder");
+    builder.addString("A test level created by Serialization::JsonBuilder");
 
     // Entities array
     builder.addKey("entities");
@@ -386,11 +386,11 @@ TEST(JsonTest, BuilderWriteAndReadFile)
 
     // Read back and verify
     std::string json = readFile(outputPath);
-    JsonValue   root(json);
+   Serialization::SSerialization::JsonValue   root(json);
 
     // Verify level metadata
     EXPECT_EQ(root["name"].getString(), "Test Level");
-    EXPECT_EQ(root["description"].getString(), "A test level created by JsonBuilder");
+    EXPECT_EQ(root["description"].getString(), "A test level created by Serialization::JsonBuilder");
 
     // Verify entities
     const auto& entities = root["entities"].getArray();

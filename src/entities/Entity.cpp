@@ -40,7 +40,7 @@ void Entity::update(float deltaTime)
     }
 }
 
-void Entity::serialize(JsonBuilder& builder) const
+void Entity::serialize(Serialization::JsonBuilder& builder) const
 {
     builder.beginObject();
     builder.addKey("guid");
@@ -59,7 +59,7 @@ void Entity::serialize(JsonBuilder& builder) const
     builder.endObject();
 }
 
-void Entity::deserialize(const JsonValue& value)
+void Entity::deserialize(const Serialization::SSerialization::JsonValue& value)
 {
     m_id = value["id"].getNumber();
 

@@ -2,7 +2,7 @@
 #include "CTexture.h"
 #include "Entity.h"
 #include "EntityManager.h"
-#include "systems/SSerialization.h"
+#include "SSerialization.h"
 
 class CTextureTest : public ::testing::Test
 {
@@ -75,7 +75,7 @@ TEST_F(CTextureTest, Serialization)
     auto entity  = EntityManager::instance().addEntity("test");
     auto* texture = entity->addComponent<CTexture>("assets/player_sprite.png");
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     texture->serialize(builder);
 
     std::string json = builder.toString();
@@ -91,9 +91,7 @@ TEST_F(CTextureTest, Deserialization)
         "cTexture": {
             "texturePath": "assets/enemy_sprite.png"
         }
-    })";
-
-    JsonValue value(json);
+    })";    Serialization::SSerialization::JsonValue value(json);
 
     auto entity = EntityManager::instance().addEntity("test");
     auto* texture = entity->addComponent<CTexture>();
@@ -107,11 +105,9 @@ TEST_F(CTextureTest, SerializeDeserializeRoundTrip)
     auto entity   = EntityManager::instance().addEntity("test");
     auto* texture1 = entity->addComponent<CTexture>("path/to/my/texture.png");
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     texture1->serialize(builder);
-    std::string json = builder.toString();
-
-    JsonValue value(json);
+    std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
     auto  entity2  = EntityManager::instance().addEntity("test2");
     auto* texture2 = entity2->addComponent<CTexture>();
@@ -125,11 +121,9 @@ TEST_F(CTextureTest, EmptyPathSerialization)
     auto entity  = EntityManager::instance().addEntity("test");
     auto* texture = entity->addComponent<CTexture>();
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     texture->serialize(builder);
-    std::string json = builder.toString();
-
-    JsonValue value(json);
+    std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
     auto  entity2  = EntityManager::instance().addEntity("test2");
     auto* texture2 = entity2->addComponent<CTexture>();

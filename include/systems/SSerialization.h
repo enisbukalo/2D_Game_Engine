@@ -10,7 +10,13 @@
 #include <variant>
 #include <vector>
 
+#include "JsonBuilder.h"
+#include "JsonParser.h"
+
 class Entity;  // Forward declaration
+
+namespace Serialization
+{
 
 /**
  * @brief Serialization system for JSON parsing, building, and entity/component serialization
@@ -23,16 +29,13 @@ class Entity;  // Forward declaration
  * - Entity and component serialization/deserialization orchestration
  *
  * Usage:
- *   auto& serializer = SSerialization::instance();
+ *   auto& serializer = Serialization::SSerialization::instance();
  *   JsonValue value = serializer.parse("{\"key\": \"value\"}");
  *   std::string json = serializer.build(value);
  */
 class SSerialization
 {
 public:
-    // Forward declarations for nested types
-    class JsonParser;
-    class JsonBuilder;
     class JsonValue;
 
     /**
@@ -83,7 +86,6 @@ public:
      * @return JsonValue representing an empty array
      */
     JsonValue createArray();
-
     /**
      * @brief Serializes an entity to a JsonBuilder
      * @param entity The entity to serialize
@@ -182,61 +184,6 @@ public:
         static const JsonValue NULL_VALUE;
     };
 
-    /**
-     * @brief JsonParser - streaming parser for JSON strings
-     */
-    class JsonParser
-    {
-    public:
-        explicit JsonParser(const std::string& json) : m_json(json), m_pos(0) {}
-
-        static JsonParser fromFile(const std::string& path);
-
-        bool        hasNext() const;
-        void        beginObject();
-        void        endObject();
-        void        beginArray();
-        void        endArray();
-        std::string getKey();
-        std::string getString();
-        float       getNumber();
-        bool        getBool();
-        void        getNull();
-        char        peek();
-        void        consume();
-        void        skipWhitespace();
-
-    private:
-        std::string m_json;
-        size_t      m_pos;
-    };
-
-    /**
-     * @brief JsonBuilder - streaming builder for JSON strings
-     */
-    class JsonBuilder
-    {
-    public:
-        JsonBuilder();
-
-        void beginObject();
-        void endObject();
-        void beginArray();
-        void endArray();
-        void addKey(const std::string& key);
-        void addString(const std::string& value);
-        void addNumber(float value);
-        void addBool(bool value);
-
-        std::string toString() const;
-
-    private:
-        std::string escapeString(const std::string& str);
-
-        std::stringstream m_stream;
-        bool              m_needsComma;
-    };
-
 private:
     SSerialization()  = default;
     ~SSerialization() = default;
@@ -244,9 +191,6 @@ private:
     bool m_initialized = false;
 };
 
-// Type aliases for backward compatibility and convenience
-using JsonValue   = SSerialization::JsonValue;
-using JsonBuilder = SSerialization::JsonBuilder;
-using JsonParser  = SSerialization::JsonParser;
+}  // namespace Serialization
 
 #endif  // SSERIALIZATION_H

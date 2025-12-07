@@ -1,12 +1,12 @@
 #include "CShader.h"
-#include "systems/SSerialization.h"
+#include "SSerialization.h"
 
 std::string CShader::getType() const
 {
     return "Shader";
 }
 
-void CShader::serialize(JsonBuilder& builder) const
+void CShader::serialize(Serialization::JsonBuilder& builder) const
 {
     builder.beginObject();
     builder.addKey("cShader");
@@ -21,7 +21,7 @@ void CShader::serialize(JsonBuilder& builder) const
     builder.endObject();
 }
 
-void CShader::deserialize(const JsonValue& value)
+void CShader::deserialize(const Serialization::SSerialization::JsonValue& value)
 {
     const auto& shader = value["cShader"];
     if (shader.hasKey("guid"))

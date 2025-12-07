@@ -2,7 +2,7 @@
 #include "CTransform.h"
 #include "Entity.h"
 #include "EntityManager.h"
-#include "systems/SSerialization.h"
+#include "SSerialization.h"
 
 class CTransformTest : public ::testing::Test
 {
@@ -119,7 +119,7 @@ TEST_F(CTransformTest, Serialization)
     transform->setScale(Vec2(2.0f, 3.0f));
     transform->setRotation(1.5708f);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     transform->serialize(builder);
     std::string json = builder.toString();
 
@@ -139,9 +139,7 @@ TEST_F(CTransformTest, Deserialization)
             "scale": { "x": 1.5, "y": 2.0 },
             "rotation": 0.785
         }
-    })";
-
-    JsonValue value(json);
+    })";    Serialization::SSerialization::JsonValue value(json);
 
     auto  entity    = EntityManager::instance().addEntity("test");
     auto* transform = entity->addComponent<CTransform>();
@@ -172,11 +170,9 @@ TEST_F(CTransformTest, SerializeDeserializeRoundTrip)
     transform1->setScale(Vec2(0.5f, 1.5f));
     transform1->setRotation(2.35619f);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     transform1->serialize(builder);
-    std::string json = builder.toString();
-
-    JsonValue value(json);
+    std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
     auto  entity2    = EntityManager::instance().addEntity("test2");
     auto* transform2 = entity2->addComponent<CTransform>();
@@ -210,11 +206,9 @@ TEST_F(CTransformTest, ZeroValuesRoundTrip)
     transform1->setScale(Vec2(0.0f, 0.0f));
     transform1->setRotation(0.0f);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     transform1->serialize(builder);
-    std::string json = builder.toString();
-
-    JsonValue value(json);
+    std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
     auto  entity2    = EntityManager::instance().addEntity("test2");
     auto* transform2 = entity2->addComponent<CTransform>();
@@ -245,11 +239,9 @@ TEST_F(CTransformTest, NegativeValuesRoundTrip)
     transform1->setScale(Vec2(-1.0f, -2.0f));
     transform1->setRotation(-3.14159f);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     transform1->serialize(builder);
-    std::string json = builder.toString();
-
-    JsonValue value(json);
+    std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
     auto  entity2    = EntityManager::instance().addEntity("test2");
     auto* transform2 = entity2->addComponent<CTransform>();
@@ -280,11 +272,9 @@ TEST_F(CTransformTest, LargeValuesRoundTrip)
     transform1->setScale(Vec2(100.0f, 200.0f));
     transform1->setRotation(6.28318f);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     transform1->serialize(builder);
-    std::string json = builder.toString();
-
-    JsonValue value(json);
+    std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
     auto  entity2    = EntityManager::instance().addEntity("test2");
     auto* transform2 = entity2->addComponent<CTransform>();

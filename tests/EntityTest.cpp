@@ -15,7 +15,7 @@
 #include "CParticleEmitter.h"
 #include "CAudioSource.h"
 #include "CAudioListener.h"
-#include "systems/SSerialization.h"
+#include "SSerialization.h"
 #include "SInputManager.h"
 #include "SBox2DPhysics.h"
 #include "SAudioSystem.h"
@@ -100,7 +100,7 @@ TEST_F(EntityTest, SerializeBasicEntity)
     auto transform = entity->addComponent<CTransform>();
     transform->setPosition(Vec2(100.0f, 200.0f));
     
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     entity->serialize(builder);
     std::string json = builder.toString();
     
@@ -117,7 +117,7 @@ TEST_F(EntityTest, SerializeEntityWithMultipleComponents)
     entity->addComponent<CName>()->setName("TestName");
     entity->addComponent<CRenderable>();
     
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     entity->serialize(builder);
     std::string json = builder.toString();
     
@@ -149,7 +149,7 @@ TEST_F(EntityTest, DeserializeTransformComponent)
         ]
     })";
     
-    JsonValue root(json);
+   Serialization::SSerialization::JsonValue root(json);
     auto entity = EntityManager::instance().addEntity("test");
     entity->deserialize(root);
     
@@ -176,7 +176,7 @@ TEST_F(EntityTest, DeserializeNameComponent)
         ]
     })";
     
-    JsonValue root(json);
+   Serialization::SSerialization::JsonValue root(json);
     auto entity = EntityManager::instance().addEntity("test");
     entity->deserialize(root);
     
@@ -203,7 +203,7 @@ TEST_F(EntityTest, DeserializeRenderableComponent)
         ]
     })";
     
-    JsonValue root(json);
+   Serialization::SSerialization::JsonValue root(json);
     auto entity = EntityManager::instance().addEntity("test");
     entity->deserialize(root);
     
@@ -228,7 +228,7 @@ TEST_F(EntityTest, DeserializeTextureComponent)
         ]
     })";
     
-    JsonValue root(json);
+   Serialization::SSerialization::JsonValue root(json);
     auto entity = EntityManager::instance().addEntity("test");
     entity->deserialize(root);
     
@@ -253,7 +253,7 @@ TEST_F(EntityTest, DeserializeShaderComponent)
         ]
     })";
     
-    JsonValue root(json);
+   Serialization::SSerialization::JsonValue root(json);
     auto entity = EntityManager::instance().addEntity("test");
     entity->deserialize(root);
     
@@ -280,7 +280,7 @@ TEST_F(EntityTest, DeserializeMaterialComponent)
         ]
     })";
     
-    JsonValue root(json);
+   Serialization::SSerialization::JsonValue root(json);
     auto entity = EntityManager::instance().addEntity("test");
     entity->deserialize(root);
     
@@ -312,7 +312,7 @@ TEST_F(EntityTest, DeserializeInputControllerComponent)
         ]
     })";
     
-    JsonValue root(json);
+   Serialization::SSerialization::JsonValue root(json);
     auto entity = EntityManager::instance().addEntity("test");
     entity->deserialize(root);
     
@@ -338,7 +338,7 @@ TEST_F(EntityTest, DeserializeParticleEmitterComponent)
         ]
     })";
     
-    JsonValue root(json);
+   Serialization::SSerialization::JsonValue root(json);
     auto entity = EntityManager::instance().addEntity("test");
     entity->deserialize(root);
     
@@ -374,7 +374,7 @@ TEST_F(EntityTest, DeserializeAudioSourceComponent)
         ]
     })";
     
-    JsonValue root(json);
+   Serialization::SSerialization::JsonValue root(json);
     auto entity = EntityManager::instance().addEntity("test");
     entity->deserialize(root);
     
@@ -402,7 +402,7 @@ TEST_F(EntityTest, DeserializeAudioListenerComponent)
         ]
     })";
     
-    JsonValue root(json);
+   Serialization::SSerialization::JsonValue root(json);
     auto entity = EntityManager::instance().addEntity("test");
     entity->deserialize(root);
     
@@ -460,7 +460,7 @@ TEST_F(EntityTest, DeserializePhysicsBodyAndCollider)
         ]
     })";
     
-    JsonValue root(json);
+   Serialization::SSerialization::JsonValue root(json);
     auto entity = EntityManager::instance().addEntity("physics_entity");
     entity->deserialize(root);
     
@@ -512,7 +512,7 @@ TEST_F(EntityTest, DeserializeColliderBeforePhysicsBody_StillWorks)
         ]
     })";
     
-    JsonValue root(json);
+   Serialization::SSerialization::JsonValue root(json);
     auto entity = EntityManager::instance().addEntity("physics_entity");
     entity->deserialize(root);
     
@@ -572,7 +572,7 @@ TEST_F(EntityTest, DeserializeAllComponentTypes)
         ]
     })";
     
-    JsonValue root(json);
+   Serialization::SSerialization::JsonValue root(json);
     auto entity = EntityManager::instance().addEntity("full_entity");
     entity->deserialize(root);
     
@@ -598,7 +598,7 @@ TEST_F(EntityTest, DeserializePreservesGuid)
         "components": []
     })";
     
-    JsonValue root(json);
+   Serialization::SSerialization::JsonValue root(json);
     auto entity = EntityManager::instance().addEntity("test");
     entity->deserialize(root);
     
@@ -614,7 +614,7 @@ TEST_F(EntityTest, DeserializePreservesId)
         "components": []
     })";
     
-    JsonValue root(json);
+   Serialization::SSerialization::JsonValue root(json);
     auto entity = EntityManager::instance().addEntity("test");
     entity->deserialize(root);
     
@@ -634,12 +634,12 @@ TEST_F(EntityTest, SerializeDeserializeRoundTrip)
     entity1->addComponent<CRenderable>()->setZIndex(5);
     
     // Serialize
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     entity1->serialize(builder);
     std::string json = builder.toString();
     
     // Deserialize into a new entity
-    JsonValue root(json);
+   Serialization::SSerialization::JsonValue root(json);
     auto entity2 = EntityManager::instance().addEntity("round_trip_copy");
     entity2->deserialize(root);
     
@@ -679,12 +679,12 @@ TEST_F(EntityTest, SerializeDeserializePhysicsRoundTrip)
     collider1->createBox(1.0f, 1.0f);
     
     // Serialize
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     entity1->serialize(builder);
     std::string json = builder.toString();
     
     // Deserialize into a new entity
-    JsonValue root(json);
+   Serialization::SSerialization::JsonValue root(json);
     auto entity2 = EntityManager::instance().addEntity("physics_round_trip_copy");
     entity2->deserialize(root);
     
@@ -720,12 +720,12 @@ TEST_F(EntityTest, SerializeDeserializePreservesComponentGuids)
     std::string originalShaderGuid = shader1->getGuid();
     
     // Serialize
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     entity1->serialize(builder);
     std::string json = builder.toString();
     
     // Deserialize into a new entity
-    JsonValue root(json);
+   Serialization::SSerialization::JsonValue root(json);
     auto entity2 = EntityManager::instance().addEntity("guid_test_copy");
     entity2->deserialize(root);
     
@@ -760,7 +760,7 @@ TEST_F(EntityTest, DeserializeEmptyComponents)
         "components": []
     })";
     
-    JsonValue root(json);
+   Serialization::SSerialization::JsonValue root(json);
     auto entity = EntityManager::instance().addEntity("empty");
     entity->deserialize(root);
     
@@ -790,7 +790,7 @@ TEST_F(EntityTest, DeserializeUnknownComponentType)
         ]
     })";
     
-    JsonValue root(json);
+   Serialization::SSerialization::JsonValue root(json);
     auto entity = EntityManager::instance().addEntity("test");
     entity->deserialize(root);
     
@@ -809,7 +809,7 @@ TEST_F(EntityTest, DeserializeWithoutGuid)
         "components": []
     })";
     
-    JsonValue root(json);
+   Serialization::SSerialization::JsonValue root(json);
     auto entity = EntityManager::instance().addEntity("test");
     std::string originalGuid = entity->getGuid();
     entity->deserialize(root);

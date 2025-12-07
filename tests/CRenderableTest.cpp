@@ -2,7 +2,7 @@
 #include "CRenderable.h"
 #include "Entity.h"
 #include "EntityManager.h"
-#include "systems/SSerialization.h"
+#include "SSerialization.h"
 
 class CRenderableTest : public ::testing::Test
 {
@@ -106,7 +106,7 @@ TEST_F(CRenderableTest, Serialization)
     auto entity     = EntityManager::instance().addEntity("test");
     auto* renderable = entity->addComponent<CRenderable>(VisualType::Sprite, Color(255, 128, 64, 200), 7, false);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     renderable->serialize(builder);
 
     std::string json = builder.toString();
@@ -132,9 +132,7 @@ TEST_F(CRenderableTest, Deserialization)
             "zIndex": 5,
             "visible": false
         }
-    })";
-
-    JsonValue value(json);
+    })";    Serialization::SSerialization::JsonValue value(json);
 
     auto entity = EntityManager::instance().addEntity("test");
     auto* renderable = entity->addComponent<CRenderable>();
@@ -154,11 +152,9 @@ TEST_F(CRenderableTest, SerializeDeserializeRoundTrip)
     auto entity      = EntityManager::instance().addEntity("test");
     auto* renderable1 = entity->addComponent<CRenderable>(VisualType::Rectangle, Color(64, 128, 192, 255), -3, true);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     renderable1->serialize(builder);
-    std::string json = builder.toString();
-
-    JsonValue value(json);
+    std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
     auto  entity2  = EntityManager::instance().addEntity("test2");
     auto* renderable2 = entity2->addComponent<CRenderable>();
@@ -253,7 +249,7 @@ TEST_F(CRenderableTest, LineSerializationDeserialization)
     renderable->setLineEnd(Vec2(3.5f, -4.5f));
     renderable->setLineThickness(3.5f);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     renderable->serialize(builder);
     std::string json = builder.toString();
 
@@ -263,7 +259,7 @@ TEST_F(CRenderableTest, LineSerializationDeserialization)
     EXPECT_TRUE(json.find("\"lineThickness\"") != std::string::npos);
 
     // Deserialize and verify
-    JsonValue value(json);
+    Serialization::SSerialization::JsonValue value(json);
     auto  entity2  = EntityManager::instance().addEntity("test2");
     auto* renderable2 = entity2->addComponent<CRenderable>();
     renderable2->deserialize(value);
@@ -286,7 +282,7 @@ TEST_F(CRenderableTest, NonLineTypeDoesNotSerializeLineProperties)
     renderable->setLineEnd(Vec2(3.0f, 4.0f));
     renderable->setLineThickness(5.0f);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     renderable->serialize(builder);
     std::string json = builder.toString();
 

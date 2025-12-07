@@ -1,7 +1,7 @@
 #include "CInputController.h"
 #include <spdlog/spdlog.h>
 #include "SInputManager.h"
-#include "systems/SSerialization.h"
+#include "SSerialization.h"
 
 CInputController::CInputController() {}
 
@@ -89,7 +89,7 @@ void CInputController::onAction(const ActionEvent& ev)
     m_localActionState[ev.actionName] = ev.state;
 }
 
-void CInputController::serialize(JsonBuilder& builder) const
+void CInputController::serialize(Serialization::JsonBuilder& builder) const
 {
     builder.beginObject();
     builder.addKey("cInputController");
@@ -150,7 +150,7 @@ void CInputController::serialize(JsonBuilder& builder) const
     builder.endObject();
 }
 
-void CInputController::deserialize(const JsonValue& value)
+void CInputController::deserialize(const Serialization::SSerialization::JsonValue& value)
 {
     const auto& comp = value["cInputController"];
     if (comp.isNull())

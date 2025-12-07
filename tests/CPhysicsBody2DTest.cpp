@@ -2,7 +2,7 @@
 #include "CPhysicsBody2D.h"
 #include "Entity.h"
 #include "EntityManager.h"
-#include "systems/SSerialization.h"
+#include "SSerialization.h"
 
 class CPhysicsBody2DTest : public ::testing::Test
 {
@@ -151,7 +151,7 @@ TEST_F(CPhysicsBody2DTest, SerializationDynamicBody)
     body->setAngularDamping(0.2f);
     body->setGravityScale(0.8f);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     body->serialize(builder);
     std::string json = builder.toString();
 
@@ -174,7 +174,7 @@ TEST_F(CPhysicsBody2DTest, SerializationStaticBody)
 
     body->setBodyType(BodyType::Static);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     body->serialize(builder);
     std::string json = builder.toString();
 
@@ -188,7 +188,7 @@ TEST_F(CPhysicsBody2DTest, SerializationKinematicBody)
 
     body->setBodyType(BodyType::Kinematic);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     body->serialize(builder);
     std::string json = builder.toString();
 
@@ -208,9 +208,7 @@ TEST_F(CPhysicsBody2DTest, DeserializationDynamicBody)
             "angularDamping": 0.3,
             "gravityScale": 0.5
         }
-    })";
-
-    JsonValue value(json);
+    })";    Serialization::SSerialization::JsonValue value(json);
 
     auto  entity = EntityManager::instance().addEntity("test");
     auto* body   = entity->addComponent<CPhysicsBody2D>();
@@ -239,9 +237,7 @@ TEST_F(CPhysicsBody2DTest, DeserializationStaticBody)
             "angularDamping": 0.1,
             "gravityScale": 1.0
         }
-    })";
-
-    JsonValue value(json);
+    })";    Serialization::SSerialization::JsonValue value(json);
 
     auto  entity = EntityManager::instance().addEntity("test");
     auto* body   = entity->addComponent<CPhysicsBody2D>();
@@ -263,9 +259,7 @@ TEST_F(CPhysicsBody2DTest, DeserializationKinematicBody)
             "angularDamping": 0.1,
             "gravityScale": 1.0
         }
-    })";
-
-    JsonValue value(json);
+    })";    Serialization::SSerialization::JsonValue value(json);
 
     auto  entity = EntityManager::instance().addEntity("test");
     auto* body   = entity->addComponent<CPhysicsBody2D>();
@@ -288,11 +282,9 @@ TEST_F(CPhysicsBody2DTest, SerializeDeserializeRoundTripDynamic)
     body1->setAngularDamping(0.15f);
     body1->setGravityScale(0.75f);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     body1->serialize(builder);
-    std::string json = builder.toString();
-
-    JsonValue value(json);
+    std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
     auto  entity2 = EntityManager::instance().addEntity("test2");
     auto* body2   = entity2->addComponent<CPhysicsBody2D>();
@@ -322,11 +314,9 @@ TEST_F(CPhysicsBody2DTest, SerializeDeserializeRoundTripStatic)
     body1->setAngularDamping(0.0f);
     body1->setGravityScale(0.0f);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     body1->serialize(builder);
-    std::string json = builder.toString();
-
-    JsonValue value(json);
+    std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
     auto  entity2 = EntityManager::instance().addEntity("test2");
     auto* body2   = entity2->addComponent<CPhysicsBody2D>();
@@ -356,11 +346,9 @@ TEST_F(CPhysicsBody2DTest, SerializeDeserializeRoundTripKinematic)
     body1->setAngularDamping(0.05f);
     body1->setGravityScale(1.0f);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     body1->serialize(builder);
-    std::string json = builder.toString();
-
-    JsonValue value(json);
+    std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
     auto  entity2 = EntityManager::instance().addEntity("test2");
     auto* body2   = entity2->addComponent<CPhysicsBody2D>();
@@ -383,11 +371,9 @@ TEST_F(CPhysicsBody2DTest, ZeroGravityScale)
 
     body1->setGravityScale(0.0f);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     body1->serialize(builder);
-    std::string json = builder.toString();
-
-    JsonValue value(json);
+    std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
     auto  entity2 = EntityManager::instance().addEntity("test2");
     auto* body2   = entity2->addComponent<CPhysicsBody2D>();
@@ -403,11 +389,9 @@ TEST_F(CPhysicsBody2DTest, NegativeGravityScale)
 
     body1->setGravityScale(-2.0f);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     body1->serialize(builder);
-    std::string json = builder.toString();
-
-    JsonValue value(json);
+    std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
     auto  entity2 = EntityManager::instance().addEntity("test2");
     auto* body2   = entity2->addComponent<CPhysicsBody2D>();

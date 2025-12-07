@@ -177,12 +177,12 @@ public:
     /**
      * @brief Serializes the entity to binary data
      */
-    void serialize(JsonBuilder &builder) const;
+    void serialize(Serialization::JsonBuilder &builder) const;
 
     /**
      * @brief Deserializes the entity from binary data
      */
-    void deserialize(const JsonValue &value);
+    void deserialize(const Serialization::SSerialization::JsonValue &value);
 
 protected:
     /**

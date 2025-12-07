@@ -313,7 +313,7 @@ TEST_F(CCollider2DSegmentTest, SerializeSegment)
     collider->setFriction(0.7f);
     collider->setRestitution(0.3f);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     collider->serialize(builder);
 
     std::string json = builder.toString();
@@ -339,10 +339,7 @@ TEST_F(CCollider2DSegmentTest, DeserializeSegment)
             "friction": 0.5,
             "restitution": 0.2
         }
-    })";
-
-    JsonParser parser(json);
-    JsonValue value = JsonValue::parse(parser);
+    })";    Serialization::SSerialization::JsonValue value(json);
 
     auto entity = createPhysicsEntity();
     auto collider = entity->addComponent<CCollider2D>();
@@ -373,7 +370,7 @@ TEST_F(CCollider2DSegmentTest, SerializeMultipleSegments)
     collider->addSegment({-1.0f, -1.0f}, {1.0f, -1.0f});
     collider->addSegment({1.0f, -1.0f}, {0.0f, 1.0f});
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     collider->serialize(builder);
 
     std::string json = builder.toString();
@@ -410,10 +407,7 @@ TEST_F(CCollider2DSegmentTest, DeserializeMultipleSegments)
             "friction": 0.3,
             "restitution": 0.0
         }
-    })";
-
-    JsonParser parser(json);
-    JsonValue value = JsonValue::parse(parser);
+    })";    Serialization::SSerialization::JsonValue value(json);
 
     auto entity = createPhysicsEntity();
     auto collider = entity->addComponent<CCollider2D>();
@@ -444,13 +438,12 @@ TEST_F(CCollider2DSegmentTest, SerializeDeserializeRoundTrip)
     collider1->setDensity(1.8f);
 
     // Serialize
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     collider1->serialize(builder);
     std::string json = builder.toString();
 
     // Deserialize into new collider
-    JsonParser parser(json);
-    JsonValue value = JsonValue::parse(parser);
+    Serialization::SSerialization::JsonValue value(json);
 
     auto entity2 = createPhysicsEntity();
     auto collider2 = entity2->addComponent<CCollider2D>();

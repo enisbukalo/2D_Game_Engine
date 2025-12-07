@@ -2,7 +2,7 @@
 #include "CShader.h"
 #include "Entity.h"
 #include "EntityManager.h"
-#include "systems/SSerialization.h"
+#include "SSerialization.h"
 
 class CShaderTest : public ::testing::Test
 {
@@ -92,7 +92,7 @@ TEST_F(CShaderTest, Serialization)
     auto entity = EntityManager::instance().addEntity("test");
     auto* shader = entity->addComponent<CShader>("shaders/test.vert", "shaders/test.frag");
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     shader->serialize(builder);
 
     std::string json = builder.toString();
@@ -111,9 +111,7 @@ TEST_F(CShaderTest, Deserialization)
             "vertexShaderPath": "assets/shaders/main.vert",
             "fragmentShaderPath": "assets/shaders/main.frag"
         }
-    })";
-
-    JsonValue value(json);
+    })";    Serialization::SSerialization::JsonValue value(json);
 
     auto entity = EntityManager::instance().addEntity("test");
     auto* shader = entity->addComponent<CShader>();
@@ -128,11 +126,9 @@ TEST_F(CShaderTest, SerializeDeserializeRoundTrip)
     auto entity  = EntityManager::instance().addEntity("test");
     auto* shader1 = entity->addComponent<CShader>("path/vertex.glsl", "path/fragment.glsl");
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     shader1->serialize(builder);
-    std::string json = builder.toString();
-
-    JsonValue value(json);
+    std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
     auto  entity2  = EntityManager::instance().addEntity("test2");
     auto* shader2 = entity2->addComponent<CShader>();
@@ -147,11 +143,9 @@ TEST_F(CShaderTest, EmptyPathsSerialization)
     auto entity = EntityManager::instance().addEntity("test");
     auto* shader = entity->addComponent<CShader>();
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     shader->serialize(builder);
-    std::string json = builder.toString();
-
-    JsonValue value(json);
+    std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
     auto  entity2  = EntityManager::instance().addEntity("test2");
     auto* shader2 = entity2->addComponent<CShader>();
@@ -180,11 +174,9 @@ TEST_F(CShaderTest, SerializeWithOnlyVertexShader)
     auto entity  = EntityManager::instance().addEntity("test");
     auto* shader1 = entity->addComponent<CShader>("vertex.glsl", "");
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     shader1->serialize(builder);
-    std::string json = builder.toString();
-
-    JsonValue value(json);
+    std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
     auto  entity2  = EntityManager::instance().addEntity("test2");
     auto* shader2 = entity2->addComponent<CShader>();
@@ -200,11 +192,9 @@ TEST_F(CShaderTest, SerializeWithOnlyFragmentShader)
     auto entity  = EntityManager::instance().addEntity("test");
     auto* shader1 = entity->addComponent<CShader>("", "fragment.glsl");
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     shader1->serialize(builder);
-    std::string json = builder.toString();
-
-    JsonValue value(json);
+    std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
     auto  entity2  = EntityManager::instance().addEntity("test2");
     auto* shader2 = entity2->addComponent<CShader>();

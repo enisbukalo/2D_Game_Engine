@@ -298,7 +298,7 @@ void CPhysicsBody2D::init()
     }
 }
 
-void CPhysicsBody2D::serialize(JsonBuilder& builder) const
+void CPhysicsBody2D::serialize(Serialization::JsonBuilder& builder) const
 {
     builder.beginObject();
     builder.addKey("cPhysicsBody2D");
@@ -345,7 +345,7 @@ void CPhysicsBody2D::serialize(JsonBuilder& builder) const
     builder.endObject();
 }
 
-void CPhysicsBody2D::deserialize(const JsonValue& value)
+void CPhysicsBody2D::deserialize(const Serialization::SSerialization::JsonValue& value)
 {
     if (!value.isObject())
         return;

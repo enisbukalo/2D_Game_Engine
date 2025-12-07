@@ -4,7 +4,7 @@
 #include "Entity.h"
 #include "EntityManager.h"
 #include "SAudioSystem.h"
-#include "systems/SSerialization.h"
+#include "SSerialization.h"
 
 class CAudioSourceTest : public ::testing::Test
 {
@@ -75,7 +75,7 @@ TEST_F(CAudioSourceTest, Serialization)
     audioSource->setSpatial(true);
     audioSource->setPlayOnAwake(false);
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     audioSource->serialize(builder);
     std::string json = builder.toString();
 
@@ -101,10 +101,7 @@ TEST_F(CAudioSourceTest, Deserialization)
             "minDistance": 5.0,
             "attenuation": 2.0
         }
-    })";
-
-    JsonParser parser(json);
-    JsonValue  value = JsonValue::parse(parser);
+    })";    Serialization::SSerialization::JsonValue value(json);
 
     auto* audioSource = entity->addComponent<CAudioSource>();
     audioSource->deserialize(value);
@@ -127,10 +124,7 @@ TEST_F(CAudioSourceTest, DeserializationMusicType)
             "volume": 0.6,
             "loop": true
         }
-    })";
-
-    JsonParser parser(json);
-    JsonValue  value = JsonValue::parse(parser);
+    })";    Serialization::SSerialization::JsonValue value(json);
 
     auto* audioSource = entity->addComponent<CAudioSource>();
     audioSource->deserialize(value);

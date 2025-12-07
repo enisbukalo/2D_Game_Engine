@@ -5,7 +5,7 @@
 #include "EntityManager.h"
 #include "FileUtilities.h"
 #include "SAudioSystem.h"
-#include "systems/SSerialization.h"
+#include "SSerialization.h"
 
 void SceneManager::loadScene(const std::string& scenePath)
 {
@@ -21,9 +21,9 @@ void SceneManager::loadScene(const std::string& scenePath)
         EntityManager::instance().loadFromFile(scenePath);
 
         // Load scene-level audio settings
-        std::string json = FileUtilities::readFile(scenePath);
-        JsonParser  parser(json);
-        JsonValue   root = JsonValue::parse(parser);
+        std::string                              json = FileUtilities::readFile(scenePath);
+        Serialization::JsonParser                parser(json);
+        Serialization::SSerialization::JsonValue root = Serialization::SSerialization::JsonValue::parse(parser);
 
         if (root.isObject() && root.hasKey("settings"))
         {

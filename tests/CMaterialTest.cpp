@@ -4,7 +4,7 @@
 #include "CShader.h"
 #include "Entity.h"
 #include "EntityManager.h"
-#include "systems/SSerialization.h"
+#include "SSerialization.h"
 
 class CMaterialTest : public ::testing::Test
 {
@@ -142,7 +142,7 @@ TEST_F(CMaterialTest, Serialization)
         0.8f
     );
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     material->serialize(builder);
     std::string json = builder.toString();
 
@@ -171,9 +171,7 @@ TEST_F(CMaterialTest, Deserialization)
             "blendMode": 2,
             "opacity": 0.6
         }
-    })";
-
-    JsonValue value(json);
+    })";    Serialization::SSerialization::JsonValue value(json);
 
     auto entity = EntityManager::instance().addEntity("test");
     auto* material = entity->addComponent<CMaterial>();
@@ -200,11 +198,9 @@ TEST_F(CMaterialTest, SerializeDeserializeRoundTrip)
         0.45f
     );
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     material1->serialize(builder);
-    std::string json = builder.toString();
-
-    JsonValue value(json);
+    std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
     auto entity2 = EntityManager::instance().addEntity("test2");
     auto* material2 = entity2->addComponent<CMaterial>();
@@ -222,11 +218,9 @@ TEST_F(CMaterialTest, EmptyGuidsSerializtion)
     auto entity = EntityManager::instance().addEntity("test");
     auto* material = entity->addComponent<CMaterial>();
 
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
     material->serialize(builder);
-    std::string json = builder.toString();
-
-    JsonValue value(json);
+    std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
     auto entity2 = EntityManager::instance().addEntity("test2");
     auto* material2 = entity2->addComponent<CMaterial>();
@@ -266,11 +260,9 @@ TEST_F(CMaterialTest, BlendModeStringConversion)
     {
         material->setBlendMode(mode);
 
-        JsonBuilder builder;
+        Serialization::JsonBuilder builder;
         material->serialize(builder);
-        std::string json = builder.toString();
-
-        JsonValue value(json);
+        std::string json = builder.toString();    Serialization::SSerialization::JsonValue value(json);
 
         auto entity2 = EntityManager::instance().addEntity("test_mode");
         auto* material2 = entity2->addComponent<CMaterial>();

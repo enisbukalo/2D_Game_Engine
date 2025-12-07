@@ -69,12 +69,12 @@ public:
     /**
      * @brief Serialize component to JSON
      */
-    void serialize(JsonBuilder& builder) const override;
+    void serialize(Serialization::JsonBuilder& builder) const override;
 
     /**
      * @brief Deserialize component from JSON
      */
-    void deserialize(const JsonValue& value) override;
+    void deserialize(const Serialization::SSerialization::JsonValue& value) override;
 
     /**
      * @brief Get number of alive particles

@@ -56,7 +56,7 @@ std::vector<std::shared_ptr<Entity>> EntityManager::getEntitiesByTag(const std::
 
 void EntityManager::saveToFile(const std::string& filename)
 {
-    JsonBuilder builder;
+    Serialization::JsonBuilder builder;
 
     // Start the root object
     builder.beginObject();
@@ -83,9 +83,9 @@ void EntityManager::saveToFile(const std::string& filename)
 
 void EntityManager::loadFromFile(const std::string& filename)
 {
-    std::string json = FileUtilities::readFile(filename);
-    JsonParser  parser(json);
-    JsonValue   root = JsonValue::parse(parser);
+    std::string                              json = FileUtilities::readFile(filename);
+    Serialization::JsonParser                parser(json);
+    Serialization::SSerialization::JsonValue root = Serialization::SSerialization::JsonValue::parse(parser);
 
     if (!root.isObject())
     {

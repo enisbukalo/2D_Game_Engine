@@ -45,8 +45,8 @@ public:
 
     void        init() override;
     void        update(float deltaTime) override;
-    void        serialize(JsonBuilder& builder) const override;
-    void        deserialize(const JsonValue& value) override;
+    void        serialize(Serialization::JsonBuilder& builder) const override;
+    void        deserialize(const Serialization::SSerialization::JsonValue& value) override;
     std::string getType() const override
     {
         return "AudioListener";

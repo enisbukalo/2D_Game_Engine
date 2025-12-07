@@ -592,7 +592,7 @@ float CCollider2D::getPolygonRadius(size_t fixtureIndex) const
     return 0.0f;
 }
 
-void CCollider2D::serialize(JsonBuilder& builder) const
+void CCollider2D::serialize(Serialization::JsonBuilder& builder) const
 {
     builder.beginObject();
     builder.addKey("cCollider2D");
@@ -747,7 +747,7 @@ void CCollider2D::init()
     }
 }
 
-void CCollider2D::deserialize(const JsonValue& value)
+void CCollider2D::deserialize(const Serialization::SSerialization::JsonValue& value)
 {
     if (!value.isObject())
         return;
