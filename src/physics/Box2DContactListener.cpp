@@ -3,8 +3,8 @@
 
 void Box2DContactListener::onBeginContact(b2ShapeId shapeIdA, b2ShapeId shapeIdB)
 {
-    Entity* entityA = getEntityFromShape(shapeIdA);
-    Entity* entityB = getEntityFromShape(shapeIdB);
+    ::Entity::Entity* entityA = getEntityFromShape(shapeIdA);
+    ::Entity::Entity* entityB = getEntityFromShape(shapeIdB);
 
     if (entityA && entityB)
     {
@@ -15,8 +15,8 @@ void Box2DContactListener::onBeginContact(b2ShapeId shapeIdA, b2ShapeId shapeIdB
 
 void Box2DContactListener::onEndContact(b2ShapeId shapeIdA, b2ShapeId shapeIdB)
 {
-    Entity* entityA = getEntityFromShape(shapeIdA);
-    Entity* entityB = getEntityFromShape(shapeIdB);
+    ::Entity::Entity* entityA = getEntityFromShape(shapeIdA);
+    ::Entity::Entity* entityB = getEntityFromShape(shapeIdB);
 
     if (entityA && entityB)
     {
@@ -25,7 +25,7 @@ void Box2DContactListener::onEndContact(b2ShapeId shapeIdA, b2ShapeId shapeIdB)
     }
 }
 
-Entity* Box2DContactListener::getEntityFromShape(b2ShapeId shapeId)
+::Entity::Entity* Box2DContactListener::getEntityFromShape(b2ShapeId shapeId)
 {
     if (!b2Shape_IsValid(shapeId))
     {
@@ -39,5 +39,5 @@ Entity* Box2DContactListener::getEntityFromShape(b2ShapeId shapeId)
     }
 
     void* userData = b2Body_GetUserData(bodyId);
-    return static_cast<Entity*>(userData);
+    return static_cast<::Entity::Entity*>(userData);
 }

@@ -1,6 +1,9 @@
 #include "CMaterial.h"
 #include "SSerialization.h"
 
+namespace Components
+{
+
 std::string CMaterial::getType() const
 {
     return "Material";
@@ -128,3 +131,5 @@ void CMaterial::setOpacity(float opacity)
 {
     m_opacity = opacity;
 }
+
+}  // namespace Components

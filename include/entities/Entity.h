@@ -11,6 +11,14 @@
 #include <vector>
 #include "Component.h"
 
+namespace Systems
+{
+class SEntity;
+}
+
+namespace Entity
+{
+
 /**
  * @brief Base class for all game entities in the engine
  *
@@ -24,7 +32,7 @@
 class Entity : public std::enable_shared_from_this<Entity>
 {
 public:
-    friend class SEntity;
+    friend class Systems::SEntity;
     friend class TestEntity;
 
     virtual ~Entity() = default;
@@ -70,9 +78,9 @@ public:
      *
      * This method retrieves all components of any type attached to this entity.
      */
-    std::vector<Component *> getAllComponents()
+    std::vector<::Components::Component *> getAllComponents()
     {
-        std::vector<Component *> components;
+        std::vector<::Components::Component *> components;
         components.reserve(m_components.size());
         std::transform(m_components.begin(),
                        m_components.end(),
@@ -93,7 +101,7 @@ public:
     {
         T *component = new T(std::forward<Args>(args)...);
         component->setOwner(this);
-        m_components[std::type_index(typeid(T))] = std::unique_ptr<Component>(component);
+        m_components[std::type_index(typeid(T))] = std::unique_ptr<::Components::Component>(component);
         component->init();
         return component;
     };
@@ -193,11 +201,13 @@ protected:
     Entity(const std::string &tag, size_t id);
 
 private:
-    std::unordered_map<std::type_index, std::unique_ptr<Component>> m_components;  ///< Map of components indexed by type
-    size_t            m_id = 0;                                                    ///< Unique numeric identifier
-    std::string       m_guid;                                                      ///< Unique GUID identifier
-    const std::string m_tag   = "Default";                                         ///< Entity tag
-    bool              m_alive = true;                                              ///< Entity state flag
+    std::unordered_map<std::type_index, std::unique_ptr<::Components::Component>> m_components;  ///< Map of components indexed by type
+    size_t            m_id = 0;             ///< Unique numeric identifier
+    std::string       m_guid;               ///< Unique GUID identifier
+    const std::string m_tag   = "Default";  ///< Entity tag
+    bool              m_alive = true;       ///< Entity state flag
 };
+
+}  // namespace Entity
 
 #endif  // ENTITY_H

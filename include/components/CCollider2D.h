@@ -4,7 +4,13 @@
 #include "Component.h"
 #include "box2d/box2d.h"
 
+namespace Components
+{
 class CPhysicsBody2D;
+}
+
+namespace Components
+{
 
 /**
  * @brief Collider shape type enumeration
@@ -328,3 +334,5 @@ private:
      */
     void destroyShape();
 };
+
+}  // namespace Components

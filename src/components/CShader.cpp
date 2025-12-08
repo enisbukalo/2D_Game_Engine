@@ -1,6 +1,9 @@
 #include "CShader.h"
 #include "SSerialization.h"
 
+namespace Components
+{
+
 std::string CShader::getType() const
 {
     return "Shader";
@@ -51,3 +54,5 @@ void CShader::setFragmentShaderPath(const std::string& fragmentPath)
 {
     m_fragmentShaderPath = fragmentPath;
 }
+
+}  // namespace Components

@@ -8,6 +8,9 @@
 #include <vector>
 #include "IAudioSystem.h"
 
+namespace Systems
+{
+
 /**
  * @brief SFML-based implementation of the audio system
  *
@@ -273,5 +276,7 @@ private:
     float m_sfxVolume    = AudioConstants::DEFAULT_SFX_VOLUME;
     float m_musicVolume  = AudioConstants::DEFAULT_MUSIC_VOLUME;
 };
+
+}  // namespace Systems
 
 #endif  // SAUDIO_H

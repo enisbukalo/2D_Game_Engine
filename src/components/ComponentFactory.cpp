@@ -12,6 +12,9 @@
 #include "CTexture.h"
 #include "CTransform.h"
 
+namespace Components
+{
+
 ComponentFactory::ComponentFactory()
 {
     registerBuiltInComponents();
@@ -66,3 +69,5 @@ void ComponentFactory::registerBuiltInComponents()
     registerComponent<CParticleEmitter>("CParticleEmitter");
     registerComponent<CParticleEmitter>("ParticleEmitter");  // Alias for easier JSON usage
 }
+
+}  // namespace Components

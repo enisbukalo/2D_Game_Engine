@@ -5,6 +5,9 @@
 #include "SSerialization.h"
 #include <vector>
 
+using namespace Components;
+using namespace Serialization;
+
 /**
  * @brief Test fixture for CParticleEmitter tests
  */

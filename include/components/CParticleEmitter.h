@@ -8,6 +8,9 @@
 #include "Component.h"
 #include "Vec2.h"
 
+namespace Components
+{
+
 /**
  * @brief Emission shape type for particle emitters
  *
@@ -218,5 +221,7 @@ private:
     std::vector<Particle> m_particles;             ///< All particles (alive and dead)
     float                 m_emissionTimer = 0.0f;  ///< Time accumulator for continuous emission
 };
+
+}  // namespace Components
 
 #endif  // CPARTICLEEMITTER_H

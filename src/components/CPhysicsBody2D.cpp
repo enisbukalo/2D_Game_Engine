@@ -4,6 +4,9 @@
 #include "S2DPhysics.h"
 #include "Vec2.h"
 
+namespace Components
+{
+
 CPhysicsBody2D::CPhysicsBody2D()
     : m_bodyId(b2_nullBodyId),
       m_bodyType(BodyType::Dynamic),
@@ -22,7 +25,7 @@ CPhysicsBody2D::~CPhysicsBody2D()
 {
     if (m_initialized && b2Body_IsValid(m_bodyId) && getOwner())
     {
-        S2DPhysics::instance().destroyBody(getOwner());
+        ::Systems::S2DPhysics::instance().destroyBody(getOwner());
         m_bodyId      = b2_nullBodyId;
         m_initialized = false;
     }
@@ -35,7 +38,7 @@ void CPhysicsBody2D::initialize(const b2Vec2& position, BodyType type)
         // Already initialized, destroy old body first
         if (b2Body_IsValid(m_bodyId) && getOwner())
         {
-            S2DPhysics::instance().destroyBody(getOwner());
+            ::Systems::S2DPhysics::instance().destroyBody(getOwner());
         }
     }
 
@@ -61,7 +64,7 @@ void CPhysicsBody2D::initialize(const b2Vec2& position, BodyType type)
             break;
     }
 
-    m_bodyId      = S2DPhysics::instance().createBody(getOwner(), bodyDef);
+    m_bodyId      = ::Systems::S2DPhysics::instance().createBody(getOwner(), bodyDef);
     m_initialized = true;
 
     // Apply persisted properties after body creation
@@ -428,3 +431,5 @@ std::string CPhysicsBody2D::getType() const
 {
     return "CPhysicsBody2D";
 }
+
+}  // namespace Components

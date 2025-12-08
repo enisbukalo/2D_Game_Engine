@@ -2,10 +2,12 @@
 
 #include <memory>
 #include <unordered_map>
+#include "Entity.h"
 #include "System.h"
 #include "box2d/box2d.h"
 
-class Entity;
+namespace Systems
+{
 
 /**
  * @brief Box2D Physics System - Manages the Box2D physics world and simulation
@@ -114,20 +116,20 @@ public:
      * @param bodyDef Body definition
      * @return Box2D body ID
      */
-    b2BodyId createBody(Entity* entity, const b2BodyDef& bodyDef);
+    b2BodyId createBody(::Entity::Entity* entity, const b2BodyDef& bodyDef);
 
     /**
      * @brief Destroy the Box2D body associated with an entity
      * @param entity Entity whose body should be destroyed
      */
-    void destroyBody(const Entity* entity);
+    void destroyBody(const ::Entity::Entity* entity);
 
     /**
      * @brief Get the Box2D body associated with an entity
      * @param entity Entity to query
      * @return Body ID (invalid if entity has no body)
      */
-    b2BodyId getBody(const Entity* entity);
+    b2BodyId getBody(const ::Entity::Entity* entity);
 
     /**
      * @brief Query the world for all bodies overlapping an AABB
@@ -144,3 +146,5 @@ public:
      */
     void rayCast(const b2Vec2& origin, const b2Vec2& translation, b2CastResultFcn* callback, void* context);
 };
+
+}  // namespace Systems

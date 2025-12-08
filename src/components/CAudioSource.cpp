@@ -4,6 +4,9 @@
 #include "Entity.h"
 #include "SAudio.h"
 
+namespace Components
+{
+
 CAudioSource::CAudioSource() {}
 
 void CAudioSource::init()
@@ -27,14 +30,14 @@ void CAudioSource::update(float deltaTime)
         auto* transform = getOwner()->getComponent<CTransform>();
         if (transform)
         {
-            SAudio::instance().setSFXPosition(m_playHandle, transform->getPosition());
+            ::Systems::SAudio::instance().setSFXPosition(m_playHandle, transform->getPosition());
         }
     }
 
     // Check if sound has finished (for non-looping sounds)
     if (m_type == AudioType::SFX && m_playHandle.isValid())
     {
-        if (!SAudio::instance().isPlayingSFX(m_playHandle))
+        if (!::Systems::SAudio::instance().isPlayingSFX(m_playHandle))
         {
             m_playHandle = AudioHandle::invalid();
         }
@@ -156,7 +159,7 @@ bool CAudioSource::play()
         return false;
     }
 
-    auto& audioSystem = SAudio::instance();
+    auto& audioSystem = ::Systems::SAudio::instance();
 
     if (m_type == AudioType::SFX)
     {
@@ -188,7 +191,7 @@ bool CAudioSource::play()
 
 void CAudioSource::pause()
 {
-    auto& audioSystem = SAudio::instance();
+    auto& audioSystem = ::Systems::SAudio::instance();
 
     if (m_type == AudioType::SFX && m_playHandle.isValid())
     {
@@ -202,7 +205,7 @@ void CAudioSource::pause()
 
 void CAudioSource::stop()
 {
-    auto& audioSystem = SAudio::instance();
+    auto& audioSystem = ::Systems::SAudio::instance();
 
     if (m_type == AudioType::SFX && m_playHandle.isValid())
     {
@@ -217,7 +220,7 @@ void CAudioSource::stop()
 
 bool CAudioSource::isPlaying() const
 {
-    const auto& audioSystem = SAudio::instance();
+    const auto& audioSystem = ::Systems::SAudio::instance();
 
     if (m_type == AudioType::SFX)
     {
@@ -250,3 +253,5 @@ void CAudioSource::setLoop(bool loop)
 
     // Note: Loop changes won't affect already-playing sounds in this implementation
 }
+
+}  // namespace Components

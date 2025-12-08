@@ -3,6 +3,9 @@
 #include <sstream>
 #include <stdexcept>
 
+namespace Internal
+{
+
 std::string FileUtilities::readFile(const std::string& path)
 {
     std::ifstream file(path);
@@ -24,3 +27,5 @@ void FileUtilities::writeFile(const std::string& path, const std::string& conten
     }
     file << content;
 }
+
+}  // namespace Internal

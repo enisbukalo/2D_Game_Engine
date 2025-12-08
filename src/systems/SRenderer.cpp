@@ -12,6 +12,9 @@
 #include "SEntity.h"
 #include "SParticle.h"
 
+namespace Systems
+{
+
 SRenderer::SRenderer() : System() {}
 
 SRenderer::~SRenderer()
@@ -93,24 +96,24 @@ void SRenderer::render()
     }
 
     // Get all entities with renderable components
-    auto& entityManager      = SEntity::instance();
-    auto  renderableEntities = entityManager.getEntitiesWithComponent<CRenderable>();
-    auto  emitterEntities    = entityManager.getEntitiesWithComponent<CParticleEmitter>();
+    auto& entityManager      = ::Systems::SEntity::instance();
+    auto  renderableEntities = entityManager.getEntitiesWithComponent<::Components::CRenderable>();
+    auto  emitterEntities    = entityManager.getEntitiesWithComponent<::Components::CParticleEmitter>();
 
     // Build unified render queue with z-index
     struct RenderItem
     {
-        Entity* entity;
-        int     zIndex;
-        bool    isParticleEmitter;
+        ::Entity::Entity* entity;
+        int               zIndex;
+        bool              isParticleEmitter;
     };
     std::vector<RenderItem> renderQueue;
     renderQueue.reserve(renderableEntities.size() + emitterEntities.size());
 
     // Add renderable entities
-    for (Entity* entity : renderableEntities)
+    for (::Entity::Entity* entity : renderableEntities)
     {
-        auto* renderable = entity->getComponent<CRenderable>();
+        auto* renderable = entity->getComponent<::Components::CRenderable>();
         if (renderable)
         {
             renderQueue.push_back({entity, renderable->getZIndex(), false});
@@ -118,9 +121,9 @@ void SRenderer::render()
     }
 
     // Add particle emitter entities
-    for (Entity* entity : emitterEntities)
+    for (::Entity::Entity* entity : emitterEntities)
     {
-        auto* emitter = entity->getComponent<CParticleEmitter>();
+        auto* emitter = entity->getComponent<::Components::CParticleEmitter>();
         if (emitter && emitter->isActive())
         {
             renderQueue.push_back({entity, emitter->getZIndex(), true});
@@ -133,7 +136,7 @@ void SRenderer::render()
               [](const RenderItem& a, const RenderItem& b) { return a.zIndex < b.zIndex; });
 
     // Render in z-index order
-    auto& particleSystem = SParticle::instance();
+    auto& particleSystem = ::Systems::SParticle::instance();
     for (const RenderItem& item : renderQueue)
     {
         if (item.isParticleEmitter)
@@ -270,7 +273,7 @@ void SRenderer::clearShaderCache()
     spdlog::debug("SRenderer: Shader cache cleared");
 }
 
-void SRenderer::renderEntity(Entity* entity)
+void SRenderer::renderEntity(::Entity::Entity* entity)
 {
     if (!entity)
     {
@@ -278,8 +281,8 @@ void SRenderer::renderEntity(Entity* entity)
     }
 
     // Check for required components
-    auto* renderable = entity->getComponent<CRenderable>();
-    auto* transform  = entity->getComponent<CTransform>();
+    auto* renderable = entity->getComponent<::Components::CRenderable>();
+    auto* transform  = entity->getComponent<::Components::CTransform>();
 
     if (!renderable || !renderable->isActive() || !renderable->isVisible())
     {
@@ -306,7 +309,7 @@ void SRenderer::renderEntity(Entity* entity)
     screenPos.y = SCREEN_HEIGHT - (pos.y * PIXELS_PER_METER);  // Flip Y axis
 
     // Get material if available
-    auto* material = entity->getComponent<CMaterial>();
+    auto* material = entity->getComponent<::Components::CMaterial>();
 
     // Determine final color
     Color finalColor = renderable->getColor();
@@ -328,7 +331,7 @@ void SRenderer::renderEntity(Entity* entity)
         std::string textureGuid = material->getTextureGuid();
         if (!textureGuid.empty())
         {
-            auto* textureComp = entity->getComponent<CTexture>();
+            auto* textureComp = entity->getComponent<::Components::CTexture>();
             if (textureComp && textureComp->getGuid() == textureGuid)
             {
                 texture = loadTexture(textureComp->getTexturePath());
@@ -343,7 +346,7 @@ void SRenderer::renderEntity(Entity* entity)
         std::string shaderGuid = material->getShaderGuid();
         if (!shaderGuid.empty())
         {
-            auto* shaderComp = entity->getComponent<CShader>();
+            auto* shaderComp = entity->getComponent<::Components::CShader>();
             if (shaderComp && shaderComp->getGuid() == shaderGuid)
             {
                 shader = loadShader(shaderComp->getVertexShaderPath(), shaderComp->getFragmentShaderPath());
@@ -376,17 +379,17 @@ void SRenderer::renderEntity(Entity* entity)
     }
 
     // Render based on visual type
-    VisualType visualType = renderable->getVisualType();
+    ::Components::VisualType visualType = renderable->getVisualType();
 
     switch (visualType)
     {
-        case VisualType::Rectangle:
+        case ::Components::VisualType::Rectangle:
         {
             sf::RectangleShape rect;
 
             // If we have a collider, use its size
-            auto* collider = entity->getComponent<CCollider2D>();
-            if (collider && collider->getShapeType() == ColliderShape::Box)
+            auto* collider = entity->getComponent<::Components::CCollider2D>();
+            if (collider && collider->getShapeType() == ::Components::ColliderShape::Box)
             {
                 float halfWidth  = collider->getBoxHalfWidth() * PIXELS_PER_METER;
                 float halfHeight = collider->getBoxHalfHeight() * PIXELS_PER_METER;
@@ -413,14 +416,14 @@ void SRenderer::renderEntity(Entity* entity)
             break;
         }
 
-        case VisualType::Circle:
+        case ::Components::VisualType::Circle:
         {
             sf::CircleShape circle;
 
             // If we have a collider, use its radius
-            auto* collider = entity->getComponent<CCollider2D>();
+            auto* collider = entity->getComponent<::Components::CCollider2D>();
             float radius   = 25.0f;
-            if (collider && collider->getShapeType() == ColliderShape::Circle)
+            if (collider && collider->getShapeType() == ::Components::ColliderShape::Circle)
             {
                 radius = collider->getCircleRadius() * PIXELS_PER_METER;
             }
@@ -441,7 +444,7 @@ void SRenderer::renderEntity(Entity* entity)
             break;
         }
 
-        case VisualType::Sprite:
+        case ::Components::VisualType::Sprite:
         {
             if (texture)
             {
@@ -449,21 +452,21 @@ void SRenderer::renderEntity(Entity* entity)
                 sf::FloatRect bounds = sprite.getLocalBounds();
 
                 // Scale sprite to match physics collider size
-                auto* collider = entity->getComponent<CCollider2D>();
+                auto* collider = entity->getComponent<::Components::CCollider2D>();
                 if (collider)
                 {
                     float targetSize = 0.0f;
-                    if (collider->getShapeType() == ColliderShape::Circle)
+                    if (collider->getShapeType() == ::Components::ColliderShape::Circle)
                     {
                         // For circles, use diameter
                         targetSize = collider->getCircleRadius() * 2.0f * PIXELS_PER_METER;
                     }
-                    else if (collider->getShapeType() == ColliderShape::Box)
+                    else if (collider->getShapeType() == ::Components::ColliderShape::Box)
                     {
                         // For boxes, use width (assuming square-ish sprites)
                         targetSize = collider->getBoxHalfWidth() * 2.0f * PIXELS_PER_METER;
                     }
-                    else if (collider->getShapeType() == ColliderShape::Polygon)
+                    else if (collider->getShapeType() == ::Components::ColliderShape::Polygon)
                     {
                         // For polygon colliders (including multi-polygon bodies), calculate bounding box
                         float boundsWidth, boundsHeight;
@@ -512,7 +515,7 @@ void SRenderer::renderEntity(Entity* entity)
             break;
         }
 
-        case VisualType::Line:
+        case ::Components::VisualType::Line:
         {
             // Get line endpoints in local space
             Vec2 lineStart = renderable->getLineStart();
@@ -578,26 +581,28 @@ void SRenderer::renderEntity(Entity* entity)
             break;
         }
 
-        case VisualType::Custom:
-        case VisualType::None:
+        case ::Components::VisualType::Custom:
+        case ::Components::VisualType::None:
         default:
             // No rendering for None or Custom (Custom would use shaders)
             break;
     }
 }
 
-sf::BlendMode SRenderer::toSFMLBlendMode(BlendMode blendMode) const
+sf::BlendMode SRenderer::toSFMLBlendMode(::Components::BlendMode blendMode) const
 {
     switch (blendMode)
     {
-        case BlendMode::Add:
+        case ::Components::BlendMode::Add:
             return sf::BlendAdd;
-        case BlendMode::Multiply:
+        case ::Components::BlendMode::Multiply:
             return sf::BlendMultiply;
-        case BlendMode::None:
+        case ::Components::BlendMode::None:
             return sf::BlendNone;
-        case BlendMode::Alpha:
+        case ::Components::BlendMode::Alpha:
         default:
             return sf::BlendAlpha;
     }
 }
+
+}  // namespace Systems

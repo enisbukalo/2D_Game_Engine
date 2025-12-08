@@ -13,6 +13,10 @@
 #include "Input/KeyCode.h"
 #include "SInput.h"
 
+using namespace Components;
+using namespace Entity;
+using namespace Systems;
+
 // Define the source directory path
 #ifndef SOURCE_DIR
 #define SOURCE_DIR "."
@@ -41,7 +45,7 @@ protected:
 TEST_F(EntityManagerTest, EntityCreation)
 {
     auto&                   manager = SEntity::instance();
-    std::shared_ptr<Entity> entity  = manager.addEntity("test");
+    std::shared_ptr<Entity::Entity> entity  = manager.addEntity("test");
     EXPECT_NE(entity, nullptr);
     EXPECT_EQ(entity->getTag(), "test");
     EXPECT_TRUE(entity->isAlive());
@@ -50,7 +54,7 @@ TEST_F(EntityManagerTest, EntityCreation)
 TEST_F(EntityManagerTest, EntityRemoval)
 {
     auto&                   manager = SEntity::instance();
-    std::shared_ptr<Entity> entity  = manager.addEntity("test");
+    std::shared_ptr<Entity::Entity> entity  = manager.addEntity("test");
 
     manager.update(0.0f);  // Process pending entities
     EXPECT_EQ(manager.getEntities().size(), 1);
@@ -69,8 +73,8 @@ TEST_F(EntityManagerTest, EntityTagging)
 
     manager.update(0.0f);  // Process pending entities
 
-    std::vector<std::shared_ptr<Entity>> typeAEntities = manager.getEntitiesByTag("typeA");
-    std::vector<std::shared_ptr<Entity>> typeBEntities = manager.getEntitiesByTag("typeB");
+    std::vector<std::shared_ptr<Entity::Entity>> typeAEntities = manager.getEntitiesByTag("typeA");
+    std::vector<std::shared_ptr<Entity::Entity>> typeBEntities = manager.getEntitiesByTag("typeB");
 
     EXPECT_EQ(typeAEntities.size(), 2);
     EXPECT_EQ(typeBEntities.size(), 1);
@@ -80,11 +84,11 @@ TEST_F(EntityManagerTest, EntityComponentQuery)
 {
     auto& manager = SEntity::instance();
 
-    std::shared_ptr<Entity> entity1 = manager.addEntity("test1");
+    std::shared_ptr<Entity::Entity> entity1 = manager.addEntity("test1");
     entity1->addComponent<CTransform>();
     entity1->addComponent<CName>();
 
-    std::shared_ptr<Entity> entity2 = manager.addEntity("test2");
+    std::shared_ptr<Entity::Entity> entity2 = manager.addEntity("test2");
     entity2->addComponent<CTransform>();
     entity2->addComponent<CName>();
 

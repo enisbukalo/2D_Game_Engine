@@ -9,6 +9,10 @@
 #include "Vec2.h"
 #include "box2d/box2d.h"
 
+using namespace Components;
+using namespace Entity;
+using namespace Systems;
+
 class CCollider2DSegmentTest : public ::testing::Test
 {
 protected:
@@ -24,7 +28,7 @@ protected:
     }
 
     // Helper to create entity with physics body
-    std::shared_ptr<Entity> createPhysicsEntity(const Vec2& pos = Vec2(0.0f, 0.0f),
+    std::shared_ptr<Entity::Entity> createPhysicsEntity(const Vec2& pos = Vec2(0.0f, 0.0f),
                                                 BodyType type = BodyType::Dynamic)
     {
         auto& manager = SEntity::instance();

@@ -3,6 +3,9 @@
 
 #include "Component.h"
 
+namespace Components
+{
+
 /**
  * @brief Component for assigning names to entities
  *
@@ -52,5 +55,7 @@ public:
 private:
     std::string m_name;  ///< The name string for the entity
 };
+
+}  // namespace Components
 
 #endif  // CNAME_H

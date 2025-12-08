@@ -5,6 +5,9 @@
 #include "Color.h"
 #include "Component.h"
 
+namespace Components
+{
+
 /**
  * @brief Enumeration of blend modes for rendering
  */
@@ -132,5 +135,7 @@ private:
     BlendMode   m_blendMode = BlendMode::Alpha;  ///< Blending mode
     float       m_opacity   = 1.0f;              ///< Opacity multiplier (0.0-1.0)
 };
+
+}  // namespace Components
 
 #endif  // CMATERIAL_H

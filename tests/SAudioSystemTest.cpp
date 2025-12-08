@@ -6,6 +6,8 @@
 #include <vector>
 #include <SFML/Audio.hpp>
 
+using namespace Systems;
+
 /**
  * @brief Test fixture for SAudioSystem tests
  */

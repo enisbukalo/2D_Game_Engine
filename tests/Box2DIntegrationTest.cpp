@@ -7,6 +7,9 @@
 #include "S2DPhysics.h"
 #include "Vec2.h"
 
+using namespace Components;
+using namespace Systems;
+
 // Basic test to verify Box2D is properly integrated and headers are accessible
 class Box2DIntegrationTest : public ::testing::Test {
 protected:

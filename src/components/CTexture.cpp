@@ -1,6 +1,9 @@
 #include "CTexture.h"
 #include "SSerialization.h"
 
+namespace Components
+{
+
 std::string CTexture::getType() const
 {
     return "Texture";
@@ -38,3 +41,5 @@ void CTexture::setTexturePath(const std::string& texturePath)
 {
     m_texturePath = texturePath;
 }
+
+}  // namespace Components

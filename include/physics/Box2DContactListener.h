@@ -2,7 +2,10 @@
 
 #include "box2d/box2d.h"
 
+namespace Entity
+{
 class Entity;
+}
 
 /**
  * @brief Contact Listener for Box2D collision events
@@ -41,5 +44,5 @@ protected:
      * @param shapeId Shape to query
      * @return Entity pointer or nullptr if not found
      */
-    Entity* getEntityFromShape(b2ShapeId shapeId);
+    ::Entity::Entity* getEntityFromShape(b2ShapeId shapeId);
 };

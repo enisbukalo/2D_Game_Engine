@@ -22,6 +22,10 @@
 #include <memory>
 #include <sstream>
 
+using namespace Components;
+using namespace Entity;
+using namespace Systems;
+
 // Define Screen Size
 const int   SCREEN_WIDTH            = 1600;
 const int   SCREEN_HEIGHT           = 1000;
@@ -149,8 +153,8 @@ private:
     bool                        m_showColliders;
     bool                        m_showVectors;
     CPhysicsBody2D*             m_playerPhysics;
-    std::shared_ptr<Entity>     m_player;
-    std::shared_ptr<Entity>     m_oceanBackground;
+    std::shared_ptr<Entity::Entity>     m_player;
+    std::shared_ptr<Entity::Entity>     m_oceanBackground;
 
     // Audio state
     AudioHandle m_motorBoatHandle;
@@ -158,12 +162,12 @@ private:
     // Particle system
     sf::Texture             m_bubbleTexture;
     sf::Texture             m_sprayTexture;
-    std::shared_ptr<Entity> m_bubbleTrailEntity = nullptr;  // Separate entity for bubble trail
-    std::shared_ptr<Entity> m_hullSprayEntity   = nullptr;  // Separate entity for hull spray
+    std::shared_ptr<Entity::Entity> m_bubbleTrailEntity = nullptr;  // Separate entity for bubble trail
+    std::shared_ptr<Entity::Entity> m_hullSprayEntity   = nullptr;  // Separate entity for hull spray
     CParticleEmitter*       m_hullSprayEmitter  = nullptr;  // Reference to hull spray emitter for dynamic updates
 
     // Velocity visualization (entity -> velocity line entity mapping)
-    std::map<Entity*, std::shared_ptr<Entity>> m_velocityLines;
+    std::map<Entity::Entity*, std::shared_ptr<Entity::Entity>> m_velocityLines;
 
     // Scene loading state
     bool m_sceneLoaded = false;

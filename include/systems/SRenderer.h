@@ -8,8 +8,13 @@
 #include "Color.h"
 #include "System.h"
 
-// Forward declarations
+namespace Components
+{
 enum class BlendMode;
+}
+
+namespace Systems
+{
 
 /**
  * @brief Window initialization configuration
@@ -175,19 +180,21 @@ private:
      * @brief Renders a single entity
      * @param entity Pointer to the entity to render
      */
-    void renderEntity(Entity* entity);
+    void renderEntity(::Entity::Entity* entity);
 
     /**
      * @brief Converts engine BlendMode to SFML BlendMode
      * @param blendMode Engine blend mode
      * @return Equivalent SFML blend mode
      */
-    sf::BlendMode toSFMLBlendMode(enum BlendMode blendMode) const;
+    sf::BlendMode toSFMLBlendMode(::Components::BlendMode blendMode) const;
 
     std::unique_ptr<sf::RenderWindow>            m_window;                       ///< The render window
     std::unordered_map<std::string, sf::Texture> m_textureCache;                 ///< Cached textures by filepath
     std::unordered_map<std::string, std::unique_ptr<sf::Shader>> m_shaderCache;  ///< Cached shaders by filepath combination
     bool m_initialized = false;                                                  ///< Initialization state
 };
+
+}  // namespace Systems
 
 #endif  // SRENDERER_H

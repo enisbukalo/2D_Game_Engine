@@ -6,6 +6,9 @@
 #include "AudioTypes.h"
 #include "Component.h"
 
+namespace Components
+{
+
 /**
  * @brief Component for audio listener (typically attached to camera or player)
  *
@@ -122,5 +125,7 @@ private:
     bool m_isDefaultListener = true;                                    ///< Whether this is the active listener
     std::unordered_map<std::string, AudioSourceConfig> m_audioSources;  ///< Named audio sources
 };
+
+}  // namespace Components
 
 #endif  // CAUDIOLISTENER_H

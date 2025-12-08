@@ -4,6 +4,9 @@
 #include "Component.h"
 #include "Vec2.h"
 
+namespace Components
+{
+
 /**
  * @brief Component for handling entity position, movement, and transformation
  *
@@ -97,5 +100,7 @@ private:
     Vec2  m_scale    = Vec2(1.0f, 1.0f);  ///< Scale factor for x and y dimensions
     float m_rotation = 0.0f;              ///< Rotation angle in radians
 };
+
+}  // namespace Components
 
 #endif  // CTRANSFORM_H

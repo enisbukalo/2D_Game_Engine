@@ -1,5 +1,8 @@
 #include "CName.h"
 
+namespace Components
+{
+
 std::string CName::getType() const
 {
     return "Name";
@@ -37,3 +40,5 @@ void CName::setName(const std::string& name)
 {
     m_name = name;
 }
+
+}  // namespace Components

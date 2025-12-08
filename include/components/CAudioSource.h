@@ -5,6 +5,9 @@
 #include "AudioTypes.h"
 #include "Component.h"
 
+namespace Components
+{
+
 /**
  * @brief Component for audio playback on an entity
  *
@@ -178,5 +181,7 @@ private:
     float       m_attenuation = AudioConstants::DEFAULT_ATTENUATION;
     AudioHandle m_playHandle  = AudioHandle::invalid();  ///< Handle to active sound
 };
+
+}  // namespace Components
 
 #endif  // CAUDIOSOURCE_H

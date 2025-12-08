@@ -10,6 +10,8 @@
 #include "CMaterial.h"
 #include "ComponentFactory.h"
 
+using namespace Components;
+
 // Test helper component.
 class TestComponent : public Component
 {

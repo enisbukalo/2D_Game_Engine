@@ -6,6 +6,9 @@
 #include "Component.h"
 #include "Vec2.h"
 
+namespace Components
+{
+
 /**
  * @brief Enumeration of visual types for rendering
  */
@@ -157,5 +160,7 @@ private:
     Vec2  m_lineEnd       = Vec2(1.0f, 0.0f);  ///< Line end point (local space)
     float m_lineThickness = 2.0f;              ///< Line thickness in pixels
 };
+
+}  // namespace Components
 
 #endif  // CRENDERABLE_H

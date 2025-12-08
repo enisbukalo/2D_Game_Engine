@@ -4,6 +4,9 @@
 #include <string>
 #include "Component.h"
 
+namespace Components
+{
+
 /**
  * @brief Component for shader resources
  *
@@ -73,5 +76,7 @@ private:
     std::string m_vertexShaderPath;    ///< Path to the vertex shader file
     std::string m_fragmentShaderPath;  ///< Path to the fragment shader file
 };
+
+}  // namespace Components
 
 #endif  // CSHADER_H

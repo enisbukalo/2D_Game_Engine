@@ -3,6 +3,9 @@
 #include "SInput.h"
 #include "SSerialization.h"
 
+namespace Components
+{
+
 CInputController::CInputController() {}
 
 CInputController::~CInputController()
@@ -15,16 +18,16 @@ CInputController::~CInputController()
         {
             if (lb.bindingId != 0)
             {
-                SInput::instance().unbindAction(actionName, lb.bindingId);
+                ::Systems::SInput::instance().unbindAction(actionName, lb.bindingId);
             }
         }
     }
-    SInput::instance().removeListener(this);
+    ::Systems::SInput::instance().removeListener(this);
 }
 
 void CInputController::init()
 {
-    SInput::instance().addListener(this);
+    ::Systems::SInput::instance().addListener(this);
 }
 
 std::string CInputController::getType() const
@@ -36,7 +39,7 @@ void CInputController::bindAction(const std::string& actionName, const ActionBin
 {
     LocalBinding lb;
     lb.binding   = binding;
-    lb.bindingId = SInput::instance().bindAction(actionName, binding);
+    lb.bindingId = ::Systems::SInput::instance().bindAction(actionName, binding);
     m_bindings[actionName].push_back(lb);
 }
 
@@ -48,7 +51,7 @@ void CInputController::unbindAction(const std::string& actionName)
     for (const auto& lb : it->second)
     {
         if (lb.bindingId != 0)
-            SInput::instance().unbindAction(actionName, lb.bindingId);
+            ::Systems::SInput::instance().unbindAction(actionName, lb.bindingId);
     }
     m_bindings.erase(it);
     m_callbacks.erase(actionName);
@@ -65,18 +68,18 @@ void CInputController::setActionCallback(const std::string& actionName, std::fun
 
 bool CInputController::isActionDown(const std::string& actionName) const
 {
-    ActionState state = SInput::instance().getActionState(actionName);
+    ActionState state = ::Systems::SInput::instance().getActionState(actionName);
     return state == ActionState::Held || state == ActionState::Pressed;
 }
 
 bool CInputController::wasActionPressed(const std::string& actionName) const
 {
-    return SInput::instance().getActionState(actionName) == ActionState::Pressed;
+    return ::Systems::SInput::instance().getActionState(actionName) == ActionState::Pressed;
 }
 
 bool CInputController::wasActionReleased(const std::string& actionName) const
 {
-    return SInput::instance().getActionState(actionName) == ActionState::Released;
+    return ::Systems::SInput::instance().getActionState(actionName) == ActionState::Released;
 }
 
 void CInputController::onAction(const ActionEvent& ev)
@@ -194,3 +197,5 @@ void CInputController::deserialize(const Serialization::SSerialization::JsonValu
         bindAction(actionName, binding);
     }
 }
+
+}  // namespace Components

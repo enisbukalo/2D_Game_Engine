@@ -4,6 +4,11 @@
 #include "SEntity.h"
 #include "SSerialization.h"
 
+using namespace Components;
+using namespace Entity;
+using namespace Systems;
+using namespace Serialization;
+
 class CTextureTest : public ::testing::Test
 {
 protected:
