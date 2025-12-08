@@ -39,14 +39,30 @@ format_files() {
         clang-format -style=file -i "$file"
     done
 
-    # Verify formatting (using git ls-files again, excluding tests)
-    git ls-files '*.cpp' '*.h' | grep -v '^tests/' | xargs clang-format -style=file --dry-run --Werror
+    echo -e "${GREEN}Formatting complete!${NC}"
+}
+
+# Function to check formatting (matches CI/CD behavior)
+check_formatting() {
+    echo -e "${YELLOW}Checking code formatting...${NC}"
+
+    # Use find command like CI/CD does
+    find . -type f \( -name "*.cpp" -o -name "*.h" \) \
+        -not -path "./build/*" \
+        -not -path "./build_linux/*" \
+        -not -path "./build_windows/*" \
+        -not -path "./deps_cache*/*" \
+        -not -path "./package*/*" \
+        -not -path "./coverage_report/*" \
+        -not -path "./tests/*" \
+        -exec clang-format -style=file --dry-run --Werror {} +
 
     local result=$?
     if [ $result -eq 0 ]; then
-        echo -e "${GREEN}Formatting complete!${NC}"
+        echo -e "${GREEN}Formatting check passed!${NC}"
     else
-        echo -e "${RED}Formatting verification failed!${NC}"
+        echo -e "${RED}Formatting check failed! Files need to be formatted.${NC}"
+        echo -e "${YELLOW}Run './build_tools/format_and_analysis.sh' to auto-format files.${NC}"
         exit 1
     fi
 }
@@ -97,4 +113,5 @@ EOF
 }
 
 format_files
+check_formatting
 static_analysis

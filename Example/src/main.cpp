@@ -145,26 +145,26 @@ bool createSceneBackup(const std::string& filepath)
 class FishingGame
 {
 private:
-    std::unique_ptr<GameEngine> m_gameEngine;
-    sf::Font                    m_font;
-    bool                        m_running;
-    bool                        m_fontLoaded;
-    bool                        m_gravityEnabled;
-    bool                        m_showColliders;
-    bool                        m_showVectors;
-    CPhysicsBody2D*             m_playerPhysics;
-    std::shared_ptr<Entity::Entity>     m_player;
-    std::shared_ptr<Entity::Entity>     m_oceanBackground;
+    std::unique_ptr<GameEngine>     m_gameEngine;
+    sf::Font                        m_font;
+    bool                            m_running;
+    bool                            m_fontLoaded;
+    bool                            m_gravityEnabled;
+    bool                            m_showColliders;
+    bool                            m_showVectors;
+    CPhysicsBody2D*                 m_playerPhysics;
+    std::shared_ptr<Entity::Entity> m_player;
+    std::shared_ptr<Entity::Entity> m_oceanBackground;
 
     // Audio state
     AudioHandle m_motorBoatHandle;
 
     // Particle system
-    sf::Texture             m_bubbleTexture;
-    sf::Texture             m_sprayTexture;
+    sf::Texture                     m_bubbleTexture;
+    sf::Texture                     m_sprayTexture;
     std::shared_ptr<Entity::Entity> m_bubbleTrailEntity = nullptr;  // Separate entity for bubble trail
     std::shared_ptr<Entity::Entity> m_hullSprayEntity   = nullptr;  // Separate entity for hull spray
-    CParticleEmitter*       m_hullSprayEmitter  = nullptr;  // Reference to hull spray emitter for dynamic updates
+    CParticleEmitter* m_hullSprayEmitter = nullptr;  // Reference to hull spray emitter for dynamic updates
 
     // Velocity visualization (entity -> velocity line entity mapping)
     std::map<Entity::Entity*, std::shared_ptr<Entity::Entity>> m_velocityLines;
