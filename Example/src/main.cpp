@@ -1,18 +1,4 @@
-#include <AudioTypes.h>
-#include <CCollider2D.h>
-#include <CInputController.h>
-#include <CMaterial.h>
-#include <CParticleEmitter.h>
-#include <CPhysicsBody2D.h>
-#include <CRenderable.h>
-#include <CShader.h>
-#include <CTexture.h>
-#include <CTransform.h>
-#include <Color.h>
-#include <Entity.h>
 #include <GameEngine.h>
-#include <Input/MouseButton.h>
-#include <SceneManager.h>
 #include <Vec2.h>
 #include <windows.h>
 #include <SFML/Graphics.hpp>
@@ -409,7 +395,8 @@ public:
                                                    && m_playerPhysics && m_playerPhysics->isInitialized())
                                                {
                                                    b2Vec2 forward = m_playerPhysics->getForwardVector();
-                                                   b2Vec2 force = {-forward.x * PLAYER_FORCE, -forward.y * PLAYER_FORCE};
+                                                   b2Vec2 force   = {-forward.x * (PLAYER_FORCE / 2),
+                                                                     -forward.y * (PLAYER_FORCE / 2)};
                                                    m_playerPhysics->applyForceToCenter(force);
                                                    startMotorBoat();
                                                }
@@ -669,8 +656,8 @@ public:
         float  speed    = std::sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
 
         // Define speed thresholds
-        const float MIN_SPEED_FOR_SPRAY = 0.1f;     // Start spraying at this speed (m/s)
-        const float MAX_SPEED_FOR_SPRAY = 2.25f;    // Maximum spray at this speed (m/s)
+        const float MIN_SPEED_FOR_SPRAY = 0.05f;    // Start spraying at this speed (m/s)
+        const float MAX_SPEED_FOR_SPRAY = 2.0f;     // Maximum spray at this speed (m/s)
         const float MIN_EMISSION_RATE   = 0.0f;     // Emission rate at minimum speed
         const float MAX_EMISSION_RATE   = 5000.0f;  // Emission rate at maximum speed
 
@@ -716,7 +703,7 @@ public:
 
             // Define speed thresholds for barrels
             const float MIN_SPEED_FOR_SPRAY = 0.05f;    // Start spraying at this speed (m/s)
-            const float MAX_SPEED_FOR_SPRAY = 1.0f;     // Maximum spray at this speed (m/s)
+            const float MAX_SPEED_FOR_SPRAY = 2.0f;     // Maximum spray at this speed (m/s)
             const float MIN_EMISSION_RATE   = 0.0f;     // Emission rate at minimum speed
             const float MAX_EMISSION_RATE   = 1250.0f;  // Emission rate at maximum speed
 
