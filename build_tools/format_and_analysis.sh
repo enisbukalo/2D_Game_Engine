@@ -22,18 +22,27 @@ fi
 format_files() {
     echo -e "${YELLOW}Formatting files...${NC}"
 
-    # Use git ls-files to respect .gitignore and only get tracked files
-    files_to_format=$(git ls-files '*.cpp' '*.h')
-    
-    # Lets ignore all of the files in the tests/ directory
-    files_to_format=$(echo "$files_to_format" | grep -v '^tests/')
+    # Use the same find filter as check_formatting so untracked files are also formatted
+    files_to_format=$(find . -type f \( -name "*.cpp" -o -name "*.h" \) \
+        -not -path "./build/*" \
+        -not -path "./build_linux/*" \
+        -not -path "./build_windows/*" \
+        -not -path "./deps_cache*/*" \
+        -not -path "./package*/*" \
+        -not -path "./coverage_report/*" \
+        -not -path "./tests/*")
 
     if [ -z "$files_to_format" ]; then
         echo -e "${YELLOW}No files to format${NC}"
         return
     fi
 
-    # Format each file that needs it
+    # Format each file that needs it (skip empty list)
+    if [ -z "$files_to_format" ]; then
+        echo -e "${YELLOW}No files to format${NC}"
+        return
+    fi
+
     for file in $files_to_format; do
         echo "Formatting $file..."
         clang-format -style=file -i "$file"
