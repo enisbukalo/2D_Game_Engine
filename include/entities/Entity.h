@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <vector>
 #include "Component.h"
+#include "Components.h"
 
 namespace Systems
 {
