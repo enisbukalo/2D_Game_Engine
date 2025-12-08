@@ -5,6 +5,9 @@
 #include <spdlog/spdlog.h>
 #include <algorithm>
 
+namespace Systems
+{
+
 SInput::SInput() = default;
 
 SInput::~SInput()
@@ -600,3 +603,5 @@ ActionState SInput::getActionState(const std::string& actionName) const
         return ActionState::None;
     return it->second;
 }
+
+}  // namespace Systems

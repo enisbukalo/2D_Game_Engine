@@ -13,7 +13,10 @@
 #include "JsonBuilder.h"
 #include "JsonParser.h"
 
-class Entity;  // Forward declaration
+namespace Entity
+{
+class Entity;
+}
 
 namespace Serialization
 {
@@ -91,14 +94,14 @@ public:
      * @param entity The entity to serialize
      * @param builder The builder to write to
      */
-    void serializeEntity(const Entity& entity, JsonBuilder& builder);
+    void serializeEntity(const ::Entity::Entity& entity, JsonBuilder& builder);
 
     /**
      * @brief Deserializes an entity from a JsonValue
      * @param entity The entity to deserialize into
      * @param value The JSON data to read from
      */
-    void deserializeEntity(Entity& entity, const JsonValue& value);
+    void deserializeEntity(::Entity::Entity& entity, const JsonValue& value);
 
     // Deleted copy/move constructors and assignment operators
     SSerialization(const SSerialization&)            = delete;

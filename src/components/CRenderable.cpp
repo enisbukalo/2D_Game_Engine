@@ -1,6 +1,9 @@
 #include "CRenderable.h"
 #include "SSerialization.h"
 
+namespace Components
+{
+
 std::string CRenderable::getType() const
 {
     return "Renderable";
@@ -178,3 +181,5 @@ void CRenderable::setLineThickness(float thickness)
 {
     m_lineThickness = thickness;
 }
+
+}  // namespace Components

@@ -4,6 +4,9 @@
 #include <string>
 #include "Component.h"
 
+namespace Components
+{
+
 /**
  * @brief Component for texture resources
  *
@@ -56,5 +59,7 @@ public:
 private:
     std::string m_texturePath;  ///< Path to the texture file
 };
+
+}  // namespace Components
 
 #endif  // CTEXTURE_H

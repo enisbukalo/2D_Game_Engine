@@ -7,6 +7,9 @@
 #include <unordered_map>
 #include "Component.h"
 
+namespace Components
+{
+
 /**
  * @brief Factory class for creating components by type string
  *
@@ -61,5 +64,7 @@ private:
 
     std::unordered_map<std::string, std::function<Component*()>> m_creators;  ///< Map of component creators by type string
 };
+
+}  // namespace Components
 
 #endif  // COMPONENTFACTORY_H

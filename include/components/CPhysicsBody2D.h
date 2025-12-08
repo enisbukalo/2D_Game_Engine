@@ -3,7 +3,13 @@
 #include "Component.h"
 #include "box2d/box2d.h"
 
+namespace Components
+{
 class CTransform;
+}
+
+namespace Components
+{
 
 /**
  * @brief Body type enumeration for physics bodies
@@ -285,3 +291,5 @@ public:
     void        deserialize(const Serialization::SSerialization::JsonValue& value) override;
     std::string getType() const override;
 };
+
+}  // namespace Components

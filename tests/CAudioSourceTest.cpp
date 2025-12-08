@@ -6,6 +6,11 @@
 #include "SAudio.h"
 #include "SSerialization.h"
 
+using namespace Components;
+using namespace Entity;
+using namespace Systems;
+using namespace Serialization;
+
 class CAudioSourceTest : public ::testing::Test
 {
 protected:
@@ -21,7 +26,7 @@ protected:
         SAudio::instance().shutdown();
     }
 
-    std::shared_ptr<Entity> entity;
+    std::shared_ptr<Entity::Entity> entity;
 };
 
 TEST_F(CAudioSourceTest, ComponentCreationAndDefaults)

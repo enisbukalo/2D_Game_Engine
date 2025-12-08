@@ -15,6 +15,9 @@
 using ListenerId = size_t;
 using BindingId  = size_t;
 
+namespace Systems
+{
+
 class SInput : public System
 {
 private:
@@ -89,3 +92,5 @@ public:
     // Expose event processing for tests
     void processEvent(const sf::Event& event);
 };
+
+}  // namespace Systems

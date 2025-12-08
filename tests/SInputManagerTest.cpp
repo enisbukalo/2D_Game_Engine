@@ -7,6 +7,8 @@
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
 
+using namespace Systems;
+
 // Test fixture for SInputManager tests
 class SInputManagerTest : public ::testing::Test
 {

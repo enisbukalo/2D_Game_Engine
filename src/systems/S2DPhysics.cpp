@@ -5,6 +5,9 @@
 #include "SEntity.h"
 #include "Vec2.h"
 
+namespace Systems
+{
+
 S2DPhysics::S2DPhysics() : m_timeStep(1.0f / 60.0f), m_subStepCount(6)
 {
     // Create Box2D world with default gravity (Y-up: negative Y = downward)
@@ -51,12 +54,12 @@ void S2DPhysics::update(float deltaTime)
     // Sync Box2D bodies back to CTransform components
     for (auto& pair : m_entityBodyMap)
     {
-        Entity* entity = reinterpret_cast<Entity*>(b2Body_GetUserData(pair.second));
+        ::Entity::Entity* entity = reinterpret_cast<::Entity::Entity*>(b2Body_GetUserData(pair.second));
         if (!entity)
             continue;
 
-        auto physicsBody = entity->getComponent<CPhysicsBody2D>();
-        auto transform   = entity->getComponent<CTransform>();
+        auto physicsBody = entity->getComponent<::Components::CPhysicsBody2D>();
+        auto transform   = entity->getComponent<::Components::CTransform>();
 
         if (physicsBody && transform && physicsBody->isInitialized())
         {
@@ -75,7 +78,7 @@ b2Vec2 S2DPhysics::getGravity() const
     return b2World_GetGravity(m_worldId);
 }
 
-b2BodyId S2DPhysics::createBody(Entity* entity, const b2BodyDef& bodyDef)
+b2BodyId S2DPhysics::createBody(::Entity::Entity* entity, const b2BodyDef& bodyDef)
 {
     if (!entity)
     {
@@ -102,7 +105,7 @@ b2BodyId S2DPhysics::createBody(Entity* entity, const b2BodyDef& bodyDef)
     return bodyId;
 }
 
-void S2DPhysics::destroyBody(const Entity* entity)
+void S2DPhysics::destroyBody(const ::Entity::Entity* entity)
 {
     if (!entity)
     {
@@ -120,7 +123,7 @@ void S2DPhysics::destroyBody(const Entity* entity)
     }
 }
 
-b2BodyId S2DPhysics::getBody(const Entity* entity)
+b2BodyId S2DPhysics::getBody(const ::Entity::Entity* entity)
 {
     if (!entity)
     {
@@ -147,3 +150,5 @@ void S2DPhysics::rayCast(const b2Vec2& origin, const b2Vec2& translation, b2Cast
     b2QueryFilter filter = b2DefaultQueryFilter();
     b2World_CastRay(m_worldId, origin, translation, filter, callback, context);
 }
+
+}  // namespace Systems

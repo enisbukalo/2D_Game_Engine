@@ -4,9 +4,13 @@
 #include <SFML/Graphics.hpp>
 #include "System.h"
 
-// Forward declarations
-class EntityManager;
+namespace Entity
+{
 class Entity;
+}
+
+namespace Systems
+{
 
 /**
  * @brief Particle system that updates and renders particles from CParticleEmitter components
@@ -55,7 +59,7 @@ public:
      * @param entity Entity with CParticleEmitter component
      * @param window SFML render window
      */
-    void renderEmitter(Entity* entity, sf::RenderWindow* window);
+    void renderEmitter(::Entity::Entity* entity, sf::RenderWindow* window);
 
     /**
      * @brief Checks if the particle system is initialized
@@ -98,5 +102,7 @@ private:
     float             m_pixelsPerMeter;  ///< Rendering scale
     bool              m_initialized;     ///< Initialization state
 };
+
+}  // namespace Systems
 
 #endif  // SPARTICLESYSTEM_H

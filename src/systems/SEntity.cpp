@@ -3,6 +3,9 @@
 #include <fstream>
 #include "FileUtilities.h"
 
+namespace Systems
+{
+
 SEntity& SEntity::instance()
 {
     static SEntity instance;
@@ -32,24 +35,24 @@ void SEntity::update(float deltaTime)
     removeDeadEntities();
 }
 
-std::shared_ptr<Entity> SEntity::addEntity(const std::string& tag)
+std::shared_ptr<::Entity::Entity> SEntity::addEntity(const std::string& tag)
 {
-    auto entity = std::shared_ptr<Entity>(new Entity(tag, m_totalEntities++));
+    auto entity = std::shared_ptr<::Entity::Entity>(new ::Entity::Entity(tag, m_totalEntities++));
     m_entitiesToAdd.push_back(entity);
     return entity;
 }
 
-void SEntity::removeEntity(std::shared_ptr<Entity> entity)
+void SEntity::removeEntity(std::shared_ptr<::Entity::Entity> entity)
 {
     entity->destroy();
 }
 
-const std::vector<std::shared_ptr<Entity>>& SEntity::getEntities() const
+const std::vector<std::shared_ptr<::Entity::Entity>>& SEntity::getEntities() const
 {
     return m_entities;
 }
 
-std::vector<std::shared_ptr<Entity>> SEntity::getEntitiesByTag(const std::string& tag)
+std::vector<std::shared_ptr<::Entity::Entity>> SEntity::getEntitiesByTag(const std::string& tag)
 {
     return m_entityMap[tag];
 }
@@ -78,12 +81,12 @@ void SEntity::saveToFile(const std::string& filename)
     builder.endObject();  // end root
 
     // Write to file
-    FileUtilities::writeFile(filename, builder.toString());
+    ::Internal::FileUtilities::writeFile(filename, builder.toString());
 }
 
 void SEntity::loadFromFile(const std::string& filename)
 {
-    std::string                              json = FileUtilities::readFile(filename);
+    std::string                              json = ::Internal::FileUtilities::readFile(filename);
     Serialization::JsonParser                parser(json);
     Serialization::SSerialization::JsonValue root = Serialization::SSerialization::JsonValue::parse(parser);
 
@@ -95,7 +98,7 @@ void SEntity::loadFromFile(const std::string& filename)
     const auto& entities = root["entities"].getArray();
     for (const auto& entity : entities)
     {
-        std::shared_ptr<Entity> newEntity = addEntity(entity["tag"].getString());
+        std::shared_ptr<::Entity::Entity> newEntity = addEntity(entity["tag"].getString());
         newEntity->deserialize(entity);
     }
 }
@@ -125,3 +128,5 @@ void SEntity::removeDeadEntities()
                        entities.end());
     }
 }
+
+}  // namespace Systems

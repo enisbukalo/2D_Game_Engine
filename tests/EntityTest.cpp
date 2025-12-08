@@ -18,6 +18,10 @@
 #include "SSerialization.h"
 #include "SInput.h"
 #include "S2DPhysics.h"
+
+using namespace Components;
+using namespace Entity;
+using namespace Systems;
 #include "SAudio.h"
 #include "TestUtils.h"
 

@@ -8,6 +8,9 @@
 #include "Entity.h"
 #include "SEntity.h"
 
+namespace Systems
+{
+
 // Static random number generator
 static std::random_device               s_rd;
 static std::mt19937                     s_gen(s_rd());
@@ -202,18 +205,18 @@ static std::pair<Vec2, Vec2> samplePolygonEdge(const std::vector<Vec2>& vertices
  * @param entityRotation Rotation of the entity in radians
  * @return Local-space position offset and outward normal direction
  */
-static std::pair<Vec2, Vec2> getEmissionPositionAndNormal(const CParticleEmitter* emitter, float entityRotation)
+static std::pair<Vec2, Vec2> getEmissionPositionAndNormal(const ::Components::CParticleEmitter* emitter, float entityRotation)
 {
     Vec2 localPosition(0.0f, 0.0f);
     Vec2 outwardNormal(0.0f, 1.0f);
 
     switch (emitter->getEmissionShape())
     {
-        case EmissionShape::Point:
+        case ::Components::EmissionShape::Point:
             // Point emission - no position offset, use configured direction
             break;
 
-        case EmissionShape::Circle:
+        case ::Components::EmissionShape::Circle:
         {
             auto [pos, normal] = sampleCircleEdge(emitter->getShapeRadius());
             localPosition      = pos;
@@ -221,7 +224,7 @@ static std::pair<Vec2, Vec2> getEmissionPositionAndNormal(const CParticleEmitter
             break;
         }
 
-        case EmissionShape::Rectangle:
+        case ::Components::EmissionShape::Rectangle:
         {
             Vec2 size          = emitter->getShapeSize();
             auto [pos, normal] = sampleRectangleEdge(size.x / 2.0f, size.y / 2.0f);
@@ -230,7 +233,7 @@ static std::pair<Vec2, Vec2> getEmissionPositionAndNormal(const CParticleEmitter
             break;
         }
 
-        case EmissionShape::Line:
+        case ::Components::EmissionShape::Line:
         {
             auto [pos, normal] = sampleLine(emitter->getLineStart(), emitter->getLineEnd());
             localPosition      = pos;
@@ -238,7 +241,7 @@ static std::pair<Vec2, Vec2> getEmissionPositionAndNormal(const CParticleEmitter
             break;
         }
 
-        case EmissionShape::Polygon:
+        case ::Components::EmissionShape::Polygon:
         {
             const auto& vertices = emitter->getPolygonVertices();
             if (!vertices.empty())
@@ -270,7 +273,7 @@ static std::pair<Vec2, Vec2> getEmissionPositionAndNormal(const CParticleEmitter
 }
 
 //=============================================================================
-// Particle emission and update logic
+// ::Components::Particle emission and update logic
 //=============================================================================
 
 /**
@@ -290,9 +293,9 @@ static bool shouldEmitAtNormal(const Vec2& outwardNormal, const Vec2& velocity)
     return dot < 0.0f;
 }
 
-static Particle spawnParticle(const CParticleEmitter* emitter, const Vec2& worldPosition, float entityRotation)
+static ::Components::Particle spawnParticle(const ::Components::CParticleEmitter* emitter, const Vec2& worldPosition, float entityRotation)
 {
-    Particle p;
+    ::Components::Particle p;
     p.alive = true;
     p.age   = 0.0f;
 
@@ -312,7 +315,7 @@ static Particle spawnParticle(const CParticleEmitter* emitter, const Vec2& world
     // Velocity (direction + spread + speed)
     Vec2 direction;
 
-    if (emitter->getEmitOutward() && emitter->getEmissionShape() != EmissionShape::Point)
+    if (emitter->getEmitOutward() && emitter->getEmissionShape() != ::Components::EmissionShape::Point)
     {
         // Emit in direction away from shape center (use outward normal)
         direction = outwardNormal;
@@ -354,7 +357,7 @@ static Particle spawnParticle(const CParticleEmitter* emitter, const Vec2& world
     return p;
 }
 
-static void updateParticle(Particle& particle, const CParticleEmitter* emitter, float deltaTime)
+static void updateParticle(::Components::Particle& particle, const ::Components::CParticleEmitter* emitter, float deltaTime)
 {
     particle.age += deltaTime;
 
@@ -393,7 +396,7 @@ static void updateParticle(Particle& particle, const CParticleEmitter* emitter, 
     }
 }
 
-static void emitParticle(CParticleEmitter* emitter, const Vec2& worldPosition, float entityRotation)
+static void emitParticle(::Components::CParticleEmitter* emitter, const Vec2& worldPosition, float entityRotation)
 {
     // Check particle limit
     if (emitter->getAliveCount() >= static_cast<size_t>(emitter->getMaxParticles()))
@@ -403,7 +406,7 @@ static void emitParticle(CParticleEmitter* emitter, const Vec2& worldPosition, f
 
     // Find dead particle to reuse or add new one
     auto& particles = emitter->getParticles();
-    auto  it        = std::find_if(particles.begin(), particles.end(), [](const Particle& p) { return !p.alive; });
+    auto it = std::find_if(particles.begin(), particles.end(), [](const ::Components::Particle& p) { return !p.alive; });
     if (it != particles.end())
     {
         *it = spawnParticle(emitter, worldPosition, entityRotation);
@@ -418,7 +421,7 @@ static void emitParticle(CParticleEmitter* emitter, const Vec2& worldPosition, f
 // SParticle Implementation
 //=============================================================================
 
-SParticle& SParticle::instance()
+SParticle& ::Systems::SParticle::instance()
 {
     static SParticle instance;
     return instance;
@@ -453,20 +456,20 @@ void SParticle::update(float deltaTime)
     }
 
     // Iterate over all entities with CParticleEmitter component
-    auto entities = SEntity::instance().getEntities();
+    auto entities = ::Systems::SEntity::instance().getEntities();
 
     for (auto& entity : entities)
     {
-        bool hasEmitter   = entity->hasComponent<CParticleEmitter>();
-        bool hasTransform = entity->hasComponent<CTransform>();
+        bool hasEmitter   = entity->hasComponent<::Components::CParticleEmitter>();
+        bool hasTransform = entity->hasComponent<::Components::CTransform>();
 
         if (hasEmitter == false || hasTransform == false)
         {
             continue;
         }
 
-        auto* emitter   = entity->getComponent<CParticleEmitter>();
-        auto* transform = entity->getComponent<CTransform>();
+        auto* emitter   = entity->getComponent<::Components::CParticleEmitter>();
+        auto* transform = entity->getComponent<::Components::CTransform>();
 
         if (emitter->isActive() == false)
         {
@@ -514,7 +517,7 @@ void SParticle::update(float deltaTime)
     }
 }
 
-void SParticle::renderEmitter(Entity* entity, sf::RenderWindow* window)
+void SParticle::renderEmitter(::Entity::Entity* entity, sf::RenderWindow* window)
 {
     sf::RenderWindow* targetWindow = window ? window : m_window;
 
@@ -523,12 +526,12 @@ void SParticle::renderEmitter(Entity* entity, sf::RenderWindow* window)
         return;
     }
 
-    if (entity->hasComponent<CParticleEmitter>() == false)
+    if (entity->hasComponent<::Components::CParticleEmitter>() == false)
     {
         return;
     }
 
-    auto* emitter = entity->getComponent<CParticleEmitter>();
+    auto* emitter = entity->getComponent<::Components::CParticleEmitter>();
 
     // Clear vertex array for this emitter
     m_vertexArray.clear();
@@ -641,3 +644,5 @@ float SParticle::metersToPixels(float meters) const
 {
     return meters * m_pixelsPerMeter;
 }
+
+}  // namespace Systems

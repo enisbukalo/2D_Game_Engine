@@ -3,6 +3,9 @@
 
 #include <string>
 
+namespace Systems
+{
+
 /**
  * @brief System for managing game scenes and scene transitions
  *
@@ -67,5 +70,7 @@ private:
 
     std::string m_currentScene = "";  ///< Path to the currently loaded scene
 };
+
+}  // namespace Systems
 
 #endif

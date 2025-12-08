@@ -7,6 +7,9 @@
 #include "SEntity.h"
 #include "SSerialization.h"
 
+namespace Systems
+{
+
 void SScene::loadScene(const std::string& scenePath)
 {
     // Check if file exists before attempting to load
@@ -17,11 +20,11 @@ void SScene::loadScene(const std::string& scenePath)
 
     try
     {
-        SEntity::instance().clear();  // Clear existing entities
-        SEntity::instance().loadFromFile(scenePath);
+        ::Systems::SEntity::instance().clear();  // Clear existing entities
+        ::Systems::SEntity::instance().loadFromFile(scenePath);
 
         // Load scene-level audio settings
-        std::string                              json = FileUtilities::readFile(scenePath);
+        std::string                              json = ::Internal::FileUtilities::readFile(scenePath);
         Serialization::JsonParser                parser(json);
         Serialization::SSerialization::JsonValue root = Serialization::SSerialization::JsonValue::parse(parser);
 
@@ -73,7 +76,7 @@ void SScene::saveCurrentScene()
 
     try
     {
-        SEntity::instance().saveToFile(m_currentScene);
+        ::Systems::SEntity::instance().saveToFile(m_currentScene);
     }
     catch (const std::exception& e)
     {
@@ -92,7 +95,7 @@ void SScene::saveScene(const std::string& scenePath)
             throw std::runtime_error("Directory does not exist: " + directory.string());
         }
 
-        SEntity::instance().saveToFile(scenePath);
+        ::Systems::SEntity::instance().saveToFile(scenePath);
         m_currentScene = scenePath;
     }
     catch (const std::exception& e)
@@ -111,6 +114,8 @@ void SScene::clearScene()
     // Stop any playing music
     SAudio::instance().stopMusic();
 
-    SEntity::instance().clear();
+    ::Systems::SEntity::instance().clear();
     m_currentScene = "";
 }
+
+}  // namespace Systems

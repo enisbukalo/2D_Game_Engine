@@ -1,6 +1,9 @@
 #include "CTransform.h"
 #include "SSerialization.h"
 
+namespace Components
+{
+
 std::string CTransform::getType() const
 {
     return "Transform";
@@ -108,3 +111,5 @@ void CTransform::setRotation(float rotation)
 {
     m_rotation = rotation;
 }
+
+}  // namespace Components

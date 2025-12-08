@@ -8,6 +8,9 @@
 #include <unistd.h>
 #endif
 
+namespace Systems
+{
+
 SAudio::SAudio(size_t poolSize) : m_soundPool(poolSize) {}
 
 SAudio::~SAudio()
@@ -969,3 +972,5 @@ void SAudio::updateMusicFade(float deltaTime)
         }
     }
 }
+
+}  // namespace Systems

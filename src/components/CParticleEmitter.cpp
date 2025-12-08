@@ -2,6 +2,9 @@
 #include <algorithm>
 #include "SSerialization.h"
 
+namespace Components
+{
+
 // Particle constructor
 Particle::Particle()
     : position(0, 0),
@@ -831,3 +834,5 @@ void CParticleEmitter::setEmissionTimer(float timer)
 {
     m_emissionTimer = timer;
 }
+
+}  // namespace Components

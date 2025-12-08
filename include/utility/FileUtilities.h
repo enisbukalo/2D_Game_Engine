@@ -3,6 +3,9 @@
 
 #include <string>
 
+namespace Internal
+{
+
 /**
  * @brief Utility class for file operations
  *
@@ -30,5 +33,7 @@ public:
      */
     static void writeFile(const std::string& path, const std::string& content);
 };
+
+}  // namespace Internal
 
 #endif

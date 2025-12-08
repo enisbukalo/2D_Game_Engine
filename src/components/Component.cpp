@@ -1,19 +1,22 @@
 #include "Component.h"
 #include "Guid.h"
 
-Component::Component() : m_guid(Guid::generate()) {}
+namespace Components
+{
+
+Component::Component() : m_guid(::Internal::Guid::generate()) {}
 
 bool Component::isActive() const
 {
     return m_active;
 }
 
-Entity* Component::getOwner() const
+::Entity::Entity* Component::getOwner() const
 {
     return m_owner;
 }
 
-void Component::setOwner(Entity* owner)
+void Component::setOwner(::Entity::Entity* owner)
 {
     m_owner = owner;
 }
@@ -32,3 +35,5 @@ void Component::setGuid(const std::string& guid)
 {
     m_guid = guid;
 }
+
+}  // namespace Components

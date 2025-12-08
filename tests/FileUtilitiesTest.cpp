@@ -2,6 +2,8 @@
 #include <filesystem>
 #include "FileUtilities.h"
 
+using namespace Internal;
+
 class FileUtilitiesTest : public ::testing::Test
 {
 protected:

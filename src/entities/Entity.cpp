@@ -2,7 +2,10 @@
 #include "ComponentFactory.h"
 #include "Guid.h"
 
-Entity::Entity(const std::string& tag, size_t id) : m_tag(tag), m_id(id), m_guid(Guid::generate()) {}
+namespace Entity
+{
+
+Entity::Entity(const std::string& tag, size_t id) : m_tag(tag), m_id(id), m_guid(::Internal::Guid::generate()) {}
 
 void Entity::destroy()
 {
@@ -115,10 +118,10 @@ void Entity::deserialize(const Serialization::SSerialization::JsonValue& value)
             }
         }
 
-        Component* comp = ComponentFactory::instance().createComponent(type);
+        ::Components::Component* comp = ::Components::ComponentFactory::instance().createComponent(type);
         if (comp)
         {
-            std::unique_ptr<Component> newComponent(comp);
+            std::unique_ptr<::Components::Component> newComponent(comp);
             newComponent->setOwner(this);
             newComponent->deserialize(component);
             m_components[std::type_index(typeid(*comp))] = std::move(newComponent);
@@ -156,3 +159,5 @@ void Entity::deserialize(const Serialization::SSerialization::JsonValue& value)
         }
     }
 }
+
+}  // namespace Entity

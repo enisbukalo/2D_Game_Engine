@@ -4,7 +4,13 @@
 #include <SSerialization.h>
 #include <string>
 
+namespace Entity
+{
 class Entity;  // Forward declaration
+}
+
+namespace Components
+{
 
 /**
  * @brief Base class for all components in the Entity Component System
@@ -68,13 +74,13 @@ public:
      * @brief Gets the owner of the component
      * @return Pointer to the owner entity
      */
-    Entity* getOwner() const;
+    ::Entity::Entity* getOwner() const;
 
     /**
      * @brief Sets the owner of the component
      * @param owner Pointer to the owner entity
      */
-    void setOwner(Entity* owner);
+    void setOwner(::Entity::Entity* owner);
 
     /**
      * @brief Sets the active state of the component
@@ -95,9 +101,11 @@ public:
     void setGuid(const std::string& guid);
 
 private:
-    Entity*     m_owner  = nullptr;  ///< Pointer to the entity that owns this component
-    bool        m_active = true;     ///< Flag indicating if the component is active
-    std::string m_guid;              ///< Unique identifier for this component
+    ::Entity::Entity* m_owner  = nullptr;  ///< Pointer to the entity that owns this component
+    bool              m_active = true;     ///< Flag indicating if the component is active
+    std::string       m_guid;              ///< Unique identifier for this component
 };
+
+}  // namespace Components
 
 #endif  // COMPONENT_H

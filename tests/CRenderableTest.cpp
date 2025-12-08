@@ -4,6 +4,11 @@
 #include "SEntity.h"
 #include "SSerialization.h"
 
+using namespace Components;
+using namespace Entity;
+using namespace Systems;
+using namespace Serialization;
+
 class CRenderableTest : public ::testing::Test
 {
 protected:

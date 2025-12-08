@@ -7,6 +7,9 @@
 #include <vector>
 #include "Entity.h"
 
+namespace Systems
+{
+
 /**
  * @brief System for handling entities in the game engine
  *
@@ -39,28 +42,28 @@ public:
     /**
      * @brief Creates a new entity with the specified tag
      * @param tag The tag to assign to the entity
-     * @return Shared pointer to the newly created entity
+     * @return Shared pointer to the created entity
      */
-    std::shared_ptr<Entity> addEntity(const std::string& tag);
+    std::shared_ptr<::Entity::Entity> addEntity(const std::string& tag);
 
     /**
-     * @brief Marks an entity for removal
+     * @brief Removes an entity from the system
      * @param entity The entity to remove
      */
-    void removeEntity(std::shared_ptr<Entity> entity);
+    void removeEntity(std::shared_ptr<::Entity::Entity> entity);
 
     /**
      * @brief Gets all active entities
      * @return Const reference to the vector of entity pointers
      */
-    const std::vector<std::shared_ptr<Entity>>& getEntities() const;
+    const std::vector<std::shared_ptr<::Entity::Entity>>& getEntities() const;
 
     /**
      * @brief Gets all entities with a specific tag
      * @param tag The tag to search for
      * @return Vector of entity pointers matching the tag
      */
-    std::vector<std::shared_ptr<Entity>> getEntitiesByTag(const std::string& tag);
+    std::vector<std::shared_ptr<::Entity::Entity>> getEntitiesByTag(const std::string& tag);
 
     /**
      * @brief Gets all entities that have a specific component type
@@ -68,9 +71,9 @@ public:
      * @return Vector of pointers to entities with the specified component
      */
     template <typename T>
-    std::vector<Entity*> getEntitiesWithComponent()
+    std::vector<::Entity::Entity*> getEntitiesWithComponent()
     {
-        std::vector<Entity*> result;
+        std::vector<::Entity::Entity*> result;
         for (auto& entity : m_entities)
         {
             if (entity->isAlive() && entity->hasComponent<T>())
@@ -90,9 +93,9 @@ public:
      * but works with inheritance hierarchies.
      */
     template <typename T>
-    std::vector<Entity*> getEntitiesWithComponentDerived()
+    std::vector<::Entity::Entity*> getEntitiesWithComponentDerived()
     {
-        std::vector<Entity*> result;
+        std::vector<::Entity::Entity*> result;
         for (auto& entity : m_entities)
         {
             if (entity->isAlive() && entity->hasComponentDerived<T>())
@@ -131,10 +134,12 @@ private:
      */
     void removeDeadEntities();
 
-    std::vector<std::shared_ptr<Entity>> m_entities;       ///< List of all active entities
-    std::vector<std::shared_ptr<Entity>> m_entitiesToAdd;  ///< Queue of entities to be added
-    std::unordered_map<std::string, std::vector<std::shared_ptr<Entity>>> m_entityMap;  ///< Map of entities by tag
+    std::vector<std::shared_ptr<::Entity::Entity>> m_entities;       ///< List of all active entities
+    std::vector<std::shared_ptr<::Entity::Entity>> m_entitiesToAdd;  ///< Queue of entities to be added
+    std::unordered_map<std::string, std::vector<std::shared_ptr<::Entity::Entity>>> m_entityMap;  ///< Map of entities by tag
     size_t m_totalEntities = 0;  ///< Counter for generating unique entity IDs
 };
+
+}  // namespace Systems
 
 #endif  // SENTITY_H

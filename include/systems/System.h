@@ -7,6 +7,9 @@
 #include "Component.h"
 #include "Entity.h"
 
+namespace Systems
+{
+
 /**
  * @brief Base class for all systems in the Entity Component System
  *
@@ -35,5 +38,7 @@ public:
      */
     virtual void update(float deltaTime) = 0;
 };
+
+}  // namespace Systems
 
 #endif  // SYSTEM_H

@@ -3,6 +3,9 @@
 
 #include <string>
 
+namespace Internal
+{
+
 /**
  * @brief Utility class for generating UUID v4 GUIDs
  *
@@ -24,5 +27,7 @@ public:
 private:
     Guid() = delete;  // Static utility class, prevent instantiation
 };
+
+}  // namespace Internal
 
 #endif  // GUID_H

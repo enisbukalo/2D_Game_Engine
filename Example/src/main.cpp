@@ -16,11 +16,16 @@
 #include <Vec2.h>
 #include <windows.h>
 #include <SFML/Graphics.hpp>
+#include <algorithm>
 #include <filesystem>
 #include <iostream>
 #include <map>
 #include <memory>
 #include <sstream>
+
+using namespace Components;
+using namespace Entity;
+using namespace Systems;
 
 // Define Screen Size
 const int   SCREEN_WIDTH            = 1600;
@@ -41,12 +46,17 @@ const float BOUNDARY_THICKNESS_METERS = 0.5f;   // Thickness in meters
 const float RANDOM_VELOCITY_RANGE     = 2.0f;   // Random velocity range: -2 to +2 m/s
 const float PLAYER_SIZE_METERS        = 0.25f;  // Player square half-width/height in meters
 const float PLAYER_FORCE              = 5.0f;   // Force applied for player movement
-const float PLAYER_TURNING_FORCE      = 0.5f;   // Torque applied for player rotation
-const float MOTOR_FADE_DURATION       = 2.0f;   // 2 second fade-in & fade-out
-const float MOTOR_MAX_VOLUME          = 0.45f;  // 45% max volume
-const float MAX_MUSIC_VOLUME          = 0.80f;  // 80% max volume
-const float VOLUME_ADJUSTMENT_STEP    = 0.05f;  // Volume change per key press (5%)
-const float INITIAL_VOLUME            = 0.15f;  // 15% initial volume
+const float PLAYER_TURNING_FORCE      = 0.5f;   // Base torque/force multiplier for player rotation
+const float RUDDER_OFFSET_METERS      = 0.35f;  // Distance from center to stern (meters) where rudder force is applied
+const float RUDDER_FORCE_MULTIPLIER   = 1.0f;   // Multiplier for lateral rudder force
+const float RUDDER_SMOOTH_K        = 0.18f;  // Smooth parameter to scale rudder effectiveness with speed (soft clamp)
+const float MIN_SPEED_FOR_STEERING = 0.15f;  // Minimum speed (m/s) required for steering effectiveness (coasting)
+const float RUDDER_MIN_EFFECTIVE_SCALE = 0.025f;  // Minimum rudder effect scale applied at MIN_SPEED_FOR_STEERING (lowered for subtler low-speed turning)
+const float MOTOR_FADE_DURATION    = 2.0f;   // 2 second fade-in & fade-out
+const float MOTOR_MAX_VOLUME       = 0.45f;  // 45% max volume
+const float MAX_MUSIC_VOLUME       = 0.80f;  // 80% max volume
+const float VOLUME_ADJUSTMENT_STEP = 0.05f;  // Volume change per key press (5%)
+const float INITIAL_VOLUME         = 0.15f;  // 15% initial volume
 
 // Scene file name (will be combined with getBasePath())
 const std::string SCENE_FILE_NAME = "main_scene.json";
@@ -141,29 +151,29 @@ bool createSceneBackup(const std::string& filepath)
 class FishingGame
 {
 private:
-    std::unique_ptr<GameEngine> m_gameEngine;
-    sf::Font                    m_font;
-    bool                        m_running;
-    bool                        m_fontLoaded;
-    bool                        m_gravityEnabled;
-    bool                        m_showColliders;
-    bool                        m_showVectors;
-    CPhysicsBody2D*             m_playerPhysics;
-    std::shared_ptr<Entity>     m_player;
-    std::shared_ptr<Entity>     m_oceanBackground;
+    std::unique_ptr<GameEngine>     m_gameEngine;
+    sf::Font                        m_font;
+    bool                            m_running;
+    bool                            m_fontLoaded;
+    bool                            m_gravityEnabled;
+    bool                            m_showColliders;
+    bool                            m_showVectors;
+    CPhysicsBody2D*                 m_playerPhysics;
+    std::shared_ptr<Entity::Entity> m_player;
+    std::shared_ptr<Entity::Entity> m_oceanBackground;
 
     // Audio state
     AudioHandle m_motorBoatHandle;
 
     // Particle system
-    sf::Texture             m_bubbleTexture;
-    sf::Texture             m_sprayTexture;
-    std::shared_ptr<Entity> m_bubbleTrailEntity = nullptr;  // Separate entity for bubble trail
-    std::shared_ptr<Entity> m_hullSprayEntity   = nullptr;  // Separate entity for hull spray
-    CParticleEmitter*       m_hullSprayEmitter  = nullptr;  // Reference to hull spray emitter for dynamic updates
+    sf::Texture                     m_bubbleTexture;
+    sf::Texture                     m_sprayTexture;
+    std::shared_ptr<Entity::Entity> m_bubbleTrailEntity = nullptr;  // Separate entity for bubble trail
+    std::shared_ptr<Entity::Entity> m_hullSprayEntity   = nullptr;  // Separate entity for hull spray
+    CParticleEmitter* m_hullSprayEmitter = nullptr;  // Reference to hull spray emitter for dynamic updates
 
     // Velocity visualization (entity -> velocity line entity mapping)
-    std::map<Entity*, std::shared_ptr<Entity>> m_velocityLines;
+    std::map<Entity::Entity*, std::shared_ptr<Entity::Entity>> m_velocityLines;
 
     // Scene loading state
     bool m_sceneLoaded = false;
@@ -409,25 +419,94 @@ public:
                                                }
                                            });
 
-        inputController->setActionCallback("RotateLeft",
-                                           [this](ActionState state)
-                                           {
-                                               if ((state == ActionState::Held || state == ActionState::Pressed)
-                                                   && m_playerPhysics && m_playerPhysics->isInitialized())
-                                               {
-                                                   m_playerPhysics->applyTorque(PLAYER_TURNING_FORCE);
-                                               }
-                                           });
+        inputController->setActionCallback(
+            "RotateLeft",
+            [this, inputController](ActionState state)
+            {
+                if ((state == ActionState::Held || state == ActionState::Pressed) && m_playerPhysics
+                    && m_playerPhysics->isInitialized())
+                {
+                    // Rudder: apply a lateral force at the stern to create torque instead of applying pure torque
+                    b2Vec2 forward = m_playerPhysics->getForwardVector();
+                    b2Vec2 right   = m_playerPhysics->getRightVector();
+                    b2Vec2 vel     = m_playerPhysics->getLinearVelocity();
 
-        inputController->setActionCallback("RotateRight",
-                                           [this](ActionState state)
-                                           {
-                                               if ((state == ActionState::Held || state == ActionState::Pressed)
-                                                   && m_playerPhysics && m_playerPhysics->isInitialized())
-                                               {
-                                                   m_playerPhysics->applyTorque(-PLAYER_TURNING_FORCE);
-                                               }
-                                           });
+                    // Signed velocity in forward direction; absForwardVel will be used for magnitude
+                    float forwardVelSigned = forward.x * vel.x + forward.y * vel.y;  // signed forward velocity
+                    float absForwardVel    = std::fabs(forwardVelSigned);  // only forward/back velocity matters
+
+                    // Only allow rudder to act if moving above a small threshold along the forward axis
+                    if (absForwardVel < MIN_SPEED_FOR_STEERING)
+                        return;
+
+                    // Debug print current speed used by the rudder calc
+                    (void)0;  // debug prints removed
+
+                    // Stern location (meters) behind the center of mass
+                    b2Vec2 stern = m_playerPhysics->getPosition() - forward * RUDDER_OFFSET_METERS;
+
+                    // Determine the lateral direction based on travel direction
+                    // When moving forward, A should steer left -> apply rightward lateral to stern
+                    // When moving backward, steering is reversed
+                    b2Vec2 lateral = (forwardVelSigned >= 0.0f) ? right : b2Vec2{-right.x, -right.y};
+
+                    // Soft smoothing curve using effective speed above MIN to allow a small 'barely moving' effect at the minimum
+                    float speedEffective = std::max(0.0f, absForwardVel - MIN_SPEED_FOR_STEERING);
+                    float normalized     = speedEffective / (speedEffective + RUDDER_SMOOTH_K);
+                    float speedFactor = RUDDER_MIN_EFFECTIVE_SCALE + normalized * (1.0f - RUDDER_MIN_EFFECTIVE_SCALE);
+
+                    // Optionally, small boost when actively pressing throttle for keyboard responsiveness
+                    // if (inputController->isActionDown("MoveForward") || inputController->isActionDown("MoveBackward"))
+                    //     speedFactor = std::max(speedFactor, 0.2f);
+
+                    // Compute force magnitude and apply at stern
+                    float  forceMag = PLAYER_TURNING_FORCE * RUDDER_FORCE_MULTIPLIER * speedFactor;
+                    b2Vec2 force{lateral.x * forceMag, lateral.y * forceMag};
+
+                    m_playerPhysics->applyForce(force, stern);
+                }
+            });
+
+        inputController->setActionCallback(
+            "RotateRight",
+            [this, inputController](ActionState state)
+            {
+                if ((state == ActionState::Held || state == ActionState::Pressed) && m_playerPhysics
+                    && m_playerPhysics->isInitialized())
+                {
+                    // Rudder: apply a lateral force at the stern to create torque instead of applying pure torque
+                    b2Vec2 forward = m_playerPhysics->getForwardVector();
+                    b2Vec2 right   = m_playerPhysics->getRightVector();
+                    b2Vec2 vel     = m_playerPhysics->getLinearVelocity();
+
+                    float forwardVelSigned = forward.x * vel.x + forward.y * vel.y;  // signed forward velocity
+                    float absForwardVel    = std::fabs(forwardVelSigned);  // only forward/back velocity matters
+
+                    // Only allow rudder to act if moving above a small threshold along the forward axis
+                    if (absForwardVel < MIN_SPEED_FOR_STEERING)
+                        return;
+
+                    // Debug print current speed used by the rudder calc
+                    (void)0;  // debug prints removed
+
+                    // Stern location (meters) behind the center of mass
+                    b2Vec2 stern = m_playerPhysics->getPosition() - forward * RUDDER_OFFSET_METERS;
+
+                    // Determine lateral direction (invert when reversing)
+                    b2Vec2 lateral = (forwardVelSigned >= 0.0f) ? b2Vec2{-right.x, -right.y} : right;
+
+                    // Soft smoothing curve using effective speed above MIN to allow a small 'barely moving' effect at the minimum
+                    float speedEffective = std::max(0.0f, absForwardVel - MIN_SPEED_FOR_STEERING);
+                    float normalized     = speedEffective / (speedEffective + RUDDER_SMOOTH_K);
+                    float speedFactor = RUDDER_MIN_EFFECTIVE_SCALE + normalized * (1.0f - RUDDER_MIN_EFFECTIVE_SCALE);
+
+                    // Compute force magnitude and apply at stern
+                    float  forceMag = PLAYER_TURNING_FORCE * RUDDER_FORCE_MULTIPLIER * speedFactor;
+                    b2Vec2 force{lateral.x * forceMag, lateral.y * forceMag};
+
+                    m_playerPhysics->applyForce(force, stern);
+                }
+            });
     }
 
     /**
@@ -501,7 +580,7 @@ public:
         std::cout << "Game initialized!" << std::endl;
         std::cout << "Physics: Box2D v3.1.1 (1 unit = 1 meter, Y-up)" << std::endl;
         std::cout << "Controls:" << std::endl;
-        std::cout << "  WASD            : Move player boat (W=forward, S=backward, A/D=turn)" << std::endl;
+        std::cout << "  WASD            : Move player boat (W=forward, S=backward, A/D=turn when moving forward)" << std::endl;
         std::cout << "  R               : Restart scenario" << std::endl;
         std::cout << "  G               : Toggle gravity" << std::endl;
         std::cout << "  C               : Toggle collider visibility" << std::endl;

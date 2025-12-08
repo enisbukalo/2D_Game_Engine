@@ -14,6 +14,27 @@
 #include <SRenderer.h>
 #include <SScene.h>
 
+// Convenient namespace declarations for documentation
+// Entity namespace - Entity management
+namespace Entity
+{
+}
+
+// Components namespace - All component types
+namespace Components
+{
+}
+
+// Systems namespace - All system types
+namespace Systems
+{
+}
+
+// Internal namespace - Internal utilities and private implementations
+namespace Internal
+{
+}
+
 /**
  * @brief Main game engine class handling core game loop and systems
  *
@@ -22,6 +43,12 @@
  * and rendering. It provides a fixed timestep update system for consistent
  * physics simulation and handles input processing. The engine uses SRenderer
  * for window management and rendering, abstracting away direct SFML dependencies.
+ *
+ * The engine organizes code into the following namespaces:
+ * - Entity - Entity management
+ * - Components - All component types
+ * - Systems - All system types
+ * - Internal - Internal utilities and private implementations
  */
 class GameEngine
 {
@@ -33,7 +60,7 @@ public:
      * @param subStepCount Number of physics sub-steps per update (default: 6, increase for more stability with many bodies)
      * @param timeStep Fixed time step for physics updates
      */
-    GameEngine(const WindowConfig& windowConfig, Vec2 gravity, uint8_t subStepCount = 6, float timeStep = 1.0f / 60.0f);
+    GameEngine(const Systems::WindowConfig& windowConfig, Vec2 gravity, uint8_t subStepCount = 6, float timeStep = 1.0f / 60.0f);
 
     /** @brief Destructor */
     ~GameEngine();
@@ -76,49 +103,49 @@ public:
      * @brief Gets the entity manager instance
      * @return Reference to the SEntity singleton
      */
-    SEntity& getEntityManager();
+    Systems::SEntity& getEntityManager();
 
     /**
      * @brief Gets the scene manager instance
      * @return Reference to the SScene singleton
      */
-    SScene& getSceneManager();
+    Systems::SScene& getSceneManager();
 
     /**
      * @brief Gets the component factory instance
      * @return Reference to the ComponentFactory singleton
      */
-    ComponentFactory& getComponentFactory();
+    Components::ComponentFactory& getComponentFactory();
 
     /**
      * @brief Gets the Box2D physics system instance
      * @return Reference to the S2DPhysics singleton
      */
-    S2DPhysics& getPhysics();
+    Systems::S2DPhysics& getPhysics();
 
     /**
      * @brief Gets the input manager instance
      * @return Reference to the SInput singleton
      */
-    SInput& getInputManager();
+    Systems::SInput& getInputManager();
 
     /**
      * @brief Gets the audio system instance
      * @return Reference to the SAudio singleton
      */
-    SAudio& getAudioSystem();
+    Systems::SAudio& getAudioSystem();
 
     /**
      * @brief Gets the renderer system instance
      * @return Reference to the SRenderer singleton
      */
-    SRenderer& getRenderer();
+    Systems::SRenderer& getRenderer();
 
     /**
      * @brief Gets the particle system instance
      * @return Reference to the SParticle singleton
      */
-    SParticle& getParticleSystem();
+    Systems::SParticle& getParticleSystem();
 
 private:
     const uint8_t m_subStepCount;  ///< Number of physics sub-steps per update

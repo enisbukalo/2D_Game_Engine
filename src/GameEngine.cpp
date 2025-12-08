@@ -4,7 +4,7 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
-GameEngine::GameEngine(const WindowConfig& windowConfig, Vec2 gravity, uint8_t subStepCount, float timeStep)
+GameEngine::GameEngine(const Systems::WindowConfig& windowConfig, Vec2 gravity, uint8_t subStepCount, float timeStep)
     : m_gravity(gravity), m_subStepCount(subStepCount), m_timeStep(timeStep)
 {
     // Initialize spdlog logger (using synchronous logging for now)
@@ -33,7 +33,7 @@ GameEngine::GameEngine(const WindowConfig& windowConfig, Vec2 gravity, uint8_t s
     }
 
     // Initialize renderer
-    if (!SRenderer::instance().initialize(windowConfig))
+    if (!::Systems::SRenderer::instance().initialize(windowConfig))
     {
         if (auto logger = spdlog::get("GameEngine"))
         {
@@ -45,7 +45,7 @@ GameEngine::GameEngine(const WindowConfig& windowConfig, Vec2 gravity, uint8_t s
     m_gameRunning = true;
 
     // Configure physics system
-    auto& physics = S2DPhysics::instance();
+    auto& physics = ::Systems::S2DPhysics::instance();
     physics.setGravity({gravity.x, gravity.y});  // Box2D uses Y-up convention
     // Use the stored member values so the members are read/used and
     // do not trigger "unused member" style warnings from static analyzers
@@ -53,13 +53,13 @@ GameEngine::GameEngine(const WindowConfig& windowConfig, Vec2 gravity, uint8_t s
     physics.setTimeStep(m_timeStep);          // Set fixed timestep
 
     // Initialize input manager and register window event handling
-    SInput::instance().initialize(SRenderer::instance().getWindow(), true);
-    SInput::instance().subscribe(
+    ::Systems::SInput::instance().initialize(::Systems::SRenderer::instance().getWindow(), true);
+    ::Systems::SInput::instance().subscribe(
         [this](const InputEvent& ev)
         {
             if (ev.type == InputEventType::WindowClosed)
             {
-                auto* window = SRenderer::instance().getWindow();
+                auto* window = ::Systems::SRenderer::instance().getWindow();
                 if (window)
                 {
                     window->close();
@@ -72,10 +72,10 @@ GameEngine::GameEngine(const WindowConfig& windowConfig, Vec2 gravity, uint8_t s
 GameEngine::~GameEngine()
 {
     // Shutdown input manager
-    SInput::instance().shutdown();
+    ::Systems::SInput::instance().shutdown();
 
     // Shutdown renderer
-    SRenderer::instance().shutdown();
+    ::Systems::SRenderer::instance().shutdown();
 
     if (auto logger = spdlog::get("GameEngine"))
     {
@@ -93,7 +93,7 @@ void GameEngine::readInputs()
 void GameEngine::update(float deltaTime)
 {
     // Handle input events before any updates
-    SInput::instance().update(deltaTime);
+    ::Systems::SInput::instance().update(deltaTime);
     // Accumulate time for fixed timestep updates
     m_accumulator += deltaTime;
 
@@ -108,18 +108,18 @@ void GameEngine::update(float deltaTime)
     while (m_accumulator >= m_timeStep)
     {
         // Box2D physics update (handles its own sub-stepping)
-        S2DPhysics::instance().update(m_timeStep);
+        ::Systems::S2DPhysics::instance().update(m_timeStep);
 
         m_accumulator -= m_timeStep;
     }
 
     // Update entity manager with the actual frame delta time
-    SEntity::instance().update(deltaTime);
+    ::Systems::SEntity::instance().update(deltaTime);
 }
 
 void GameEngine::render()
 {
-    auto& renderer = SRenderer::instance();
+    auto& renderer = ::Systems::SRenderer::instance();
     renderer.clear(Color::Black);
     renderer.render();
     renderer.display();
@@ -135,42 +135,42 @@ std::shared_ptr<spdlog::logger> GameEngine::getLogger()
     return spdlog::get("GameEngine");
 }
 
-SEntity& GameEngine::getEntityManager()
+Systems::SEntity& GameEngine::getEntityManager()
 {
-    return SEntity::instance();
+    return ::Systems::SEntity::instance();
 }
 
-SScene& GameEngine::getSceneManager()
+Systems::SScene& GameEngine::getSceneManager()
 {
-    return SScene::instance();
+    return ::Systems::SScene::instance();
 }
 
-ComponentFactory& GameEngine::getComponentFactory()
+Components::ComponentFactory& GameEngine::getComponentFactory()
 {
-    return ComponentFactory::instance();
+    return ::Components::ComponentFactory::instance();
 }
 
-S2DPhysics& GameEngine::getPhysics()
+Systems::S2DPhysics& GameEngine::getPhysics()
 {
-    return S2DPhysics::instance();
+    return ::Systems::S2DPhysics::instance();
 }
 
-SInput& GameEngine::getInputManager()
+Systems::SInput& GameEngine::getInputManager()
 {
-    return SInput::instance();
+    return ::Systems::SInput::instance();
 }
 
-SAudio& GameEngine::getAudioSystem()
+Systems::SAudio& GameEngine::getAudioSystem()
 {
-    return SAudio::instance();
+    return ::Systems::SAudio::instance();
 }
 
-SRenderer& GameEngine::getRenderer()
+Systems::SRenderer& GameEngine::getRenderer()
 {
-    return SRenderer::instance();
+    return ::Systems::SRenderer::instance();
 }
 
-SParticle& GameEngine::getParticleSystem()
+Systems::SParticle& GameEngine::getParticleSystem()
 {
-    return SParticle::instance();
+    return ::Systems::SParticle::instance();
 }

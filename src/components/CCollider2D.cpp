@@ -3,6 +3,9 @@
 #include "CPhysicsBody2D.h"
 #include "Entity.h"
 
+namespace Components
+{
+
 CCollider2D::CCollider2D()
     : m_isSensor(false), m_density(1.0f), m_friction(0.3f), m_restitution(0.0f), m_initialized(false)
 {
@@ -1146,3 +1149,5 @@ std::string CCollider2D::getType() const
 {
     return "CCollider2D";
 }
+
+}  // namespace Components

@@ -9,6 +9,10 @@
 #include <SFML/Graphics.hpp>
 #include <cmath>
 
+using namespace Components;
+using namespace Entity;
+using namespace Systems;
+
 /**
  * @brief Test fixture for SParticleSystem tests
  *

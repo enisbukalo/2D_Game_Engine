@@ -9,6 +9,9 @@
 #include "Input/IInputListener.h"
 #include "Input/InputEvents.h"
 
+namespace Components
+{
+
 class CInputController : public Component, public IInputListener
 {
 public:
@@ -48,3 +51,5 @@ private:
     std::unordered_map<std::string, std::function<void(ActionState)>> m_callbacks;
     std::unordered_map<std::string, ActionState>                      m_localActionState;
 };
+
+}  // namespace Components

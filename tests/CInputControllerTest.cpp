@@ -7,6 +7,10 @@
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Keyboard.hpp>
 
+using namespace Components;
+using namespace Systems;
+using namespace Serialization;
+
 // Test fixture for CInputController tests
 class CInputControllerTest : public ::testing::Test
 {

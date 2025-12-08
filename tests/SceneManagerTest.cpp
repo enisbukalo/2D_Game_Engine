@@ -8,6 +8,10 @@
 #include "SScene.h"
 #include "TestUtils.h"
 
+using namespace Components;
+using namespace Entity;
+using namespace Systems;
+
 // Test fixture for scene manager tests
 class SceneManagerTest : public ::testing::Test
 {
