@@ -3,7 +3,9 @@
 
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include "Entity.h"
 
@@ -45,6 +47,24 @@ public:
      * @return Shared pointer to the created entity
      */
     std::shared_ptr<::Entity::Entity> addEntity(const std::string& tag);
+
+    /**
+     * @brief Creates a new entity of the specified derived type with the given tag and constructor args
+     * @tparam T Derived entity type (must inherit from Entity)
+     * @tparam Args Constructor argument types
+     * @param tag Tag to assign to the entity
+     * @param args Arguments forwarded to the derived entity constructor
+     * @return Shared pointer to the created derived entity
+     */
+    template <typename T, typename... Args>
+    std::shared_ptr<T> addEntity(const std::string& tag, Args&&... args)
+    {
+        static_assert(std::is_base_of<::Entity::Entity, T>::value, "T must derive from Entity");
+
+        auto derived = std::shared_ptr<T>(new T(tag, m_totalEntities++, std::forward<Args>(args)...));
+        m_entitiesToAdd.push_back(std::static_pointer_cast<::Entity::Entity>(derived));
+        return derived;
+    }
 
     /**
      * @brief Removes an entity from the system

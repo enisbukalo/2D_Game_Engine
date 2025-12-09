@@ -15,16 +15,21 @@ SEntity& SEntity::instance()
 
 void SEntity::update(float deltaTime)
 {
-    // Add any pending entities to active list
-    for (auto& entity : m_entitiesToAdd)
+    // Add any pending entities to active list (supports nested additions during init)
+    while (!m_entitiesToAdd.empty())
     {
-        m_activeEntities.push_back(entity);
-        m_entities.push_back(entity);  // Keep for backward compatibility
-        m_entityMap[entity->getTag()].push_back(entity);
-        // Call init() so derived entities can perform their startup logic
-        entity->init();
+        auto pending = std::move(m_entitiesToAdd);
+        m_entitiesToAdd.clear();
+
+        for (auto& entity : pending)
+        {
+            m_activeEntities.push_back(entity);
+            m_entities.push_back(entity);  // Keep for backward compatibility
+            m_entityMap[entity->getTag()].push_back(entity);
+            // Call init() so derived entities can perform their startup logic
+            entity->init();
+        }
     }
-    m_entitiesToAdd.clear();
 
     // Update game logic in active entities BEFORE components
     // This allows entities to set up state that components may use

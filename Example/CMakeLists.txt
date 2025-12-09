@@ -33,10 +33,12 @@ find_package(OpenGL REQUIRED)
 # Find GameEngine package
 find_package(GameEngine REQUIRED)
 
+# Glob source files
+file(GLOB_RECURSE SOURCES "src/*.cpp")
+file(GLOB_RECURSE HEADERS "src/*.h")
+
 # Create executable
-add_executable(FishingGame
-    src/main.cpp
-)
+add_executable(FishingGame ${SOURCES} ${HEADERS})
 
 # Link against GameEngine and its dependencies
 target_link_libraries(FishingGame

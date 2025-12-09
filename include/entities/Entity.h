@@ -40,6 +40,24 @@ public:
     virtual ~Entity() = default;
 
     /**
+     * @brief Factory method for creating and registering entities (Unity-style)
+     * @tparam T Derived entity type (must inherit from Entity)
+     * @tparam Args Constructor argument types (excluding tag and id)
+     * @param tag Tag to assign to the entity
+     * @param args Arguments forwarded to the derived entity constructor
+     * @return Shared pointer to the created entity
+     *
+     * This is the recommended way to create entities. It automatically handles
+     * ID generation and registration with the entity manager.
+     *
+     * Example:
+     *   auto player = Entity::create<Player>("player", playerArgs...);
+     *   auto enemy = Entity::create<Enemy>("enemy", enemyArgs...);
+     */
+    template <typename T, typename... Args>
+    static std::shared_ptr<T> create(const std::string &tag, Args &&...args);
+
+    /**
      * @brief Called once when the entity is initialized/started by the manager
      */
     virtual void init() {}
