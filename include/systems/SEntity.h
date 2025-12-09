@@ -74,7 +74,14 @@ public:
     std::vector<::Entity::Entity*> getEntitiesWithComponent()
     {
         std::vector<::Entity::Entity*> result;
-        for (auto& entity : m_entities)
+        for (auto& entity : m_activeEntities)
+        {
+            if (entity->isAlive() && entity->hasComponent<T>())
+            {
+                result.push_back(entity.get());
+            }
+        }
+        for (auto& entity : m_inactiveEntities)
         {
             if (entity->isAlive() && entity->hasComponent<T>())
             {
@@ -96,7 +103,14 @@ public:
     std::vector<::Entity::Entity*> getEntitiesWithComponentDerived()
     {
         std::vector<::Entity::Entity*> result;
-        for (auto& entity : m_entities)
+        for (auto& entity : m_activeEntities)
+        {
+            if (entity->isAlive() && entity->hasComponentDerived<T>())
+            {
+                result.push_back(entity.get());
+            }
+        }
+        for (auto& entity : m_inactiveEntities)
         {
             if (entity->isAlive() && entity->hasComponentDerived<T>())
             {
@@ -123,6 +137,13 @@ public:
      */
     void clear();
 
+    /**
+     * @brief Moves an entity between active and inactive lists
+     * @param entity The entity to move
+     * @param active True to move to active, false to move to inactive
+     */
+    void moveEntityBetweenLists(::Entity::Entity* entity, bool active);
+
 private:
     // Private constructor to prevent direct instantiation
     SEntity() = default;
@@ -134,8 +155,10 @@ private:
      */
     void removeDeadEntities();
 
-    std::vector<std::shared_ptr<::Entity::Entity>> m_entities;       ///< List of all active entities
-    std::vector<std::shared_ptr<::Entity::Entity>> m_entitiesToAdd;  ///< Queue of entities to be added
+    std::vector<std::shared_ptr<::Entity::Entity>> m_entities;  ///< List of all entities (deprecated, kept for compatibility)
+    std::vector<std::shared_ptr<::Entity::Entity>> m_activeEntities;    ///< List of active entities
+    std::vector<std::shared_ptr<::Entity::Entity>> m_inactiveEntities;  ///< List of inactive entities
+    std::vector<std::shared_ptr<::Entity::Entity>> m_entitiesToAdd;     ///< Queue of entities to be added
     std::unordered_map<std::string, std::vector<std::shared_ptr<::Entity::Entity>>> m_entityMap;  ///< Map of entities by tag
     size_t m_totalEntities = 0;  ///< Counter for generating unique entity IDs
 };

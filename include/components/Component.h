@@ -28,7 +28,7 @@ public:
     Component();
 
     /** @brief Virtual destructor for proper cleanup of derived classes */
-    virtual ~Component() = default;
+    virtual ~Component();
 
     /**
      * @brief Initializes the component

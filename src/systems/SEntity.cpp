@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <fstream>
 #include "FileUtilities.h"
+#include "SComponentManager.h"
 
 namespace Systems
 {
@@ -14,22 +15,29 @@ SEntity& SEntity::instance()
 
 void SEntity::update(float deltaTime)
 {
-    // Add any pending entities
+    // Add any pending entities to active list
     for (auto& entity : m_entitiesToAdd)
     {
-        m_entities.push_back(entity);
+        m_activeEntities.push_back(entity);
+        m_entities.push_back(entity);  // Keep for backward compatibility
         m_entityMap[entity->getTag()].push_back(entity);
+        // Call init() so derived entities can perform their startup logic
+        entity->init();
     }
     m_entitiesToAdd.clear();
 
-    // Update all entities
-    for (auto& entity : m_entities)
+    // Update game logic in active entities BEFORE components
+    // This allows entities to set up state that components may use
+    for (auto& entity : m_activeEntities)
     {
-        if (entity->isAlive())
+        if (entity->isAlive() && entity->isActive())
         {
             entity->update(deltaTime);
         }
     }
+
+    // Update all active components after entity logic
+    ::Systems::SComponentManager::instance().updateAll(deltaTime);
 
     // Remove dead entities
     removeDeadEntities();
@@ -68,8 +76,17 @@ void SEntity::saveToFile(const std::string& filename)
     builder.addKey("entities");
     builder.beginArray();
 
-    // Serialize each entity
-    for (const auto& entity : m_entities)
+    // Serialize each active entity
+    for (const auto& entity : m_activeEntities)
+    {
+        if (entity->isAlive())
+        {
+            entity->serialize(builder);
+        }
+    }
+
+    // Serialize each inactive entity
+    for (const auto& entity : m_inactiveEntities)
     {
         if (entity->isAlive())
         {
@@ -106,6 +123,8 @@ void SEntity::loadFromFile(const std::string& filename)
 void SEntity::clear()
 {
     m_entities.clear();
+    m_activeEntities.clear();
+    m_inactiveEntities.clear();
     m_entitiesToAdd.clear();
     m_entityMap.clear();
     m_totalEntities = 0;
@@ -119,6 +138,18 @@ void SEntity::removeDeadEntities()
                                     [](const auto& entity) { return !entity->isAlive(); }),
                      m_entities.end());
 
+    // Remove from active entities
+    m_activeEntities.erase(std::remove_if(m_activeEntities.begin(),
+                                          m_activeEntities.end(),
+                                          [](const auto& entity) { return !entity->isAlive(); }),
+                           m_activeEntities.end());
+
+    // Remove from inactive entities
+    m_inactiveEntities.erase(std::remove_if(m_inactiveEntities.begin(),
+                                            m_inactiveEntities.end(),
+                                            [](const auto& entity) { return !entity->isAlive(); }),
+                             m_inactiveEntities.end());
+
     // Remove from tag maps
     for (auto& [tag, entities] : m_entityMap)
     {
@@ -126,6 +157,40 @@ void SEntity::removeDeadEntities()
                                       entities.end(),
                                       [](const auto& entity) { return !entity->isAlive(); }),
                        entities.end());
+    }
+}
+
+void SEntity::moveEntityBetweenLists(::Entity::Entity* entity, bool active)
+{
+    if (!entity)
+        return;
+
+    // Find the entity in both lists
+    auto activeIt = std::find_if(m_activeEntities.begin(),
+                                 m_activeEntities.end(),
+                                 [entity](const auto& e) { return e.get() == entity; });
+
+    auto inactiveIt = std::find_if(m_inactiveEntities.begin(),
+                                   m_inactiveEntities.end(),
+                                   [entity](const auto& e) { return e.get() == entity; });
+
+    if (active)
+    {
+        // Move from inactive to active
+        if (inactiveIt != m_inactiveEntities.end())
+        {
+            m_activeEntities.push_back(*inactiveIt);
+            m_inactiveEntities.erase(inactiveIt);
+        }
+    }
+    else
+    {
+        // Move from active to inactive
+        if (activeIt != m_activeEntities.end())
+        {
+            m_inactiveEntities.push_back(*activeIt);
+            m_activeEntities.erase(activeIt);
+        }
     }
 }
 
