@@ -125,6 +125,9 @@ void GameEngine::update(float deltaTime)
         m_accumulator -= m_timeStep;
     }
 
+    // Update particle system with frame delta time
+    ::Systems::SParticle::instance().update(deltaTime);
+
     // Update entity manager with the actual frame delta time
     ::Systems::SEntity::instance().update(deltaTime);
 }

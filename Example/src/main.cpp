@@ -42,15 +42,7 @@ private:
     bool                            m_fontLoaded;
     std::shared_ptr<Entity::Entity> m_oceanBackground;
 
-    std::shared_ptr<Boat>                m_boat;
-    std::vector<std::shared_ptr<Barrel>> m_barrels;
-    std::unique_ptr<BarrelSpawner>       m_barrelSpawner;
-
-    // Barrel spawn bounds (meters)
-    float m_spawnMinX = BOUNDARY_THICKNESS_METERS;
-    float m_spawnMaxX = PLAYFIELD_WIDTH_METERS - BOUNDARY_THICKNESS_METERS;
-    float m_spawnMinY = BOUNDARY_THICKNESS_METERS;
-    float m_spawnMaxY = PLAYFIELD_HEIGHT_METERS - BOUNDARY_THICKNESS_METERS;
+    std::shared_ptr<Boat> m_boat;
 
     // Helper to get window from renderer
     sf::RenderWindow* getWindow() const
@@ -120,9 +112,7 @@ public:
         createOceanBackground();
         createBoundaryColliders();
         createBoatAndEffects();
-
-        m_barrelSpawner = std::make_unique<BarrelSpawner>(*m_gameEngine, m_spawnMinX, m_spawnMaxX, m_spawnMinY, m_spawnMaxY);
-        spawnBarrels(DEFAULT_BARREL_COUNT);
+        createBarrelSpawner();
 
         // Entities are now initialized automatically when created - no manual update needed!
 
@@ -191,19 +181,20 @@ public:
         // Boat and its child entities (emitters) are now fully initialized
     }
 
-    void spawnBarrels(size_t count)
+    void createBarrelSpawner()
     {
-        if (!m_barrelSpawner)
-            return;
-        m_barrels = m_barrelSpawner->spawn(count);
+        // Barrel spawn bounds (meters)
+        float minX = BOUNDARY_THICKNESS_METERS;
+        float maxX = PLAYFIELD_WIDTH_METERS - BOUNDARY_THICKNESS_METERS;
+        float minY = BOUNDARY_THICKNESS_METERS;
+        float maxY = PLAYFIELD_HEIGHT_METERS - BOUNDARY_THICKNESS_METERS;
+
+        m_gameEngine->spawn<BarrelSpawner>("barrel_spawner", m_gameEngine.get(), minX, maxX, minY, maxY, DEFAULT_BARREL_COUNT);
     }
 
     void update(float dt)
     {
-        // Update Input Manager
-        m_gameEngine->getInputManager().update(dt);
-
-        // Handle window controls and key actions via SInputManager (prevents double polling)
+        // Handle game-specific input (GameEngine handles system updates)
         const auto& im = m_gameEngine->getInputManager();
 
         // Check for mouse clicks using abstracted MouseButton enum
@@ -239,17 +230,8 @@ public:
             std::cout << "Master Volume: " << static_cast<int>(newVolume * 100.0f) << "%" << std::endl;
         }
 
-        // Update Box2D physics
-        m_gameEngine->getPhysics().update(dt);
-
-        // Update particle system
-        m_gameEngine->getParticleSystem().update(dt);
-
-        // Update Audio System
-        m_gameEngine->getAudioSystem().update(dt);
-
-        // Update EntityManager
-        m_gameEngine->getEntityManager().update(dt);
+        // GameEngine handles all system updates (input, physics, particles, audio, entities)
+        m_gameEngine->update(dt);
     }
 
     void render()
