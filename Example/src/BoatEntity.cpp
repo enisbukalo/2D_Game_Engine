@@ -5,17 +5,6 @@
 #include <array>
 #include <cmath>
 #include <iostream>
-#include "components/CCollider2D.h"
-#include "components/CMaterial.h"
-#include "components/CRenderable.h"
-#include "components/CTexture.h"
-#include "systems/SAudio.h"
-#include "systems/SEntity.h"
-#include "systems/SInput.h"
-
-using namespace Components;
-using namespace Entity;
-using namespace Systems;
 
 namespace
 {
@@ -47,7 +36,7 @@ constexpr float kBoatColliderFriction    = 0.5f;
 constexpr float kBoatColliderRestitution = 0.125f;
 
 // Bubble trail emitter constants
-const Vec2  kBubbleDirection(0.0f, -1.0f);
+const Vec2  kBubbleDirection(0.0f, -1.0f);  // Emit backward (stern direction in local space)
 const float kBubbleSpread       = 1.2f;
 const float kBubbleMinSpeed     = 0.05f;
 const float kBubbleMaxSpeed     = 0.2f;
@@ -63,8 +52,8 @@ const int   kBubbleZIndex       = 5;
 const Vec2  kBubbleOffset(0.0f, -0.65625f);
 
 // Hull spray emitter constants
-const Vec2      kSprayDirection(0.0f, 1.0f);
-constexpr float kSpraySpread           = 0.4f;
+const Vec2      kSprayDirection(0.0f, 1.0f);  // Emit forward (bow direction in local space)
+const float     kSpraySpread           = 0.4f;
 constexpr float kSprayMinSpeed         = 0.122925f;
 constexpr float kSprayMaxSpeed         = 0.4917f;
 constexpr float kSprayMinLifetime      = 0.5f;
@@ -74,7 +63,6 @@ constexpr float kSprayMaxSize          = 0.02f;
 constexpr float kSprayEmissionRate     = 938.808f;
 constexpr float kSprayStartAlpha       = 0.9f;
 constexpr float kSprayEndAlpha         = 0.0f;
-constexpr float kSprayGravityY         = -0.5f;
 constexpr float kSprayMinRotationSpeed = -3.0f;
 constexpr float kSprayMaxRotationSpeed = 3.0f;
 constexpr float kSprayShrinkEnd        = 0.1f;
@@ -107,7 +95,7 @@ const std::vector<Vec2> kHullSprayPolygon = {
     {-0.210938f, 0.120313f},  {-0.21875f, 0.0802083f}, {-0.223438f, 0.0401042f}, {-0.225f, 0.0f},
     {-0.225f, -0.0875f}};
 
-void addHullCollider(CCollider2D* collider)
+void addHullCollider(Components::CCollider2D* collider)
 {
     if (!collider)
         return;
@@ -129,11 +117,11 @@ void addHullCollider(CCollider2D* collider)
     }
 }
 
-void configureBoatPhysics(CPhysicsBody2D* body)
+void configureBoatPhysics(Components::CPhysicsBody2D* body)
 {
     if (!body)
         return;
-    body->setBodyType(BodyType::Dynamic);
+    body->setBodyType(Components::BodyType::Dynamic);
     body->setDensity(kBoatDensity);
     body->setFriction(kBoatFriction);
     body->setRestitution(kBoatRestitution);
@@ -143,7 +131,7 @@ void configureBoatPhysics(CPhysicsBody2D* body)
     body->setGravityScale(kBoatGravityScale);
 }
 
-void configureBubbleEmitter(CParticleEmitter* emitter, sf::Texture* texture)
+void configureBubbleEmitter(Components::CParticleEmitter* emitter, sf::Texture* texture)
 {
     if (!emitter)
         return;
@@ -158,10 +146,11 @@ void configureBubbleEmitter(CParticleEmitter* emitter, sf::Texture* texture)
     emitter->setEmissionRate(kBubbleEmissionRate);
     emitter->setStartAlpha(kBubbleStartAlpha);
     emitter->setEndAlpha(kBubbleEndAlpha);
+    emitter->setGravity(Vec2(0.0f, 0.0f));
     emitter->setMaxParticles(kBubbleMaxParticles);
     emitter->setZIndex(kBubbleZIndex);
     emitter->setPositionOffset(kBubbleOffset);
-    emitter->setEmissionShape(EmissionShape::Point);
+    emitter->setEmissionShape(Components::EmissionShape::Point);
     emitter->setLineStart(Vec2(-0.5f, 0.0f));
     emitter->setLineEnd(Vec2(0.5f, 0.0f));
     emitter->setEmitFromEdge(true);
@@ -173,7 +162,7 @@ void configureBubbleEmitter(CParticleEmitter* emitter, sf::Texture* texture)
     }
 }
 
-void configureHullSprayEmitter(CParticleEmitter* emitter, sf::Texture* texture)
+void configureHullSprayEmitter(Components::CParticleEmitter* emitter, sf::Texture* texture)
 {
     if (!emitter)
         return;
@@ -188,9 +177,9 @@ void configureHullSprayEmitter(CParticleEmitter* emitter, sf::Texture* texture)
     emitter->setEmissionRate(kSprayEmissionRate);
     emitter->setStartColor(Color(220, 240, 255, 255));
     emitter->setEndColor(Color(255, 255, 255, 255));
+    emitter->setGravity(Vec2(0.0f, 0.0f));
     emitter->setStartAlpha(kSprayStartAlpha);
     emitter->setEndAlpha(kSprayEndAlpha);
-    emitter->setGravity(Vec2(0.0f, kSprayGravityY));
     emitter->setMinRotationSpeed(kSprayMinRotationSpeed);
     emitter->setMaxRotationSpeed(kSprayMaxRotationSpeed);
     emitter->setFadeOut(true);
@@ -198,7 +187,7 @@ void configureHullSprayEmitter(CParticleEmitter* emitter, sf::Texture* texture)
     emitter->setShrinkEndScale(kSprayShrinkEnd);
     emitter->setMaxParticles(kSprayMaxParticles);
     emitter->setZIndex(kSprayZIndex);
-    emitter->setEmissionShape(EmissionShape::Polygon);
+    emitter->setEmissionShape(Components::EmissionShape::Polygon);
     emitter->setEmitFromEdge(true);
     emitter->setEmitOutward(true);
     emitter->setLineStart(Vec2(-0.5f, 0.0f));
@@ -246,38 +235,38 @@ void Boat::init()
 
 void Boat::configureBoatBody()
 {
-    m_transform   = addComponent<CTransform>(Vec2(kBoatPosX, kBoatPosY), Vec2(1.0f, 1.0f), kBoatRot);
-    auto* texture = addComponent<CTexture>("assets/textures/boat.png");
-    addComponent<CRenderable>(VisualType::Sprite, Color::White, 10, true);
-    auto* material = addComponent<CMaterial>("", "", Color::White, BlendMode::Alpha, 1.0f);
+    m_transform   = addComponent<Components::CTransform>(Vec2(kBoatPosX, kBoatPosY), Vec2(1.0f, 1.0f), kBoatRot);
+    auto* texture = addComponent<Components::CTexture>("assets/textures/boat.png");
+    addComponent<Components::CRenderable>(Components::VisualType::Sprite, Color::White, 10, true);
+    auto* material = addComponent<Components::CMaterial>("", "", Color::White, Components::BlendMode::Alpha, 1.0f);
     if (texture && material)
     {
         material->setTextureGuid(texture->getGuid());
     }
 
-    m_physicsBody = addComponent<CPhysicsBody2D>();
+    m_physicsBody = addComponent<Components::CPhysicsBody2D>();
     configureBoatPhysics(m_physicsBody);
-    m_physicsBody->initialize(b2Vec2{kBoatPosX, kBoatPosY}, BodyType::Dynamic);
+    m_physicsBody->initialize(b2Vec2{kBoatPosX, kBoatPosY}, Components::BodyType::Dynamic);
 
-    auto* collider = addComponent<CCollider2D>();
+    auto* collider = addComponent<Components::CCollider2D>();
     addHullCollider(collider);
 
-    m_input = addComponent<CInputController>();
+    m_input = addComponent<Components::CInputController>();
 }
 
 void Boat::configureBubbleTrail()
 {
-    m_bubbleTrail = SEntity::instance().addEntity<Entity>("bubble_trail");
-    m_bubbleTrail->addComponent<CTransform>(Vec2(kBoatPosX, kBoatPosY), Vec2(1.0f, 1.0f), kBoatRot);
-    m_bubbleEmitter = m_bubbleTrail->addComponent<CParticleEmitter>();
+    m_bubbleTrail = Systems::SEntity::instance().addEntity<::Entity::Entity>("bubble_trail");
+    m_bubbleTrail->addComponent<Components::CTransform>(Vec2(kBoatPosX, kBoatPosY), Vec2(1.0f, 1.0f), kBoatRot);
+    m_bubbleEmitter = m_bubbleTrail->addComponent<Components::CParticleEmitter>();
     configureBubbleEmitter(m_bubbleEmitter, &m_bubbleTexture);
 }
 
 void Boat::configureHullSpray()
 {
-    m_hullSpray = SEntity::instance().addEntity<Entity>("hull_spray");
-    m_hullSpray->addComponent<CTransform>(Vec2(kBoatPosX, kBoatPosY), Vec2(1.0f, 1.0f), kBoatRot);
-    m_hullEmitter = m_hullSpray->addComponent<CParticleEmitter>();
+    m_hullSpray = Systems::SEntity::instance().addEntity<::Entity::Entity>("hull_spray");
+    m_hullSpray->addComponent<Components::CTransform>(Vec2(kBoatPosX, kBoatPosY), Vec2(1.0f, 1.0f), kBoatRot);
+    m_hullEmitter = m_hullSpray->addComponent<Components::CParticleEmitter>();
     configureHullSprayEmitter(m_hullEmitter, &m_sprayTexture);
 }
 
@@ -291,7 +280,7 @@ void Boat::syncEmittersToBoat()
 
     if (m_bubbleTrail && m_bubbleTrail->isAlive())
     {
-        if (auto* t = m_bubbleTrail->getComponent<CTransform>())
+        if (auto* t = m_bubbleTrail->getComponent<Components::CTransform>())
         {
             t->setPosition(pos);
             t->setRotation(rotation);
@@ -300,7 +289,7 @@ void Boat::syncEmittersToBoat()
 
     if (m_hullSpray && m_hullSpray->isAlive())
     {
-        if (auto* t = m_hullSpray->getComponent<CTransform>())
+        if (auto* t = m_hullSpray->getComponent<Components::CTransform>())
         {
             t->setPosition(pos);
             t->setRotation(rotation);

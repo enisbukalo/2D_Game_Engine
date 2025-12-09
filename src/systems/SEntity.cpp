@@ -15,7 +15,9 @@ SEntity& SEntity::instance()
 
 void SEntity::update(float deltaTime)
 {
-    // Add any pending entities to active list (supports nested additions during init)
+    // Note: Entities are now initialized immediately in addEntity<T>()
+    // This block is kept for backward compatibility with any code that might
+    // still queue entities to m_entitiesToAdd, but it should normally be empty
     while (!m_entitiesToAdd.empty())
     {
         auto pending = std::move(m_entitiesToAdd);
@@ -51,7 +53,15 @@ void SEntity::update(float deltaTime)
 std::shared_ptr<::Entity::Entity> SEntity::addEntity(const std::string& tag)
 {
     auto entity = std::shared_ptr<::Entity::Entity>(new ::Entity::Entity(tag, m_totalEntities++));
-    m_entitiesToAdd.push_back(entity);
+
+    // Add to active lists immediately
+    m_activeEntities.push_back(entity);
+    m_entities.push_back(entity);
+    m_entityMap[tag].push_back(entity);
+
+    // Initialize entity immediately so it's ready to use
+    entity->init();
+
     return entity;
 }
 

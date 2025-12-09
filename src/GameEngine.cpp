@@ -4,7 +4,7 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
-GameEngine::GameEngine(const Systems::WindowConfig& windowConfig, Vec2 gravity, uint8_t subStepCount, float timeStep)
+GameEngine::GameEngine(const Systems::WindowConfig& windowConfig, Vec2 gravity, uint8_t subStepCount, float timeStep, float pixelsPerMeter)
     : m_gravity(gravity), m_subStepCount(subStepCount), m_timeStep(timeStep)
 {
     // Initialize spdlog logger (using synchronous logging for now)
@@ -67,6 +67,18 @@ GameEngine::GameEngine(const Systems::WindowConfig& windowConfig, Vec2 gravity, 
                 m_gameRunning = false;
             }
         });
+
+    // Initialize audio system
+    ::Systems::SAudio::instance().initialize();
+
+    // Initialize particle system with default scale
+    // Note: Users can re-initialize with different scale if needed
+    ::Systems::SParticle::instance().initialize(::Systems::SRenderer::instance().getWindow(), pixelsPerMeter);
+
+    if (auto logger = spdlog::get("GameEngine"))
+    {
+        logger->info("All core systems initialized");
+    }
 }
 
 GameEngine::~GameEngine()

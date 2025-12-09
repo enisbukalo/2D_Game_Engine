@@ -2,24 +2,13 @@
 
 #include <GameEngine.h>
 #include <memory>
-#include "components/CParticleEmitter.h"
-#include "components/CPhysicsBody2D.h"
-#include "components/CTransform.h"
-#include "entities/EntityFactory.h"
+#include "Components.h"
 
 // Barrel is a concrete entity that owns its own emitter and physics.
 class Barrel : public Entity::Entity
 {
-public:
-    /**
-     * @brief Convenience factory for creating Barrel entities
-     * @param position Initial position in world space (meters)
-     * @return Shared pointer to the created Barrel entity
-     */
-    static std::shared_ptr<Barrel> spawn(const Vec2& position)
-    {
-        return Entity::create<Barrel>("barrel", position);
-    }
+protected:
+    friend class Systems::SEntity;
 
     Barrel(const std::string& tag, size_t id, const Vec2& position);
 

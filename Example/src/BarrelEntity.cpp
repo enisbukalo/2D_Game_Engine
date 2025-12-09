@@ -4,10 +4,6 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
-#include "components/CCollider2D.h"
-#include "components/CMaterial.h"
-#include "components/CRenderable.h"
-#include "components/CTexture.h"
 
 using namespace Components;
 using namespace Entity;

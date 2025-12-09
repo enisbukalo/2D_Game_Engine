@@ -56,7 +56,7 @@ TEST_F(EntityManagerTest, EntityRemoval)
     auto&                   manager = SEntity::instance();
     std::shared_ptr<Entity::Entity> entity  = manager.addEntity("test");
 
-    manager.update(0.0f);  // Process pending entities
+    // Entity is initialized immediately when created
     EXPECT_EQ(manager.getEntities().size(), 1);
 
     manager.removeEntity(entity);
@@ -71,8 +71,7 @@ TEST_F(EntityManagerTest, EntityTagging)
     manager.addEntity("typeA");
     manager.addEntity("typeB");
 
-    manager.update(0.0f);  // Process pending entities
-
+    // Entities are initialized immediately when created
     std::vector<std::shared_ptr<Entity::Entity>> typeAEntities = manager.getEntitiesByTag("typeA");
     std::vector<std::shared_ptr<Entity::Entity>> typeBEntities = manager.getEntitiesByTag("typeB");
 
@@ -169,10 +168,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
     controllerBinding.trigger = ActionTrigger::Pressed;
     controller5->bindAction("Jump", controllerBinding);
 
-    // Process pending entities
-    manager.update(0.0f);
-
-    // Save to file
+    // Save to file - entities are already initialized immediately when created
     std::string testFile = std::string(SOURCE_DIR) + "/test_entities.json";
     manager.saveToFile(testFile);
 
@@ -535,15 +531,14 @@ TEST_F(EntityManagerTest, InactiveEntitiesSerializeAndLoad)
 TEST_F(EntityManagerTest, EntityInitCalledOnceOnAdd)
 {
     // This test documents that entity->init() is called exactly once
-    // when the entity is added to the system during the update cycle
+    // when the entity is added to the system (immediately, not deferred)
 
     auto& manager = SEntity::instance();
     auto entity = manager.addEntity("init_test");
     entity->addComponent<CTransform>();
 
-    // Before update, init has not been called yet
-    // After update, init should have been called once
-    manager.update(0.0f);
+    // With immediate initialization, entity is ready immediately
+    // No update call needed - init() was already called in addEntity()
 
     // Entity should be alive and active
     EXPECT_TRUE(entity->isAlive());

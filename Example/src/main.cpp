@@ -69,8 +69,8 @@ public:
         windowConfig.vsync      = true;
         windowConfig.frameLimit = 60;
 
-        // Initialize game engine with window config (gravity disabled)
-        m_gameEngine = std::make_unique<GameEngine>(windowConfig, Vec2(0.0f, 0.0f));
+        // Initialize game engine with window config and particle scale
+        m_gameEngine = std::make_unique<GameEngine>(windowConfig, Vec2(0.0f, 0.0f), 6, 1.0f / 60.0f, PIXELS_PER_METER);
 
         // Try to load a system font (optional, will work without it)
         if (!m_font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf"))
@@ -91,9 +91,9 @@ public:
 
     void init()
     {
-        // Initialize audio system
+        // Systems are now auto-initialized by GameEngine constructor
+        // Just configure them as needed
         auto& audioSystem = m_gameEngine->getAudioSystem();
-        audioSystem.initialize();
 
         // Set initial master volume
         std::cout << "Setting initial master volume to: " << INITIAL_VOLUME << std::endl;
@@ -114,9 +114,7 @@ public:
         auto& physics = m_gameEngine->getPhysics();
         physics.setGravity({0.0f, 0.0f});
 
-        // Initialize particle system
-        auto& particleSystem = m_gameEngine->getParticleSystem();
-        particleSystem.initialize(getWindow(), PIXELS_PER_METER);
+        // Particle system is already initialized - no need to call initialize again
 
         // Build world procedurally
         createOceanBackground();
@@ -126,22 +124,19 @@ public:
         m_barrelSpawner = std::make_unique<BarrelSpawner>(*m_gameEngine, m_spawnMinX, m_spawnMaxX, m_spawnMinY, m_spawnMaxY);
         spawnBarrels(DEFAULT_BARREL_COUNT);
 
-        // Force EntityManager to process pending entities
-        m_gameEngine->getEntityManager().update(0.0f);
+        // Entities are now initialized automatically when created - no manual update needed!
 
         std::cout << "Game initialized!" << std::endl;
         std::cout << "Physics: Box2D v3.1.1 (1 unit = 1 meter, Y-up)" << std::endl;
         std::cout << "Controls:" << std::endl;
         std::cout << "  WASD            : Move player boat (W=forward, S=backward, A/D=turn when moving forward)" << std::endl;
-        std::cout << "  R               : Restart scenario" << std::endl;
         std::cout << "  Up/Down Arrow   : Adjust volume" << std::endl;
         std::cout << "  Escape          : Exit" << std::endl;
     }
 
     void createOceanBackground()
     {
-        auto& entityManager = m_gameEngine->getEntityManager();
-        m_oceanBackground   = entityManager.addEntity("ocean");
+        m_oceanBackground = m_gameEngine->spawn<Entity::Entity>("ocean");
         m_oceanBackground->addComponent<CTransform>(Vec2(8.0f, 5.0f), Vec2(1.0f, 1.0f), 0.0f);
         m_oceanBackground->addComponent<CRenderable>(VisualType::Rectangle, Color::Black, -10, true);
 
@@ -155,8 +150,6 @@ public:
 
     void createBoundaryColliders()
     {
-        auto& entityManager = m_gameEngine->getEntityManager();
-
         const struct BoundaryDef
         {
             std::string tag;
@@ -170,7 +163,7 @@ public:
 
         for (const auto& def : boundaries)
         {
-            auto boundary = entityManager.addEntity(def.tag);
+            auto boundary = m_gameEngine->spawn<Entity::Entity>(def.tag);
             boundary->addComponent<CTransform>(def.pos, Vec2(1.0f, 1.0f), 0.0f);
 
             auto* body = boundary->addComponent<CPhysicsBody2D>();
@@ -194,10 +187,8 @@ public:
 
     void createBoatAndEffects()
     {
-        m_boat = Boat::spawn(&m_gameEngine->getInputManager(), &m_gameEngine->getAudioSystem());
-
-        // Process pending entities so the boat and its emitters finish init
-        m_gameEngine->getEntityManager().update(0.0f);
+        m_boat = m_gameEngine->spawn<Boat>("player", &m_gameEngine->getInputManager(), &m_gameEngine->getAudioSystem());
+        // Boat and its child entities (emitters) are now fully initialized
     }
 
     void spawnBarrels(size_t count)
@@ -205,35 +196,6 @@ public:
         if (!m_barrelSpawner)
             return;
         m_barrels = m_barrelSpawner->spawn(count);
-    }
-
-    void restart()
-    {
-        std::cout << "\n=== Restarting scenario ===" << std::endl;
-
-        // Clear all entities
-        m_gameEngine->getEntityManager().clear();
-        m_boat.reset();
-        m_barrels.clear();
-
-        // Reset physics world
-        auto& physics = m_gameEngine->getPhysics();
-        physics.setGravity({0.0f, GRAVITY_FORCE});
-
-        // Rebuild the world procedurally
-        createOceanBackground();
-        createBoundaryColliders();
-        createBoatAndEffects();
-        if (!m_barrelSpawner)
-        {
-            m_barrelSpawner = std::make_unique<BarrelSpawner>(*m_gameEngine, m_spawnMinX, m_spawnMaxX, m_spawnMinY, m_spawnMaxY);
-        }
-        spawnBarrels(DEFAULT_BARREL_COUNT);
-
-        // Force EntityManager to process pending entities
-        m_gameEngine->getEntityManager().update(0.0f);
-
-        std::cout << "=== Restart complete ===" << std::endl;
     }
 
     void update(float dt)
@@ -259,10 +221,6 @@ public:
         if (im.wasKeyPressed(KeyCode::Escape))
         {
             m_running = false;
-        }
-        if (im.wasKeyPressed(KeyCode::R))
-        {
-            restart();
         }
         if (im.wasKeyPressed(KeyCode::Up))
         {

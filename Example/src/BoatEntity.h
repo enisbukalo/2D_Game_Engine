@@ -3,14 +3,8 @@
 #include <GameEngine.h>
 #include <Vec2.h>
 #include <memory>
-#include "components/CInputController.h"
-#include "components/CParticleEmitter.h"
-#include "components/CPhysicsBody2D.h"
-#include "components/CTransform.h"
-#include "entities/EntityFactory.h"
-#include "systems/AudioTypes.h"
-
-using EntityPtr = std::shared_ptr<::Entity::Entity>;
+#include "AudioTypes.h"
+#include "Components.h"
 
 namespace Systems
 {
@@ -21,17 +15,8 @@ class SInput;
 // Boat is a concrete entity that owns the player boat plus its emitters.
 class Boat : public Entity::Entity
 {
-public:
-    /**
-     * @brief Convenience factory for creating Boat entities
-     * @param inputManager Input system for player controls
-     * @param audioSystem Audio system for motor sounds
-     * @return Shared pointer to the created Boat entity
-     */
-    static std::shared_ptr<Boat> spawn(Systems::SInput* inputManager, Systems::SAudio* audioSystem)
-    {
-        return Entity::create<Boat>("player", inputManager, audioSystem);
-    }
+protected:
+    friend class Systems::SEntity;
 
     Boat(const std::string& tag, size_t id, Systems::SInput* inputManager, Systems::SAudio* audioSystem);
 
@@ -46,11 +31,11 @@ public:
     {
         return m_input;
     }
-    EntityPtr getBubbleTrailEntity() const
+    std::shared_ptr<::Entity::Entity> getBubbleTrailEntity() const
     {
         return m_bubbleTrail;
     }
-    EntityPtr getHullSprayEntity() const
+    std::shared_ptr<::Entity::Entity> getHullSprayEntity() const
     {
         return m_hullSpray;
     }
@@ -80,9 +65,9 @@ private:
     Components::CPhysicsBody2D*   m_physicsBody = nullptr;
     Components::CInputController* m_input       = nullptr;
 
-    EntityPtr                     m_bubbleTrail;
-    Components::CParticleEmitter* m_bubbleEmitter = nullptr;
+    std::shared_ptr<::Entity::Entity> m_bubbleTrail;
+    Components::CParticleEmitter*     m_bubbleEmitter = nullptr;
 
-    EntityPtr                     m_hullSpray;
-    Components::CParticleEmitter* m_hullEmitter = nullptr;
+    std::shared_ptr<::Entity::Entity> m_hullSpray;
+    Components::CParticleEmitter*     m_hullEmitter = nullptr;
 };

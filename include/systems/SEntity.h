@@ -55,6 +55,9 @@ public:
      * @param tag Tag to assign to the entity
      * @param args Arguments forwarded to the derived entity constructor
      * @return Shared pointer to the created derived entity
+     *
+     * The entity is initialized immediately and ready to use when this method returns.
+     * The entity's init() method is called before returning, so all components are fully set up.
      */
     template <typename T, typename... Args>
     std::shared_ptr<T> addEntity(const std::string& tag, Args&&... args)
@@ -62,7 +65,15 @@ public:
         static_assert(std::is_base_of<::Entity::Entity, T>::value, "T must derive from Entity");
 
         auto derived = std::shared_ptr<T>(new T(tag, m_totalEntities++, std::forward<Args>(args)...));
-        m_entitiesToAdd.push_back(std::static_pointer_cast<::Entity::Entity>(derived));
+
+        // Add to active lists immediately
+        m_activeEntities.push_back(derived);
+        m_entities.push_back(derived);
+        m_entityMap[tag].push_back(derived);
+
+        // Initialize entity immediately so it's ready to use
+        derived->init();
+
         return derived;
     }
 

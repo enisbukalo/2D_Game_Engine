@@ -18,7 +18,7 @@ std::vector<std::shared_ptr<Barrel>> BarrelSpawner::spawn(size_t count)
     for (size_t i = 0; i < count; ++i)
     {
         Vec2 pos(m_distX(m_rng), m_distY(m_rng));
-        result.emplace_back(Barrel::spawn(pos));
+        result.emplace_back(m_engine.spawn<Barrel>("barrel", pos));
     }
     return result;
 }
