@@ -4,9 +4,15 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
+// Include all component types for registry registration
+#include <Components.h>
+
 GameEngine::GameEngine(const Systems::WindowConfig& windowConfig, Vec2 gravity, uint8_t subStepCount, float timeStep, float pixelsPerMeter)
     : m_gravity(gravity), m_subStepCount(subStepCount), m_timeStep(timeStep)
 {
+    // Register component type names for serialization
+    registerComponentTypes();
+
     // Initialize spdlog logger (using synchronous logging for now)
     if (!spdlog::get("GameEngine"))
     {
@@ -130,9 +136,6 @@ void GameEngine::update(float deltaTime)
 
     // Update particle system with frame delta time
     ::Systems::SParticle::instance().update(deltaTime);
-
-    // Update entity manager with the actual frame delta time
-    ::Systems::SEntity::instance().update(deltaTime);
 }
 
 void GameEngine::render()
@@ -151,11 +154,6 @@ bool GameEngine::is_running() const
 std::shared_ptr<spdlog::logger> GameEngine::getLogger()
 {
     return spdlog::get("GameEngine");
-}
-
-Systems::SEntity& GameEngine::getEntityManager()
-{
-    return ::Systems::SEntity::instance();
 }
 
 Systems::SScene& GameEngine::getSceneManager()
@@ -191,4 +189,24 @@ Systems::SRenderer& GameEngine::getRenderer()
 Systems::SParticle& GameEngine::getParticleSystem()
 {
     return ::Systems::SParticle::instance();
+}
+
+void GameEngine::registerComponentTypes()
+{
+    // Register all component types with stable names for serialization
+    // This ensures saves are portable and readable across builds
+    using namespace Components;
+
+    m_registry.registerTypeName<CTransform>("CTransform");
+    m_registry.registerTypeName<CRenderable>("CRenderable");
+    m_registry.registerTypeName<CPhysicsBody2D>("CPhysicsBody2D");
+    m_registry.registerTypeName<CCollider2D>("CCollider2D");
+    m_registry.registerTypeName<CMaterial>("CMaterial");
+    m_registry.registerTypeName<CTexture>("CTexture");
+    m_registry.registerTypeName<CShader>("CShader");
+    m_registry.registerTypeName<CName>("CName");
+    m_registry.registerTypeName<CInputController>("CInputController");
+    m_registry.registerTypeName<CParticleEmitter>("CParticleEmitter");
+    m_registry.registerTypeName<CAudioSource>("CAudioSource");
+    m_registry.registerTypeName<CAudioListener>("CAudioListener");
 }

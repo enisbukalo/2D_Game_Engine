@@ -10,13 +10,9 @@
 #include <variant>
 #include <vector>
 
+#include <Entity.h>
 #include "JsonBuilder.h"
 #include "JsonParser.h"
-
-namespace Entity
-{
-class Entity;
-}
 
 namespace Serialization
 {
@@ -90,18 +86,20 @@ public:
      */
     JsonValue createArray();
     /**
-     * @brief Serializes an entity to a JsonBuilder
-     * @param entity The entity to serialize
+     * @brief Serializes an entity and its components to a JsonBuilder
+     * @param entity The entity ID to serialize
      * @param builder The builder to write to
+     * @param registry Registry to access entity components
      */
-    void serializeEntity(const ::Entity::Entity& entity, JsonBuilder& builder);
+    void serializeEntity(Entity entity, JsonBuilder& builder, class Registry& registry);
 
     /**
      * @brief Deserializes an entity from a JsonValue
-     * @param entity The entity to deserialize into
+     * @param entity The entity ID to deserialize into
      * @param value The JSON data to read from
+     * @param registry Registry to add components to
      */
-    void deserializeEntity(::Entity::Entity& entity, const JsonValue& value);
+    void deserializeEntity(Entity entity, const JsonValue& value, class Registry& registry);
 
     // Deleted copy/move constructors and assignment operators
     SSerialization(const SSerialization&)            = delete;

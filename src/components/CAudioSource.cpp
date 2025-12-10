@@ -1,7 +1,7 @@
 #include "CAudioSource.h"
 #include <spdlog/spdlog.h>
 #include "CTransform.h"
-#include "Entity.h"
+// #include "Entity.h" // Removed - Entity is now just an ID
 #include "SAudio.h"
 
 namespace Components
@@ -24,15 +24,17 @@ void CAudioSource::update(float deltaTime)
         return;
     }
 
+#if 0  // TODO: Requires Registry access in update()
     // For SFX only: sync position if spatial and playing
     if (m_type == AudioType::SFX && m_spatial && m_playHandle.isValid())
     {
-        auto* transform = getOwner()->getComponent<CTransform>();
+        auto* transform = registry.tryGet<CTransform>(getOwner());
         if (transform)
         {
             ::Systems::SAudio::instance().setSFXPosition(m_playHandle, transform->getPosition());
         }
     }
+#endif
 
     // Check if sound has finished (for non-looping sounds)
     if (m_type == AudioType::SFX && m_playHandle.isValid())
@@ -172,9 +174,14 @@ bool CAudioSource::play()
         // Play spatial or non-spatial SFX
         if (m_spatial)
         {
-            auto* transform = getOwner()->getComponent<CTransform>();
+#if 0  // TODO: Requires Registry access
+            auto* transform = registry.tryGet<CTransform>(getOwner());
             Vec2  position  = transform ? transform->getPosition() : Vec2(0.0f, 0.0f);
             m_playHandle = audioSystem.playSpatialSFX(m_clipId, position, m_volume, m_pitch, m_loop, m_minDistance, m_attenuation);
+#else
+            // Temporary: Play non-spatial until Registry is added
+            m_playHandle = audioSystem.playSFX(m_clipId, m_volume, m_pitch, m_loop);
+#endif
         }
         else
         {

@@ -12,12 +12,12 @@ bool Component::isActive() const
     return m_active;
 }
 
-::Entity::Entity* Component::getOwner() const
+Entity Component::getOwner() const
 {
     return m_owner;
 }
 
-void Component::setOwner(::Entity::Entity* owner)
+void Component::setOwner(Entity owner)
 {
     m_owner = owner;
 }

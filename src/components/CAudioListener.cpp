@@ -1,7 +1,7 @@
 #include "CAudioListener.h"
 #include <spdlog/spdlog.h>
 #include "CTransform.h"
-#include "Entity.h"
+// #include "Entity.h" // Removed - Entity is now just an ID
 #include "SAudio.h"
 
 namespace Components
@@ -11,6 +11,7 @@ CAudioListener::CAudioListener() {}
 
 void CAudioListener::init()
 {
+#if 0  // TODO: Requires Registry access - needs refactoring
     // Set listener position on initialization
     if (m_isDefaultListener)
     {
@@ -20,6 +21,7 @@ void CAudioListener::init()
             ::Systems::SAudio::instance().setListenerPosition(transform->getPosition());
         }
     }
+#endif
 }
 
 void CAudioListener::update(float deltaTime)
@@ -29,12 +31,14 @@ void CAudioListener::update(float deltaTime)
         return;
     }
 
+#if 0  // TODO: Requires Registry access in update()
     // Synchronize listener position with transform
-    auto* transform = getOwner()->getComponent<CTransform>();
+    auto* transform = registry.tryGet<CTransform>(getOwner());
     if (transform)
     {
         ::Systems::SAudio::instance().setListenerPosition(transform->getPosition());
     }
+#endif
 
     // Update spatial audio positions for named sources
     for (auto& [name, config] : m_audioSources)
@@ -245,10 +249,15 @@ bool CAudioListener::play(const std::string& name)
         // Play spatial or non-spatial SFX
         if (config.spatial)
         {
-            auto* transform   = getOwner()->getComponent<CTransform>();
+#if 0  // TODO: Requires Registry access
+            auto* transform = registry.tryGet<CTransform>(getOwner());
             Vec2  position    = transform ? transform->getPosition() : Vec2(0.0f, 0.0f);
             config.playHandle = audioSystem.playSpatialSFX(
                 config.clipId, position, config.volume, config.pitch, config.loop, config.minDistance, config.attenuation);
+#else
+            // Temporary: Play non-spatial until Registry is added to component methods
+            config.playHandle = audioSystem.playSFX(config.clipId, config.volume, config.pitch, config.loop);
+#endif
         }
         else
         {

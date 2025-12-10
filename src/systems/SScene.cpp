@@ -4,7 +4,6 @@
 #include <stdexcept>
 #include "FileUtilities.h"
 #include "SAudio.h"
-#include "SEntity.h"
 #include "SSerialization.h"
 
 namespace Systems
@@ -12,6 +11,7 @@ namespace Systems
 
 void SScene::loadScene(const std::string& scenePath)
 {
+#if 0  // TODO: Update to use Registry for scene serialization
     // Check if file exists before attempting to load
     if (!std::filesystem::exists(scenePath))
     {
@@ -65,10 +65,12 @@ void SScene::loadScene(const std::string& scenePath)
         m_currentScene = "";  // Reset current scene on failure
         throw std::runtime_error("Failed to load scene: " + scenePath + "\nError: " + e.what());
     }
+#endif
 }
 
 void SScene::saveCurrentScene()
 {
+#if 0  // TODO: Update to use Registry for scene serialization
     if (m_currentScene == "")
     {
         throw std::runtime_error("No scene is currently loaded");
@@ -82,10 +84,12 @@ void SScene::saveCurrentScene()
     {
         throw std::runtime_error("Failed to save scene: " + m_currentScene + "\nError: " + e.what());
     }
+#endif
 }
 
 void SScene::saveScene(const std::string& scenePath)
 {
+#if 0  // TODO: Update to use Registry for scene serialization
     try
     {
         // Check if directory exists and is writable
@@ -102,6 +106,7 @@ void SScene::saveScene(const std::string& scenePath)
     {
         throw std::runtime_error("Failed to save scene: " + scenePath + "\nError: " + e.what());
     }
+#endif
 }
 
 const std::string& SScene::getCurrentScenePath() const
@@ -111,11 +116,13 @@ const std::string& SScene::getCurrentScenePath() const
 
 void SScene::clearScene()
 {
+#if 0  // TODO: Update to use Registry
     // Stop any playing music
     SAudio::instance().stopMusic();
 
     ::Systems::SEntity::instance().clear();
     m_currentScene = "";
+#endif
 }
 
 }  // namespace Systems

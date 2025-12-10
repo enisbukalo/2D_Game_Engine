@@ -5,8 +5,7 @@
 #include <random>
 #include "CParticleEmitter.h"
 #include "CTransform.h"
-#include "Entity.h"
-#include "SEntity.h"
+#include "Registry.h"
 
 namespace Systems
 {
@@ -456,6 +455,7 @@ void SParticle::update(float deltaTime)
         return;
     }
 
+#if 0  // TODO: Update to use Registry to iterate over entities with CParticleEmitter and CTransform
     // Iterate over all entities with CParticleEmitter component
     auto entities = ::Systems::SEntity::instance().getEntities();
 
@@ -516,23 +516,23 @@ void SParticle::update(float deltaTime)
             emitter->setEmissionTimer(timer);
         }
     }
+#endif
 }
 
-void SParticle::renderEmitter(::Entity::Entity* entity, sf::RenderWindow* window)
+void SParticle::renderEmitter(Entity entity, sf::RenderWindow* window, Registry& registry)
 {
     sf::RenderWindow* targetWindow = window ? window : m_window;
 
-    if (m_initialized == false || targetWindow == nullptr || entity == nullptr)
+    if (m_initialized == false || targetWindow == nullptr || !entity.isValid())
     {
         return;
     }
 
-    if (entity->hasComponent<::Components::CParticleEmitter>() == false)
+    auto* emitter = registry.tryGet<::Components::CParticleEmitter>(entity);
+    if (!emitter)
     {
         return;
     }
-
-    auto* emitter = entity->getComponent<::Components::CParticleEmitter>();
 
     // Clear vertex array for this emitter
     m_vertexArray.clear();

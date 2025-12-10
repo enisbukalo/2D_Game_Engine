@@ -1,13 +1,11 @@
 #ifndef SPARTICLE_H
 #define SPARTICLE_H
 
+#include <Entity.h>
 #include <SFML/Graphics.hpp>
 #include "System.h"
 
-namespace Entity
-{
-class Entity;
-}
+class Registry;  // Forward declaration
 
 namespace Systems
 {
@@ -56,10 +54,11 @@ public:
 
     /**
      * @brief Renders particles for a single emitter entity
-     * @param entity Entity with CParticleEmitter component
+     * @param entity Entity ID with CParticleEmitter component
      * @param window SFML render window
+     * @param registry Registry to access components
      */
-    void renderEmitter(::Entity::Entity* entity, sf::RenderWindow* window);
+    void renderEmitter(Entity entity, sf::RenderWindow* window, Registry& registry);
 
     /**
      * @brief Checks if the particle system is initialized

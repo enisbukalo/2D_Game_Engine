@@ -1,9 +1,7 @@
 #include "S2DPhysics.h"
 #include "CPhysicsBody2D.h"
 #include "CTransform.h"
-#include "Entity.h"
 #include "SComponentManager.h"
-#include "SEntity.h"
 #include "Vec2.h"
 
 namespace Systems
@@ -52,21 +50,23 @@ void S2DPhysics::update(float deltaTime)
     // Step the Box2D world with fixed timestep
     b2World_Step(m_worldId, m_timeStep, m_subStepCount);
 
+#if 0  // TODO: Update to use Registry and iterate over entities with both CPhysicsBody2D and CTransform
     // Sync Box2D bodies back to CTransform components using registered physics components
     const auto& physicsComponents = ::Systems::SComponentManager::instance().getPhysicsComponents();
     for (auto* physicsBody : physicsComponents)
     {
         if (!physicsBody)
             continue;
-        auto* entity = physicsBody->getOwner();
-        if (!entity)
+        Entity entity = physicsBody->getOwner();
+        if (!entity.isValid())
             continue;
-        auto transform = entity->getComponent<::Components::CTransform>();
+        auto* transform = registry.tryGet<::Components::CTransform>(entity);
         if (physicsBody && transform && physicsBody->isInitialized())
         {
             physicsBody->syncToTransform(transform);
         }
     }
+#endif
 }
 
 void S2DPhysics::setGravity(const b2Vec2& gravity)
@@ -79,15 +79,15 @@ b2Vec2 S2DPhysics::getGravity() const
     return b2World_GetGravity(m_worldId);
 }
 
-b2BodyId S2DPhysics::createBody(::Entity::Entity* entity, const b2BodyDef& bodyDef)
+b2BodyId S2DPhysics::createBody(Entity entity, const b2BodyDef& bodyDef)
 {
-    if (!entity)
+    if (!entity.isValid())
     {
         return b2_nullBodyId;
     }
 
     // Check if entity already has a body
-    auto it = m_entityBodyMap.find(entity->getId());
+    auto it = m_entityBodyMap.find(entity);
     if (it != m_entityBodyMap.end() && b2Body_IsValid(it->second))
     {
         // Body already exists, destroy it first
@@ -97,23 +97,23 @@ b2BodyId S2DPhysics::createBody(::Entity::Entity* entity, const b2BodyDef& bodyD
     // Create new body
     b2BodyId bodyId = b2CreateBody(m_worldId, &bodyDef);
 
-    // Store entity pointer in body user data
-    b2Body_SetUserData(bodyId, entity);
+    // TODO: Store Entity ID in body user data when needed
+    // b2Body_SetUserData(bodyId, &entity);
 
     // Map entity to body
-    m_entityBodyMap[entity->getId()] = bodyId;
+    m_entityBodyMap[entity] = bodyId;
 
     return bodyId;
 }
 
-void S2DPhysics::destroyBody(const ::Entity::Entity* entity)
+void S2DPhysics::destroyBody(Entity entity)
 {
-    if (!entity)
+    if (!entity.isValid())
     {
         return;
     }
 
-    auto it = m_entityBodyMap.find(entity->getId());
+    auto it = m_entityBodyMap.find(entity);
     if (it != m_entityBodyMap.end())
     {
         if (b2Body_IsValid(it->second))
@@ -124,14 +124,14 @@ void S2DPhysics::destroyBody(const ::Entity::Entity* entity)
     }
 }
 
-b2BodyId S2DPhysics::getBody(const ::Entity::Entity* entity)
+b2BodyId S2DPhysics::getBody(Entity entity)
 {
-    if (!entity)
+    if (!entity.isValid())
     {
         return b2_nullBodyId;
     }
 
-    auto it = m_entityBodyMap.find(entity->getId());
+    auto it = m_entityBodyMap.find(entity);
     if (it != m_entityBodyMap.end())
     {
         return it->second;

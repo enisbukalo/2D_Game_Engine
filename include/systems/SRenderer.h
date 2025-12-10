@@ -8,6 +8,8 @@
 #include "Color.h"
 #include "System.h"
 
+class Registry;  // Forward declaration
+
 namespace Components
 {
 enum class BlendMode;
@@ -178,9 +180,10 @@ private:
 
     /**
      * @brief Renders a single entity
-     * @param entity Pointer to the entity to render
+     * @param entity Entity ID to render
+     * @param registry Registry to access components
      */
-    void renderEntity(::Entity::Entity* entity);
+    void renderEntity(Entity entity, Registry& registry);
 
     /**
      * @brief Converts engine BlendMode to SFML BlendMode

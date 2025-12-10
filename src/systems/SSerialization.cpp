@@ -1,7 +1,7 @@
 #include "SSerialization.h"
 #include <cctype>
 #include <cmath>
-#include "Entity.h"
+// #include "Entity.h" // Removed - Entity is now just an ID
 #include "JsonBuilder.h"
 #include "JsonParser.h"
 

@@ -34,8 +34,8 @@ class S2DPhysics : public System
 private:
     b2WorldId m_worldId;
 
-    // Entity to b2BodyId mapping
-    std::unordered_map<size_t, b2BodyId> m_entityBodyMap;
+    // Entity ID to b2BodyId mapping
+    std::unordered_map<Entity, b2BodyId> m_entityBodyMap;
 
     // Registered physics bodies for fixed-update callbacks
     std::vector<Components::CPhysicsBody2D*> m_registeredBodies;
@@ -121,24 +121,24 @@ public:
 
     /**
      * @brief Create a Box2D body for an entity
-     * @param entity Entity to associate with the body
+     * @param entity Entity ID to associate with the body
      * @param bodyDef Body definition
      * @return Box2D body ID
      */
-    b2BodyId createBody(::Entity::Entity* entity, const b2BodyDef& bodyDef);
+    b2BodyId createBody(Entity entity, const b2BodyDef& bodyDef);
 
     /**
      * @brief Destroy the Box2D body associated with an entity
-     * @param entity Entity whose body should be destroyed
+     * @param entity Entity ID whose body should be destroyed
      */
-    void destroyBody(const ::Entity::Entity* entity);
+    void destroyBody(Entity entity);
 
     /**
      * @brief Get the Box2D body associated with an entity
-     * @param entity Entity to query
+     * @param entity Entity ID to query
      * @return Body ID (invalid if entity has no body)
      */
-    b2BodyId getBody(const ::Entity::Entity* entity);
+    b2BodyId getBody(Entity entity);
 
     /**
      * @brief Query the world for all bodies overlapping an AABB

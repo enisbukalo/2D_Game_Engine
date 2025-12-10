@@ -1,7 +1,7 @@
 #include "CCollider2D.h"
 #include <limits>
 #include "CPhysicsBody2D.h"
-#include "Entity.h"
+// #include "Entity.h" // Removed - Entity is now just an ID
 
 namespace Components
 {
@@ -115,13 +115,14 @@ void CCollider2D::addPolygon(const b2Vec2* vertices, int count, float radius)
 
     m_fixtures.push_back(fixture);
 
+#if 0  // TODO: Requires Registry access to get CPhysicsBody2D
     // Attach only the new fixture to body
     if (!getOwner())
     {
         return;
     }
 
-    auto physicsBody = getOwner()->getComponent<CPhysicsBody2D>();
+    auto* physicsBody = registry.tryGet<CPhysicsBody2D>(getOwner());
     if (!physicsBody || !physicsBody->isInitialized())
     {
         return;
@@ -161,6 +162,7 @@ void CCollider2D::addPolygon(const b2Vec2* vertices, int count, float radius)
         b2Shape_SetFriction(newShapeId, m_friction);
         b2Shape_SetRestitution(newShapeId, m_restitution);
     }
+#endif
 }
 
 void CCollider2D::createPolygonFromHull(const b2Hull& hull, float radius)
@@ -246,13 +248,14 @@ void CCollider2D::addSegment(const b2Vec2& point1, const b2Vec2& point2)
 
     m_fixtures.push_back(fixture);
 
+#if 0  // TODO: Requires Registry access to get CPhysicsBody2D
     // Attach only the new fixture to body
     if (!getOwner())
     {
         return;
     }
 
-    auto physicsBody = getOwner()->getComponent<CPhysicsBody2D>();
+    auto* physicsBody = registry.tryGet<CPhysicsBody2D>(getOwner());
     if (!physicsBody || !physicsBody->isInitialized())
     {
         return;
@@ -283,6 +286,7 @@ void CCollider2D::addSegment(const b2Vec2& point1, const b2Vec2& point2)
         b2Shape_SetFriction(newShapeId, m_friction);
         b2Shape_SetRestitution(newShapeId, m_restitution);
     }
+#endif
 }
 
 void CCollider2D::createChainSegment(const b2Vec2& ghost1, const b2Vec2& point1, const b2Vec2& point2, const b2Vec2& ghost2)
@@ -316,13 +320,14 @@ void CCollider2D::addChainSegment(const b2Vec2& ghost1, const b2Vec2& point1, co
 
     m_fixtures.push_back(fixture);
 
+#if 0  // TODO: Requires Registry access to get CPhysicsBody2D
     // Attach only the new fixture to body
     if (!getOwner())
     {
         return;
     }
 
-    auto physicsBody = getOwner()->getComponent<CPhysicsBody2D>();
+    auto* physicsBody = registry.tryGet<CPhysicsBody2D>(getOwner());
     if (!physicsBody || !physicsBody->isInitialized())
     {
         return;
@@ -358,17 +363,19 @@ void CCollider2D::addChainSegment(const b2Vec2& ghost1, const b2Vec2& point1, co
         b2Shape_SetFriction(newShapeId, m_friction);
         b2Shape_SetRestitution(newShapeId, m_restitution);
     }
+#endif
 }
 
 void CCollider2D::attachToBody()
 {
+#if 0  // TODO: Requires Registry access to get CPhysicsBody2D
     if (!getOwner())
     {
         return;
     }
 
     // Get the physics body component
-    auto physicsBody = getOwner()->getComponent<CPhysicsBody2D>();
+    auto* physicsBody = registry.tryGet<CPhysicsBody2D>(getOwner());
     if (!physicsBody || !physicsBody->isInitialized())
     {
         return;
@@ -457,6 +464,7 @@ void CCollider2D::attachToBody()
     }
 
     m_initialized = !m_fixtures.empty();
+#endif
 }
 
 void CCollider2D::destroyShape()

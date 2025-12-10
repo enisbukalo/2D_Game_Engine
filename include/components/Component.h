@@ -1,13 +1,9 @@
 #ifndef COMPONENT_H
 #define COMPONENT_H
 
+#include <Entity.h>
 #include <SSerialization.h>
 #include <string>
-
-namespace Entity
-{
-class Entity;  // Forward declaration
-}
 
 namespace Components
 {
@@ -71,16 +67,16 @@ public:
     bool isActive() const;
 
     /**
-     * @brief Gets the owner of the component
-     * @return Pointer to the owner entity
+     * @brief Gets the owner entity ID of the component
+     * @return The owner entity ID
      */
-    ::Entity::Entity* getOwner() const;
+    Entity getOwner() const;
 
     /**
-     * @brief Sets the owner of the component
-     * @param owner Pointer to the owner entity
+     * @brief Sets the owner entity ID of the component
+     * @param owner The owner entity ID
      */
-    void setOwner(::Entity::Entity* owner);
+    void setOwner(Entity owner);
 
     /**
      * @brief Sets the active state of the component
@@ -101,9 +97,9 @@ public:
     void setGuid(const std::string& guid);
 
 private:
-    ::Entity::Entity* m_owner  = nullptr;  ///< Pointer to the entity that owns this component
-    bool              m_active = true;     ///< Flag indicating if the component is active
-    std::string       m_guid;              ///< Unique identifier for this component
+    Entity      m_owner;          ///< Entity ID that owns this component
+    bool        m_active = true;  ///< Flag indicating if the component is active
+    std::string m_guid;           ///< Unique identifier for this component
 };
 
 }  // namespace Components

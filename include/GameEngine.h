@@ -5,21 +5,21 @@
 #include <memory>
 #include <string>
 
+// Include ECS core
+#include <Entity.h>
+#include <Registry.h>
+
 // Include system and manager headers
 #include <ComponentFactory.h>
 #include <S2DPhysics.h>
 #include <SAudio.h>
-#include <SEntity.h>
 #include <SInput.h>
 #include <SParticle.h>
 #include <SRenderer.h>
 #include <SScene.h>
 
 // Convenient namespace declarations for documentation
-// Entity namespace - Entity management
-namespace Entity
-{
-}
+// Entity is now a plain struct (just an ID), not in a namespace
 
 // Components namespace - All component types
 namespace Components
@@ -103,13 +103,6 @@ public:
     static std::shared_ptr<spdlog::logger> getLogger();
 
     // System and Manager Accessors
-    // These are the recommended public API for engine users
-
-    /**
-     * @brief Gets the entity manager instance
-     * @return Reference to the SEntity singleton
-     */
-    Systems::SEntity& getEntityManager();
 
     /**
      * @brief Gets the scene manager instance
@@ -154,27 +147,34 @@ public:
     Systems::SParticle& getParticleSystem();
 
     /**
-     * @brief Spawns and registers a new entity of the specified type
-     * @tparam T Entity type (must inherit from Entity::Entity)
-     * @tparam Args Constructor argument types (excluding tag and id)
-     * @param tag Tag to assign to the entity
-     * @param args Arguments forwarded to the entity constructor
-     * @return Shared pointer to the created and initialized entity
-     *
-     * This is the primary API for creating entities. The entity is constructed,
-     * added to the entity manager, initialized via init(), and returned ready to use.
+     * @brief Creates a new entity in the registry
+     * @return The created entity ID
      *
      * Example:
-     *   auto boat = engine.spawn<Boat>("player", &inputMgr, &audioSys);
-     *   auto barrel = engine.spawn<Barrel>("barrel", position);
+     *   auto player = engine.createEntity();
+     *   engine.registry().add<CTransform>(player, Vec2{100, 100}, Vec2{1, 1}, 0.0f);
+     *   engine.registry().add<CRenderable>(player);
      */
-    template <typename T, typename... Args>
-    std::shared_ptr<T> spawn(const std::string& tag, Args&&... args)
+    Entity createEntity()
     {
-        return ::Systems::SEntity::instance().addEntity<T>(tag, std::forward<Args>(args)...);
+        return m_registry.createEntity();
+    }
+
+    /**
+     * @brief Gets the central entity/component registry
+     * @return Reference to the Registry instance
+     */
+    Registry& registry()
+    {
+        return m_registry;
+    }
+    const Registry& registry() const
+    {
+        return m_registry;
     }
 
 private:
+    Registry      m_registry;      ///< Central entity/component registry
     const uint8_t m_subStepCount;  ///< Number of physics sub-steps per update
     const float   m_timeStep;      ///< Fixed time step for physics updates
 
@@ -182,6 +182,11 @@ private:
     float m_accumulator = 0.0f;   ///< Accumulator for fixed timestep updates
 
     Vec2 m_gravity;  ///< Global gravity vector
+
+    /**
+     * @brief Registers all component types with stable names for serialization
+     */
+    void registerComponentTypes();
 };
 
 #endif  // GAMEENGINE_H

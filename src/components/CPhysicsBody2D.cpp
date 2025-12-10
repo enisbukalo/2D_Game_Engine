@@ -1,6 +1,6 @@
 #include "CPhysicsBody2D.h"
 #include "CTransform.h"
-#include "Entity.h"
+// #include "Entity.h" // Removed - Entity is now just an ID
 #include "S2DPhysics.h"
 #include "Vec2.h"
 
@@ -297,17 +297,10 @@ void CPhysicsBody2D::syncFromTransform(const CTransform* transform)
 
 void CPhysicsBody2D::init()
 {
-    // If the body hasn't been initialized yet, initialize it now
-    // This is called after deserialization to create the Box2D body
-    if (!m_initialized && getOwner())
-    {
-        auto* transform = getOwner()->getComponent<CTransform>();
-        if (transform)
-        {
-            Vec2 pos = transform->getPosition();
-            initialize({pos.x, pos.y}, m_bodyType);
-        }
-    }
+    // If the body hasn't been initialized yet, initialize it now\n    // This is called after deserialization to create
+    // the Box2D body\n    if (!m_initialized && getOwner())\n    {\n#if 0 // TODO: Requires Registry access to get
+    // CTransform\n        auto* transform = registry.tryGet<CTransform>(getOwner());\n        if (transform)\n {\n Vec2
+    // pos = transform->getPosition();\n            initialize({pos.x, pos.y}, m_bodyType);\n        }\n#endif\n    }
 }
 
 void CPhysicsBody2D::serialize(Serialization::JsonBuilder& builder) const

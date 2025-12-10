@@ -8,8 +8,7 @@
 #include "CShader.h"
 #include "CTexture.h"
 #include "CTransform.h"
-#include "Entity.h"
-#include "SEntity.h"
+#include "Registry.h"
 #include "SParticle.h"
 
 namespace Systems
@@ -95,6 +94,7 @@ void SRenderer::render()
         return;
     }
 
+#if 0  // TODO: Update to use Registry to iterate over entities with CRenderable and CParticleEmitter
     // Get all entities with renderable components
     auto& entityManager      = ::Systems::SEntity::instance();
     auto  renderableEntities = entityManager.getEntitiesWithComponent<::Components::CRenderable>();
@@ -103,17 +103,17 @@ void SRenderer::render()
     // Build unified render queue with z-index
     struct RenderItem
     {
-        ::Entity::Entity* entity;
-        int               zIndex;
-        bool              isParticleEmitter;
+        Entity entity;
+        int    zIndex;
+        bool   isParticleEmitter;
     };
     std::vector<RenderItem> renderQueue;
     renderQueue.reserve(renderableEntities.size() + emitterEntities.size());
 
     // Add renderable entities
-    for (::Entity::Entity* entity : renderableEntities)
+    for (Entity entity : renderableEntities)
     {
-        auto* renderable = entity->getComponent<::Components::CRenderable>();
+        auto* renderable = registry.tryGet<::Components::CRenderable>(entity);
         if (renderable)
         {
             renderQueue.push_back({entity, renderable->getZIndex(), false});
@@ -121,9 +121,9 @@ void SRenderer::render()
     }
 
     // Add particle emitter entities
-    for (::Entity::Entity* entity : emitterEntities)
+    for (Entity entity : emitterEntities)
     {
-        auto* emitter = entity->getComponent<::Components::CParticleEmitter>();
+        auto* emitter = registry.tryGet<::Components::CParticleEmitter>(entity);
         if (emitter && emitter->isActive())
         {
             renderQueue.push_back({entity, emitter->getZIndex(), true});
@@ -143,14 +143,15 @@ void SRenderer::render()
         {
             if (particleSystem.isInitialized())
             {
-                particleSystem.renderEmitter(item.entity, m_window.get());
+                particleSystem.renderEmitter(item.entity, m_window.get(), registry);
             }
         }
         else
         {
-            renderEntity(item.entity);
+            renderEntity(item.entity, registry);
         }
     }
+#endif
 }
 
 void SRenderer::clear(const Color& color)
@@ -273,16 +274,16 @@ void SRenderer::clearShaderCache()
     spdlog::debug("SRenderer: Shader cache cleared");
 }
 
-void SRenderer::renderEntity(::Entity::Entity* entity)
+void SRenderer::renderEntity(Entity entity, Registry& registry)
 {
-    if (!entity)
+    if (!entity.isValid())
     {
         return;
     }
 
     // Check for required components
-    auto* renderable = entity->getComponent<::Components::CRenderable>();
-    auto* transform  = entity->getComponent<::Components::CTransform>();
+    auto* renderable = registry.tryGet<::Components::CRenderable>(entity);
+    auto* transform  = registry.tryGet<::Components::CTransform>(entity);
 
     if (!renderable || !renderable->isActive() || !renderable->isVisible())
     {
@@ -309,7 +310,7 @@ void SRenderer::renderEntity(::Entity::Entity* entity)
     screenPos.y = SCREEN_HEIGHT - (pos.y * PIXELS_PER_METER);  // Flip Y axis
 
     // Get material if available
-    auto* material = entity->getComponent<::Components::CMaterial>();
+    auto* material = registry.tryGet<::Components::CMaterial>(entity);
 
     // Determine final color
     Color finalColor = renderable->getColor();
@@ -331,7 +332,7 @@ void SRenderer::renderEntity(::Entity::Entity* entity)
         std::string textureGuid = material->getTextureGuid();
         if (!textureGuid.empty())
         {
-            auto* textureComp = entity->getComponent<::Components::CTexture>();
+            auto* textureComp = registry.tryGet<::Components::CTexture>(entity);
             if (textureComp && textureComp->getGuid() == textureGuid)
             {
                 texture = loadTexture(textureComp->getTexturePath());
@@ -346,7 +347,7 @@ void SRenderer::renderEntity(::Entity::Entity* entity)
         std::string shaderGuid = material->getShaderGuid();
         if (!shaderGuid.empty())
         {
-            auto* shaderComp = entity->getComponent<::Components::CShader>();
+            auto* shaderComp = registry.tryGet<::Components::CShader>(entity);
             if (shaderComp && shaderComp->getGuid() == shaderGuid)
             {
                 shader = loadShader(shaderComp->getVertexShaderPath(), shaderComp->getFragmentShaderPath());
@@ -388,7 +389,7 @@ void SRenderer::renderEntity(::Entity::Entity* entity)
             sf::RectangleShape rect;
 
             // If we have a collider, use its size
-            auto* collider = entity->getComponent<::Components::CCollider2D>();
+            auto* collider = registry.tryGet<::Components::CCollider2D>(entity);
             if (collider && collider->getShapeType() == ::Components::ColliderShape::Box)
             {
                 float halfWidth  = collider->getBoxHalfWidth() * PIXELS_PER_METER;
@@ -421,7 +422,7 @@ void SRenderer::renderEntity(::Entity::Entity* entity)
             sf::CircleShape circle;
 
             // If we have a collider, use its radius
-            auto* collider = entity->getComponent<::Components::CCollider2D>();
+            auto* collider = registry.tryGet<::Components::CCollider2D>(entity);
             float radius   = 25.0f;
             if (collider && collider->getShapeType() == ::Components::ColliderShape::Circle)
             {
@@ -452,7 +453,7 @@ void SRenderer::renderEntity(::Entity::Entity* entity)
                 sf::FloatRect bounds = sprite.getLocalBounds();
 
                 // Scale sprite to match physics collider size
-                auto* collider = entity->getComponent<::Components::CCollider2D>();
+                auto* collider = registry.tryGet<::Components::CCollider2D>(entity);
                 if (collider)
                 {
                     float targetSize = 0.0f;
