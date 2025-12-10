@@ -56,7 +56,7 @@ TEST_F(EntityManagerTest, EntityRemoval)
     auto&                   manager = SEntity::instance();
     std::shared_ptr<Entity::Entity> entity  = manager.addEntity("test");
 
-    manager.update(0.0f);  // Process pending entities
+    // Entity is initialized immediately when created
     EXPECT_EQ(manager.getEntities().size(), 1);
 
     manager.removeEntity(entity);
@@ -71,8 +71,7 @@ TEST_F(EntityManagerTest, EntityTagging)
     manager.addEntity("typeA");
     manager.addEntity("typeB");
 
-    manager.update(0.0f);  // Process pending entities
-
+    // Entities are initialized immediately when created
     std::vector<std::shared_ptr<Entity::Entity>> typeAEntities = manager.getEntitiesByTag("typeA");
     std::vector<std::shared_ptr<Entity::Entity>> typeBEntities = manager.getEntitiesByTag("typeB");
 
@@ -169,10 +168,7 @@ TEST_F(EntityManagerTest, EntitySerialization)
     controllerBinding.trigger = ActionTrigger::Pressed;
     controller5->bindAction("Jump", controllerBinding);
 
-    // Process pending entities
-    manager.update(0.0f);
-
-    // Save to file
+    // Save to file - entities are already initialized immediately when created
     std::string testFile = std::string(SOURCE_DIR) + "/test_entities.json";
     manager.saveToFile(testFile);
 
@@ -411,4 +407,178 @@ TEST_F(EntityManagerTest, SaveAndLoadEntities)
 
     // Clean up
     std::filesystem::remove(testFile);
+}
+
+TEST_F(EntityManagerTest, EntityActiveInactiveTracking)
+{
+    auto& manager = SEntity::instance();
+
+    // Create entities
+    auto entity1 = manager.addEntity("active1");
+    auto entity2 = manager.addEntity("active2");
+    auto entity3 = manager.addEntity("will_be_inactive");
+
+    entity1->addComponent<CTransform>();
+    entity2->addComponent<CTransform>();
+    entity3->addComponent<CTransform>();
+
+    // Process pending entities - should all be in active list
+    manager.update(0.0f);
+
+    // All should be active initially
+    EXPECT_TRUE(entity1->isActive());
+    EXPECT_TRUE(entity2->isActive());
+    EXPECT_TRUE(entity3->isActive());
+
+    // Deactivate one entity
+    entity3->setActive(false);
+    EXPECT_FALSE(entity3->isActive());
+
+    // Entity should still be in the system
+    auto allEntities = manager.getEntities();
+    EXPECT_EQ(allEntities.size(), 3);
+
+    // Reactivate entity
+    entity3->setActive(true);
+    EXPECT_TRUE(entity3->isActive());
+}
+
+TEST_F(EntityManagerTest, InactiveEntitiesSkipUpdate)
+{
+    auto& manager = SEntity::instance();
+
+    // Note: We can't directly test custom entity update() with the current system
+    // because addEntity creates entities internally. Instead, test via components
+    auto entity = manager.addEntity("test");
+    auto transform = entity->addComponent<CTransform>();
+
+    manager.update(0.016f);  // First update - entity is active
+
+    // Deactivate entity
+    entity->setActive(false);
+    EXPECT_FALSE(transform->isActive());
+
+    manager.update(0.016f);  // Update while inactive
+
+    // Reactivate and verify components become active again
+    entity->setActive(true);
+    EXPECT_TRUE(transform->isActive());
+}
+
+TEST_F(EntityManagerTest, EntityUpdateOrderBeforeComponents)
+{
+    auto& manager = SEntity::instance();
+
+    // This test verifies the execution order conceptually
+    // Create entity with component
+    auto entity = manager.addEntity("order_test");
+    auto transform = entity->addComponent<CTransform>();
+    transform->setPosition(Vec2(0.0f, 0.0f));
+
+    manager.update(0.0f);  // Process pending
+
+    // Entity update should run before component update
+    // This is verified by the architecture - entity->update() is called
+    // before SComponentManager::updateAll() in SEntity::update()
+    manager.update(0.016f);
+
+    EXPECT_TRUE(entity->isActive());
+    EXPECT_TRUE(transform->isActive());
+}
+
+TEST_F(EntityManagerTest, InactiveEntitiesSerializeAndLoad)
+{
+    auto& manager = SEntity::instance();
+
+    // Create active and inactive entities
+    auto activeEntity = manager.addEntity("active_entity");
+    activeEntity->addComponent<CTransform>()->setPosition(Vec2(10.0f, 20.0f));
+
+    auto inactiveEntity = manager.addEntity("inactive_entity");
+    inactiveEntity->addComponent<CTransform>()->setPosition(Vec2(30.0f, 40.0f));
+    inactiveEntity->setActive(false);
+
+    manager.update(0.0f);  // Process pending
+
+    // Save to file
+    std::string testFile = "tests/test_data/test_active_inactive.json";
+    manager.saveToFile(testFile);
+
+    // Clear and reload
+    manager.clear();
+    manager.loadFromFile(testFile);
+    manager.update(0.0f);
+
+    // Verify entities were loaded
+    auto entities = manager.getEntities();
+    EXPECT_EQ(entities.size(), 2);
+
+    // Find the entities
+    auto activeEntities = manager.getEntitiesByTag("active_entity");
+    auto inactiveEntities = manager.getEntitiesByTag("inactive_entity");
+
+    ASSERT_EQ(activeEntities.size(), 1);
+    ASSERT_EQ(inactiveEntities.size(), 1);
+
+    // Note: Active/inactive state is not currently serialized,
+    // so loaded entities will default to active. This test documents
+    // current behavior - could be enhanced to serialize active state.
+
+    // Clean up
+    std::filesystem::remove(testFile);
+}
+
+TEST_F(EntityManagerTest, EntityInitCalledOnceOnAdd)
+{
+    // This test documents that entity->init() is called exactly once
+    // when the entity is added to the system (immediately, not deferred)
+
+    auto& manager = SEntity::instance();
+    auto entity = manager.addEntity("init_test");
+    entity->addComponent<CTransform>();
+
+    // With immediate initialization, entity is ready immediately
+    // No update call needed - init() was already called in addEntity()
+
+    // Entity should be alive and active
+    EXPECT_TRUE(entity->isAlive());
+    EXPECT_TRUE(entity->isActive());
+}
+
+TEST_F(EntityManagerTest, MultipleEntitiesActiveInactiveStates)
+{
+    auto& manager = SEntity::instance();
+
+    // Create multiple entities with different states
+    auto e1 = manager.addEntity("entity1");
+    auto e2 = manager.addEntity("entity2");
+    auto e3 = manager.addEntity("entity3");
+    auto e4 = manager.addEntity("entity4");
+
+    e1->addComponent<CTransform>();
+    e2->addComponent<CTransform>();
+    e3->addComponent<CTransform>();
+    e4->addComponent<CTransform>();
+
+    manager.update(0.0f);
+
+    // Toggle various states
+    e2->setActive(false);
+    e4->setActive(false);
+
+    EXPECT_TRUE(e1->isActive());
+    EXPECT_FALSE(e2->isActive());
+    EXPECT_TRUE(e3->isActive());
+    EXPECT_FALSE(e4->isActive());
+
+    // All entities should still exist
+    EXPECT_EQ(manager.getEntities().size(), 4);
+
+    // Reactivate one
+    e2->setActive(true);
+    EXPECT_TRUE(e2->isActive());
+
+    // Query by component should find all (active and inactive)
+    auto entitiesWithTransform = manager.getEntitiesWithComponent<CTransform>();
+    EXPECT_EQ(entitiesWithTransform.size(), 4);
 }

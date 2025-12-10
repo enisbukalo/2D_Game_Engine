@@ -180,6 +180,7 @@ static std::pair<Vec2, Vec2> samplePolygonEdge(const std::vector<Vec2>& vertices
 
             // Calculate outward normal (perpendicular to edge, pointing outward)
             // For counter-clockwise winding, the RIGHT perpendicular points outward
+            // For clockwise winding, the LEFT perpendicular points outward
             Vec2  direction(v2.x - v1.x, v2.y - v1.y);
             float length = edgeLengths[i];
             if (length > 0.0001f)
@@ -187,7 +188,7 @@ static std::pair<Vec2, Vec2> samplePolygonEdge(const std::vector<Vec2>& vertices
                 direction.x /= length;
                 direction.y /= length;
             }
-            // Right perpendicular for counter-clockwise winding = outward normal
+            // Right perpendicular (outward for CCW winding in Y-up coordinate system)
             Vec2 normal(direction.y, -direction.x);
 
             return {position, normal};

@@ -405,3 +405,95 @@ TEST_F(CPhysicsBody2DTest, NegativeGravityScale)
     EXPECT_FLOAT_EQ(body2->getGravityScale(), -2.0f);
 }
 
+//=============================================================================
+// Fixed Update Callback Tests
+//=============================================================================
+
+TEST_F(CPhysicsBody2DTest, FixedUpdateCallbackDefaultsToNoCallback)
+{
+    auto  entity = SEntity::instance().addEntity("test");
+    auto* body   = entity->addComponent<CPhysicsBody2D>();
+
+    EXPECT_FALSE(body->hasFixedUpdateCallback());
+}
+
+TEST_F(CPhysicsBody2DTest, FixedUpdateCallbackCanBeSet)
+{
+    auto  entity = SEntity::instance().addEntity("test");
+    auto* body   = entity->addComponent<CPhysicsBody2D>();
+
+    bool called = false;
+    body->setFixedUpdateCallback([&called](float dt) { called = true; });
+
+    EXPECT_TRUE(body->hasFixedUpdateCallback());
+}
+
+TEST_F(CPhysicsBody2DTest, FixedUpdateCallbackCanBeCleared)
+{
+    auto  entity = SEntity::instance().addEntity("test");
+    auto* body   = entity->addComponent<CPhysicsBody2D>();
+
+    body->setFixedUpdateCallback([](float dt) {});
+    EXPECT_TRUE(body->hasFixedUpdateCallback());
+
+    body->setFixedUpdateCallback(nullptr);
+    EXPECT_FALSE(body->hasFixedUpdateCallback());
+}
+
+TEST_F(CPhysicsBody2DTest, FixedUpdateCallbackCanBeInvoked)
+{
+    auto  entity = SEntity::instance().addEntity("test");
+    auto* body   = entity->addComponent<CPhysicsBody2D>();
+
+    int   callCount = 0;
+    float receivedDt = 0.0f;
+
+    body->setFixedUpdateCallback([&callCount, &receivedDt](float dt) {
+        callCount++;
+        receivedDt = dt;
+    });
+
+    // Manually invoke the callback as we would in the physics system
+    auto callback = body->getFixedUpdateCallback();
+    ASSERT_TRUE(callback);
+    callback(1.0f / 60.0f);
+
+    EXPECT_EQ(callCount, 1);
+    EXPECT_FLOAT_EQ(receivedDt, 1.0f / 60.0f);
+}
+
+TEST_F(CPhysicsBody2DTest, FixedUpdateCallbackCanBeReplacedMultipleTimes)
+{
+    auto  entity = SEntity::instance().addEntity("test");
+    auto* body   = entity->addComponent<CPhysicsBody2D>();
+
+    int callCount1 = 0;
+    int callCount2 = 0;
+
+    body->setFixedUpdateCallback([&callCount1](float dt) { callCount1++; });
+    auto callback1 = body->getFixedUpdateCallback();
+    callback1(0.016f);
+    EXPECT_EQ(callCount1, 1);
+    EXPECT_EQ(callCount2, 0);
+
+    body->setFixedUpdateCallback([&callCount2](float dt) { callCount2++; });
+    auto callback2 = body->getFixedUpdateCallback();
+    callback2(0.016f);
+    EXPECT_EQ(callCount1, 1);
+    EXPECT_EQ(callCount2, 1);
+}
+
+TEST_F(CPhysicsBody2DTest, FixedUpdateCallbackCanCaptureThisPointer)
+{
+    auto  entity = SEntity::instance().addEntity("test");
+    auto* body   = entity->addComponent<CPhysicsBody2D>();
+
+    CPhysicsBody2D* capturedBody = nullptr;
+    body->setFixedUpdateCallback([body, &capturedBody](float dt) { capturedBody = body; });
+
+    auto callback = body->getFixedUpdateCallback();
+    callback(0.016f);
+
+    EXPECT_EQ(capturedBody, body);
+}
+

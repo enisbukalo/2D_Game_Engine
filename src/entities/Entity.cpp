@@ -1,6 +1,7 @@
 #include "Entity.h"
 #include "ComponentFactory.h"
 #include "Guid.h"
+#include "SEntity.h"
 
 namespace Entity
 {
@@ -9,6 +10,15 @@ Entity::Entity(const std::string& tag, size_t id) : m_tag(tag), m_id(id), m_guid
 
 void Entity::destroy()
 {
+    // Unregister and clear components
+    for (auto& [type, component] : m_components)
+    {
+        if (component)
+        {
+            ::Systems::SComponentManager::instance().unregisterComponent(component.get());
+        }
+    }
+    m_components.clear();
     m_alive = false;
 }
 
@@ -32,15 +42,33 @@ const std::string& Entity::getTag() const
     return m_tag;
 }
 
-void Entity::update(float deltaTime)
+void Entity::update(float /*deltaTime*/)
 {
+    // Default entity update does nothing. Components are updated centrally by SComponentManager.
+}
+
+void Entity::setActive(bool active)
+{
+    if (m_active == active)
+        return;
+    m_active = active;
+
+    // Notify entity system to move this entity between active/inactive lists
+    ::Systems::SEntity::instance().moveEntityBetweenLists(this, active);
+
+    // Propagate to components
     for (auto& [type, component] : m_components)
     {
-        if (component && component->isActive())
+        if (component)
         {
-            component->update(deltaTime);
+            component->setActive(active);
         }
     }
+}
+
+bool Entity::isActive() const
+{
+    return m_active;
 }
 
 void Entity::serialize(Serialization::JsonBuilder& builder) const
@@ -138,6 +166,7 @@ void Entity::deserialize(const Serialization::SSerialization::JsonValue& value)
         if (component && component->getType() == "CPhysicsBody2D")
         {
             component->init();
+            ::Systems::SComponentManager::instance().registerComponent(component.get());
         }
     }
 
@@ -147,6 +176,7 @@ void Entity::deserialize(const Serialization::SSerialization::JsonValue& value)
         if (component && component->getType() == "CCollider2D")
         {
             component->init();
+            ::Systems::SComponentManager::instance().registerComponent(component.get());
         }
     }
 
@@ -156,6 +186,7 @@ void Entity::deserialize(const Serialization::SSerialization::JsonValue& value)
         if (component && component->getType() != "CPhysicsBody2D" && component->getType() != "CCollider2D")
         {
             component->init();
+            ::Systems::SComponentManager::instance().registerComponent(component.get());
         }
     }
 }

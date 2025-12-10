@@ -3,7 +3,9 @@
 
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include "Entity.h"
 
@@ -47,6 +49,35 @@ public:
     std::shared_ptr<::Entity::Entity> addEntity(const std::string& tag);
 
     /**
+     * @brief Creates a new entity of the specified derived type with the given tag and constructor args
+     * @tparam T Derived entity type (must inherit from Entity)
+     * @tparam Args Constructor argument types
+     * @param tag Tag to assign to the entity
+     * @param args Arguments forwarded to the derived entity constructor
+     * @return Shared pointer to the created derived entity
+     *
+     * The entity is initialized immediately and ready to use when this method returns.
+     * The entity's init() method is called before returning, so all components are fully set up.
+     */
+    template <typename T, typename... Args>
+    std::shared_ptr<T> addEntity(const std::string& tag, Args&&... args)
+    {
+        static_assert(std::is_base_of<::Entity::Entity, T>::value, "T must derive from Entity");
+
+        auto derived = std::shared_ptr<T>(new T(tag, m_totalEntities++, std::forward<Args>(args)...));
+
+        // Add to active lists immediately
+        m_activeEntities.push_back(derived);
+        m_entities.push_back(derived);
+        m_entityMap[tag].push_back(derived);
+
+        // Initialize entity immediately so it's ready to use
+        derived->init();
+
+        return derived;
+    }
+
+    /**
      * @brief Removes an entity from the system
      * @param entity The entity to remove
      */
@@ -74,7 +105,14 @@ public:
     std::vector<::Entity::Entity*> getEntitiesWithComponent()
     {
         std::vector<::Entity::Entity*> result;
-        for (auto& entity : m_entities)
+        for (auto& entity : m_activeEntities)
+        {
+            if (entity->isAlive() && entity->hasComponent<T>())
+            {
+                result.push_back(entity.get());
+            }
+        }
+        for (auto& entity : m_inactiveEntities)
         {
             if (entity->isAlive() && entity->hasComponent<T>())
             {
@@ -96,7 +134,14 @@ public:
     std::vector<::Entity::Entity*> getEntitiesWithComponentDerived()
     {
         std::vector<::Entity::Entity*> result;
-        for (auto& entity : m_entities)
+        for (auto& entity : m_activeEntities)
+        {
+            if (entity->isAlive() && entity->hasComponentDerived<T>())
+            {
+                result.push_back(entity.get());
+            }
+        }
+        for (auto& entity : m_inactiveEntities)
         {
             if (entity->isAlive() && entity->hasComponentDerived<T>())
             {
@@ -123,6 +168,13 @@ public:
      */
     void clear();
 
+    /**
+     * @brief Moves an entity between active and inactive lists
+     * @param entity The entity to move
+     * @param active True to move to active, false to move to inactive
+     */
+    void moveEntityBetweenLists(::Entity::Entity* entity, bool active);
+
 private:
     // Private constructor to prevent direct instantiation
     SEntity() = default;
@@ -134,8 +186,10 @@ private:
      */
     void removeDeadEntities();
 
-    std::vector<std::shared_ptr<::Entity::Entity>> m_entities;       ///< List of all active entities
-    std::vector<std::shared_ptr<::Entity::Entity>> m_entitiesToAdd;  ///< Queue of entities to be added
+    std::vector<std::shared_ptr<::Entity::Entity>> m_entities;  ///< List of all entities (deprecated, kept for compatibility)
+    std::vector<std::shared_ptr<::Entity::Entity>> m_activeEntities;    ///< List of active entities
+    std::vector<std::shared_ptr<::Entity::Entity>> m_inactiveEntities;  ///< List of inactive entities
+    std::vector<std::shared_ptr<::Entity::Entity>> m_entitiesToAdd;     ///< Queue of entities to be added
     std::unordered_map<std::string, std::vector<std::shared_ptr<::Entity::Entity>>> m_entityMap;  ///< Map of entities by tag
     size_t m_totalEntities = 0;  ///< Counter for generating unique entity IDs
 };

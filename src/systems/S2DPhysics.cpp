@@ -2,6 +2,7 @@
 #include "CPhysicsBody2D.h"
 #include "CTransform.h"
 #include "Entity.h"
+#include "SComponentManager.h"
 #include "SEntity.h"
 #include "Vec2.h"
 
@@ -51,16 +52,16 @@ void S2DPhysics::update(float deltaTime)
     // Step the Box2D world with fixed timestep
     b2World_Step(m_worldId, m_timeStep, m_subStepCount);
 
-    // Sync Box2D bodies back to CTransform components
-    for (auto& pair : m_entityBodyMap)
+    // Sync Box2D bodies back to CTransform components using registered physics components
+    const auto& physicsComponents = ::Systems::SComponentManager::instance().getPhysicsComponents();
+    for (auto* physicsBody : physicsComponents)
     {
-        ::Entity::Entity* entity = reinterpret_cast<::Entity::Entity*>(b2Body_GetUserData(pair.second));
+        if (!physicsBody)
+            continue;
+        auto* entity = physicsBody->getOwner();
         if (!entity)
             continue;
-
-        auto physicsBody = entity->getComponent<::Components::CPhysicsBody2D>();
-        auto transform   = entity->getComponent<::Components::CTransform>();
-
+        auto transform = entity->getComponent<::Components::CTransform>();
         if (physicsBody && transform && physicsBody->isInitialized())
         {
             physicsBody->syncToTransform(transform);
@@ -149,6 +150,43 @@ void S2DPhysics::rayCast(const b2Vec2& origin, const b2Vec2& translation, b2Cast
 {
     b2QueryFilter filter = b2DefaultQueryFilter();
     b2World_CastRay(m_worldId, origin, translation, filter, callback, context);
+}
+
+void S2DPhysics::registerBody(Components::CPhysicsBody2D* body)
+{
+    if (!body)
+        return;
+
+    // Check if already registered
+    auto it = std::find(m_registeredBodies.begin(), m_registeredBodies.end(), body);
+    if (it == m_registeredBodies.end())
+    {
+        m_registeredBodies.push_back(body);
+    }
+}
+
+void S2DPhysics::unregisterBody(Components::CPhysicsBody2D* body)
+{
+    if (!body)
+        return;
+
+    auto it = std::find(m_registeredBodies.begin(), m_registeredBodies.end(), body);
+    if (it != m_registeredBodies.end())
+    {
+        m_registeredBodies.erase(it);
+    }
+}
+
+void S2DPhysics::runFixedUpdates(float timeStep)
+{
+    // Iterate all registered physics bodies and invoke their fixed-update callbacks
+    for (auto* body : m_registeredBodies)
+    {
+        if (body && body->isInitialized() && body->hasFixedUpdateCallback())
+        {
+            body->getFixedUpdateCallback()(timeStep);
+        }
+    }
 }
 
 }  // namespace Systems

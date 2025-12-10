@@ -3,6 +3,7 @@
 
 #include <spdlog/spdlog.h>
 #include <memory>
+#include <string>
 
 // Include system and manager headers
 #include <ComponentFactory.h>
@@ -56,11 +57,16 @@ public:
     /**
      * @brief Constructs a game engine instance
      * @param windowConfig Window initialization configuration
-     * @param gravity The global gravity vector (Y-up: positive Y = upward)
+     * @param gravity The global gravity vector (Y-up: positive Y = upward, default: {0.0f, -10.0f})
      * @param subStepCount Number of physics sub-steps per update (default: 6, increase for more stability with many bodies)
      * @param timeStep Fixed time step for physics updates
+     * @param pixelsPerMeter Rendering scale for particle system (default: 100.0f)
      */
-    GameEngine(const Systems::WindowConfig& windowConfig, Vec2 gravity, uint8_t subStepCount = 6, float timeStep = 1.0f / 60.0f);
+    GameEngine(const Systems::WindowConfig& windowConfig,
+               Vec2                         gravity        = Vec2(0.0f, -10.0f),
+               uint8_t                      subStepCount   = 6,
+               float                        timeStep       = 1.0f / 60.0f,
+               float                        pixelsPerMeter = 100.0f);
 
     /** @brief Destructor */
     ~GameEngine();
@@ -146,6 +152,27 @@ public:
      * @return Reference to the SParticle singleton
      */
     Systems::SParticle& getParticleSystem();
+
+    /**
+     * @brief Spawns and registers a new entity of the specified type
+     * @tparam T Entity type (must inherit from Entity::Entity)
+     * @tparam Args Constructor argument types (excluding tag and id)
+     * @param tag Tag to assign to the entity
+     * @param args Arguments forwarded to the entity constructor
+     * @return Shared pointer to the created and initialized entity
+     *
+     * This is the primary API for creating entities. The entity is constructed,
+     * added to the entity manager, initialized via init(), and returned ready to use.
+     *
+     * Example:
+     *   auto boat = engine.spawn<Boat>("player", &inputMgr, &audioSys);
+     *   auto barrel = engine.spawn<Barrel>("barrel", position);
+     */
+    template <typename T, typename... Args>
+    std::shared_ptr<T> spawn(const std::string& tag, Args&&... args)
+    {
+        return ::Systems::SEntity::instance().addEntity<T>(tag, std::forward<Args>(args)...);
+    }
 
 private:
     const uint8_t m_subStepCount;  ///< Number of physics sub-steps per update

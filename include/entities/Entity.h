@@ -11,6 +11,7 @@
 #include <vector>
 #include "Component.h"
 #include "Components.h"
+#include "systems/SComponentManager.h"
 
 namespace Systems
 {
@@ -37,6 +38,29 @@ public:
     friend class TestEntity;
 
     virtual ~Entity() = default;
+
+    /**
+     * @brief Factory method for creating and registering entities (Unity-style)
+     * @tparam T Derived entity type (must inherit from Entity)
+     * @tparam Args Constructor argument types (excluding tag and id)
+     * @param tag Tag to assign to the entity
+     * @param args Arguments forwarded to the derived entity constructor
+     * @return Shared pointer to the created entity
+     *
+     * This is the recommended way to create entities. It automatically handles
+     * ID generation and registration with the entity manager.
+     *
+     * Example:
+     *   auto player = Entity::create<Player>("player", playerArgs...);
+     *   auto enemy = Entity::create<Enemy>("enemy", enemyArgs...);
+     */
+    template <typename T, typename... Args>
+    static std::shared_ptr<T> create(const std::string &tag, Args &&...args);
+
+    /**
+     * @brief Called once when the entity is initialized/started by the manager
+     */
+    virtual void init() {}
 
     /**
      * @brief Gets a component of the specified type
@@ -104,6 +128,7 @@ public:
         component->setOwner(this);
         m_components[std::type_index(typeid(T))] = std::unique_ptr<::Components::Component>(component);
         component->init();
+        ::Systems::SComponentManager::instance().registerComponent(component);
         return component;
     };
 
@@ -144,6 +169,7 @@ public:
         auto it = m_components.find(std::type_index(typeid(T)));
         if (it != m_components.end())
         {
+            ::Systems::SComponentManager::instance().unregisterComponent(it->second.get());
             m_components.erase(it);
         }
     };
@@ -181,7 +207,10 @@ public:
      * @brief Updates the entity and all its components
      * @param deltaTime Time elapsed since last update
      */
-    void update(float deltaTime);
+    virtual void update(float deltaTime);
+
+    void setActive(bool active);
+    bool isActive() const;
 
     /**
      * @brief Serializes the entity to binary data
@@ -203,10 +232,11 @@ protected:
 
 private:
     std::unordered_map<std::type_index, std::unique_ptr<::Components::Component>> m_components;  ///< Map of components indexed by type
-    size_t            m_id = 0;             ///< Unique numeric identifier
-    std::string       m_guid;               ///< Unique GUID identifier
-    const std::string m_tag   = "Default";  ///< Entity tag
-    bool              m_alive = true;       ///< Entity state flag
+    size_t            m_id = 0;              ///< Unique numeric identifier
+    std::string       m_guid;                ///< Unique GUID identifier
+    const std::string m_tag    = "Default";  ///< Entity tag
+    bool              m_alive  = true;       ///< Entity state flag
+    bool              m_active = true;       ///< Active (paused) state - if false components are inactive
 };
 
 }  // namespace Entity
