@@ -1,14 +1,11 @@
 #include <GameEngine.h>
 #include <Vec2.h>
 #include <SFML/Graphics.hpp>
-#include <algorithm>
-#include <cmath>
 #include <iostream>
-#include <map>
 #include <memory>
-#include <random>
 #include <sstream>
 
+#include "AudioManager.h"
 #include "BarrelSpawner.h"
 #include "BoatEntity.h"
 
@@ -19,17 +16,12 @@ using namespace Systems;
 // Define Screen Size
 const int   SCREEN_WIDTH     = 1600;
 const int   SCREEN_HEIGHT    = 1000;
-const float GRAVITY_FORCE    = -10.0f;  // Box2D gravity (m/s²), negative = downward
-const float PIXELS_PER_METER = 100.0f;  // Rendering scale: 100 pixels = 1 meter
+const Vec2  GRAVITY          = {0.0f, 0.0f};  // Box2D gravity (m/s²), negative = downward
+const float PIXELS_PER_METER = 100.0f;        // Rendering scale: 100 pixels = 1 meter
 
 // Derived playfield size in meters (screen dimensions divided by scale)
 const float PLAYFIELD_WIDTH_METERS  = SCREEN_WIDTH / PIXELS_PER_METER;   // 16 m
 const float PLAYFIELD_HEIGHT_METERS = SCREEN_HEIGHT / PIXELS_PER_METER;  // 10 m
-
-const float BOUNDARY_THICKNESS_METERS = 0.5f;   // Thickness in meters
-const float MAX_MUSIC_VOLUME          = 0.80f;  // 80% max volume
-const float VOLUME_ADJUSTMENT_STEP    = 0.05f;  // Volume change per key press (5%)
-const float INITIAL_VOLUME            = 0.15f;  // 15% initial volume
 
 const size_t DEFAULT_BARREL_COUNT = 20;
 
@@ -42,13 +34,8 @@ private:
     bool                            m_fontLoaded;
     std::shared_ptr<Entity::Entity> m_oceanBackground;
 
-    std::shared_ptr<Boat> m_boat;
-
-    // Helper to get window from renderer
-    sf::RenderWindow* getWindow() const
-    {
-        return m_gameEngine->getRenderer().getWindow();
-    }
+    std::shared_ptr<Boat>         m_boat;
+    std::shared_ptr<AudioManager> m_audioManager;
 
 public:
     FishingGame() : m_running(true), m_fontLoaded(false), m_oceanBackground(nullptr)
@@ -57,12 +44,12 @@ public:
         WindowConfig windowConfig;
         windowConfig.width      = SCREEN_WIDTH;
         windowConfig.height     = SCREEN_HEIGHT;
-        windowConfig.title      = "Boat Example - ECS Rendering";
+        windowConfig.title      = "Boat Example - ECS Framework";
         windowConfig.vsync      = true;
-        windowConfig.frameLimit = 60;
+        windowConfig.frameLimit = 144;
 
         // Initialize game engine with window config and particle scale
-        m_gameEngine = std::make_unique<GameEngine>(windowConfig, Vec2(0.0f, 0.0f), 6, 1.0f / 60.0f, PIXELS_PER_METER);
+        m_gameEngine = std::make_unique<GameEngine>(windowConfig, GRAVITY);
 
         // Try to load a system font (optional, will work without it)
         if (!m_font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf"))
@@ -83,21 +70,8 @@ public:
 
     void init()
     {
-        // Systems are now auto-initialized by GameEngine constructor
-        // Just configure them as needed
-        auto& audioSystem = m_gameEngine->getAudioSystem();
-
-        // Set initial master volume
-        std::cout << "Setting initial master volume to: " << INITIAL_VOLUME << std::endl;
-        audioSystem.setMasterVolume(INITIAL_VOLUME);
-        std::cout << "Master volume is now: " << audioSystem.getMasterVolume() << std::endl;
-
-        // Load audio assets
-        audioSystem.loadSound("background_music", "assets/audio/rainyday.mp3", AudioType::Music);
-        audioSystem.loadSound("motor_boat", "assets/audio/motor_boat.mp3", AudioType::SFX);
-
-        // Start background music
-        audioSystem.playMusic("background_music", true, MAX_MUSIC_VOLUME);
+        // Create AudioManager entity to handle audio initialization and volume controls
+        m_audioManager = m_gameEngine->spawn<AudioManager>("audio_manager", m_gameEngine.get());
 
         // Input Manager is already initialized by GameEngine - just disable ImGui passthrough
         m_gameEngine->getInputManager().setPassToImGui(false);
@@ -106,137 +80,25 @@ public:
         auto& physics = m_gameEngine->getPhysics();
         physics.setGravity({0.0f, 0.0f});
 
-        // Particle system is already initialized - no need to call initialize again
-
         // Build world procedurally
-        createOceanBackground();
-        createBoundaryColliders();
-        createBoatAndEffects();
-        createBarrelSpawner();
-
-        // Entities are now initialized automatically when created - no manual update needed!
+        m_boat = m_gameEngine->spawn<Boat>("player", &m_gameEngine->getInputManager(), &m_gameEngine->getAudioSystem());
+        m_gameEngine->spawn<BarrelSpawner>("barrel_spawner", m_gameEngine.get(), 0, PLAYFIELD_WIDTH_METERS, 0, PLAYFIELD_HEIGHT_METERS, DEFAULT_BARREL_COUNT);
 
         std::cout << "Game initialized!" << std::endl;
         std::cout << "Physics: Box2D v3.1.1 (1 unit = 1 meter, Y-up)" << std::endl;
         std::cout << "Controls:" << std::endl;
         std::cout << "  WASD            : Move player boat (W=forward, S=backward, A/D=turn when moving forward)" << std::endl;
-        std::cout << "  Up/Down Arrow   : Adjust volume" << std::endl;
-        std::cout << "  Escape          : Exit" << std::endl;
-    }
-
-    void createOceanBackground()
-    {
-        m_oceanBackground = m_gameEngine->spawn<Entity::Entity>("ocean");
-        m_oceanBackground->addComponent<CTransform>(Vec2(8.0f, 5.0f), Vec2(1.0f, 1.0f), 0.0f);
-        m_oceanBackground->addComponent<CRenderable>(VisualType::Rectangle, Color::Black, -10, true);
-
-        auto* collider = m_oceanBackground->addComponent<CCollider2D>();
-        collider->setIsSensor(false);
-        collider->setDensity(1.0f);
-        collider->setFriction(0.3f);
-        collider->setRestitution(0.0f);
-        collider->createBox(8.0f, 5.0f);
-    }
-
-    void createBoundaryColliders()
-    {
-        const struct BoundaryDef
-        {
-            std::string tag;
-            Vec2        pos;
-            float       halfWidth;
-            float       halfHeight;
-        } boundaries[] = {{"floor", Vec2(8.0f, 0.25f), 8.0f, 0.25f},
-                          {"rightWall", Vec2(15.75f, 5.0f), 0.25f, 5.0f},
-                          {"leftWall", Vec2(0.25f, 5.0f), 0.25f, 5.0f},
-                          {"topWall", Vec2(8.0f, 9.75f), 8.0f, 0.25f}};
-
-        for (const auto& def : boundaries)
-        {
-            auto boundary = m_gameEngine->spawn<Entity::Entity>(def.tag);
-            boundary->addComponent<CTransform>(def.pos, Vec2(1.0f, 1.0f), 0.0f);
-
-            auto* body = boundary->addComponent<CPhysicsBody2D>();
-            body->setBodyType(BodyType::Static);
-            body->setDensity(1.0f);
-            body->setFriction(0.3f);
-            body->setRestitution(0.15f);
-            body->setLinearDamping(0.25f);
-            body->setAngularDamping(0.1f);
-            body->setGravityScale(1.0f);
-            body->initialize(b2Vec2{def.pos.x, def.pos.y}, BodyType::Static);
-
-            auto* collider = boundary->addComponent<CCollider2D>();
-            collider->setIsSensor(false);
-            collider->setDensity(1.0f);
-            collider->setFriction(0.3f);
-            collider->setRestitution(0.0f);
-            collider->createBox(def.halfWidth, def.halfHeight);
-        }
-    }
-
-    void createBoatAndEffects()
-    {
-        m_boat = m_gameEngine->spawn<Boat>("player", &m_gameEngine->getInputManager(), &m_gameEngine->getAudioSystem());
-        // Boat and its child entities (emitters) are now fully initialized
-    }
-
-    void createBarrelSpawner()
-    {
-        // Barrel spawn bounds (meters)
-        float minX = BOUNDARY_THICKNESS_METERS;
-        float maxX = PLAYFIELD_WIDTH_METERS - BOUNDARY_THICKNESS_METERS;
-        float minY = BOUNDARY_THICKNESS_METERS;
-        float maxY = PLAYFIELD_HEIGHT_METERS - BOUNDARY_THICKNESS_METERS;
-
-        m_gameEngine->spawn<BarrelSpawner>("barrel_spawner", m_gameEngine.get(), minX, maxX, minY, maxY, DEFAULT_BARREL_COUNT);
     }
 
     void update(float dt)
     {
-        // Handle game-specific input (GameEngine handles system updates)
-        const auto& im = m_gameEngine->getInputManager();
-
-        // Check for mouse clicks using abstracted MouseButton enum
-        if (im.wasMouseReleased(MouseButton::Left))
-        {
-            sf::Vector2i mousePos = im.getMousePositionWindow();
-            std::cout << "Left Mouse Button Release At: (" << mousePos.x << ", " << mousePos.y << ")" << std::endl;
-        }
-        if (im.wasMouseReleased(MouseButton::Right))
-        {
-            sf::Vector2i mousePos = im.getMousePositionWindow();
-            std::cout << "Right Mouse Button Release At: (" << mousePos.x << ", " << mousePos.y << ")" << std::endl;
-        }
-
-        if (im.wasKeyPressed(KeyCode::Escape))
-        {
-            m_running = false;
-        }
-        if (im.wasKeyPressed(KeyCode::Up))
-        {
-            auto& audioSystem   = m_gameEngine->getAudioSystem();
-            float currentVolume = audioSystem.getMasterVolume();
-            float newVolume     = std::min(currentVolume + VOLUME_ADJUSTMENT_STEP, 1.0f);
-            audioSystem.setMasterVolume(newVolume);
-            std::cout << "Master Volume: " << static_cast<int>(newVolume * 100.0f) << "%" << std::endl;
-        }
-        if (im.wasKeyPressed(KeyCode::Down))
-        {
-            auto& audioSystem   = m_gameEngine->getAudioSystem();
-            float currentVolume = audioSystem.getMasterVolume();
-            float newVolume     = std::max(currentVolume - VOLUME_ADJUSTMENT_STEP, 0.0f);
-            audioSystem.setMasterVolume(newVolume);
-            std::cout << "Master Volume: " << static_cast<int>(newVolume * 100.0f) << "%" << std::endl;
-        }
-
         // GameEngine handles all system updates (input, physics, particles, audio, entities)
         m_gameEngine->update(dt);
     }
 
     void render()
     {
-        auto* window = getWindow();
+        auto* window = m_gameEngine->getRenderer().getWindow();
         if (!window)
             return;
 
@@ -269,7 +131,7 @@ public:
 
         sf::Clock clock;
         clock.restart();  // Reset clock after init to get proper first frame delta
-        auto* window = getWindow();
+        auto* window = m_gameEngine->getRenderer().getWindow();
         while (m_running && window && window->isOpen())
         {
             float dt = clock.restart().asSeconds();

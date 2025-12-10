@@ -57,13 +57,13 @@ public:
     /**
      * @brief Constructs a game engine instance
      * @param windowConfig Window initialization configuration
-     * @param gravity The global gravity vector (Y-up: positive Y = upward)
+     * @param gravity The global gravity vector (Y-up: positive Y = upward, default: {0.0f, -10.0f})
      * @param subStepCount Number of physics sub-steps per update (default: 6, increase for more stability with many bodies)
      * @param timeStep Fixed time step for physics updates
      * @param pixelsPerMeter Rendering scale for particle system (default: 100.0f)
      */
     GameEngine(const Systems::WindowConfig& windowConfig,
-               Vec2                         gravity,
+               Vec2                         gravity        = Vec2(0.0f, -10.0f),
                uint8_t                      subStepCount   = 6,
                float                        timeStep       = 1.0f / 60.0f,
                float                        pixelsPerMeter = 100.0f);
