@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include "Component.h"
 #include "box2d/box2d.h"
 
@@ -50,6 +51,9 @@ private:
     float m_gravityScale;
 
     bool m_initialized;
+
+    // Fixed-step physics update callback
+    std::function<void(float)> m_fixedUpdateCallback;
 
 public:
     CPhysicsBody2D();
@@ -284,6 +288,35 @@ public:
      * @param transform Transform component to read from
      */
     void syncFromTransform(const CTransform* transform);
+
+    /**
+     * @brief Set the fixed-update callback for physics-driven logic
+     * @param callback Function to call once per physics step with the fixed timestep
+     *
+     * This callback is invoked before each Box2D physics step, ensuring
+     * frame-rate independent physics behavior. Use this to apply forces,
+     * torques, or other physics operations that should run at a fixed rate.
+     */
+    void setFixedUpdateCallback(std::function<void(float)> callback)
+    {
+        m_fixedUpdateCallback = callback;
+    }
+
+    /**
+     * @brief Get the fixed-update callback
+     */
+    const std::function<void(float)>& getFixedUpdateCallback() const
+    {
+        return m_fixedUpdateCallback;
+    }
+
+    /**
+     * @brief Check if a fixed-update callback is set
+     */
+    bool hasFixedUpdateCallback() const
+    {
+        return m_fixedUpdateCallback != nullptr;
+    }
 
     // Component interface
     void        init() override;

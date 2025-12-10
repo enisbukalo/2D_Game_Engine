@@ -119,6 +119,9 @@ void GameEngine::update(float deltaTime)
     // Process fixed timestep updates
     while (m_accumulator >= m_timeStep)
     {
+        // Run fixed-update callbacks for all physics bodies (apply forces, etc.)
+        ::Systems::S2DPhysics::instance().runFixedUpdates(m_timeStep);
+
         // Box2D physics update (handles its own sub-stepping)
         ::Systems::S2DPhysics::instance().update(m_timeStep);
 

@@ -231,6 +231,7 @@ void Boat::init()
     configureBubbleTrail();
     configureHullSpray();
     bindInputCallbacks();
+    setupFixedUpdate();
 }
 
 void Boat::configureBoatBody()
@@ -363,109 +364,58 @@ void Boat::bindInputCallbacks()
     rotateRight.trigger = ActionTrigger::Held;
     m_inputManager->bindAction("RotateRight", rotateRight);
 
-    // Set callbacks for movement actions - preserve exact logic from main.cpp
+    // Set callbacks for movement actions - store input intent instead of applying forces
     m_input->setActionCallback("MoveForward",
                                [this](ActionState state)
                                {
-                                   if ((state == ActionState::Held || state == ActionState::Pressed) && m_physicsBody
-                                       && m_physicsBody->isInitialized())
+                                   if (state == ActionState::Held || state == ActionState::Pressed)
                                    {
-                                       b2Vec2 forward = m_physicsBody->getForwardVector();
-                                       b2Vec2 force   = {forward.x * kPlayerForce, forward.y * kPlayerForce};
-                                       m_physicsBody->applyForceToCenter(force);
+                                       m_wantsForward = true;
                                        startMotorBoat();
+                                   }
+                                   else if (state == ActionState::Released)
+                                   {
+                                       m_wantsForward = false;
                                    }
                                });
 
     m_input->setActionCallback("MoveBackward",
                                [this](ActionState state)
                                {
-                                   if ((state == ActionState::Held || state == ActionState::Pressed) && m_physicsBody
-                                       && m_physicsBody->isInitialized())
+                                   if (state == ActionState::Held || state == ActionState::Pressed)
                                    {
-                                       b2Vec2 forward = m_physicsBody->getForwardVector();
-                                       b2Vec2 force = {-forward.x * (kPlayerForce / 2), -forward.y * (kPlayerForce / 2)};
-                                       m_physicsBody->applyForceToCenter(force);
+                                       m_wantsBackward = true;
                                        startMotorBoat();
+                                   }
+                                   else if (state == ActionState::Released)
+                                   {
+                                       m_wantsBackward = false;
                                    }
                                });
 
     m_input->setActionCallback("RotateLeft",
                                [this](ActionState state)
                                {
-                                   if ((state == ActionState::Held || state == ActionState::Pressed) && m_physicsBody
-                                       && m_physicsBody->isInitialized())
+                                   if (state == ActionState::Held || state == ActionState::Pressed)
                                    {
-                                       // Rudder: apply a lateral force at the stern to create torque instead of applying pure torque
-                                       b2Vec2 forward = m_physicsBody->getForwardVector();
-                                       b2Vec2 right   = m_physicsBody->getRightVector();
-                                       b2Vec2 vel     = m_physicsBody->getLinearVelocity();
-
-                                       // Signed velocity in forward direction; absForwardVel will be used for magnitude
-                                       float forwardVelSigned = forward.x * vel.x + forward.y * vel.y;  // signed forward velocity
-                                       float absForwardVel = std::fabs(forwardVelSigned);  // only forward/back velocity matters
-
-                                       // Only allow rudder to act if moving above a small threshold along the forward axis
-                                       if (absForwardVel < kMinSpeedForSteering)
-                                           return;
-
-                                       // Stern location (meters) behind the center of mass
-                                       b2Vec2 stern = m_physicsBody->getPosition() - forward * kRudderOffsetMeters;
-
-                                       // Determine the lateral direction based on travel direction
-                                       // When moving forward, A should steer left -> apply rightward lateral to stern
-                                       // When moving backward, steering is reversed
-                                       b2Vec2 lateral = (forwardVelSigned >= 0.0f) ? right : b2Vec2{-right.x, -right.y};
-
-                                       // Soft smoothing curve using effective speed above MIN to allow a small 'barely
-                                       // moving' effect at the minimum
-                                       float speedEffective = std::max(0.0f, absForwardVel - kMinSpeedForSteering);
-                                       float normalized     = speedEffective / (speedEffective + kRudderSmoothK);
-                                       float speedFactor = kRudderMinEffectiveScale + normalized * (1.0f - kRudderMinEffectiveScale);
-
-                                       // Compute force magnitude and apply at stern
-                                       float  forceMag = kPlayerTurningForce * kRudderForceMultiplier * speedFactor;
-                                       b2Vec2 force{lateral.x * forceMag, lateral.y * forceMag};
-
-                                       m_physicsBody->applyForce(force, stern);
+                                       m_wantsLeft = true;
+                                   }
+                                   else if (state == ActionState::Released)
+                                   {
+                                       m_wantsLeft = false;
                                    }
                                });
 
     m_input->setActionCallback("RotateRight",
                                [this](ActionState state)
                                {
-                                   if ((state == ActionState::Held || state == ActionState::Pressed) && m_physicsBody
-                                       && m_physicsBody->isInitialized())
+                                   if (state == ActionState::Held || state == ActionState::Pressed)
                                    {
-                                       // Rudder: apply a lateral force at the stern to create torque instead of applying pure torque
-                                       b2Vec2 forward = m_physicsBody->getForwardVector();
-                                       b2Vec2 right   = m_physicsBody->getRightVector();
-                                       b2Vec2 vel     = m_physicsBody->getLinearVelocity();
-
-                                       float forwardVelSigned = forward.x * vel.x + forward.y * vel.y;  // signed forward velocity
-                                       float absForwardVel = std::fabs(forwardVelSigned);  // only forward/back velocity matters
-
-                                       // Only allow rudder to act if moving above a small threshold along the forward axis
-                                       if (absForwardVel < kMinSpeedForSteering)
-                                           return;
-
-                                       // Stern location (meters) behind the center of mass
-                                       b2Vec2 stern = m_physicsBody->getPosition() - forward * kRudderOffsetMeters;
-
-                                       // Determine lateral direction (invert when reversing)
-                                       b2Vec2 lateral = (forwardVelSigned >= 0.0f) ? b2Vec2{-right.x, -right.y} : right;
-
-                                       // Soft smoothing curve using effective speed above MIN to allow a small 'barely
-                                       // moving' effect at the minimum
-                                       float speedEffective = std::max(0.0f, absForwardVel - kMinSpeedForSteering);
-                                       float normalized     = speedEffective / (speedEffective + kRudderSmoothK);
-                                       float speedFactor = kRudderMinEffectiveScale + normalized * (1.0f - kRudderMinEffectiveScale);
-
-                                       // Compute force magnitude and apply at stern
-                                       float  forceMag = kPlayerTurningForce * kRudderForceMultiplier * speedFactor;
-                                       b2Vec2 force{lateral.x * forceMag, lateral.y * forceMag};
-
-                                       m_physicsBody->applyForce(force, stern);
+                                       m_wantsRight = true;
+                                   }
+                                   else if (state == ActionState::Released)
+                                   {
+                                       m_wantsRight = false;
                                    }
                                });
 }
@@ -503,4 +453,85 @@ void Boat::checkStopMotorBoat()
         FadeConfig fadeOut = FadeConfig::linear(kMotorFadeDuration, true);
         m_audioSystem->stopSFXWithFade(m_motorBoatHandle, fadeOut);
     }
+}
+
+void Boat::setupFixedUpdate()
+{
+    if (!m_physicsBody)
+        return;
+
+    // Set the fixed-update callback that runs once per physics step (60Hz)
+    // This ensures frame-rate independent movement
+    m_physicsBody->setFixedUpdateCallback(
+        [this](float /*timeStep*/)
+        {
+            if (!m_physicsBody || !m_physicsBody->isInitialized())
+                return;
+
+            // Apply forward/backward thrust
+            if (m_wantsForward)
+            {
+                b2Vec2 forward = m_physicsBody->getForwardVector();
+                b2Vec2 force   = {forward.x * kPlayerForce, forward.y * kPlayerForce};
+                m_physicsBody->applyForceToCenter(force);
+            }
+            else if (m_wantsBackward)
+            {
+                b2Vec2 forward = m_physicsBody->getForwardVector();
+                b2Vec2 force   = {-forward.x * (kPlayerForce / 2), -forward.y * (kPlayerForce / 2)};
+                m_physicsBody->applyForceToCenter(force);
+            }
+
+            // Apply rudder steering (left)
+            if (m_wantsLeft)
+            {
+                b2Vec2 forward = m_physicsBody->getForwardVector();
+                b2Vec2 right   = m_physicsBody->getRightVector();
+                b2Vec2 vel     = m_physicsBody->getLinearVelocity();
+
+                float forwardVelSigned = forward.x * vel.x + forward.y * vel.y;
+                float absForwardVel    = std::fabs(forwardVelSigned);
+
+                if (absForwardVel >= kMinSpeedForSteering)
+                {
+                    b2Vec2 stern   = m_physicsBody->getPosition() - forward * kRudderOffsetMeters;
+                    b2Vec2 lateral = (forwardVelSigned >= 0.0f) ? right : b2Vec2{-right.x, -right.y};
+
+                    float speedEffective = std::max(0.0f, absForwardVel - kMinSpeedForSteering);
+                    float normalized     = speedEffective / (speedEffective + kRudderSmoothK);
+                    float speedFactor    = kRudderMinEffectiveScale + normalized * (1.0f - kRudderMinEffectiveScale);
+
+                    float  forceMag = kPlayerTurningForce * kRudderForceMultiplier * speedFactor;
+                    b2Vec2 force{lateral.x * forceMag, lateral.y * forceMag};
+
+                    m_physicsBody->applyForce(force, stern);
+                }
+            }
+
+            // Apply rudder steering (right)
+            if (m_wantsRight)
+            {
+                b2Vec2 forward = m_physicsBody->getForwardVector();
+                b2Vec2 right   = m_physicsBody->getRightVector();
+                b2Vec2 vel     = m_physicsBody->getLinearVelocity();
+
+                float forwardVelSigned = forward.x * vel.x + forward.y * vel.y;
+                float absForwardVel    = std::fabs(forwardVelSigned);
+
+                if (absForwardVel >= kMinSpeedForSteering)
+                {
+                    b2Vec2 stern   = m_physicsBody->getPosition() - forward * kRudderOffsetMeters;
+                    b2Vec2 lateral = (forwardVelSigned >= 0.0f) ? b2Vec2{-right.x, -right.y} : right;
+
+                    float speedEffective = std::max(0.0f, absForwardVel - kMinSpeedForSteering);
+                    float normalized     = speedEffective / (speedEffective + kRudderSmoothK);
+                    float speedFactor    = kRudderMinEffectiveScale + normalized * (1.0f - kRudderMinEffectiveScale);
+
+                    float  forceMag = kPlayerTurningForce * kRudderForceMultiplier * speedFactor;
+                    b2Vec2 force{lateral.x * forceMag, lateral.y * forceMag};
+
+                    m_physicsBody->applyForce(force, stern);
+                }
+            }
+        });
 }

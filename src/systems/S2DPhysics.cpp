@@ -152,4 +152,41 @@ void S2DPhysics::rayCast(const b2Vec2& origin, const b2Vec2& translation, b2Cast
     b2World_CastRay(m_worldId, origin, translation, filter, callback, context);
 }
 
+void S2DPhysics::registerBody(Components::CPhysicsBody2D* body)
+{
+    if (!body)
+        return;
+
+    // Check if already registered
+    auto it = std::find(m_registeredBodies.begin(), m_registeredBodies.end(), body);
+    if (it == m_registeredBodies.end())
+    {
+        m_registeredBodies.push_back(body);
+    }
+}
+
+void S2DPhysics::unregisterBody(Components::CPhysicsBody2D* body)
+{
+    if (!body)
+        return;
+
+    auto it = std::find(m_registeredBodies.begin(), m_registeredBodies.end(), body);
+    if (it != m_registeredBodies.end())
+    {
+        m_registeredBodies.erase(it);
+    }
+}
+
+void S2DPhysics::runFixedUpdates(float timeStep)
+{
+    // Iterate all registered physics bodies and invoke their fixed-update callbacks
+    for (auto* body : m_registeredBodies)
+    {
+        if (body && body->isInitialized() && body->hasFixedUpdateCallback())
+        {
+            body->getFixedUpdateCallback()(timeStep);
+        }
+    }
+}
+
 }  // namespace Systems

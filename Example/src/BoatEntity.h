@@ -49,6 +49,7 @@ private:
     void configureBubbleTrail();
     void configureHullSpray();
     void bindInputCallbacks();
+    void setupFixedUpdate();
     void syncEmittersToBoat();
     void updateHullSprayForSpeed(float speed);
     void startMotorBoat();
@@ -64,6 +65,12 @@ private:
     Components::CTransform*       m_transform   = nullptr;
     Components::CPhysicsBody2D*   m_physicsBody = nullptr;
     Components::CInputController* m_input       = nullptr;
+
+    // Input intent state (set by input callbacks, consumed by fixed update)
+    bool m_wantsForward  = false;
+    bool m_wantsBackward = false;
+    bool m_wantsLeft     = false;
+    bool m_wantsRight    = false;
 
     std::shared_ptr<::Entity::Entity> m_bubbleTrail;
     Components::CParticleEmitter*     m_bubbleEmitter = nullptr;

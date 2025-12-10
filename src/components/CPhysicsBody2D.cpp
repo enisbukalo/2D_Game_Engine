@@ -23,6 +23,12 @@ CPhysicsBody2D::CPhysicsBody2D()
 
 CPhysicsBody2D::~CPhysicsBody2D()
 {
+    // Unregister from fixed-update callbacks
+    if (m_initialized)
+    {
+        ::Systems::S2DPhysics::instance().unregisterBody(this);
+    }
+
     if (m_initialized && b2Body_IsValid(m_bodyId) && getOwner())
     {
         ::Systems::S2DPhysics::instance().destroyBody(getOwner());
@@ -75,6 +81,9 @@ void CPhysicsBody2D::initialize(const b2Vec2& position, BodyType type)
             b2Body_SetFixedRotation(m_bodyId, true);
         }
     }
+
+    // Auto-register this body for fixed-update callbacks
+    ::Systems::S2DPhysics::instance().registerBody(this);
 }
 
 void CPhysicsBody2D::setBodyType(BodyType type)
