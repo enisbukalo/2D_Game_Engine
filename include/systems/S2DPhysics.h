@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -38,8 +39,8 @@ private:
     // Entity handle to b2BodyId mapping (generation-aware via Entity key)
     std::unordered_map<Entity, b2BodyId> m_entityBodyMap;
 
-    // Registered physics bodies for fixed-update callbacks
-    std::vector<Components::CPhysicsBody2D*> m_registeredBodies;
+    // Per-entity fixed-update callbacks
+    std::unordered_map<Entity, std::function<void(float)>> m_fixedCallbacks;
 
     // Timestep settings
     float m_timeStep;
@@ -47,6 +48,8 @@ private:
 
     // Internal helpers
     void ensureBodyForEntity(Entity entity, Components::CTransform& transform, Components::CPhysicsBody2D& body);
+    void syncFromTransform(Entity entity, const Components::CTransform& transform);
+    void syncToTransform(Entity entity, Components::CTransform& transform);
     void pruneDestroyedBodies(const World& world);
 
 public:
@@ -137,7 +140,7 @@ public:
      * @param entity Entity ID to query
      * @return Body ID (invalid if entity has no body)
      */
-    b2BodyId getBody(Entity entity);
+    b2BodyId getBody(Entity entity) const;
 
     /**
      * @brief Query the world for all bodies overlapping an AABB
@@ -161,24 +164,26 @@ public:
      * This is called automatically by CPhysicsBody2D::initialize().
      * Do not call manually unless you know what you're doing.
      */
-    void registerBody(Components::CPhysicsBody2D* body);
+    // Fixed update callbacks are now system-owned
+    void setFixedUpdateCallback(Entity entity, std::function<void(float)> callback);
+    void clearFixedUpdateCallback(Entity entity);
 
-    /**
-     * @brief Unregister a physics body from fixed-update callbacks
-     * @param body Physics body component to unregister
-     *
-     * This is called automatically by CPhysicsBody2D destructor.
-     * Do not call manually unless you know what you're doing.
-     */
-    void unregisterBody(Components::CPhysicsBody2D* body);
+    // Body forces and queries
+    void   applyForce(Entity entity, const b2Vec2& force, const b2Vec2& point);
+    void   applyForceToCenter(Entity entity, const b2Vec2& force);
+    void   applyLinearImpulse(Entity entity, const b2Vec2& impulse, const b2Vec2& point);
+    void   applyLinearImpulseToCenter(Entity entity, const b2Vec2& impulse);
+    void   applyAngularImpulse(Entity entity, float impulse);
+    void   applyTorque(Entity entity, float torque);
+    void   setLinearVelocity(Entity entity, const b2Vec2& velocity);
+    void   setAngularVelocity(Entity entity, float omega);
+    b2Vec2 getLinearVelocity(Entity entity) const;
+    float  getAngularVelocity(Entity entity) const;
+    b2Vec2 getPosition(Entity entity) const;
+    float  getRotation(Entity entity) const;
+    b2Vec2 getForwardVector(Entity entity) const;
+    b2Vec2 getRightVector(Entity entity) const;
 
-    /**
-     * @brief Run fixed-update callbacks for all registered physics bodies
-     * @param timeStep Fixed timestep value to pass to callbacks
-     *
-     * This is called by GameEngine before each physics step.
-     * It iterates all registered bodies and invokes their fixed-update callbacks.
-     */
     void runFixedUpdates(float timeStep);
 };
 

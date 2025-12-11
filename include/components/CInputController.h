@@ -1,48 +1,35 @@
 #pragma once
 
-#include <functional>
 #include <string>
 #include <unordered_map>
 #include <vector>
 #include "Input/ActionBinding.h"
-#include "Input/IInputListener.h"
 #include "Input/InputEvents.h"
 
 namespace Components
 {
 
-struct CInputController : public IInputListener
+/**
+ * @brief Input controller data component.
+ *
+ * Stores desired action bindings and the latest observed action states. All
+ * behavior (binding to the input system, dispatching callbacks, polling state)
+ * lives in Systems::SInput. This component is pure data so systems can decide
+ * how to consume or synchronize input for an entity.
+ */
+struct CInputController
 {
-public:
-    CInputController();
-    ~CInputController();
-
-    // Component lifecycle
-    void init();
-    void update(float deltaTime) {}
-
-    // Bindings
-    void bindAction(const std::string& actionName, const ActionBinding& binding);
-    void unbindAction(const std::string& actionName);
-
-    // Callbacks & queries
-    void setActionCallback(const std::string& actionName, std::function<void(ActionState)> cb);
-    bool isActionDown(const std::string& actionName) const;
-    bool wasActionPressed(const std::string& actionName) const;
-    bool wasActionReleased(const std::string& actionName) const;
-
-    // IInputListener overrides
-    void onAction(const ActionEvent& ev) override;
-
-private:
-    struct LocalBinding
+    struct Binding
     {
         ActionBinding binding;
         size_t        bindingId{0};
     };
-    std::unordered_map<std::string, std::vector<LocalBinding>>        m_bindings;
-    std::unordered_map<std::string, std::function<void(ActionState)>> m_callbacks;
-    std::unordered_map<std::string, ActionState>                      m_localActionState;
+
+    // Desired bindings for this entity's actions
+    std::unordered_map<std::string, std::vector<Binding>> bindings;
+
+    // Latest known action states (filled by systems)
+    std::unordered_map<std::string, ActionState> actionStates;
 };
 
 }  // namespace Components

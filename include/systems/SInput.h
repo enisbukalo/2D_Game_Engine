@@ -44,6 +44,11 @@ private:
     std::vector<IInputListener*>                                           m_listenerPointers;
     ListenerId                                                             m_nextListenerId = 1;
 
+    // Helper to namespace actions per-entity so identical action names across entities don't collide
+    std::string scopeAction(Entity entity, const std::string& actionName) const;
+    void        registerControllerBindings(World& world);
+    void        updateControllerStates(World& world);
+
 public:
     SInput();
     ~SInput();

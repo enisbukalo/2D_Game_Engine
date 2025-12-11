@@ -22,7 +22,6 @@ S2DPhysics::S2DPhysics() : m_timeStep(1.0f / 60.0f), m_subStepCount(6)
 
 S2DPhysics::~S2DPhysics()
 {
-    // Destroy all bodies
     for (auto& pair : m_entityBodyMap)
     {
         if (b2Body_IsValid(pair.second))
@@ -31,8 +30,8 @@ S2DPhysics::~S2DPhysics()
         }
     }
     m_entityBodyMap.clear();
+    m_fixedCallbacks.clear();
 
-    // Destroy world
     if (b2World_IsValid(m_worldId))
     {
         b2DestroyWorld(m_worldId);
@@ -43,28 +42,23 @@ void S2DPhysics::update(float deltaTime, World& world)
 {
     (void)deltaTime;
 
-    // Clean up any bodies that belong to destroyed entities
     pruneDestroyedBodies(world);
 
-    // Ensure every entity with physics+transform has a Box2D body and sync state before stepping
     world.view2<::Components::CTransform, ::Components::CPhysicsBody2D>([this](Entity entity,
                                                                                 ::Components::CTransform&     transform,
                                                                                 ::Components::CPhysicsBody2D& body)
                                                                        {
                                                                            ensureBodyForEntity(entity, transform, body);
-                                                                           body.syncFromTransform(&transform);
+                                                                           syncFromTransform(entity, transform);
                                                                        });
 
-    // Run fixed-step callbacks then advance the physics world
     runFixedUpdates(m_timeStep);
     b2World_Step(m_worldId, m_timeStep, m_subStepCount);
 
-    // Sync simulation results back to transforms
-    world.view2<::Components::CTransform, ::Components::CPhysicsBody2D>([](Entity /*entity*/,
-                                                                           ::Components::CTransform&     transform,
-                                                                           ::Components::CPhysicsBody2D& body)
-                                                                       { body.syncToTransform(&transform); });
-
+    world.view2<::Components::CTransform, ::Components::CPhysicsBody2D>([this](Entity entity,
+                                                                                ::Components::CTransform&     transform,
+                                                                                ::Components::CPhysicsBody2D& body)
+                                                                       { syncToTransform(entity, transform); });
 }
 
 void S2DPhysics::setGravity(const b2Vec2& gravity)
@@ -121,6 +115,7 @@ void S2DPhysics::destroyBody(Entity entity)
         }
         m_entityBodyMap.erase(it);
     }
+    m_fixedCallbacks.erase(entity);
 }
 
 void S2DPhysics::ensureBodyForEntity(Entity entity, ::Components::CTransform& transform, ::Components::CPhysicsBody2D& body)
@@ -130,19 +125,40 @@ void S2DPhysics::ensureBodyForEntity(Entity entity, ::Components::CTransform& tr
         return;
     }
 
-    body.setEntity(entity);
+    body.owner = entity;
 
     b2BodyId existing = getBody(entity);
     if (!b2Body_IsValid(existing))
     {
-        body.initialize({transform.position.x, transform.position.y}, body.getBodyType());
-        existing = getBody(entity);
+        b2BodyDef bodyDef   = b2DefaultBodyDef();
+        bodyDef.position    = {transform.position.x, transform.position.y};
+        bodyDef.linearDamping  = body.linearDamping;
+        bodyDef.angularDamping = body.angularDamping;
+        bodyDef.gravityScale   = body.gravityScale;
+
+        switch (body.bodyType)
+        {
+            case Components::BodyType::Static:
+                bodyDef.type = b2_staticBody;
+                break;
+            case Components::BodyType::Kinematic:
+                bodyDef.type = b2_kinematicBody;
+                break;
+            case Components::BodyType::Dynamic:
+                bodyDef.type = b2_dynamicBody;
+                break;
+        }
+
+        existing = createBody(entity, bodyDef);
     }
 
-    // Ensure we keep the mapping in sync even if initialize was skipped elsewhere
     if (b2Body_IsValid(existing))
     {
         m_entityBodyMap[entity] = existing;
+        b2Body_SetFixedRotation(existing, body.fixedRotation);
+        b2Body_SetLinearDamping(existing, body.linearDamping);
+        b2Body_SetAngularDamping(existing, body.angularDamping);
+        b2Body_SetGravityScale(existing, body.gravityScale);
     }
 }
 
@@ -150,24 +166,21 @@ void S2DPhysics::pruneDestroyedBodies(const World& world)
 {
     for (auto it = m_entityBodyMap.begin(); it != m_entityBodyMap.end();)
     {
-        const Entity entity = it->first;
-        const b2BodyId body = it->second;
+        const Entity  entity = it->first;
+        const b2BodyId body  = it->second;
 
-        const bool deadEntity    = !world.isAlive(entity);
+        const bool deadEntity        = !world.isAlive(entity);
         const bool missingComponents = deadEntity || !world.has<::Components::CPhysicsBody2D>(entity) ||
                                        !world.has<::Components::CTransform>(entity);
-        const bool deadBody   = !b2Body_IsValid(body);
+        const bool deadBody = !b2Body_IsValid(body);
 
         if (missingComponents || deadBody)
         {
-            if (deadBody)
+            if (!deadBody)
             {
-                // Body already gone; just drop the mapping
-                it = m_entityBodyMap.erase(it);
-                continue;
+                b2DestroyBody(body);
             }
-
-            destroyBody(entity);
+            m_fixedCallbacks.erase(entity);
             it = m_entityBodyMap.erase(it);
             continue;
         }
@@ -176,7 +189,7 @@ void S2DPhysics::pruneDestroyedBodies(const World& world)
     }
 }
 
-b2BodyId S2DPhysics::getBody(Entity entity)
+b2BodyId S2DPhysics::getBody(Entity entity) const
 {
     if (!entity.isValid())
     {
@@ -204,40 +217,209 @@ void S2DPhysics::rayCast(const b2Vec2& origin, const b2Vec2& translation, b2Cast
     b2World_CastRay(m_worldId, origin, translation, filter, callback, context);
 }
 
-void S2DPhysics::registerBody(Components::CPhysicsBody2D* body)
+void S2DPhysics::setFixedUpdateCallback(Entity entity, std::function<void(float)> callback)
 {
-    if (!body)
-        return;
-
-    // Check if already registered
-    auto it = std::find(m_registeredBodies.begin(), m_registeredBodies.end(), body);
-    if (it == m_registeredBodies.end())
+    if (!entity.isValid())
     {
-        m_registeredBodies.push_back(body);
+        return;
+    }
+
+    if (!callback)
+    {
+        m_fixedCallbacks.erase(entity);
+        return;
+    }
+
+    m_fixedCallbacks[entity] = std::move(callback);
+}
+
+void S2DPhysics::clearFixedUpdateCallback(Entity entity)
+{
+    m_fixedCallbacks.erase(entity);
+}
+
+void S2DPhysics::syncFromTransform(Entity entity, const ::Components::CTransform& transform)
+{
+    const b2BodyId bodyId = getBody(entity);
+    if (!b2Body_IsValid(bodyId))
+    {
+        return;
+    }
+
+    b2Body_SetTransform(bodyId, {transform.position.x, transform.position.y}, b2MakeRot(transform.rotation));
+    b2Body_SetLinearVelocity(bodyId, {transform.velocity.x, transform.velocity.y});
+}
+
+void S2DPhysics::syncToTransform(Entity entity, ::Components::CTransform& transform)
+{
+    const b2BodyId bodyId = getBody(entity);
+    if (!b2Body_IsValid(bodyId))
+    {
+        return;
+    }
+
+    b2Vec2 pos   = b2Body_GetPosition(bodyId);
+    b2Rot  rot   = b2Body_GetRotation(bodyId);
+    float  angle = b2Rot_GetAngle(rot);
+    b2Vec2 vel   = b2Body_GetLinearVelocity(bodyId);
+
+    transform.position = {pos.x, pos.y};
+    transform.rotation = angle;
+    transform.velocity = {vel.x, vel.y};
+}
+
+void S2DPhysics::applyForce(Entity entity, const b2Vec2& force, const b2Vec2& point)
+{
+    const b2BodyId bodyId = getBody(entity);
+    if (b2Body_IsValid(bodyId))
+    {
+        b2Body_ApplyForce(bodyId, force, point, true);
     }
 }
 
-void S2DPhysics::unregisterBody(Components::CPhysicsBody2D* body)
+void S2DPhysics::applyForceToCenter(Entity entity, const b2Vec2& force)
 {
-    if (!body)
-        return;
-
-    auto it = std::find(m_registeredBodies.begin(), m_registeredBodies.end(), body);
-    if (it != m_registeredBodies.end())
+    const b2BodyId bodyId = getBody(entity);
+    if (b2Body_IsValid(bodyId))
     {
-        m_registeredBodies.erase(it);
+        b2Body_ApplyForceToCenter(bodyId, force, true);
     }
+}
+
+void S2DPhysics::applyLinearImpulse(Entity entity, const b2Vec2& impulse, const b2Vec2& point)
+{
+    const b2BodyId bodyId = getBody(entity);
+    if (b2Body_IsValid(bodyId))
+    {
+        b2Body_ApplyLinearImpulse(bodyId, impulse, point, true);
+    }
+}
+
+void S2DPhysics::applyLinearImpulseToCenter(Entity entity, const b2Vec2& impulse)
+{
+    const b2BodyId bodyId = getBody(entity);
+    if (b2Body_IsValid(bodyId))
+    {
+        b2Body_ApplyLinearImpulseToCenter(bodyId, impulse, true);
+    }
+}
+
+void S2DPhysics::applyAngularImpulse(Entity entity, float impulse)
+{
+    const b2BodyId bodyId = getBody(entity);
+    if (b2Body_IsValid(bodyId))
+    {
+        b2Body_ApplyAngularImpulse(bodyId, impulse, true);
+    }
+}
+
+void S2DPhysics::applyTorque(Entity entity, float torque)
+{
+    const b2BodyId bodyId = getBody(entity);
+    if (b2Body_IsValid(bodyId))
+    {
+        b2Body_ApplyTorque(bodyId, torque, true);
+    }
+}
+
+void S2DPhysics::setLinearVelocity(Entity entity, const b2Vec2& velocity)
+{
+    const b2BodyId bodyId = getBody(entity);
+    if (b2Body_IsValid(bodyId))
+    {
+        b2Body_SetLinearVelocity(bodyId, velocity);
+    }
+}
+
+void S2DPhysics::setAngularVelocity(Entity entity, float omega)
+{
+    const b2BodyId bodyId = getBody(entity);
+    if (b2Body_IsValid(bodyId))
+    {
+        b2Body_SetAngularVelocity(bodyId, omega);
+    }
+}
+
+b2Vec2 S2DPhysics::getLinearVelocity(Entity entity) const
+{
+    const b2BodyId bodyId = getBody(entity);
+    if (b2Body_IsValid(bodyId))
+    {
+        return b2Body_GetLinearVelocity(bodyId);
+    }
+    return {0.0f, 0.0f};
+}
+
+float S2DPhysics::getAngularVelocity(Entity entity) const
+{
+    const b2BodyId bodyId = getBody(entity);
+    if (b2Body_IsValid(bodyId))
+    {
+        return b2Body_GetAngularVelocity(bodyId);
+    }
+    return 0.0f;
+}
+
+b2Vec2 S2DPhysics::getPosition(Entity entity) const
+{
+    const b2BodyId bodyId = getBody(entity);
+    if (b2Body_IsValid(bodyId))
+    {
+        return b2Body_GetPosition(bodyId);
+    }
+    return {0.0f, 0.0f};
+}
+
+float S2DPhysics::getRotation(Entity entity) const
+{
+    const b2BodyId bodyId = getBody(entity);
+    if (b2Body_IsValid(bodyId))
+    {
+        b2Rot rot = b2Body_GetRotation(bodyId);
+        return b2Rot_GetAngle(rot);
+    }
+    return 0.0f;
+}
+
+b2Vec2 S2DPhysics::getForwardVector(Entity entity) const
+{
+    const b2BodyId bodyId = getBody(entity);
+    if (b2Body_IsValid(bodyId))
+    {
+        b2Rot rot = b2Body_GetRotation(bodyId);
+        return b2Rot_GetYAxis(rot);
+    }
+    return {0.0f, 1.0f};
+}
+
+b2Vec2 S2DPhysics::getRightVector(Entity entity) const
+{
+    const b2BodyId bodyId = getBody(entity);
+    if (b2Body_IsValid(bodyId))
+    {
+        b2Rot rot = b2Body_GetRotation(bodyId);
+        return b2Rot_GetXAxis(rot);
+    }
+    return {1.0f, 0.0f};
 }
 
 void S2DPhysics::runFixedUpdates(float timeStep)
 {
-    // Iterate all registered physics bodies and invoke their fixed-update callbacks
-    for (auto* body : m_registeredBodies)
+    for (auto it = m_fixedCallbacks.begin(); it != m_fixedCallbacks.end();)
     {
-        if (body && body->isInitialized() && body->hasFixedUpdateCallback())
+        const Entity entity = it->first;
+        const b2BodyId body = getBody(entity);
+        if (!b2Body_IsValid(body))
         {
-            body->getFixedUpdateCallback()(timeStep);
+            it = m_fixedCallbacks.erase(it);
+            continue;
         }
+
+        if (it->second)
+        {
+            it->second(timeStep);
+        }
+        ++it;
     }
 }
 

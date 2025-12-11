@@ -4,6 +4,10 @@
 #include <imgui.h>
 #include <spdlog/spdlog.h>
 #include <algorithm>
+#include <string>
+
+#include "CInputController.h"
+#include "World.h"
 
 namespace Systems
 {
@@ -404,7 +408,6 @@ void SInput::processEvent(const sf::Event& event)
 
 void SInput::update(float /*deltaTime*/, World& world)
 {
-    (void)world;
     // Clear transient states (pressed/released) at start of update
     for (auto& kv : m_actionStates)
         if (kv.second == ActionState::Released)
@@ -416,9 +419,14 @@ void SInput::update(float /*deltaTime*/, World& world)
     m_mouseReleased.clear();
     if (!m_window)
         return;
+
+    // Pump events
     sf::Event event;
     while (m_window->pollEvent(event))
         processEvent(event);
+
+    // Ensure controller bindings are registered before evaluating action states
+    registerControllerBindings(world);
 
     // Evaluate actions centrally
     for (const auto& actionKv : m_actionBindings)
@@ -523,6 +531,46 @@ void SInput::update(float /*deltaTime*/, World& world)
                     l->onAction(ie.action);
         }
     }
+
+    // Push updated action states back into input controller components
+    updateControllerStates(world);
+}
+
+std::string SInput::scopeAction(Entity entity, const std::string& actionName) const
+{
+    return actionName + "@E" + std::to_string(entity.index) + "." + std::to_string(entity.generation);
+}
+
+void SInput::registerControllerBindings(World& world)
+{
+    world.each<Components::CInputController>([this](Entity entity, Components::CInputController& controller)
+                                             {
+                                                 for (auto& kv : controller.bindings)
+                                                 {
+                                                     const std::string& actionName = kv.first;
+                                                     for (auto& binding : kv.second)
+                                                     {
+                                                         if (binding.bindingId == 0)
+                                                         {
+                                                             std::string scoped = scopeAction(entity, actionName);
+                                                             binding.bindingId   = bindAction(scoped, binding.binding);
+                                                         }
+                                                     }
+                                                 }
+                                             });
+}
+
+void SInput::updateControllerStates(World& world)
+{
+    world.each<Components::CInputController>([this](Entity entity, Components::CInputController& controller)
+                                             {
+                                                 for (auto& kv : controller.bindings)
+                                                 {
+                                                     const std::string& actionName = kv.first;
+                                                     std::string        scoped     = scopeAction(entity, actionName);
+                                                     controller.actionStates[actionName] = getActionState(scoped);
+                                                 }
+                                             });
 }
 
 ListenerId SInput::subscribe(std::function<void(const InputEvent&)> cb)
