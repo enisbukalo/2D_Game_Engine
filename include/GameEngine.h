@@ -10,7 +10,6 @@
 #include <World.h>
 
 // Include system and manager headers
-#include <ComponentFactory.h>
 #include <S2DPhysics.h>
 #include <SAudio.h>
 #include <SInput.h>
@@ -109,12 +108,6 @@ public:
      * @return Reference to the SScene singleton
      */
     Systems::SScene& getSceneManager();
-
-    /**
-     * @brief Gets the component factory instance
-     * @return Reference to the ComponentFactory singleton
-     */
-    Components::ComponentFactory& getComponentFactory();
 
     /**
      * @brief Gets the Box2D physics system instance

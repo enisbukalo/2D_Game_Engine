@@ -5,7 +5,7 @@
 #include <memory>
 #include <vector>
 #include "Color.h"
-#include "Component.h"
+#include "SSerialization.h"
 #include "Vec2.h"
 
 namespace Components
@@ -57,7 +57,7 @@ struct Particle
  * This component contains all particle emission configuration and state.
  * The emitter automatically follows the entity's transform position.
  */
-class CParticleEmitter : public Component
+struct CParticleEmitter
 {
 public:
     CParticleEmitter();
@@ -84,6 +84,9 @@ public:
      * @return Count of currently alive particles
      */
     size_t getAliveCount() const;
+
+    bool  isActive() const { return m_enabled; }
+    void  setActive(bool active) { m_enabled = active; }
 
     // Configuration getters/setters
     Vec2  getDirection() const;
@@ -179,6 +182,8 @@ public:
     void                         setEmissionTimer(float timer);
 
 private:
+    bool m_enabled = true;  ///< Whether the emitter is active
+
     // Configuration
     Vec2  m_direction        = Vec2(0, 1);        ///< Base emission direction (normalized)
     float m_spreadAngle      = 0.5f;              ///< Spread angle in radians (cone of emission)

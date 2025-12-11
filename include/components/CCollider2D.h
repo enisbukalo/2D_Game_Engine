@@ -1,13 +1,8 @@
 #pragma once
 
 #include <vector>
-#include "Component.h"
+#include "SSerialization.h"
 #include "box2d/box2d.h"
-
-namespace Components
-{
-class CPhysicsBody2D;
-}
 
 namespace Components
 {
@@ -38,7 +33,6 @@ enum class ColliderShape
  */
 struct ShapeFixture
 {
-    b2ShapeId     shapeId;
     ColliderShape shapeType;
 
     // Shape parameters
@@ -75,7 +69,7 @@ struct ShapeFixture
     } shapeData;
 };
 
-class CCollider2D : public Component
+struct CCollider2D
 {
 private:
     std::vector<ShapeFixture> m_fixtures;
@@ -185,7 +179,7 @@ public:
      */
     b2ShapeId getShapeId() const
     {
-        return m_fixtures.empty() ? b2_nullShapeId : m_fixtures[0].shapeId;
+        return b2_nullShapeId;
     }
 
     /**
@@ -322,17 +316,6 @@ public:
     void        serialize(Serialization::JsonBuilder& builder) const;
     void        deserialize(const Serialization::SSerialization::JsonValue& value);
     std::string getType() const;
-
-private:
-    /**
-     * @brief Attach the shape to the physics body
-     */
-    void attachToBody();
-
-    /**
-     * @brief Destroy the current shape if it exists
-     */
-    void destroyShape();
 };
 
 }  // namespace Components

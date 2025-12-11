@@ -19,11 +19,6 @@ void CAudioSource::init()
 
 void CAudioSource::update(float deltaTime)
 {
-    if (!isActive())
-    {
-        return;
-    }
-
 #if 0  // TODO: Requires Registry access in update()
     // For SFX only: sync position if spatial and playing
     if (m_type == AudioType::SFX && m_spatial && m_playHandle.isValid())
@@ -53,9 +48,6 @@ void CAudioSource::serialize(Serialization::JsonBuilder& builder) const
     builder.addString(getType());
     builder.addKey("data");
     builder.beginObject();
-
-    builder.addKey("guid");
-    builder.addString(getGuid());
 
     builder.addKey("clip");
     builder.addString(m_clipId);

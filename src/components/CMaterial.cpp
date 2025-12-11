@@ -14,39 +14,21 @@ void CMaterial::serialize(Serialization::JsonBuilder& builder) const
     builder.beginObject();
     builder.addKey("cMaterial");
     builder.beginObject();
-
-    // Serialize component GUID
-    builder.addKey("guid");
-    builder.addString(getGuid());
-
-    // Serialize texture GUID
-    builder.addKey("textureGuid");
-    builder.addString(m_textureGuid);
-
-    // Serialize shader GUID
-    builder.addKey("shaderGuid");
-    builder.addString(m_shaderGuid);
-
-    // Serialize tint color
     builder.addKey("tint");
     builder.beginObject();
     builder.addKey("r");
-    builder.addNumber(m_tint.r);
+    builder.addNumber(tint.r);
     builder.addKey("g");
-    builder.addNumber(m_tint.g);
+    builder.addNumber(tint.g);
     builder.addKey("b");
-    builder.addNumber(m_tint.b);
+    builder.addNumber(tint.b);
     builder.addKey("a");
-    builder.addNumber(m_tint.a);
+    builder.addNumber(tint.a);
     builder.endObject();
-
-    // Serialize blend mode
     builder.addKey("blendMode");
-    builder.addNumber(static_cast<int>(m_blendMode));
-
-    // Serialize opacity
+    builder.addNumber(static_cast<int>(blendMode));
     builder.addKey("opacity");
-    builder.addNumber(m_opacity);
+    builder.addNumber(opacity);
 
     builder.endObject();
     builder.endObject();
@@ -55,81 +37,44 @@ void CMaterial::serialize(Serialization::JsonBuilder& builder) const
 void CMaterial::deserialize(const Serialization::SSerialization::JsonValue& value)
 {
     const auto& material = value["cMaterial"];
-
-    // Deserialize component GUID
-    if (material.hasKey("guid"))
-    {
-        setGuid(material["guid"].getString());
-    }
-
-    // Deserialize texture GUID
-    m_textureGuid = material["textureGuid"].getString();
-
-    // Deserialize shader GUID
-    m_shaderGuid = material["shaderGuid"].getString();
-
-    // Deserialize tint color
     const auto& tint = material["tint"];
-    m_tint.r         = static_cast<uint8_t>(tint["r"].getNumber());
-    m_tint.g         = static_cast<uint8_t>(tint["g"].getNumber());
-    m_tint.b         = static_cast<uint8_t>(tint["b"].getNumber());
-    m_tint.a         = static_cast<uint8_t>(tint["a"].getNumber());
+    tint.r              = static_cast<uint8_t>(tintObj["r"].getNumber());
+    tint.g              = static_cast<uint8_t>(tintObj["g"].getNumber());
+    tint.b              = static_cast<uint8_t>(tintObj["b"].getNumber());
+    tint.a              = static_cast<uint8_t>(tintObj["a"].getNumber());
 
-    // Deserialize blend mode
-    m_blendMode = static_cast<BlendMode>(static_cast<int>(material["blendMode"].getNumber()));
-
-    // Deserialize opacity
-    m_opacity = static_cast<float>(material["opacity"].getNumber());
-}
-
-std::string CMaterial::getTextureGuid() const
-{
-    return m_textureGuid;
-}
-
-void CMaterial::setTextureGuid(const std::string& textureGuid)
-{
-    m_textureGuid = textureGuid;
-}
-
-std::string CMaterial::getShaderGuid() const
-{
-    return m_shaderGuid;
-}
-
-void CMaterial::setShaderGuid(const std::string& shaderGuid)
-{
-    m_shaderGuid = shaderGuid;
+    blendMode = static_cast<BlendMode>(static_cast<int>(material["blendMode"].getNumber()));
+    opacity   = static_cast<float>(material["opacity"].getNumber());
 }
 
 Color CMaterial::getTint() const
 {
-    return m_tint;
+    return tint;
 }
 
 void CMaterial::setTint(const Color& tint)
 {
-    m_tint = tint;
+    this->tint = tint;
 }
 
 BlendMode CMaterial::getBlendMode() const
 {
-    return m_blendMode;
+    return blendMode;
 }
 
 void CMaterial::setBlendMode(BlendMode blendMode)
 {
-    m_blendMode = blendMode;
+    this->blendMode = blendMode;
 }
 
 float CMaterial::getOpacity() const
 {
-    return m_opacity;
+    return opacity;
 }
 
 void CMaterial::setOpacity(float opacity)
 {
-    m_opacity = opacity;
+    this->opacity = opacity;
 }
 
 }  // namespace Components

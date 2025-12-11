@@ -10,7 +10,6 @@ CInputController::CInputController() {}
 
 CInputController::~CInputController()
 {
-    // Unbind all registered global bindings
     for (const auto& kv : m_bindings)
     {
         const std::string& actionName = kv.first;
@@ -28,11 +27,6 @@ CInputController::~CInputController()
 void CInputController::init()
 {
     ::Systems::SInput::instance().addListener(this);
-}
-
-std::string CInputController::getType() const
-{
-    return "CInputController";
 }
 
 void CInputController::bindAction(const std::string& actionName, const ActionBinding& binding)
@@ -97,8 +91,6 @@ void CInputController::serialize(Serialization::JsonBuilder& builder) const
     builder.beginObject();
     builder.addKey("cInputController");
     builder.beginObject();
-    builder.addKey("guid");
-    builder.addString(getGuid());
     builder.addKey("actions");
     builder.beginArray();
 
@@ -158,10 +150,6 @@ void CInputController::deserialize(const Serialization::SSerialization::JsonValu
     const auto& comp = value["cInputController"];
     if (comp.isNull())
         return;
-    if (comp.hasKey("guid"))
-    {
-        setGuid(comp["guid"].getString());
-    }
     const auto& actions = comp["actions"].getArray();
     for (size_t i = 0; i < actions.size(); ++i)
     {

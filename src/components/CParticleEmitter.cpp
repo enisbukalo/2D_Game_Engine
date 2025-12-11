@@ -36,13 +36,9 @@ void CParticleEmitter::serialize(Serialization::JsonBuilder& builder) const
     builder.addKey("cParticleEmitter");
     builder.beginObject();
 
-    // Component GUID
-    builder.addKey("guid");
-    builder.addString(getGuid());
-
-    // Base component properties
+    // Component activity flag
     builder.addKey("active");
-    builder.addBool(isActive());
+    builder.addBool(m_enabled);
 
     // Emission direction and spread
     builder.addKey("direction");
@@ -206,16 +202,10 @@ void CParticleEmitter::deserialize(const Serialization::SSerialization::JsonValu
 {
     const auto& emitter = value["cParticleEmitter"];
 
-    // Component GUID
-    if (emitter.hasKey("guid"))
-    {
-        setGuid(emitter["guid"].getString());
-    }
-
-    // Base component properties
+    // Component activity flag
     if (emitter["active"].isBool())
     {
-        setActive(emitter["active"].getBool());
+        m_enabled = emitter["active"].getBool();
     }
 
     // Emission direction and spread

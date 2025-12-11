@@ -127,11 +127,7 @@ void Barrel::configureBarrel()
     m_transform   = addComponent<CTransform>(m_spawnPosition, Vec2(1.0f, 1.0f), 0.0f);
     auto* texture = addComponent<CTexture>("assets/textures/barrel.png");
     addComponent<CRenderable>(VisualType::Sprite, Color::White, kBarrelZIndex, true);
-    auto* material = addComponent<CMaterial>("", "", Color::White, BlendMode::Alpha, 1.0f);
-    if (texture && material)
-    {
-        material->setTextureGuid(texture->getGuid());
-    }
+    addComponent<CMaterial>(Color::White, BlendMode::Alpha, 1.0f);
 
     m_physics = addComponent<CPhysicsBody2D>();
     configurePhysics(m_physics, m_spawnPosition);

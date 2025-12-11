@@ -1,6 +1,5 @@
 #include "CPhysicsBody2D.h"
 #include "CTransform.h"
-// #include "Entity.h" // Removed - Entity is now just an ID
 #include "S2DPhysics.h"
 #include "Vec2.h"
 
@@ -17,21 +16,29 @@ CPhysicsBody2D::CPhysicsBody2D()
       m_linearDamping(0.25f),
       m_angularDamping(0.10f),
       m_gravityScale(1.0f),
+    m_entity(Entity::null()),
       m_initialized(false)
 {
 }
 
 CPhysicsBody2D::~CPhysicsBody2D()
 {
-    // Unregister from fixed-update callbacks
     if (m_initialized)
     {
         ::Systems::S2DPhysics::instance().unregisterBody(this);
-    }
 
-    if (m_initialized && b2Body_IsValid(m_bodyId) && getOwner())
-    {
-        ::Systems::S2DPhysics::instance().destroyBody(getOwner());
+        if (b2Body_IsValid(m_bodyId))
+        {
+            if (m_entity.isValid())
+            {
+                ::Systems::S2DPhysics::instance().destroyBody(m_entity);
+            }
+            else
+            {
+                b2DestroyBody(m_bodyId);
+            }
+        }
+
         m_bodyId      = b2_nullBodyId;
         m_initialized = false;
     }
@@ -39,13 +46,18 @@ CPhysicsBody2D::~CPhysicsBody2D()
 
 void CPhysicsBody2D::initialize(const b2Vec2& position, BodyType type)
 {
-    if (m_initialized)
+    if (m_initialized && b2Body_IsValid(m_bodyId))
     {
-        // Already initialized, destroy old body first
-        if (b2Body_IsValid(m_bodyId) && getOwner())
+        if (m_entity.isValid())
         {
-            ::Systems::S2DPhysics::instance().destroyBody(getOwner());
+            ::Systems::S2DPhysics::instance().destroyBody(m_entity);
         }
+        else
+        {
+            b2DestroyBody(m_bodyId);
+        }
+        m_bodyId      = b2_nullBodyId;
+        m_initialized = false;
     }
 
     m_bodyType = type;
@@ -70,8 +82,8 @@ void CPhysicsBody2D::initialize(const b2Vec2& position, BodyType type)
             break;
     }
 
-    m_bodyId      = ::Systems::S2DPhysics::instance().createBody(getOwner(), bodyDef);
-    m_initialized = true;
+    m_bodyId      = ::Systems::S2DPhysics::instance().createBody(m_entity, bodyDef);
+    m_initialized = b2Body_IsValid(m_bodyId);
 
     // Apply persisted properties after body creation
     if (b2Body_IsValid(m_bodyId))
@@ -297,10 +309,12 @@ void CPhysicsBody2D::syncFromTransform(const CTransform* transform)
 
 void CPhysicsBody2D::init()
 {
-    // If the body hasn't been initialized yet, initialize it now\n    // This is called after deserialization to create
-    // the Box2D body\n    if (!m_initialized && getOwner())\n    {\n#if 0 // TODO: Requires Registry access to get
-    // CTransform\n        auto* transform = registry.tryGet<CTransform>(getOwner());\n        if (transform)\n {\n Vec2
-    // pos = transform->getPosition();\n            initialize({pos.x, pos.y}, m_bodyType);\n        }\n#endif\n    }
+    // Initialization should be driven externally after deserialization
+}
+
+void CPhysicsBody2D::setEntity(Entity entity)
+{
+    m_entity = entity;
 }
 
 void CPhysicsBody2D::serialize(Serialization::JsonBuilder& builder) const
@@ -308,10 +322,6 @@ void CPhysicsBody2D::serialize(Serialization::JsonBuilder& builder) const
     builder.beginObject();
     builder.addKey("cPhysicsBody2D");
     builder.beginObject();
-
-    // Component GUID
-    builder.addKey("guid");
-    builder.addString(getGuid());
 
     // Body type
     builder.addKey("bodyType");
@@ -358,12 +368,6 @@ void CPhysicsBody2D::deserialize(const Serialization::SSerialization::JsonValue&
     const auto& body = value["cPhysicsBody2D"];
     if (!body.isObject())
         return;
-
-    // Component GUID
-    if (body.hasKey("guid"))
-    {
-        setGuid(body["guid"].getString());
-    }
 
     // Body type
     const auto& bodyTypeValue = body["bodyType"];

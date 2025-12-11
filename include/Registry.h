@@ -13,7 +13,6 @@
 #include <vector>
 
 #include <EntityManager.h>
-#include <components/Component.h>
 
 /**
  * @brief Type-erased interface for component storage
@@ -295,10 +294,6 @@ public:
         T&    component = store.add(entity, std::forward<Args>(args)...);
 
         // Automatically wire owner on components that expose setOwner (most current components)
-        if constexpr (std::is_base_of_v<Components::Component, T>)
-        {
-            component.setOwner(entity);
-        }
 
         return component;
     }

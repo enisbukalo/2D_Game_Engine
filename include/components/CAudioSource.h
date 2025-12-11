@@ -3,7 +3,7 @@
 
 #include <string>
 #include "AudioTypes.h"
-#include "Component.h"
+#include "SSerialization.h"
 
 namespace Components
 {
@@ -24,7 +24,7 @@ namespace Components
  * - Play on awake support
  * - Automatic position synchronization for spatial sounds
  */
-class CAudioSource : public Component
+struct CAudioSource
 {
 public:
     CAudioSource();

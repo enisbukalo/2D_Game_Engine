@@ -161,11 +161,6 @@ Systems::SScene& GameEngine::getSceneManager()
     return ::Systems::SScene::instance();
 }
 
-Components::ComponentFactory& GameEngine::getComponentFactory()
-{
-    return ::Components::ComponentFactory::instance();
-}
-
 Systems::S2DPhysics& GameEngine::getPhysics()
 {
     return ::Systems::S2DPhysics::instance();

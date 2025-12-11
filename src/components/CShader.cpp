@@ -14,12 +14,10 @@ void CShader::serialize(Serialization::JsonBuilder& builder) const
     builder.beginObject();
     builder.addKey("cShader");
     builder.beginObject();
-    builder.addKey("guid");
-    builder.addString(getGuid());
     builder.addKey("vertexShaderPath");
-    builder.addString(m_vertexShaderPath);
+    builder.addString(vertexShaderPath);
     builder.addKey("fragmentShaderPath");
-    builder.addString(m_fragmentShaderPath);
+    builder.addString(fragmentShaderPath);
     builder.endObject();
     builder.endObject();
 }
@@ -27,32 +25,28 @@ void CShader::serialize(Serialization::JsonBuilder& builder) const
 void CShader::deserialize(const Serialization::SSerialization::JsonValue& value)
 {
     const auto& shader = value["cShader"];
-    if (shader.hasKey("guid"))
-    {
-        setGuid(shader["guid"].getString());
-    }
-    m_vertexShaderPath   = shader["vertexShaderPath"].getString();
-    m_fragmentShaderPath = shader["fragmentShaderPath"].getString();
+    vertexShaderPath   = shader["vertexShaderPath"].getString();
+    fragmentShaderPath = shader["fragmentShaderPath"].getString();
 }
 
 std::string CShader::getVertexShaderPath() const
 {
-    return m_vertexShaderPath;
+    return vertexShaderPath;
 }
 
 void CShader::setVertexShaderPath(const std::string& vertexPath)
 {
-    m_vertexShaderPath = vertexPath;
+    vertexShaderPath = vertexPath;
 }
 
 std::string CShader::getFragmentShaderPath() const
 {
-    return m_fragmentShaderPath;
+    return fragmentShaderPath;
 }
 
 void CShader::setFragmentShaderPath(const std::string& fragmentPath)
 {
-    m_fragmentShaderPath = fragmentPath;
+    fragmentShaderPath = fragmentPath;
 }
 
 }  // namespace Components

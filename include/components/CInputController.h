@@ -4,15 +4,15 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "Component.h"
 #include "Input/ActionBinding.h"
 #include "Input/IInputListener.h"
 #include "Input/InputEvents.h"
+#include "SSerialization.h"
 
 namespace Components
 {
 
-class CInputController : public Component, public IInputListener
+struct CInputController : public IInputListener
 {
 public:
     CInputController();

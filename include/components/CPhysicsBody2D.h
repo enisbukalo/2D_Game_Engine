@@ -1,7 +1,8 @@
 #pragma once
 
 #include <functional>
-#include "Component.h"
+#include "SSerialization.h"
+#include "Entity.h"
 #include "box2d/box2d.h"
 
 namespace Components
@@ -33,7 +34,7 @@ enum class BodyType
  *
  * Note: The body must be initialized by calling initialize() after adding to entity.
  */
-class CPhysicsBody2D : public Component
+struct CPhysicsBody2D
 {
 private:
     b2BodyId m_bodyId;
@@ -50,6 +51,7 @@ private:
     float m_angularDamping;
     float m_gravityScale;
 
+    Entity m_entity;
     bool m_initialized;
 
     // Fixed-step physics update callback
@@ -317,6 +319,9 @@ public:
     {
         return m_fixedUpdateCallback != nullptr;
     }
+
+    void    setEntity(Entity entity);
+    Entity  getEntity() const { return m_entity; }
 
     // Component interface
     void        init();

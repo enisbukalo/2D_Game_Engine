@@ -13,10 +13,8 @@ void CName::serialize(Serialization::JsonBuilder& builder) const
     builder.beginObject();
     builder.addKey("cName");
     builder.beginObject();
-    builder.addKey("guid");
-    builder.addString(getGuid());
     builder.addKey("name");
-    builder.addString(m_name);
+    builder.addString(name);
     builder.endObject();
     builder.endObject();
 }
@@ -24,21 +22,17 @@ void CName::serialize(Serialization::JsonBuilder& builder) const
 void CName::deserialize(const Serialization::SSerialization::JsonValue& value)
 {
     const auto& nameComp = value["cName"];
-    if (nameComp.hasKey("guid"))
-    {
-        setGuid(nameComp["guid"].getString());
-    }
-    m_name = nameComp["name"].getString();
+    name = nameComp["name"].getString();
 }
 
 const std::string& CName::getName() const
 {
-    return m_name;
+    return name;
 }
 
 void CName::setName(const std::string& name)
 {
-    m_name = name;
+    this->name = name;
 }
 
 }  // namespace Components

@@ -14,57 +14,46 @@ void CRenderable::serialize(Serialization::JsonBuilder& builder) const
     builder.beginObject();
     builder.addKey("cRenderable");
     builder.beginObject();
-
-    // Serialize component GUID
-    builder.addKey("guid");
-    builder.addString(getGuid());
-
-    // Serialize visual type
     builder.addKey("visualType");
-    builder.addNumber(static_cast<int>(m_visualType));
+    builder.addNumber(static_cast<int>(visualType));
 
-    // Serialize color
     builder.addKey("color");
     builder.beginObject();
     builder.addKey("r");
-    builder.addNumber(m_color.r);
+    builder.addNumber(color.r);
     builder.addKey("g");
-    builder.addNumber(m_color.g);
+    builder.addNumber(color.g);
     builder.addKey("b");
-    builder.addNumber(m_color.b);
+    builder.addNumber(color.b);
     builder.addKey("a");
-    builder.addNumber(m_color.a);
+    builder.addNumber(color.a);
     builder.endObject();
-
-    // Serialize z-index
     builder.addKey("zIndex");
-    builder.addNumber(m_zIndex);
+    builder.addNumber(zIndex);
 
-    // Serialize visibility
     builder.addKey("visible");
-    builder.addBool(m_visible);
+    builder.addBool(visible);
 
-    // Serialize line properties (for Line visual type)
-    if (m_visualType == VisualType::Line)
+    if (visualType == VisualType::Line)
     {
         builder.addKey("lineStart");
         builder.beginObject();
         builder.addKey("x");
-        builder.addNumber(m_lineStart.x);
+        builder.addNumber(lineStart.x);
         builder.addKey("y");
-        builder.addNumber(m_lineStart.y);
+        builder.addNumber(lineStart.y);
         builder.endObject();
 
         builder.addKey("lineEnd");
         builder.beginObject();
         builder.addKey("x");
-        builder.addNumber(m_lineEnd.x);
+        builder.addNumber(lineEnd.x);
         builder.addKey("y");
-        builder.addNumber(m_lineEnd.y);
+        builder.addNumber(lineEnd.y);
         builder.endObject();
 
         builder.addKey("lineThickness");
-        builder.addNumber(m_lineThickness);
+        builder.addNumber(lineThickness);
     }
 
     builder.endObject();
@@ -74,112 +63,99 @@ void CRenderable::serialize(Serialization::JsonBuilder& builder) const
 void CRenderable::deserialize(const Serialization::SSerialization::JsonValue& value)
 {
     const auto& renderable = value["cRenderable"];
+    visualType = static_cast<VisualType>(static_cast<int>(renderable["visualType"].getNumber()));
 
-    // Deserialize component GUID
-    if (renderable.hasKey("guid"))
-    {
-        setGuid(renderable["guid"].getString());
-    }
-
-    // Deserialize visual type
-    m_visualType = static_cast<VisualType>(static_cast<int>(renderable["visualType"].getNumber()));
-
-    // Deserialize color
     const auto& color = renderable["color"];
-    m_color.r         = static_cast<uint8_t>(color["r"].getNumber());
-    m_color.g         = static_cast<uint8_t>(color["g"].getNumber());
-    m_color.b         = static_cast<uint8_t>(color["b"].getNumber());
-    m_color.a         = static_cast<uint8_t>(color["a"].getNumber());
+    this->color.r    = static_cast<uint8_t>(color["r"].getNumber());
+    this->color.g    = static_cast<uint8_t>(color["g"].getNumber());
+    this->color.b    = static_cast<uint8_t>(color["b"].getNumber());
+    this->color.a    = static_cast<uint8_t>(color["a"].getNumber());
 
-    // Deserialize z-index
-    m_zIndex = static_cast<int>(renderable["zIndex"].getNumber());
+    zIndex  = static_cast<int>(renderable["zIndex"].getNumber());
+    visible = renderable["visible"].getBool();
 
-    // Deserialize visibility
-    m_visible = renderable["visible"].getBool();
-
-    // Deserialize line properties (for Line visual type)
-    if (m_visualType == VisualType::Line && renderable.hasKey("lineStart"))
+    if (visualType == VisualType::Line && renderable.hasKey("lineStart"))
     {
         const auto& lineStart = renderable["lineStart"];
-        m_lineStart.x         = static_cast<float>(lineStart["x"].getNumber());
-        m_lineStart.y         = static_cast<float>(lineStart["y"].getNumber());
+        this->lineStart.x     = static_cast<float>(lineStart["x"].getNumber());
+        this->lineStart.y     = static_cast<float>(lineStart["y"].getNumber());
 
         const auto& lineEnd = renderable["lineEnd"];
-        m_lineEnd.x         = static_cast<float>(lineEnd["x"].getNumber());
-        m_lineEnd.y         = static_cast<float>(lineEnd["y"].getNumber());
+        this->lineEnd.x     = static_cast<float>(lineEnd["x"].getNumber());
+        this->lineEnd.y     = static_cast<float>(lineEnd["y"].getNumber());
 
-        m_lineThickness = static_cast<float>(renderable["lineThickness"].getNumber());
+        lineThickness = static_cast<float>(renderable["lineThickness"].getNumber());
     }
 }
 
 VisualType CRenderable::getVisualType() const
 {
-    return m_visualType;
+    return visualType;
 }
 
 void CRenderable::setVisualType(VisualType visualType)
 {
-    m_visualType = visualType;
+    this->visualType = visualType;
 }
 
 Color CRenderable::getColor() const
 {
-    return m_color;
+    return color;
 }
 
 void CRenderable::setColor(const Color& color)
 {
-    m_color = color;
+    this->color = color;
 }
 
 int CRenderable::getZIndex() const
 {
-    return m_zIndex;
+    return zIndex;
 }
 
 void CRenderable::setZIndex(int zIndex)
 {
-    m_zIndex = zIndex;
+    this->zIndex = zIndex;
 }
 
 bool CRenderable::isVisible() const
 {
-    return m_visible;
+    return visible;
 }
 
 void CRenderable::setVisible(bool visible)
 {
-    m_visible = visible;
+    this->visible = visible;
 }
 
 Vec2 CRenderable::getLineStart() const
 {
-    return m_lineStart;
+    return lineStart;
 }
 
 void CRenderable::setLineStart(const Vec2& start)
 {
-    m_lineStart = start;
+    lineStart = start;
 }
 
 Vec2 CRenderable::getLineEnd() const
 {
-    return m_lineEnd;
+    return lineEnd;
 }
 
 void CRenderable::setLineEnd(const Vec2& end)
 {
-    m_lineEnd = end;
+    lineEnd = end;
 }
 
 float CRenderable::getLineThickness() const
 {
-    return m_lineThickness;
+    return lineThickness;
 }
 
 void CRenderable::setLineThickness(float thickness)
 {
-    m_lineThickness = thickness;
+    lineThickness = thickness;
 }
 
 }  // namespace Components

@@ -26,7 +26,7 @@ void CAudioListener::init()
 
 void CAudioListener::update(float deltaTime)
 {
-    if (!isActive() || !m_isDefaultListener)
+    if (!m_isDefaultListener)
     {
         return;
     }
@@ -61,9 +61,6 @@ void CAudioListener::serialize(Serialization::JsonBuilder& builder) const
     builder.addString(getType());
     builder.addKey("data");
     builder.beginObject();
-
-    builder.addKey("guid");
-    builder.addString(getGuid());
 
     builder.addKey("isDefaultListener");
     builder.addBool(m_isDefaultListener);
@@ -121,11 +118,6 @@ void CAudioListener::deserialize(const Serialization::SSerialization::JsonValue&
     if (!data.isObject())
     {
         return;
-    }
-
-    if (data.hasKey("guid"))
-    {
-        setGuid(data["guid"].getString());
     }
 
     if (data.hasKey("isDefaultListener"))

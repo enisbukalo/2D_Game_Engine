@@ -4,7 +4,6 @@
 #include <vector>
 #include "CName.h"
 #include "CTransform.h"
-#include "Component.h"
 #include "Entity.h"
 
 namespace Systems

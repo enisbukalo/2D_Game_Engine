@@ -4,7 +4,7 @@
 #include <string>
 #include <unordered_map>
 #include "AudioTypes.h"
-#include "Component.h"
+#include "SSerialization.h"
 
 namespace Components
 {
@@ -24,7 +24,7 @@ namespace Components
  * - Default listener tracking (only one should be active)
  * - Convenient play/pause/stop by name interface
  */
-class CAudioListener : public Component
+struct CAudioListener
 {
 public:
     /**

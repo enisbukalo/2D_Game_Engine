@@ -285,7 +285,7 @@ void SRenderer::renderEntity(Entity entity, Registry& registry)
     auto* renderable = registry.tryGet<::Components::CRenderable>(entity);
     auto* transform  = registry.tryGet<::Components::CTransform>(entity);
 
-    if (!renderable || !renderable->isActive() || !renderable->isVisible())
+    if (!renderable || !renderable->isVisible())
     {
         return;
     }
@@ -328,15 +328,10 @@ void SRenderer::renderEntity(Entity entity, Registry& registry)
     const sf::Texture* texture = nullptr;
     if (material)
     {
-        // Try to find texture component by GUID
-        std::string textureGuid = material->getTextureGuid();
-        if (!textureGuid.empty())
+        auto* textureComp = registry.tryGet<::Components::CTexture>(entity);
+        if (textureComp)
         {
-            auto* textureComp = registry.tryGet<::Components::CTexture>(entity);
-            if (textureComp && textureComp->getGuid() == textureGuid)
-            {
-                texture = loadTexture(textureComp->getTexturePath());
-            }
+            texture = loadTexture(textureComp->getTexturePath());
         }
     }
 
@@ -344,14 +339,10 @@ void SRenderer::renderEntity(Entity entity, Registry& registry)
     const sf::Shader* shader = nullptr;
     if (material)
     {
-        std::string shaderGuid = material->getShaderGuid();
-        if (!shaderGuid.empty())
+        auto* shaderComp = registry.tryGet<::Components::CShader>(entity);
+        if (shaderComp)
         {
-            auto* shaderComp = registry.tryGet<::Components::CShader>(entity);
-            if (shaderComp && shaderComp->getGuid() == shaderGuid)
-            {
-                shader = loadShader(shaderComp->getVertexShaderPath(), shaderComp->getFragmentShaderPath());
-            }
+            shader = loadShader(shaderComp->getVertexShaderPath(), shaderComp->getFragmentShaderPath());
         }
     }
 

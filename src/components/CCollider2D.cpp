@@ -1,7 +1,5 @@
 #include "CCollider2D.h"
 #include <limits>
-#include "CPhysicsBody2D.h"
-// #include "Entity.h" // Removed - Entity is now just an ID
 
 namespace Components
 {
@@ -12,41 +10,32 @@ CCollider2D::CCollider2D()
     // Fixtures vector starts empty
 }
 
-CCollider2D::~CCollider2D()
-{
-    destroyShape();
-}
+CCollider2D::~CCollider2D() = default;
 
 void CCollider2D::createCircle(float radius, const b2Vec2& center)
 {
-    // Clear existing fixtures
-    destroyShape();
     m_fixtures.clear();
 
     ShapeFixture fixture;
     fixture.shapeType               = ColliderShape::Circle;
     fixture.shapeData.circle.center = center;
     fixture.shapeData.circle.radius = radius;
-    fixture.shapeId                 = b2_nullShapeId;
 
     m_fixtures.push_back(fixture);
-    attachToBody();
+    m_initialized = !m_fixtures.empty();
 }
 
 void CCollider2D::createBox(float halfWidth, float halfHeight)
 {
-    // Clear existing fixtures
-    destroyShape();
     m_fixtures.clear();
 
     ShapeFixture fixture;
     fixture.shapeType                = ColliderShape::Box;
     fixture.shapeData.box.halfWidth  = halfWidth;
     fixture.shapeData.box.halfHeight = halfHeight;
-    fixture.shapeId                  = b2_nullShapeId;
 
     m_fixtures.push_back(fixture);
-    attachToBody();
+    m_initialized = !m_fixtures.empty();
 }
 
 void CCollider2D::createPolygon(const b2Vec2* vertices, int count, float radius)
@@ -66,8 +55,6 @@ void CCollider2D::createPolygon(const b2Vec2* vertices, int count, float radius)
         return;
     }
 
-    // Clear existing fixtures
-    destroyShape();
     m_fixtures.clear();
 
     // Create first fixture with this polygon
@@ -79,10 +66,8 @@ void CCollider2D::createPolygon(const b2Vec2* vertices, int count, float radius)
     {
         fixture.shapeData.polygon.vertices[i] = hull.points[i];
     }
-    fixture.shapeId = b2_nullShapeId;
-
     m_fixtures.push_back(fixture);
-    attachToBody();
+    m_initialized = !m_fixtures.empty();
 }
 
 void CCollider2D::addPolygon(const b2Vec2* vertices, int count, float radius)
@@ -111,58 +96,8 @@ void CCollider2D::addPolygon(const b2Vec2* vertices, int count, float radius)
     {
         fixture.shapeData.polygon.vertices[i] = hull.points[i];
     }
-    fixture.shapeId = b2_nullShapeId;
-
     m_fixtures.push_back(fixture);
-
-#if 0  // TODO: Requires Registry access to get CPhysicsBody2D
-    // Attach only the new fixture to body
-    if (!getOwner())
-    {
-        return;
-    }
-
-    auto* physicsBody = registry.tryGet<CPhysicsBody2D>(getOwner());
-    if (!physicsBody || !physicsBody->isInitialized())
-    {
-        return;
-    }
-
-    b2BodyId bodyId = physicsBody->getBodyId();
-    if (!b2Body_IsValid(bodyId))
-    {
-        return;
-    }
-
-    // Create shape for the new fixture
-    b2ShapeDef shapeDef            = b2DefaultShapeDef();
-    shapeDef.density               = m_density;
-    shapeDef.enableSensorEvents    = m_isSensor;
-    shapeDef.invokeContactCreation = true;
-
-    // Reconstruct hull from stored vertices
-    b2Hull newHull;
-    newHull.count = fixture.shapeData.polygon.vertexCount;
-    for (int i = 0; i < newHull.count; ++i)
-    {
-        newHull.points[i] = fixture.shapeData.polygon.vertices[i];
-    }
-
-    // Create polygon from hull
-    b2Polygon polygon    = b2MakePolygon(&newHull, fixture.shapeData.polygon.radius);
-    b2ShapeId newShapeId = b2CreatePolygonShape(bodyId, &shapeDef, &polygon);
-
-    // Update the fixture's shape ID
-    m_fixtures.back().shapeId = newShapeId;
-    m_initialized             = true;
-
-    // Set friction and restitution
-    if (b2Shape_IsValid(newShapeId))
-    {
-        b2Shape_SetFriction(newShapeId, m_friction);
-        b2Shape_SetRestitution(newShapeId, m_restitution);
-    }
-#endif
+    m_initialized = !m_fixtures.empty();
 }
 
 void CCollider2D::createPolygonFromHull(const b2Hull& hull, float radius)
@@ -172,8 +107,6 @@ void CCollider2D::createPolygonFromHull(const b2Hull& hull, float radius)
         return;
     }
 
-    // Clear existing fixtures
-    destroyShape();
     m_fixtures.clear();
 
     ShapeFixture fixture;
@@ -184,10 +117,8 @@ void CCollider2D::createPolygonFromHull(const b2Hull& hull, float radius)
     {
         fixture.shapeData.polygon.vertices[i] = hull.points[i];
     }
-    fixture.shapeId = b2_nullShapeId;
-
     m_fixtures.push_back(fixture);
-    attachToBody();
+    m_initialized = !m_fixtures.empty();
 }
 
 void CCollider2D::createOffsetPolygon(const b2Hull& hull, const b2Vec2& position, float rotation, float radius)
@@ -197,8 +128,6 @@ void CCollider2D::createOffsetPolygon(const b2Hull& hull, const b2Vec2& position
         return;
     }
 
-    // Clear existing fixtures
-    destroyShape();
     m_fixtures.clear();
 
     // Create offset polygon using Box2D function
@@ -215,26 +144,20 @@ void CCollider2D::createOffsetPolygon(const b2Hull& hull, const b2Vec2& position
     {
         fixture.shapeData.polygon.vertices[i] = offsetPoly.vertices[i];
     }
-    fixture.shapeId = b2_nullShapeId;
-
     m_fixtures.push_back(fixture);
-    attachToBody();
+    m_initialized = !m_fixtures.empty();
 }
 
 void CCollider2D::createSegment(const b2Vec2& point1, const b2Vec2& point2)
 {
-    // Clear existing fixtures
-    destroyShape();
     m_fixtures.clear();
 
     ShapeFixture fixture;
     fixture.shapeType                = ColliderShape::Segment;
     fixture.shapeData.segment.point1 = point1;
     fixture.shapeData.segment.point2 = point2;
-    fixture.shapeId                  = b2_nullShapeId;
-
     m_fixtures.push_back(fixture);
-    attachToBody();
+    m_initialized = !m_fixtures.empty();
 }
 
 void CCollider2D::addSegment(const b2Vec2& point1, const b2Vec2& point2)
@@ -244,55 +167,12 @@ void CCollider2D::addSegment(const b2Vec2& point1, const b2Vec2& point2)
     fixture.shapeType                = ColliderShape::Segment;
     fixture.shapeData.segment.point1 = point1;
     fixture.shapeData.segment.point2 = point2;
-    fixture.shapeId                  = b2_nullShapeId;
-
     m_fixtures.push_back(fixture);
-
-#if 0  // TODO: Requires Registry access to get CPhysicsBody2D
-    // Attach only the new fixture to body
-    if (!getOwner())
-    {
-        return;
-    }
-
-    auto* physicsBody = registry.tryGet<CPhysicsBody2D>(getOwner());
-    if (!physicsBody || !physicsBody->isInitialized())
-    {
-        return;
-    }
-
-    b2BodyId bodyId = physicsBody->getBodyId();
-    if (!b2Body_IsValid(bodyId))
-    {
-        return;
-    }
-
-    // Create shape for the new fixture
-    b2ShapeDef shapeDef            = b2DefaultShapeDef();
-    shapeDef.density               = m_density;
-    shapeDef.enableSensorEvents    = m_isSensor;
-    shapeDef.invokeContactCreation = true;
-
-    b2Segment segment    = {fixture.shapeData.segment.point1, fixture.shapeData.segment.point2};
-    b2ShapeId newShapeId = b2CreateSegmentShape(bodyId, &shapeDef, &segment);
-
-    // Update the fixture's shape ID
-    m_fixtures.back().shapeId = newShapeId;
-    m_initialized             = true;
-
-    // Set friction and restitution
-    if (b2Shape_IsValid(newShapeId))
-    {
-        b2Shape_SetFriction(newShapeId, m_friction);
-        b2Shape_SetRestitution(newShapeId, m_restitution);
-    }
-#endif
+    m_initialized = !m_fixtures.empty();
 }
 
 void CCollider2D::createChainSegment(const b2Vec2& ghost1, const b2Vec2& point1, const b2Vec2& point2, const b2Vec2& ghost2)
 {
-    // Clear existing fixtures
-    destroyShape();
     m_fixtures.clear();
 
     ShapeFixture fixture;
@@ -301,10 +181,8 @@ void CCollider2D::createChainSegment(const b2Vec2& ghost1, const b2Vec2& point1,
     fixture.shapeData.chainSegment.point1 = point1;
     fixture.shapeData.chainSegment.point2 = point2;
     fixture.shapeData.chainSegment.ghost2 = ghost2;
-    fixture.shapeId                       = b2_nullShapeId;
-
     m_fixtures.push_back(fixture);
-    attachToBody();
+    m_initialized = !m_fixtures.empty();
 }
 
 void CCollider2D::addChainSegment(const b2Vec2& ghost1, const b2Vec2& point1, const b2Vec2& point2, const b2Vec2& ghost2)
@@ -316,228 +194,28 @@ void CCollider2D::addChainSegment(const b2Vec2& ghost1, const b2Vec2& point1, co
     fixture.shapeData.chainSegment.point1 = point1;
     fixture.shapeData.chainSegment.point2 = point2;
     fixture.shapeData.chainSegment.ghost2 = ghost2;
-    fixture.shapeId                       = b2_nullShapeId;
-
     m_fixtures.push_back(fixture);
-
-#if 0  // TODO: Requires Registry access to get CPhysicsBody2D
-    // Attach only the new fixture to body
-    if (!getOwner())
-    {
-        return;
-    }
-
-    auto* physicsBody = registry.tryGet<CPhysicsBody2D>(getOwner());
-    if (!physicsBody || !physicsBody->isInitialized())
-    {
-        return;
-    }
-
-    b2BodyId bodyId = physicsBody->getBodyId();
-    if (!b2Body_IsValid(bodyId))
-    {
-        return;
-    }
-
-    // Create shape for the new fixture
-    b2ShapeDef shapeDef            = b2DefaultShapeDef();
-    shapeDef.density               = m_density;
-    shapeDef.enableSensorEvents    = m_isSensor;
-    shapeDef.invokeContactCreation = true;
-
-    b2ChainSegment chainSeg;
-    chainSeg.ghost1         = fixture.shapeData.chainSegment.ghost1;
-    chainSeg.segment.point1 = fixture.shapeData.chainSegment.point1;
-    chainSeg.segment.point2 = fixture.shapeData.chainSegment.point2;
-    chainSeg.ghost2         = fixture.shapeData.chainSegment.ghost2;
-
-    b2ShapeId newShapeId = b2CreateSegmentShape(bodyId, &shapeDef, &chainSeg.segment);
-
-    // Update the fixture's shape ID
-    m_fixtures.back().shapeId = newShapeId;
-    m_initialized             = true;
-
-    // Set friction and restitution
-    if (b2Shape_IsValid(newShapeId))
-    {
-        b2Shape_SetFriction(newShapeId, m_friction);
-        b2Shape_SetRestitution(newShapeId, m_restitution);
-    }
-#endif
-}
-
-void CCollider2D::attachToBody()
-{
-#if 0  // TODO: Requires Registry access to get CPhysicsBody2D
-    if (!getOwner())
-    {
-        return;
-    }
-
-    // Get the physics body component
-    auto* physicsBody = registry.tryGet<CPhysicsBody2D>(getOwner());
-    if (!physicsBody || !physicsBody->isInitialized())
-    {
-        return;
-    }
-
-    b2BodyId bodyId = physicsBody->getBodyId();
-    if (!b2Body_IsValid(bodyId))
-    {
-        return;
-    }
-
-    // Create shape definition
-    b2ShapeDef shapeDef            = b2DefaultShapeDef();
-    shapeDef.density               = m_density;
-    shapeDef.enableSensorEvents    = m_isSensor;
-    shapeDef.invokeContactCreation = true;
-
-    // Create shapes for all fixtures
-    for (auto& fixture : m_fixtures)
-    {
-        b2ShapeId shapeId = b2_nullShapeId;
-
-        switch (fixture.shapeType)
-        {
-            case ColliderShape::Circle:
-            {
-                b2Circle circle;
-                circle.center = fixture.shapeData.circle.center;
-                circle.radius = fixture.shapeData.circle.radius;
-                shapeId       = b2CreateCircleShape(bodyId, &shapeDef, &circle);
-                break;
-            }
-
-            case ColliderShape::Box:
-            {
-                b2Polygon box = b2MakeBox(fixture.shapeData.box.halfWidth, fixture.shapeData.box.halfHeight);
-                shapeId       = b2CreatePolygonShape(bodyId, &shapeDef, &box);
-                break;
-            }
-
-            case ColliderShape::Polygon:
-            {
-                // Reconstruct hull from stored vertices
-                b2Hull hull;
-                hull.count = fixture.shapeData.polygon.vertexCount;
-                for (int i = 0; i < hull.count; ++i)
-                {
-                    hull.points[i] = fixture.shapeData.polygon.vertices[i];
-                }
-
-                // Create polygon from hull
-                b2Polygon polygon = b2MakePolygon(&hull, fixture.shapeData.polygon.radius);
-                shapeId           = b2CreatePolygonShape(bodyId, &shapeDef, &polygon);
-                break;
-            }
-
-            case ColliderShape::Segment:
-            {
-                b2Segment segment;
-                segment.point1 = fixture.shapeData.segment.point1;
-                segment.point2 = fixture.shapeData.segment.point2;
-                shapeId        = b2CreateSegmentShape(bodyId, &shapeDef, &segment);
-                break;
-            }
-
-            case ColliderShape::ChainSegment:
-            {
-                b2ChainSegment chainSeg;
-                chainSeg.ghost1         = fixture.shapeData.chainSegment.ghost1;
-                chainSeg.segment.point1 = fixture.shapeData.chainSegment.point1;
-                chainSeg.segment.point2 = fixture.shapeData.chainSegment.point2;
-                chainSeg.ghost2         = fixture.shapeData.chainSegment.ghost2;
-                shapeId                 = b2CreateSegmentShape(bodyId, &shapeDef, &chainSeg.segment);
-                break;
-            }
-        }
-
-        fixture.shapeId = shapeId;
-
-        // Set friction and restitution after creation
-        if (b2Shape_IsValid(shapeId))
-        {
-            b2Shape_SetFriction(shapeId, m_friction);
-            b2Shape_SetRestitution(shapeId, m_restitution);
-        }
-    }
-
     m_initialized = !m_fixtures.empty();
-#endif
-}
-
-void CCollider2D::destroyShape()
-{
-    for (auto& fixture : m_fixtures)
-    {
-        if (b2Shape_IsValid(fixture.shapeId))
-        {
-            b2DestroyShape(fixture.shapeId, true);
-            fixture.shapeId = b2_nullShapeId;
-        }
-    }
-    m_initialized = false;
 }
 
 void CCollider2D::setIsSensor(bool isSensor)
 {
     m_isSensor = isSensor;
-    if (m_initialized)
-    {
-        for (auto& fixture : m_fixtures)
-        {
-            if (b2Shape_IsValid(fixture.shapeId))
-            {
-                b2Shape_EnableSensorEvents(fixture.shapeId, isSensor);
-            }
-        }
-    }
 }
 
 void CCollider2D::setDensity(float density)
 {
     m_density = density;
-    if (m_initialized)
-    {
-        for (auto& fixture : m_fixtures)
-        {
-            if (b2Shape_IsValid(fixture.shapeId))
-            {
-                b2Shape_SetDensity(fixture.shapeId, density, true);
-            }
-        }
-    }
 }
 
 void CCollider2D::setFriction(float friction)
 {
     m_friction = friction;
-    if (m_initialized)
-    {
-        for (auto& fixture : m_fixtures)
-        {
-            if (b2Shape_IsValid(fixture.shapeId))
-            {
-                b2Shape_SetFriction(fixture.shapeId, friction);
-            }
-        }
-    }
 }
 
 void CCollider2D::setRestitution(float restitution)
 {
     m_restitution = restitution;
-    if (m_initialized)
-    {
-        for (auto& fixture : m_fixtures)
-        {
-            if (b2Shape_IsValid(fixture.shapeId))
-            {
-                b2Shape_SetRestitution(fixture.shapeId, restitution);
-            }
-        }
-    }
 }
 
 float CCollider2D::getCircleRadius() const
@@ -608,11 +286,6 @@ void CCollider2D::serialize(Serialization::JsonBuilder& builder) const
     builder.beginObject();
     builder.addKey("cCollider2D");
     builder.beginObject();
-
-    // Component GUID
-    builder.addKey("guid");
-    builder.addString(getGuid());
-
     // Serialize fixture properties
     builder.addKey("isSensor");
     builder.addBool(m_isSensor);
@@ -750,12 +423,7 @@ void CCollider2D::serialize(Serialization::JsonBuilder& builder) const
 
 void CCollider2D::init()
 {
-    // If the collider hasn't been initialized yet, attach it to the body now
-    // This is called after deserialization to create the Box2D shape
-    if (!m_initialized)
-    {
-        attachToBody();
-    }
+    m_initialized = !m_fixtures.empty();
 }
 
 void CCollider2D::deserialize(const Serialization::SSerialization::JsonValue& value)
@@ -766,12 +434,6 @@ void CCollider2D::deserialize(const Serialization::SSerialization::JsonValue& va
     const auto& collider = value["cCollider2D"];
     if (!collider.isObject())
         return;
-
-    // Component GUID
-    if (collider.hasKey("guid"))
-    {
-        setGuid(collider["guid"].getString());
-    }
 
     // Fixture properties
     const auto& isSensorValue = collider["isSensor"];
@@ -811,7 +473,6 @@ void CCollider2D::deserialize(const Serialization::SSerialization::JsonValue& va
                 continue;
 
             ShapeFixture fixture;
-            fixture.shapeId   = b2_nullShapeId;
             fixture.shapeType = ColliderShape::Circle;  // Default value
 
             // Shape type
@@ -985,7 +646,6 @@ void CCollider2D::deserialize(const Serialization::SSerialization::JsonValue& va
         if (shapeTypeValue.isString())
         {
             ShapeFixture fixture;
-            fixture.shapeId     = b2_nullShapeId;
             fixture.shapeType   = ColliderShape::Circle;  // Default value
             std::string typeStr = shapeTypeValue.getString();
 
@@ -1059,6 +719,8 @@ void CCollider2D::deserialize(const Serialization::SSerialization::JsonValue& va
             m_fixtures.push_back(fixture);
         }
     }
+
+    m_initialized = !m_fixtures.empty();
 }
 
 bool CCollider2D::getBounds(float& outWidth, float& outHeight) const

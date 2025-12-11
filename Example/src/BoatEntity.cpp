@@ -239,11 +239,7 @@ void Boat::configureBoatBody()
     m_transform   = addComponent<Components::CTransform>(Vec2(kBoatPosX, kBoatPosY), Vec2(1.0f, 1.0f), kBoatRot);
     auto* texture = addComponent<Components::CTexture>("assets/textures/boat.png");
     addComponent<Components::CRenderable>(Components::VisualType::Sprite, Color::White, 10, true);
-    auto* material = addComponent<Components::CMaterial>("", "", Color::White, Components::BlendMode::Alpha, 1.0f);
-    if (texture && material)
-    {
-        material->setTextureGuid(texture->getGuid());
-    }
+    addComponent<Components::CMaterial>(Color::White, Components::BlendMode::Alpha, 1.0f);
 
     m_physicsBody = addComponent<Components::CPhysicsBody2D>();
     configureBoatPhysics(m_physicsBody);

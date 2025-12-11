@@ -4,10 +4,6 @@
 // Umbrella header that exposes all component definitions.
 // Including this file makes all Components available to any TU.
 
-// Component base & factory
-#include "Component.h"
-#include "ComponentFactory.h"
-
 // Core components
 #include "CCollider2D.h"
 #include "CPhysicsBody2D.h"

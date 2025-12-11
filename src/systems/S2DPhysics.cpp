@@ -63,21 +63,22 @@ b2Vec2 S2DPhysics::getGravity() const
 
 b2BodyId S2DPhysics::createBody(Entity entity, const b2BodyDef& bodyDef)
 {
+    if (entity.isValid())
+    {
+        // Check if entity already has a body
+        auto it = m_entityBodyMap.find(entity);
+        if (it != m_entityBodyMap.end() && b2Body_IsValid(it->second))
+        {
+            b2DestroyBody(it->second);
+        }
+    }
+
+    b2BodyId bodyId = b2CreateBody(m_worldId, &bodyDef);
+
     if (!entity.isValid())
     {
-        return b2_nullBodyId;
+        return bodyId;
     }
-
-    // Check if entity already has a body
-    auto it = m_entityBodyMap.find(entity);
-    if (it != m_entityBodyMap.end() && b2Body_IsValid(it->second))
-    {
-        // Body already exists, destroy it first
-        b2DestroyBody(it->second);
-    }
-
-    // Create new body
-    b2BodyId bodyId = b2CreateBody(m_worldId, &bodyDef);
 
     // TODO: Store Entity ID in body user data when needed
     // b2Body_SetUserData(bodyId, &entity);
