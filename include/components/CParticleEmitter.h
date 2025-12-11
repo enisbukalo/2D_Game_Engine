@@ -5,7 +5,6 @@
 #include <memory>
 #include <vector>
 #include "Color.h"
-#include "SSerialization.h"
 #include "Vec2.h"
 
 namespace Components
@@ -62,22 +61,6 @@ struct CParticleEmitter
 public:
     CParticleEmitter();
     ~CParticleEmitter() = default;
-
-    /**
-     * @brief Gets the type identifier for this component
-     * @return String "CParticleEmitter"
-     */
-    std::string getType() const;
-
-    /**
-     * @brief Serialize component to JSON
-     */
-    void serialize(Serialization::JsonBuilder& builder) const;
-
-    /**
-     * @brief Deserialize component from JSON
-     */
-    void deserialize(const Serialization::SSerialization::JsonValue& value);
 
     /**
      * @brief Get number of alive particles

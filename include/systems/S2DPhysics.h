@@ -50,8 +50,6 @@ private:
     void pruneDestroyedBodies(const World& world);
 
 public:
-public:
-public:
     S2DPhysics();
     ~S2DPhysics();
 

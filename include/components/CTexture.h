@@ -2,7 +2,6 @@
 #define CTEXTURE_H
 
 #include <string>
-#include "SSerialization.h"
 
 namespace Components
 {
@@ -20,10 +19,6 @@ struct CTexture
 {
     CTexture() = default;
     explicit CTexture(const std::string& texturePath) : texturePath(texturePath) {}
-
-    std::string getType() const;
-    void        serialize(Serialization::JsonBuilder& builder) const;
-    void        deserialize(const Serialization::SSerialization::JsonValue& value);
 
     std::string getTexturePath() const;
     void        setTexturePath(const std::string& texturePath);

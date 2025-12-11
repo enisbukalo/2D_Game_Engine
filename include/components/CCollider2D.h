@@ -1,7 +1,6 @@
 #pragma once
 
 #include <vector>
-#include "SSerialization.h"
 #include "box2d/box2d.h"
 
 namespace Components
@@ -312,10 +311,7 @@ public:
     bool getBounds(float& outWidth, float& outHeight) const;
 
     // Component interface
-    void        init();
-    void        serialize(Serialization::JsonBuilder& builder) const;
-    void        deserialize(const Serialization::SSerialization::JsonValue& value);
-    std::string getType() const;
+    void init();
 };
 
 }  // namespace Components

@@ -16,7 +16,6 @@
 #include <SInput.h>
 #include <SParticle.h>
 #include <SRenderer.h>
-#include <SScene.h>
 
 // Convenient namespace declarations for documentation
 // Entity is now a plain struct (just an ID), not in a namespace
@@ -103,12 +102,6 @@ public:
     static std::shared_ptr<spdlog::logger> getLogger();
 
     // System and Manager Accessors
-
-    /**
-     * @brief Gets the scene manager instance
-     * @return Reference to the SScene singleton
-     */
-    Systems::SScene& getSceneManager();
 
     /**
      * @brief Gets the Box2D physics system instance

@@ -4,7 +4,6 @@
 #include <string>
 #include <unordered_map>
 #include "AudioTypes.h"
-#include "SSerialization.h"
 
 namespace Components
 {
@@ -46,14 +45,8 @@ public:
     CAudioListener();
         ~CAudioListener() = default;
 
-        void        init();
-        void        update(float deltaTime);
-        void        serialize(Serialization::JsonBuilder& builder) const;
-        void        deserialize(const Serialization::SSerialization::JsonValue& value);
-        std::string getType() const
-    {
-        return "AudioListener";
-    }
+        void init();
+        void update(float deltaTime);
 
     /**
      * @brief Set whether this is the default (active) listener

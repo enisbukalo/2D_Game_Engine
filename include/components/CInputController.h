@@ -7,7 +7,6 @@
 #include "Input/ActionBinding.h"
 #include "Input/IInputListener.h"
 #include "Input/InputEvents.h"
-#include "SSerialization.h"
 
 namespace Components
 {
@@ -21,12 +20,6 @@ public:
     // Component lifecycle
     void init();
     void update(float deltaTime) {}
-
-    // Serialization
-    void serialize(Serialization::JsonBuilder& builder) const;
-    void deserialize(const Serialization::SSerialization::JsonValue& value);
-
-    std::string getType() const;
 
     // Bindings
     void bindAction(const std::string& actionName, const ActionBinding& binding);

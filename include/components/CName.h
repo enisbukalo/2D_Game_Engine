@@ -2,7 +2,6 @@
 #define CNAME_H
 
 #include <string>
-#include "SSerialization.h"
 
 namespace Components
 {
@@ -20,9 +19,6 @@ struct CName
 {
     explicit CName(const std::string& n = "") : name(n) {}
 
-    std::string        getType() const;
-    void               serialize(Serialization::JsonBuilder& builder) const;
-    void               deserialize(const Serialization::SSerialization::JsonValue& value);
     const std::string& getName() const;
     void               setName(const std::string& n);
 

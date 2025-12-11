@@ -2,7 +2,6 @@
 #define CTRANSFORM_H
 
 #include <string>
-#include "SSerialization.h"
 #include "Vec2.h"
 
 namespace Components
@@ -21,10 +20,6 @@ struct CTransform
 {
     CTransform() = default;
     CTransform(const Vec2& pos, const Vec2& scl, float rot) : position(pos), scale(scl), rotation(rot) {}
-
-    std::string getType() const;
-    void        serialize(Serialization::JsonBuilder& builder) const;
-    void        deserialize(const Serialization::SSerialization::JsonValue& value);
 
     Vec2  getPosition() const;
     Vec2  getVelocity() const;

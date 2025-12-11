@@ -3,7 +3,6 @@
 
 #include <string>
 #include "Color.h"
-#include "SSerialization.h"
 
 namespace Components
 {
@@ -36,10 +35,6 @@ struct CMaterial
         : tint(tint), blendMode(blendMode), opacity(opacity)
     {
     }
-
-    std::string getType() const;
-    void        serialize(Serialization::JsonBuilder& builder) const;
-    void        deserialize(const Serialization::SSerialization::JsonValue& value);
 
     Color     getTint() const;
     void      setTint(const Color& tint);

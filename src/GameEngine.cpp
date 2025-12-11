@@ -23,7 +23,7 @@ GameEngine::GameEngine(const Systems::WindowConfig& windowConfig, Vec2 gravity, 
     Systems::SystemLocator::provideParticle(m_particle.get());
     Systems::SystemLocator::provideAudio(m_audio.get());
 
-    // Register component type names for serialization
+    // Register component type names for diagnostics
     registerComponentTypes();
 
     // Initialize spdlog logger (using synchronous logging for now)
@@ -202,11 +202,6 @@ std::shared_ptr<spdlog::logger> GameEngine::getLogger()
     return spdlog::get("GameEngine");
 }
 
-Systems::SScene& GameEngine::getSceneManager()
-{
-    return ::Systems::SScene::instance();
-}
-
 Systems::S2DPhysics& GameEngine::getPhysics()
 {
     return *m_physics;
@@ -234,8 +229,7 @@ Systems::SParticle& GameEngine::getParticleSystem()
 
 void GameEngine::registerComponentTypes()
 {
-    // Register all component types with stable names for serialization
-    // This ensures saves are portable and readable across builds
+    // Register stable component names for diagnostics and tooling
     using namespace Components;
 
     m_world.registerTypeName<CTransform>("CTransform");

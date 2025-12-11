@@ -2,7 +2,6 @@
 #define CSHADER_H
 
 #include <string>
-#include "SSerialization.h"
 
 namespace Components
 {
@@ -23,10 +22,6 @@ struct CShader
         : vertexShaderPath(vertexPath), fragmentShaderPath(fragmentPath)
     {
     }
-
-    std::string getType() const;
-    void        serialize(Serialization::JsonBuilder& builder) const;
-    void        deserialize(const Serialization::SSerialization::JsonValue& value);
 
     std::string getVertexShaderPath() const;
     void        setVertexShaderPath(const std::string& vertexPath);

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <functional>
-#include "SSerialization.h"
 #include "Entity.h"
 #include "box2d/box2d.h"
 
@@ -320,14 +319,8 @@ public:
         return m_fixedUpdateCallback != nullptr;
     }
 
-    void    setEntity(Entity entity);
-    Entity  getEntity() const { return m_entity; }
-
-    // Component interface
-    void        init();
-    void        serialize(Serialization::JsonBuilder& builder) const;
-    void        deserialize(const Serialization::SSerialization::JsonValue& value);
-    std::string getType() const;
+    void   setEntity(Entity entity);
+    Entity getEntity() const { return m_entity; }
 };
 
 }  // namespace Components

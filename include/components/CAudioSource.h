@@ -3,7 +3,6 @@
 
 #include <string>
 #include "AudioTypes.h"
-#include "SSerialization.h"
 
 namespace Components
 {
@@ -30,14 +29,8 @@ public:
     CAudioSource();
     ~CAudioSource() = default;
 
-    void        init();
-    void        update(float deltaTime);
-    void        serialize(Serialization::JsonBuilder& builder) const;
-    void        deserialize(const Serialization::SSerialization::JsonValue& value);
-    std::string getType() const
-    {
-        return "AudioSource";
-    }
+    void init();
+    void update(float deltaTime);
 
     /**
      * @brief Play the audio clip

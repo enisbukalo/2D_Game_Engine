@@ -3,7 +3,6 @@
 
 #include <string>
 #include "Color.h"
-#include "SSerialization.h"
 #include "Vec2.h"
 
 namespace Components
@@ -38,10 +37,6 @@ struct CRenderable
         : visualType(visualType), color(color), zIndex(zIndex), visible(visible)
     {
     }
-
-    std::string getType() const;
-    void        serialize(Serialization::JsonBuilder& builder) const;
-    void        deserialize(const Serialization::SSerialization::JsonValue& value);
 
     VisualType getVisualType() const;
     void       setVisualType(VisualType visualType);
