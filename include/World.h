@@ -1,6 +1,8 @@
 #ifndef WORLD_H
 #define WORLD_H
 
+#include <typeindex>
+
 #include "Registry.h"
 
 /**
@@ -78,6 +80,42 @@ public:
         m_registry.each<T>(std::forward<Func>(fn));
     }
 
+    template <typename... Components, typename Func>
+    void view(Func&& fn)
+    {
+        m_registry.view<Components...>(std::forward<Func>(fn));
+    }
+
+    template <typename... Components, typename Func>
+    void view(Func&& fn) const
+    {
+        m_registry.view<Components...>(std::forward<Func>(fn));
+    }
+
+    template <typename... Components, typename Func>
+    void viewSorted(Func&& fn)
+    {
+        m_registry.viewSorted<Components...>(std::forward<Func>(fn));
+    }
+
+    template <typename... Components, typename Func, typename Compare>
+    void viewSorted(Func&& fn, Compare&& compare)
+    {
+        m_registry.viewSorted<Components...>(std::forward<Func>(fn), std::forward<Compare>(compare));
+    }
+
+    template <typename... Components, typename Func>
+    void viewSorted(Func&& fn) const
+    {
+        m_registry.viewSorted<Components...>(std::forward<Func>(fn));
+    }
+
+    template <typename... Components, typename Func, typename Compare>
+    void viewSorted(Func&& fn, Compare&& compare) const
+    {
+        m_registry.viewSorted<Components...>(std::forward<Func>(fn), std::forward<Compare>(compare));
+    }
+
     template <typename A, typename B, typename Func>
     void view2(Func&& fn)
     {
@@ -103,6 +141,7 @@ public:
     }
 
     const std::vector<Entity>& getEntities() const { return m_registry.getEntities(); }
+    const std::vector<std::type_index>& getComposition(Entity e) const { return m_registry.getComposition(e); }
 
     void clear() { m_registry.clear(); }
 

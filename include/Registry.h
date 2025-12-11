@@ -3,6 +3,7 @@
 
 #include <Entity.h>
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cstddef>
 #include <limits>
@@ -10,6 +11,8 @@
 #include <string>
 #include <typeindex>
 #include <unordered_map>
+#include <utility>
+#include <tuple>
 #include <vector>
 
 #include <EntityManager.h>
@@ -251,6 +254,8 @@ public:
         Entity entity = m_entityManager.create();
         if (entity.isValid())
         {
+            ensureCompositionEntry(entity);
+            m_entityComposition[entity.index].clear();
             m_entities.push_back(entity);
         }
         return entity;
@@ -265,9 +270,30 @@ public:
         if (!m_entityManager.isAlive(entity))
             return;
 
-        for (auto& [typeIndex, store] : m_componentStores)
+        bool removedViaComposition = false;
+        if (entity.index < m_entityComposition.size())
         {
-            store->remove(entity);
+            auto& types = m_entityComposition[entity.index];
+            if (!types.empty())
+            {
+                removedViaComposition = true;
+                for (auto typeIdx : types)
+                {
+                    if (auto* store = getStore(typeIdx))
+                    {
+                        store->remove(entity);
+                    }
+                }
+            }
+            types.clear();
+        }
+
+        if (!removedViaComposition)
+        {
+            for (auto& [typeIndex, store] : m_componentStores)
+            {
+                store->remove(entity);
+            }
         }
 
         auto it = std::find(m_entities.begin(), m_entities.end(), entity);
@@ -343,6 +369,8 @@ public:
         auto& store = getOrCreateStore<T>();
         T&    component = store.add(entity, std::forward<Args>(args)...);
 
+        trackComponentAdd(entity, std::type_index(typeid(T)));
+
         // Automatically wire owner on components that expose setOwner (most current components)
 
         return component;
@@ -364,6 +392,7 @@ public:
         if (store)
         {
             store->remove(entity);
+            trackComponentRemove(entity, std::type_index(typeid(T)));
         }
     }
 
@@ -378,6 +407,12 @@ public:
     {
         if (!m_entityManager.isAlive(entity))
             return false;
+
+        const auto typeIdx = std::type_index(typeid(T));
+        if (!compositionHas(entity, typeIdx))
+        {
+            return false;
+        }
 
         const auto* store = getStore<T>();
         return store && store->has(entity);
@@ -465,99 +500,178 @@ public:
     }
 
     /**
-     * @brief Iterate entities that have both component A and B
+     * @brief Iterate entities that have all specified component types using the smallest backing store.
      */
-    template <typename A, typename B, typename Func>
-    void view2(Func&& fn)
+    template <typename... Components, typename Func>
+    void view(Func&& fn)
     {
-        auto* storeA = getStore<A>();
-        auto* storeB = getStore<B>();
-        if (!storeA || !storeB)
+        static_assert(sizeof...(Components) > 0, "Registry::view requires at least one component");
+
+        auto stores = std::tuple<ComponentStore<Components>*...>{getStore<Components>()...};
+        if (!((std::get<ComponentStore<Components>*>(stores) != nullptr && ...)))
         {
             return;
         }
 
-        auto& entitiesA = storeA->entities();
-        auto& compsA    = storeA->components();
-        for (size_t i = 0; i < compsA.size(); ++i)
-        {
-            Entity entity = entitiesA[i];
-            if (storeB->has(entity))
+        constexpr size_t kCount = sizeof...(Components);
+        std::array<size_t, kCount> sizes{std::get<ComponentStore<Components>*>(stores)->size()...};
+        const size_t primaryIndex = static_cast<size_t>(
+            std::distance(sizes.begin(), std::min_element(sizes.begin(), sizes.end())));
+
+        auto hasAll = [&](Entity entity) {
+            bool allPresent = true;
+            std::apply([&](auto*... store) { ((allPresent = allPresent && store->has(entity)), ...); }, stores);
+            return allPresent;
+        };
+
+        auto dispatch = [&](auto primaryConst) {
+            constexpr size_t P = decltype(primaryConst)::value;
+            auto* primaryStore = std::get<P>(stores);
+            auto& entities     = primaryStore->entities();
+            auto& components   = primaryStore->components();
+
+            for (size_t i = 0; i < components.size(); ++i)
             {
-                fn(entity, compsA[i], storeB->get(entity));
+                Entity entity = entities[i];
+                if (!hasAll(entity))
+                {
+                    continue;
+                }
+
+                callView<P>(fn, stores, components, entity, i, std::make_index_sequence<kCount>{});
             }
+        };
+
+        dispatchByIndex(primaryIndex, dispatch, std::make_index_sequence<kCount>{});
+    }
+
+    template <typename... Components, typename Func>
+    void view(Func&& fn) const
+    {
+        static_assert(sizeof...(Components) > 0, "Registry::view requires at least one component");
+
+        auto stores = std::tuple<const ComponentStore<Components>*...>{getStore<Components>()...};
+        if (!((std::get<const ComponentStore<Components>*>(stores) != nullptr && ...)))
+        {
+            return;
         }
+
+        constexpr size_t kCount = sizeof...(Components);
+        std::array<size_t, kCount> sizes{std::get<const ComponentStore<Components>*>(stores)->size()...};
+        const size_t primaryIndex = static_cast<size_t>(
+            std::distance(sizes.begin(), std::min_element(sizes.begin(), sizes.end())));
+
+        auto hasAll = [&](Entity entity) {
+            bool allPresent = true;
+            std::apply([&](const auto*... store) { ((allPresent = allPresent && store->has(entity)), ...); }, stores);
+            return allPresent;
+        };
+
+        auto dispatch = [&](auto primaryConst) {
+            constexpr size_t P = decltype(primaryConst)::value;
+            const auto* primaryStore = std::get<P>(stores);
+            const auto& entities     = primaryStore->entities();
+            const auto& components   = primaryStore->components();
+
+            for (size_t i = 0; i < components.size(); ++i)
+            {
+                Entity entity = entities[i];
+                if (!hasAll(entity))
+                {
+                    continue;
+                }
+
+                callView<P>(fn, stores, components, entity, i, std::make_index_sequence<kCount>{});
+            }
+        };
+
+        dispatchByIndex(primaryIndex, dispatch, std::make_index_sequence<kCount>{});
+    }
+
+    template <typename... Components, typename Func>
+    void viewSorted(Func&& fn)
+    {
+        viewSorted<Components...>(std::forward<Func>(fn), [](Entity a, Entity b) { return a < b; });
+    }
+
+    template <typename... Components, typename Func, typename Compare>
+    void viewSorted(Func&& fn, Compare&& compare)
+    {
+        static_assert(sizeof...(Components) > 0, "Registry::viewSorted requires at least one component");
+
+        using Item = std::tuple<Entity, Components*...>;
+        std::vector<Item> items;
+
+        view<Components...>([&](Entity entity, Components&... comps) { items.emplace_back(entity, &comps...); });
+
+        if (items.empty())
+        {
+            return;
+        }
+
+        std::stable_sort(items.begin(), items.end(), [&](const Item& lhs, const Item& rhs) {
+            return compare(std::get<0>(lhs), std::get<0>(rhs));
+        });
+
+        for (const auto& item : items)
+        {
+            std::apply([&](Entity entity, Components*... comps) { fn(entity, *comps...); }, item);
+        }
+    }
+
+    template <typename... Components, typename Func>
+    void viewSorted(Func&& fn) const
+    {
+        viewSorted<Components...>(std::forward<Func>(fn), [](Entity a, Entity b) { return a < b; });
+    }
+
+    template <typename... Components, typename Func, typename Compare>
+    void viewSorted(Func&& fn, Compare&& compare) const
+    {
+        static_assert(sizeof...(Components) > 0, "Registry::viewSorted requires at least one component");
+
+        using Item = std::tuple<Entity, const Components*...>;
+        std::vector<Item> items;
+
+        view<Components...>([&](Entity entity, const Components&... comps) { items.emplace_back(entity, &comps...); });
+
+        if (items.empty())
+        {
+            return;
+        }
+
+        std::stable_sort(items.begin(), items.end(), [&](const Item& lhs, const Item& rhs) {
+            return compare(std::get<0>(lhs), std::get<0>(rhs));
+        });
+
+        for (const auto& item : items)
+        {
+            std::apply([&](Entity entity, const Components*... comps) { fn(entity, *comps...); }, item);
+        }
+    }
+
+    template <typename A, typename B, typename Func>
+    void view2(Func&& fn)
+    {
+        view<A, B>(std::forward<Func>(fn));
     }
 
     template <typename A, typename B, typename Func>
     void view2(Func&& fn) const
     {
-        const auto* storeA = getStore<A>();
-        const auto* storeB = getStore<B>();
-        if (!storeA || !storeB)
-        {
-            return;
-        }
-
-        const auto& entitiesA = storeA->entities();
-        const auto& compsA    = storeA->components();
-        for (size_t i = 0; i < compsA.size(); ++i)
-        {
-            Entity entity = entitiesA[i];
-            if (storeB->has(entity))
-            {
-                fn(entity, compsA[i], storeB->get(entity));
-            }
-        }
+        view<A, B>(std::forward<Func>(fn));
     }
 
-    /**
-     * @brief Iterate entities that have components A, B, and C
-     */
     template <typename A, typename B, typename C, typename Func>
     void view3(Func&& fn)
     {
-        auto* storeA = getStore<A>();
-        auto* storeB = getStore<B>();
-        auto* storeC = getStore<C>();
-        if (!storeA || !storeB || !storeC)
-        {
-            return;
-        }
-
-        auto& entitiesA = storeA->entities();
-        auto& compsA    = storeA->components();
-        for (size_t i = 0; i < compsA.size(); ++i)
-        {
-            Entity entity = entitiesA[i];
-            if (storeB->has(entity) && storeC->has(entity))
-            {
-                fn(entity, compsA[i], storeB->get(entity), storeC->get(entity));
-            }
-        }
+        view<A, B, C>(std::forward<Func>(fn));
     }
 
     template <typename A, typename B, typename C, typename Func>
     void view3(Func&& fn) const
     {
-        const auto* storeA = getStore<A>();
-        const auto* storeB = getStore<B>();
-        const auto* storeC = getStore<C>();
-        if (!storeA || !storeB || !storeC)
-        {
-            return;
-        }
-
-        const auto& entitiesA = storeA->entities();
-        const auto& compsA    = storeA->components();
-        for (size_t i = 0; i < compsA.size(); ++i)
-        {
-            Entity entity = entitiesA[i];
-            if (storeB->has(entity) && storeC->has(entity))
-            {
-                fn(entity, compsA[i], storeB->get(entity), storeC->get(entity));
-            }
-        }
+        view<A, B, C>(std::forward<Func>(fn));
     }
 
     /**
@@ -569,6 +683,20 @@ public:
     }
 
     /**
+     * @brief Gets the tracked component types for an entity
+     */
+    const std::vector<std::type_index>& getComposition(Entity entity) const
+    {
+        static const std::vector<std::type_index> kEmptyComposition;
+        if (entity.index >= m_entityComposition.size())
+        {
+            return kEmptyComposition;
+        }
+
+        return m_entityComposition[entity.index];
+    }
+
+    /**
      * @brief Clears all entities and components
      */
     void clear()
@@ -577,6 +705,7 @@ public:
         m_entities.clear();
         m_entityManager.clear();
         m_deferredDestroy.clear();
+        m_entityComposition.clear();
     }
 
     /**
@@ -653,6 +782,94 @@ private:
         return (it != m_componentStores.end()) ? static_cast<const ComponentStore<T>*>(it->second.get()) : nullptr;
     }
 
+    IComponentStore* getStore(std::type_index typeIdx)
+    {
+        auto it = m_componentStores.find(typeIdx);
+        return (it != m_componentStores.end()) ? it->second.get() : nullptr;
+    }
+
+    const IComponentStore* getStore(std::type_index typeIdx) const
+    {
+        auto it = m_componentStores.find(typeIdx);
+        return (it != m_componentStores.end()) ? it->second.get() : nullptr;
+    }
+
+    template <typename Func, size_t... Is>
+    static void dispatchByIndex(size_t index, Func&& fn, std::index_sequence<Is...>)
+    {
+        (void)((index == Is ? (fn(std::integral_constant<size_t, Is>{}), true) : false) || ...);
+    }
+
+    template <size_t PrimaryIndex, size_t Index, typename StoresTuple, typename ComponentsVec>
+    static decltype(auto) viewComponent(StoresTuple& stores, ComponentsVec& components, Entity entity, size_t denseIndex)
+    {
+        auto* store = std::get<Index>(stores);
+        if constexpr (Index == PrimaryIndex)
+        {
+            return (components[denseIndex]);
+        }
+        else
+        {
+            return store->get(entity);
+        }
+    }
+
+    template <size_t PrimaryIndex, typename Func, typename StoresTuple, typename ComponentsVec, size_t... Is>
+    static void callView(Func& fn,
+                         StoresTuple& stores,
+                         ComponentsVec& components,
+                         Entity entity,
+                         size_t denseIndex,
+                         std::index_sequence<Is...>)
+    {
+        fn(entity, viewComponent<PrimaryIndex, Is>(stores, components, entity, denseIndex)...);
+    }
+
+    void ensureCompositionEntry(Entity entity)
+    {
+        if (entity.index >= m_entityComposition.size())
+        {
+            m_entityComposition.resize(entity.index + 1);
+        }
+    }
+
+    void trackComponentAdd(Entity entity, std::type_index typeIdx)
+    {
+        ensureCompositionEntry(entity);
+        auto& types = m_entityComposition[entity.index];
+        if (std::find(types.begin(), types.end(), typeIdx) == types.end())
+        {
+            types.push_back(typeIdx);
+        }
+    }
+
+    void trackComponentRemove(Entity entity, std::type_index typeIdx)
+    {
+        if (entity.index >= m_entityComposition.size())
+        {
+            return;
+        }
+
+        auto& types = m_entityComposition[entity.index];
+        auto  it    = std::find(types.begin(), types.end(), typeIdx);
+        if (it != types.end())
+        {
+            *it = types.back();
+            types.pop_back();
+        }
+    }
+
+    bool compositionHas(Entity entity, std::type_index typeIdx) const
+    {
+        if (entity.index >= m_entityComposition.size())
+        {
+            return false;
+        }
+
+        const auto& types = m_entityComposition[entity.index];
+        return std::find(types.begin(), types.end(), typeIdx) != types.end();
+    }
+
     EntityManager      m_entityManager;  ///< Allocates/destroys entities with generations
     std::vector<Entity> m_entities;      ///< All active entities
 
@@ -665,6 +882,9 @@ private:
 
     /// Entities scheduled for deferred destruction
     std::vector<Entity> m_deferredDestroy;
+
+    /// Per-entity component composition (type_index list)
+    std::vector<std::vector<std::type_index>> m_entityComposition;
 };
 
 #endif  // REGISTRY_H
