@@ -38,14 +38,10 @@ S2DPhysics::~S2DPhysics()
     }
 }
 
-S2DPhysics& S2DPhysics::instance()
+void S2DPhysics::update(float deltaTime, World& world)
 {
-    static S2DPhysics instance;
-    return instance;
-}
-
-void S2DPhysics::update(float deltaTime)
-{
+    (void)deltaTime;
+    (void)world;
     // Step the Box2D world with fixed timestep
     b2World_Step(m_worldId, m_timeStep, m_subStepCount);
 

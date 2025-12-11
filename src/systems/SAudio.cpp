@@ -19,12 +19,6 @@ SAudio::~SAudio()
     SAudio::shutdown();
 }
 
-SAudio& SAudio::instance()
-{
-    static SAudio instance;
-    return instance;
-}
-
 bool SAudio::initialize()
 {
     if (m_initialized)

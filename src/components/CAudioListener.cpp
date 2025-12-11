@@ -3,6 +3,7 @@
 #include "CTransform.h"
 // #include "Entity.h" // Removed - Entity is now just an ID
 #include "SAudio.h"
+#include "SystemLocator.h"
 
 namespace Components
 {
@@ -18,7 +19,7 @@ void CAudioListener::init()
         auto* transform = getOwner()->getComponent<CTransform>();
         if (transform)
         {
-            ::Systems::SAudio::instance().setListenerPosition(transform->getPosition());
+            ::Systems::SystemLocator::audio().setListenerPosition(transform->getPosition());
         }
     }
 #endif
@@ -36,7 +37,7 @@ void CAudioListener::update(float deltaTime)
     auto* transform = registry.tryGet<CTransform>(getOwner());
     if (transform)
     {
-        ::Systems::SAudio::instance().setListenerPosition(transform->getPosition());
+        ::Systems::SystemLocator::audio().setListenerPosition(transform->getPosition());
     }
 #endif
 
@@ -46,7 +47,7 @@ void CAudioListener::update(float deltaTime)
         if (config.type == AudioType::SFX && config.spatial && config.playHandle.isValid())
         {
             // Check if sound is still playing
-            if (!::Systems::SAudio::instance().isPlayingSFX(config.playHandle))
+            if (!::Systems::SystemLocator::audio().isPlayingSFX(config.playHandle))
             {
                 config.playHandle = AudioHandle::invalid();
             }
@@ -206,7 +207,7 @@ void CAudioListener::removeAudioSource(const std::string& name)
         // Stop if playing
         if (it->second.type == AudioType::SFX && it->second.playHandle.isValid())
         {
-            ::Systems::SAudio::instance().stopSFX(it->second.playHandle);
+            ::Systems::SystemLocator::audio().stopSFX(it->second.playHandle);
         }
         m_audioSources.erase(it);
     }
@@ -222,7 +223,7 @@ bool CAudioListener::play(const std::string& name)
     }
 
     auto& config      = it->second;
-    auto& audioSystem = ::Systems::SAudio::instance();
+    auto& audioSystem = ::Systems::SystemLocator::audio();
 
     if (config.clipId.empty())
     {
@@ -273,7 +274,7 @@ void CAudioListener::pause(const std::string& name)
     }
 
     auto& config      = it->second;
-    auto& audioSystem = ::Systems::SAudio::instance();
+    auto& audioSystem = ::Systems::SystemLocator::audio();
 
     if (config.type == AudioType::SFX && config.playHandle.isValid())
     {
@@ -294,7 +295,7 @@ void CAudioListener::stop(const std::string& name)
     }
 
     auto& config      = it->second;
-    auto& audioSystem = ::Systems::SAudio::instance();
+    auto& audioSystem = ::Systems::SystemLocator::audio();
 
     if (config.type == AudioType::SFX && config.playHandle.isValid())
     {
@@ -316,7 +317,7 @@ bool CAudioListener::isPlaying(const std::string& name) const
     }
 
     const auto& config      = it->second;
-    const auto& audioSystem = ::Systems::SAudio::instance();
+    const auto& audioSystem = ::Systems::SystemLocator::audio();
 
     if (config.type == AudioType::SFX)
     {

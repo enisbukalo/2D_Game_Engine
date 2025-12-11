@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include "FileUtilities.h"
 #include "SAudio.h"
+#include "SystemLocator.h"
 #include "SSerialization.h"
 
 namespace Systems
@@ -38,7 +39,7 @@ void SScene::loadScene(const std::string& scenePath)
                 std::string musicId = settings["music"].getString();
                 if (!musicId.empty())
                 {
-                    auto& audioSystem = SAudio::instance();
+                    auto& audioSystem = SystemLocator::audio();
 
                     // For now, assume music files are in a default location or use the ID as path
                     // In a production system, you'd use an asset manifest to map IDs to paths
@@ -118,7 +119,7 @@ void SScene::clearScene()
 {
 #if 0  // TODO: Update to use Registry
     // Stop any playing music
-    SAudio::instance().stopMusic();
+    SystemLocator::audio().stopMusic();
 
     ::Systems::SEntity::instance().clear();
     m_currentScene = "";

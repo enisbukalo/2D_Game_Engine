@@ -21,8 +21,6 @@ namespace Systems
 class SInput : public System
 {
 private:
-    SInput();
-
     sf::RenderWindow* m_window      = nullptr;
     bool              m_passToImGui = true;
 
@@ -47,6 +45,7 @@ private:
     ListenerId                                                             m_nextListenerId = 1;
 
 public:
+    SInput();
     ~SInput();
 
     // Delete copy and move constructors/assignment operators
@@ -55,12 +54,10 @@ public:
     SInput& operator=(const SInput&) = delete;
     SInput& operator=(SInput&&)      = delete;
 
-    static SInput& instance();
-
     void initialize(sf::RenderWindow* window, bool passToImGui = true);
     void shutdown();
 
-    void update(float deltaTime) override;
+    void update(float deltaTime, World& world) override;
 
     ListenerId subscribe(std::function<void(const InputEvent&)> cb);
     void       unsubscribe(ListenerId id);

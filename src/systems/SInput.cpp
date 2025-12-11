@@ -15,12 +15,6 @@ SInput::~SInput()
     shutdown();
 }
 
-SInput& SInput::instance()
-{
-    static SInput instance;
-    return instance;
-}
-
 void SInput::initialize(sf::RenderWindow* window, bool passToImGui)
 {
     m_window      = window;
@@ -408,8 +402,9 @@ void SInput::processEvent(const sf::Event& event)
     }
 }
 
-void SInput::update(float /*deltaTime*/)
+void SInput::update(float /*deltaTime*/, World& world)
 {
+    (void)world;
     // Clear transient states (pressed/released) at start of update
     for (auto& kv : m_actionStates)
         if (kv.second == ActionState::Released)

@@ -4,6 +4,7 @@
 #include <spdlog/spdlog.h>
 #include <memory>
 #include <string>
+#include <vector>
 
 // Include ECS core
 #include <Entity.h>
@@ -161,6 +162,13 @@ public:
     }
 
 private:
+    std::unique_ptr<Systems::SRenderer> m_renderer;  ///< Renderer owned by engine
+    std::unique_ptr<Systems::SInput>    m_input;     ///< Input system owned by engine
+    std::unique_ptr<Systems::S2DPhysics> m_physics;  ///< Physics system owned by engine
+    std::unique_ptr<Systems::SParticle>  m_particle; ///< Particle system owned by engine
+    std::unique_ptr<Systems::SAudio>     m_audio;    ///< Audio system owned by engine
+
+    std::vector<Systems::System*> m_systemOrder;  ///< Ordered system update list
     World         m_world;         ///< Central world (registry + lifecycle)
     const uint8_t m_subStepCount;  ///< Number of physics sub-steps per update
     const float   m_timeStep;      ///< Fixed time step for physics updates

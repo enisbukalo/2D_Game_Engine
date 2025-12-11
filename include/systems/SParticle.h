@@ -27,11 +27,8 @@ namespace Systems
 class SParticle : public System
 {
 public:
-    /**
-     * @brief Gets the singleton instance
-     * @return Reference to the singleton instance
-     */
-    static SParticle& instance();
+    SParticle();
+    ~SParticle() override;
 
     /**
      * @brief Initializes the particle system
@@ -50,7 +47,7 @@ public:
      * @brief Updates all particle emitters on entities
      * @param deltaTime Time elapsed since last update
      */
-    void update(float deltaTime) override;
+    void update(float deltaTime, World& world) override;
 
     /**
      * @brief Renders particles for a single emitter entity
@@ -70,12 +67,6 @@ public:
     }
 
 private:
-    /** @brief Private constructor for singleton pattern */
-    SParticle();
-
-    /** @brief Destructor */
-    ~SParticle() override;
-
     /** @brief Deleted copy constructor */
     SParticle(const SParticle&) = delete;
 

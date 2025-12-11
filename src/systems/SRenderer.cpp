@@ -10,6 +10,7 @@
 #include "CTransform.h"
 #include "Registry.h"
 #include "SParticle.h"
+#include "World.h"
 
 namespace Systems
 {
@@ -19,12 +20,6 @@ SRenderer::SRenderer() : System() {}
 SRenderer::~SRenderer()
 {
     shutdown();
-}
-
-SRenderer& SRenderer::instance()
-{
-    static SRenderer instance;
-    return instance;
 }
 
 bool SRenderer::initialize(const WindowConfig& config)
@@ -81,77 +76,68 @@ void SRenderer::shutdown()
     spdlog::info("SRenderer: Shutdown complete");
 }
 
-void SRenderer::update(float deltaTime)
+void SRenderer::update(float deltaTime, World& world)
 {
+    (void)deltaTime;
+    (void)world;
     // Rendering system doesn't need per-frame updates
     // Actual rendering is done in render()
 }
 
-void SRenderer::render()
+void SRenderer::render(World& world)
 {
     if (!m_initialized || !m_window || !m_window->isOpen())
     {
         return;
     }
 
-#if 0  // TODO: Update to use Registry to iterate over entities with CRenderable and CParticleEmitter
-    // Get all entities with renderable components
-    auto& entityManager      = ::Systems::SEntity::instance();
-    auto  renderableEntities = entityManager.getEntitiesWithComponent<::Components::CRenderable>();
-    auto  emitterEntities    = entityManager.getEntitiesWithComponent<::Components::CParticleEmitter>();
+    Registry& registry = world.registry();
 
-    // Build unified render queue with z-index
     struct RenderItem
     {
         Entity entity;
         int    zIndex;
         bool   isParticleEmitter;
     };
+
     std::vector<RenderItem> renderQueue;
-    renderQueue.reserve(renderableEntities.size() + emitterEntities.size());
 
-    // Add renderable entities
-    for (Entity entity : renderableEntities)
-    {
-        auto* renderable = registry.tryGet<::Components::CRenderable>(entity);
-        if (renderable)
+    world.view2<::Components::CRenderable, ::Components::CTransform>(
+        [&renderQueue](Entity entity, ::Components::CRenderable& renderable, ::Components::CTransform&)
         {
-            renderQueue.push_back({entity, renderable->getZIndex(), false});
-        }
-    }
+            if (!renderable.isVisible())
+            {
+                return;
+            }
+            renderQueue.push_back({entity, renderable.getZIndex(), false});
+        });
 
-    // Add particle emitter entities
-    for (Entity entity : emitterEntities)
-    {
-        auto* emitter = registry.tryGet<::Components::CParticleEmitter>(entity);
-        if (emitter && emitter->isActive())
+    world.view2<::Components::CParticleEmitter, ::Components::CTransform>(
+        [&renderQueue](Entity entity, ::Components::CParticleEmitter& emitter, ::Components::CTransform&)
         {
-            renderQueue.push_back({entity, emitter->getZIndex(), true});
-        }
-    }
+            if (emitter.isActive())
+            {
+                renderQueue.push_back({entity, emitter.getZIndex(), true});
+            }
+        });
 
-    // Sort by z-index (lower values draw first, higher on top)
     std::sort(renderQueue.begin(),
               renderQueue.end(),
               [](const RenderItem& a, const RenderItem& b) { return a.zIndex < b.zIndex; });
 
-    // Render in z-index order
-    auto& particleSystem = ::Systems::SParticle::instance();
     for (const RenderItem& item : renderQueue)
     {
         if (item.isParticleEmitter)
         {
-            if (particleSystem.isInitialized())
+            if (m_particleSystem && m_particleSystem->isInitialized())
             {
-                particleSystem.renderEmitter(item.entity, m_window.get(), registry);
+                m_particleSystem->renderEmitter(item.entity, m_window.get(), registry);
             }
+            continue;
         }
-        else
-        {
-            renderEntity(item.entity, registry);
-        }
+
+        renderEntity(item.entity, registry);
     }
-#endif
 }
 
 void SRenderer::clear(const Color& color)

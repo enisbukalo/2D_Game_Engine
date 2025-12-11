@@ -1,6 +1,7 @@
 #include "CPhysicsBody2D.h"
 #include "CTransform.h"
 #include "S2DPhysics.h"
+#include "SystemLocator.h"
 #include "Vec2.h"
 
 namespace Components
@@ -25,13 +26,13 @@ CPhysicsBody2D::~CPhysicsBody2D()
 {
     if (m_initialized)
     {
-        ::Systems::S2DPhysics::instance().unregisterBody(this);
+        ::Systems::SystemLocator::physics().unregisterBody(this);
 
         if (b2Body_IsValid(m_bodyId))
         {
             if (m_entity.isValid())
             {
-                ::Systems::S2DPhysics::instance().destroyBody(m_entity);
+                ::Systems::SystemLocator::physics().destroyBody(m_entity);
             }
             else
             {
@@ -50,7 +51,7 @@ void CPhysicsBody2D::initialize(const b2Vec2& position, BodyType type)
     {
         if (m_entity.isValid())
         {
-            ::Systems::S2DPhysics::instance().destroyBody(m_entity);
+            ::Systems::SystemLocator::physics().destroyBody(m_entity);
         }
         else
         {
@@ -82,7 +83,7 @@ void CPhysicsBody2D::initialize(const b2Vec2& position, BodyType type)
             break;
     }
 
-    m_bodyId      = ::Systems::S2DPhysics::instance().createBody(m_entity, bodyDef);
+    m_bodyId      = ::Systems::SystemLocator::physics().createBody(m_entity, bodyDef);
     m_initialized = b2Body_IsValid(m_bodyId);
 
     // Apply persisted properties after body creation
@@ -95,7 +96,7 @@ void CPhysicsBody2D::initialize(const b2Vec2& position, BodyType type)
     }
 
     // Auto-register this body for fixed-update callbacks
-    ::Systems::S2DPhysics::instance().registerBody(this);
+    ::Systems::SystemLocator::physics().registerBody(this);
 }
 
 void CPhysicsBody2D::setBodyType(BodyType type)

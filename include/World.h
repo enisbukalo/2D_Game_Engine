@@ -74,6 +74,30 @@ public:
         m_registry.each<T>(std::forward<Func>(fn));
     }
 
+    template <typename A, typename B, typename Func>
+    void view2(Func&& fn)
+    {
+        m_registry.view2<A, B>(std::forward<Func>(fn));
+    }
+
+    template <typename A, typename B, typename Func>
+    void view2(Func&& fn) const
+    {
+        m_registry.view2<A, B>(std::forward<Func>(fn));
+    }
+
+    template <typename A, typename B, typename C, typename Func>
+    void view3(Func&& fn)
+    {
+        m_registry.view3<A, B, C>(std::forward<Func>(fn));
+    }
+
+    template <typename A, typename B, typename C, typename Func>
+    void view3(Func&& fn) const
+    {
+        m_registry.view3<A, B, C>(std::forward<Func>(fn));
+    }
+
     const std::vector<Entity>& getEntities() const { return m_registry.getEntities(); }
 
     void clear() { m_registry.clear(); }

@@ -170,12 +170,6 @@ public:
     void setListenerPosition(const Vec2& position) override;
     void update(float deltaTime) override;
 
-    /**
-     * @brief Get singleton instance
-     * @return Reference to the audio system instance
-     */
-    static SAudio& instance();
-
     // Delete copy and move constructors/assignment operators
     SAudio(const SAudio&)            = delete;
     SAudio(SAudio&&)                 = delete;

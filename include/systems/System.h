@@ -2,9 +2,9 @@
 #define SYSTEM_H
 
 #include <vector>
-#include "CName.h"
-#include "CTransform.h"
 #include "Entity.h"
+
+class World;
 
 namespace Systems
 {
@@ -35,7 +35,7 @@ public:
      * process its associated components. Derived classes must implement
      * this method to provide specific system behavior.
      */
-    virtual void update(float deltaTime) = 0;
+    virtual void update(float deltaTime, World& world) = 0;
 };
 
 }  // namespace Systems

@@ -44,9 +44,10 @@ private:
     float m_timeStep;
     int   m_subStepCount;
 
-    S2DPhysics();
-
 public:
+public:
+public:
+    S2DPhysics();
     ~S2DPhysics();
 
     // Delete copy and move constructors/assignment operators
@@ -56,15 +57,10 @@ public:
     S2DPhysics& operator=(S2DPhysics&&)      = delete;
 
     /**
-     * @brief Get the singleton instance of the physics system
-     */
-    static S2DPhysics& instance();
-
-    /**
      * @brief Update the physics simulation
      * @param deltaTime Time elapsed since last update (not used - fixed timestep)
      */
-    void update(float deltaTime) override;
+    void update(float deltaTime, World& world) override;
 
     /**
      * @brief Get the Box2D world ID

@@ -411,6 +411,102 @@ public:
     }
 
     /**
+     * @brief Iterate entities that have both component A and B
+     */
+    template <typename A, typename B, typename Func>
+    void view2(Func&& fn)
+    {
+        auto* storeA = getStore<A>();
+        auto* storeB = getStore<B>();
+        if (!storeA || !storeB)
+        {
+            return;
+        }
+
+        auto& entitiesA = storeA->entities();
+        auto& compsA    = storeA->components();
+        for (size_t i = 0; i < compsA.size(); ++i)
+        {
+            Entity entity = entitiesA[i];
+            if (storeB->has(entity))
+            {
+                fn(entity, compsA[i], storeB->get(entity));
+            }
+        }
+    }
+
+    template <typename A, typename B, typename Func>
+    void view2(Func&& fn) const
+    {
+        const auto* storeA = getStore<A>();
+        const auto* storeB = getStore<B>();
+        if (!storeA || !storeB)
+        {
+            return;
+        }
+
+        const auto& entitiesA = storeA->entities();
+        const auto& compsA    = storeA->components();
+        for (size_t i = 0; i < compsA.size(); ++i)
+        {
+            Entity entity = entitiesA[i];
+            if (storeB->has(entity))
+            {
+                fn(entity, compsA[i], storeB->get(entity));
+            }
+        }
+    }
+
+    /**
+     * @brief Iterate entities that have components A, B, and C
+     */
+    template <typename A, typename B, typename C, typename Func>
+    void view3(Func&& fn)
+    {
+        auto* storeA = getStore<A>();
+        auto* storeB = getStore<B>();
+        auto* storeC = getStore<C>();
+        if (!storeA || !storeB || !storeC)
+        {
+            return;
+        }
+
+        auto& entitiesA = storeA->entities();
+        auto& compsA    = storeA->components();
+        for (size_t i = 0; i < compsA.size(); ++i)
+        {
+            Entity entity = entitiesA[i];
+            if (storeB->has(entity) && storeC->has(entity))
+            {
+                fn(entity, compsA[i], storeB->get(entity), storeC->get(entity));
+            }
+        }
+    }
+
+    template <typename A, typename B, typename C, typename Func>
+    void view3(Func&& fn) const
+    {
+        const auto* storeA = getStore<A>();
+        const auto* storeB = getStore<B>();
+        const auto* storeC = getStore<C>();
+        if (!storeA || !storeB || !storeC)
+        {
+            return;
+        }
+
+        const auto& entitiesA = storeA->entities();
+        const auto& compsA    = storeA->components();
+        for (size_t i = 0; i < compsA.size(); ++i)
+        {
+            Entity entity = entitiesA[i];
+            if (storeB->has(entity) && storeC->has(entity))
+            {
+                fn(entity, compsA[i], storeB->get(entity), storeC->get(entity));
+            }
+        }
+    }
+
+    /**
      * @brief Gets all entities in the registry
      */
     const std::vector<Entity>& getEntities() const

@@ -3,6 +3,7 @@
 #include "CTransform.h"
 // #include "Entity.h" // Removed - Entity is now just an ID
 #include "SAudio.h"
+#include "SystemLocator.h"
 
 namespace Components
 {
@@ -26,7 +27,7 @@ void CAudioSource::update(float deltaTime)
         auto* transform = registry.tryGet<CTransform>(getOwner());
         if (transform)
         {
-            ::Systems::SAudio::instance().setSFXPosition(m_playHandle, transform->getPosition());
+            ::Systems::SystemLocator::audio().setSFXPosition(m_playHandle, transform->getPosition());
         }
     }
 #endif
@@ -34,7 +35,7 @@ void CAudioSource::update(float deltaTime)
     // Check if sound has finished (for non-looping sounds)
     if (m_type == AudioType::SFX && m_playHandle.isValid())
     {
-        if (!::Systems::SAudio::instance().isPlayingSFX(m_playHandle))
+        if (!::Systems::SystemLocator::audio().isPlayingSFX(m_playHandle))
         {
             m_playHandle = AudioHandle::invalid();
         }
@@ -153,7 +154,7 @@ bool CAudioSource::play()
         return false;
     }
 
-    auto& audioSystem = ::Systems::SAudio::instance();
+    auto& audioSystem = ::Systems::SystemLocator::audio();
 
     if (m_type == AudioType::SFX)
     {
@@ -190,7 +191,7 @@ bool CAudioSource::play()
 
 void CAudioSource::pause()
 {
-    auto& audioSystem = ::Systems::SAudio::instance();
+    auto& audioSystem = ::Systems::SystemLocator::audio();
 
     if (m_type == AudioType::SFX && m_playHandle.isValid())
     {
@@ -204,7 +205,7 @@ void CAudioSource::pause()
 
 void CAudioSource::stop()
 {
-    auto& audioSystem = ::Systems::SAudio::instance();
+    auto& audioSystem = ::Systems::SystemLocator::audio();
 
     if (m_type == AudioType::SFX && m_playHandle.isValid())
     {
@@ -219,7 +220,7 @@ void CAudioSource::stop()
 
 bool CAudioSource::isPlaying() const
 {
-    const auto& audioSystem = ::Systems::SAudio::instance();
+    const auto& audioSystem = ::Systems::SystemLocator::audio();
 
     if (m_type == AudioType::SFX)
     {

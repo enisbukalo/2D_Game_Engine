@@ -6,6 +6,7 @@
 #include "CParticleEmitter.h"
 #include "CTransform.h"
 #include "Registry.h"
+#include "World.h"
 
 namespace Systems
 {
@@ -417,16 +418,6 @@ static void emitParticle(::Components::CParticleEmitter* emitter, const Vec2& wo
     emitter->getParticles().push_back(spawnParticle(emitter, worldPosition, entityRotation));
 }
 
-//=============================================================================
-// SParticle Implementation
-//=============================================================================
-
-SParticle& ::Systems::SParticle::instance()
-{
-    static SParticle instance;
-    return instance;
-}
-
 SParticle::SParticle() : m_vertexArray(sf::Quads), m_window(nullptr), m_pixelsPerMeter(100.0f), m_initialized(false) {}
 
 SParticle::~SParticle()
@@ -448,75 +439,57 @@ void SParticle::shutdown()
     m_window      = nullptr;
 }
 
-void SParticle::update(float deltaTime)
+void SParticle::update(float deltaTime, World& world)
 {
     if (m_initialized == false)
     {
         return;
     }
 
-#if 0  // TODO: Update to use Registry to iterate over entities with CParticleEmitter and CTransform
-    // Iterate over all entities with CParticleEmitter component
-    auto entities = ::Systems::SEntity::instance().getEntities();
-
-    for (auto& entity : entities)
-    {
-        bool hasEmitter   = entity->hasComponent<::Components::CParticleEmitter>();
-        bool hasTransform = entity->hasComponent<::Components::CTransform>();
-
-        if (hasEmitter == false || hasTransform == false)
+    world.view2<::Components::CParticleEmitter, ::Components::CTransform>(
+        [deltaTime](Entity /*entity*/, ::Components::CParticleEmitter& emitter, ::Components::CTransform& transform)
         {
-            continue;
-        }
-
-        auto* emitter   = entity->getComponent<::Components::CParticleEmitter>();
-        auto* transform = entity->getComponent<::Components::CTransform>();
-
-        if (emitter->isActive() == false)
-        {
-            continue;
-        }
-
-        // Calculate world position (entity position + rotated offset)
-        Vec2 entityPos = transform->getPosition();
-        Vec2 offset    = emitter->getPositionOffset();
-
-        float rotation = transform->getRotation();
-        if (rotation != 0.0f)
-        {
-            float cosR     = std::cos(rotation);
-            float sinR     = std::sin(rotation);
-            float rotatedX = offset.x * cosR - offset.y * sinR;
-            float rotatedY = offset.x * sinR + offset.y * cosR;
-            offset         = Vec2(rotatedX, rotatedY);
-        }
-
-        Vec2 worldPos = entityPos + offset;
-
-        // Update existing particles
-        for (auto& particle : emitter->getParticles())
-        {
-            if (particle.alive)
+            if (!emitter.isActive())
             {
-                updateParticle(particle, emitter, deltaTime);
+                return;
             }
-        }
 
-        // Emit new particles if needed
-        if (emitter->getEmissionRate() > 0.0f)
-        {
-            float timer            = emitter->getEmissionTimer() + deltaTime;
-            float emissionInterval = 1.0f / emitter->getEmissionRate();
+            Vec2 entityPos = transform.getPosition();
+            Vec2 offset    = emitter.getPositionOffset();
 
-            while (timer >= emissionInterval)
+            float rotation = transform.getRotation();
+            if (rotation != 0.0f)
             {
-                emitParticle(emitter, worldPos, rotation);
-                timer -= emissionInterval;
+                float cosR     = std::cos(rotation);
+                float sinR     = std::sin(rotation);
+                float rotatedX = offset.x * cosR - offset.y * sinR;
+                float rotatedY = offset.x * sinR + offset.y * cosR;
+                offset         = Vec2(rotatedX, rotatedY);
             }
-            emitter->setEmissionTimer(timer);
-        }
-    }
-#endif
+
+            Vec2 worldPos = entityPos + offset;
+
+            for (auto& particle : emitter.getParticles())
+            {
+                if (particle.alive)
+                {
+                    updateParticle(particle, &emitter, deltaTime);
+                }
+            }
+
+            if (emitter.getEmissionRate() > 0.0f)
+            {
+                float timer            = emitter.getEmissionTimer() + deltaTime;
+                float emissionInterval = 1.0f / emitter.getEmissionRate();
+
+                while (timer >= emissionInterval)
+                {
+                    emitParticle(&emitter, worldPos, rotation);
+                    timer -= emissionInterval;
+                }
+                emitter.setEmissionTimer(timer);
+            }
+        });
 }
 
 void SParticle::renderEmitter(Entity entity, sf::RenderWindow* window, Registry& registry)

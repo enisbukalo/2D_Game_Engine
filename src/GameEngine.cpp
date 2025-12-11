@@ -6,10 +6,23 @@
 
 // Include all component types for registry registration
 #include <Components.h>
+#include <SystemLocator.h>
 
 GameEngine::GameEngine(const Systems::WindowConfig& windowConfig, Vec2 gravity, uint8_t subStepCount, float timeStep, float pixelsPerMeter)
     : m_gravity(gravity), m_subStepCount(subStepCount), m_timeStep(timeStep)
 {
+    m_renderer = std::make_unique<Systems::SRenderer>();
+    m_input    = std::make_unique<Systems::SInput>();
+    m_physics  = std::make_unique<Systems::S2DPhysics>();
+    m_particle = std::make_unique<Systems::SParticle>();
+    m_audio    = std::make_unique<Systems::SAudio>();
+
+    Systems::SystemLocator::provideRenderer(m_renderer.get());
+    Systems::SystemLocator::provideInput(m_input.get());
+    Systems::SystemLocator::providePhysics(m_physics.get());
+    Systems::SystemLocator::provideParticle(m_particle.get());
+    Systems::SystemLocator::provideAudio(m_audio.get());
+
     // Register component type names for serialization
     registerComponentTypes();
 
@@ -39,7 +52,7 @@ GameEngine::GameEngine(const Systems::WindowConfig& windowConfig, Vec2 gravity, 
     }
 
     // Initialize renderer
-    if (!::Systems::SRenderer::instance().initialize(windowConfig))
+    if (!m_renderer->initialize(windowConfig))
     {
         if (auto logger = spdlog::get("GameEngine"))
         {
@@ -48,24 +61,25 @@ GameEngine::GameEngine(const Systems::WindowConfig& windowConfig, Vec2 gravity, 
         return;
     }
 
+    m_renderer->setParticleSystem(m_particle.get());
+
     m_gameRunning = true;
 
     // Configure physics system
-    auto& physics = ::Systems::S2DPhysics::instance();
-    physics.setGravity({gravity.x, gravity.y});  // Box2D uses Y-up convention
+    m_physics->setGravity({gravity.x, gravity.y});  // Box2D uses Y-up convention
     // Use the stored member values so the members are read/used and
     // do not trigger "unused member" style warnings from static analyzers
-    physics.setSubStepCount(m_subStepCount);  // Set substep count for stability
-    physics.setTimeStep(m_timeStep);          // Set fixed timestep
+    m_physics->setSubStepCount(m_subStepCount);  // Set substep count for stability
+    m_physics->setTimeStep(m_timeStep);          // Set fixed timestep
 
     // Initialize input manager and register window event handling
-    ::Systems::SInput::instance().initialize(::Systems::SRenderer::instance().getWindow(), true);
-    ::Systems::SInput::instance().subscribe(
+    m_input->initialize(m_renderer->getWindow(), true);
+    m_input->subscribe(
         [this](const InputEvent& ev)
         {
             if (ev.type == InputEventType::WindowClosed)
             {
-                auto* window = ::Systems::SRenderer::instance().getWindow();
+                auto* window = m_renderer->getWindow();
                 if (window)
                 {
                     window->close();
@@ -75,11 +89,14 @@ GameEngine::GameEngine(const Systems::WindowConfig& windowConfig, Vec2 gravity, 
         });
 
     // Initialize audio system
-    ::Systems::SAudio::instance().initialize();
+    m_audio->initialize();
 
     // Initialize particle system with default scale
     // Note: Users can re-initialize with different scale if needed
-    ::Systems::SParticle::instance().initialize(::Systems::SRenderer::instance().getWindow(), pixelsPerMeter);
+    m_particle->initialize(m_renderer->getWindow(), pixelsPerMeter);
+
+    // Maintain ordered list for per-frame updates (input -> physics -> particle)
+    m_systemOrder = {m_input.get(), m_physics.get(), m_particle.get()};
 
     if (auto logger = spdlog::get("GameEngine"))
     {
@@ -90,10 +107,26 @@ GameEngine::GameEngine(const Systems::WindowConfig& windowConfig, Vec2 gravity, 
 GameEngine::~GameEngine()
 {
     // Shutdown input manager
-    ::Systems::SInput::instance().shutdown();
+    if (m_input)
+    {
+        m_input->shutdown();
+    }
 
     // Shutdown renderer
-    ::Systems::SRenderer::instance().shutdown();
+    if (m_renderer)
+    {
+        m_renderer->shutdown();
+    }
+
+    if (m_particle)
+    {
+        m_particle->shutdown();
+    }
+
+    if (m_audio)
+    {
+        m_audio->shutdown();
+    }
 
     if (auto logger = spdlog::get("GameEngine"))
     {
@@ -110,40 +143,50 @@ void GameEngine::readInputs()
 
 void GameEngine::update(float deltaTime)
 {
-    // Handle input events before any updates
-    ::Systems::SInput::instance().update(deltaTime);
-    // Accumulate time for fixed timestep updates
-    m_accumulator += deltaTime;
-
-    // Run physics updates with fixed timestep (prevents spiral of death)
-    const float maxAccumulator = m_timeStep * 10.0f;  // Cap to prevent spiral of death
-    if (m_accumulator > maxAccumulator)
+    for (auto* system : m_systemOrder)
     {
-        m_accumulator = maxAccumulator;
+        if (!system)
+        {
+            continue;
+        }
+
+        if (system == m_physics.get())
+        {
+            m_accumulator += deltaTime;
+            const float maxAccumulator = m_timeStep * 10.0f;  // Cap to prevent spiral of death
+            if (m_accumulator > maxAccumulator)
+            {
+                m_accumulator = maxAccumulator;
+            }
+
+            while (m_accumulator >= m_timeStep)
+            {
+                m_physics->runFixedUpdates(m_timeStep);
+                m_physics->update(m_timeStep, m_world);
+                m_accumulator -= m_timeStep;
+            }
+            continue;
+        }
+
+        system->update(deltaTime, m_world);
     }
 
-    // Process fixed timestep updates
-    while (m_accumulator >= m_timeStep)
+    if (m_audio)
     {
-        // Run fixed-update callbacks for all physics bodies (apply forces, etc.)
-        ::Systems::S2DPhysics::instance().runFixedUpdates(m_timeStep);
-
-        // Box2D physics update (handles its own sub-stepping)
-        ::Systems::S2DPhysics::instance().update(m_timeStep);
-
-        m_accumulator -= m_timeStep;
+        m_audio->update(deltaTime);
     }
-
-    // Update particle system with frame delta time
-    ::Systems::SParticle::instance().update(deltaTime);
 }
 
 void GameEngine::render()
 {
-    auto& renderer = ::Systems::SRenderer::instance();
-    renderer.clear(Color::Black);
-    renderer.render();
-    renderer.display();
+    if (!m_renderer)
+    {
+        return;
+    }
+
+    m_renderer->clear(Color::Black);
+    m_renderer->render(m_world);
+    m_renderer->display();
 }
 
 bool GameEngine::is_running() const
@@ -163,27 +206,27 @@ Systems::SScene& GameEngine::getSceneManager()
 
 Systems::S2DPhysics& GameEngine::getPhysics()
 {
-    return ::Systems::S2DPhysics::instance();
+    return *m_physics;
 }
 
 Systems::SInput& GameEngine::getInputManager()
 {
-    return ::Systems::SInput::instance();
+    return *m_input;
 }
 
 Systems::SAudio& GameEngine::getAudioSystem()
 {
-    return ::Systems::SAudio::instance();
+    return *m_audio;
 }
 
 Systems::SRenderer& GameEngine::getRenderer()
 {
-    return ::Systems::SRenderer::instance();
+    return *m_renderer;
 }
 
 Systems::SParticle& GameEngine::getParticleSystem()
 {
-    return ::Systems::SParticle::instance();
+    return *m_particle;
 }
 
 void GameEngine::registerComponentTypes()
