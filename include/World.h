@@ -19,6 +19,10 @@ public:
 
     Entity createEntity() { return m_registry.createEntity(); }
     void   destroyEntity(Entity e) { m_registry.destroy(e); }
+    void   queueDestroy(Entity e) { m_registry.queueDestroy(e); }
+    void   processDestroyQueue() { m_registry.processDestroyQueue(); }
+    size_t pendingDestroyCount() const { return m_registry.pendingDestroyCount(); }
+    bool   isAlive(Entity e) const { return m_registry.isAlive(e); }
 
     template <typename T, typename... Args>
     T& add(Entity e, Args&&... args)

@@ -280,6 +280,56 @@ public:
     }
 
     /**
+     * @brief Queues an entity for destruction at a safe point (typically end-of-frame)
+     */
+    void queueDestroy(Entity entity)
+    {
+        if (!m_entityManager.isAlive(entity))
+        {
+            return;
+        }
+
+        auto it = std::find(m_deferredDestroy.begin(), m_deferredDestroy.end(), entity);
+        if (it == m_deferredDestroy.end())
+        {
+            m_deferredDestroy.push_back(entity);
+        }
+    }
+
+    /**
+     * @brief Processes all queued destructions
+     */
+    void processDestroyQueue()
+    {
+        if (m_deferredDestroy.empty())
+        {
+            return;
+        }
+
+        for (Entity entity : m_deferredDestroy)
+        {
+            destroy(entity);
+        }
+        m_deferredDestroy.clear();
+    }
+
+    /**
+     * @brief Gets the number of pending destroy requests
+     */
+    size_t pendingDestroyCount() const
+    {
+        return m_deferredDestroy.size();
+    }
+
+    /**
+     * @brief Checks if an entity handle is alive
+     */
+    bool isAlive(Entity entity) const
+    {
+        return m_entityManager.isAlive(entity);
+    }
+
+    /**
      * @brief Adds a component to an entity
      * @tparam T Component type
      * @param entity Entity to add component to
@@ -306,6 +356,10 @@ public:
     template <typename T>
     void remove(Entity entity)
     {
+        if (!m_entityManager.isAlive(entity))
+        {
+            return;
+        }
         auto* store = getStore<T>();
         if (store)
         {
@@ -522,6 +576,7 @@ public:
         m_componentStores.clear();
         m_entities.clear();
         m_entityManager.clear();
+        m_deferredDestroy.clear();
     }
 
     /**
@@ -607,6 +662,9 @@ private:
     /// Stable type name mapping for serialization
     std::unordered_map<std::type_index, std::string> m_typeNames;
     std::unordered_map<std::string, std::type_index> m_nameToType;
+
+    /// Entities scheduled for deferred destruction
+    std::vector<Entity> m_deferredDestroy;
 };
 
 #endif  // REGISTRY_H

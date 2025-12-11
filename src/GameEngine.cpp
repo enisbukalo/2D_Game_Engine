@@ -171,6 +171,9 @@ void GameEngine::update(float deltaTime)
         system->update(deltaTime, m_world);
     }
 
+    // Apply deferred destroys after systems have finished updating to avoid iterator invalidation
+    m_world.processDestroyQueue();
+
     if (m_audio)
     {
         m_audio->update(deltaTime);
