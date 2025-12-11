@@ -10,6 +10,7 @@
 namespace Components
 {
 class CPhysicsBody2D;
+struct CTransform;
 }
 
 namespace Systems
@@ -34,7 +35,7 @@ class S2DPhysics : public System
 private:
     b2WorldId m_worldId;
 
-    // Entity ID to b2BodyId mapping
+    // Entity handle to b2BodyId mapping (generation-aware via Entity key)
     std::unordered_map<Entity, b2BodyId> m_entityBodyMap;
 
     // Registered physics bodies for fixed-update callbacks
@@ -43,6 +44,10 @@ private:
     // Timestep settings
     float m_timeStep;
     int   m_subStepCount;
+
+    // Internal helpers
+    void ensureBodyForEntity(Entity entity, Components::CTransform& transform, Components::CPhysicsBody2D& body);
+    void pruneDestroyedBodies(const World& world);
 
 public:
 public:

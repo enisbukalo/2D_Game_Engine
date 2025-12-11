@@ -2,6 +2,7 @@
 #include "CPhysicsBody2D.h"
 #include "CTransform.h"
 #include "Vec2.h"
+#include "World.h"
 
 namespace Systems
 {
@@ -41,9 +42,28 @@ S2DPhysics::~S2DPhysics()
 void S2DPhysics::update(float deltaTime, World& world)
 {
     (void)deltaTime;
-    (void)world;
-    // Step the Box2D world with fixed timestep
+
+    // Clean up any bodies that belong to destroyed entities
+    pruneDestroyedBodies(world);
+
+    // Ensure every entity with physics+transform has a Box2D body and sync state before stepping
+    world.view2<::Components::CTransform, ::Components::CPhysicsBody2D>([this](Entity entity,
+                                                                                ::Components::CTransform&     transform,
+                                                                                ::Components::CPhysicsBody2D& body)
+                                                                       {
+                                                                           ensureBodyForEntity(entity, transform, body);
+                                                                           body.syncFromTransform(&transform);
+                                                                       });
+
+    // Run fixed-step callbacks then advance the physics world
+    runFixedUpdates(m_timeStep);
     b2World_Step(m_worldId, m_timeStep, m_subStepCount);
+
+    // Sync simulation results back to transforms
+    world.view2<::Components::CTransform, ::Components::CPhysicsBody2D>([](Entity /*entity*/,
+                                                                           ::Components::CTransform&     transform,
+                                                                           ::Components::CPhysicsBody2D& body)
+                                                                       { body.syncToTransform(&transform); });
 
 }
 
@@ -100,6 +120,59 @@ void S2DPhysics::destroyBody(Entity entity)
             b2DestroyBody(it->second);
         }
         m_entityBodyMap.erase(it);
+    }
+}
+
+void S2DPhysics::ensureBodyForEntity(Entity entity, ::Components::CTransform& transform, ::Components::CPhysicsBody2D& body)
+{
+    if (!entity.isValid())
+    {
+        return;
+    }
+
+    body.setEntity(entity);
+
+    b2BodyId existing = getBody(entity);
+    if (!b2Body_IsValid(existing))
+    {
+        body.initialize({transform.position.x, transform.position.y}, body.getBodyType());
+        existing = getBody(entity);
+    }
+
+    // Ensure we keep the mapping in sync even if initialize was skipped elsewhere
+    if (b2Body_IsValid(existing))
+    {
+        m_entityBodyMap[entity] = existing;
+    }
+}
+
+void S2DPhysics::pruneDestroyedBodies(const World& world)
+{
+    for (auto it = m_entityBodyMap.begin(); it != m_entityBodyMap.end();)
+    {
+        const Entity entity = it->first;
+        const b2BodyId body = it->second;
+
+        const bool deadEntity    = !world.isAlive(entity);
+        const bool missingComponents = deadEntity || !world.has<::Components::CPhysicsBody2D>(entity) ||
+                                       !world.has<::Components::CTransform>(entity);
+        const bool deadBody   = !b2Body_IsValid(body);
+
+        if (missingComponents || deadBody)
+        {
+            if (deadBody)
+            {
+                // Body already gone; just drop the mapping
+                it = m_entityBodyMap.erase(it);
+                continue;
+            }
+
+            destroyBody(entity);
+            it = m_entityBodyMap.erase(it);
+            continue;
+        }
+
+        ++it;
     }
 }
 
