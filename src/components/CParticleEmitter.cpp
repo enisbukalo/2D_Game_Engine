@@ -42,7 +42,7 @@ void CParticleEmitter::serialize(Serialization::JsonBuilder& builder) const
 
     // Base component properties
     builder.addKey("active");
-    builder.addBool(Component::isActive());
+    builder.addBool(isActive());
 
     // Emission direction and spread
     builder.addKey("direction");
@@ -215,7 +215,7 @@ void CParticleEmitter::deserialize(const Serialization::SSerialization::JsonValu
     // Base component properties
     if (emitter["active"].isBool())
     {
-        Component::setActive(emitter["active"].getBool());
+        setActive(emitter["active"].getBool());
     }
 
     // Emission direction and spread

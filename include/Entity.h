@@ -5,32 +5,30 @@
 #include <functional>
 
 /**
- * @brief Lightweight entity identifier - just an integer ID
- *
- * Entity is now a simple ID-only handle (uint32_t wrapper) without versioning or generation.
- * The Registry manages all component storage and lifecycle.
- *
- * This replaces the old Entity class entirely. Components are no longer owned by entities;
- * instead, the Registry owns all component storage using dense arrays with sparse entity->index mapping.
+ * @brief Entity handle with index + generation for stale-handle detection
  */
 struct Entity
 {
-    uint32_t id = 0;
+    uint32_t index{0};
+    uint32_t generation{0};
+
+    constexpr Entity() = default;
+    constexpr Entity(uint32_t idx, uint32_t gen = 0) : index(idx), generation(gen) {}
 
     /**
      * @brief Creates a null/invalid entity
      */
     static constexpr Entity null()
     {
-        return Entity{0};
+        return Entity{0, 0};
     }
 
     /**
-     * @brief Checks if this is a valid entity
+     * @brief Checks if this is a non-null handle (liveness is validated by EntityManager)
      */
     constexpr bool isValid() const
     {
-        return id != 0;
+        return index != 0;
     }
 
     /**
@@ -41,18 +39,18 @@ struct Entity
         return isValid();
     }
 
-    // Equality operators
+    // Equality operators compare both index and generation
     constexpr bool operator==(const Entity& other) const
     {
-        return id == other.id;
+        return index == other.index && generation == other.generation;
     }
     constexpr bool operator!=(const Entity& other) const
     {
-        return id != other.id;
+        return !(*this == other);
     }
     constexpr bool operator<(const Entity& other) const
     {
-        return id < other.id;
+        return index < other.index || (index == other.index && generation < other.generation);
     }
 };
 
@@ -64,7 +62,8 @@ struct hash<Entity>
 {
     size_t operator()(const Entity& entity) const noexcept
     {
-        return std::hash<uint32_t>{}(entity.id);
+        // Mix index and generation without relying on pointer size
+        return (static_cast<size_t>(entity.index) * 0x9e3779b1u) ^ static_cast<size_t>(entity.generation);
     }
 };
 }  // namespace std

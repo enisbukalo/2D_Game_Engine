@@ -197,16 +197,16 @@ void GameEngine::registerComponentTypes()
     // This ensures saves are portable and readable across builds
     using namespace Components;
 
-    m_registry.registerTypeName<CTransform>("CTransform");
-    m_registry.registerTypeName<CRenderable>("CRenderable");
-    m_registry.registerTypeName<CPhysicsBody2D>("CPhysicsBody2D");
-    m_registry.registerTypeName<CCollider2D>("CCollider2D");
-    m_registry.registerTypeName<CMaterial>("CMaterial");
-    m_registry.registerTypeName<CTexture>("CTexture");
-    m_registry.registerTypeName<CShader>("CShader");
-    m_registry.registerTypeName<CName>("CName");
-    m_registry.registerTypeName<CInputController>("CInputController");
-    m_registry.registerTypeName<CParticleEmitter>("CParticleEmitter");
-    m_registry.registerTypeName<CAudioSource>("CAudioSource");
-    m_registry.registerTypeName<CAudioListener>("CAudioListener");
+    m_world.registerTypeName<CTransform>("CTransform");
+    m_world.registerTypeName<CRenderable>("CRenderable");
+    m_world.registerTypeName<CPhysicsBody2D>("CPhysicsBody2D");
+    m_world.registerTypeName<CCollider2D>("CCollider2D");
+    m_world.registerTypeName<CMaterial>("CMaterial");
+    m_world.registerTypeName<CTexture>("CTexture");
+    m_world.registerTypeName<CShader>("CShader");
+    m_world.registerTypeName<CName>("CName");
+    m_world.registerTypeName<CInputController>("CInputController");
+    m_world.registerTypeName<CParticleEmitter>("CParticleEmitter");
+    m_world.registerTypeName<CAudioSource>("CAudioSource");
+    m_world.registerTypeName<CAudioListener>("CAudioListener");
 }

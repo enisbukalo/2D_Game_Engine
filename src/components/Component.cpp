@@ -1,6 +1,5 @@
 #include "Component.h"
 #include "Guid.h"
-#include "systems/SComponentManager.h"
 
 namespace Components
 {
@@ -27,12 +26,10 @@ void Component::setActive(bool active)
     if (m_active == active)
         return;
     m_active = active;
-    ::Systems::SComponentManager::instance().setActive(this, m_active);
 }
 
 Component::~Component()
 {
-    ::Systems::SComponentManager::instance().unregisterComponent(this);
 }
 
 const std::string& Component::getGuid() const

@@ -61,23 +61,23 @@ class CParticleEmitter : public Component
 {
 public:
     CParticleEmitter();
-    ~CParticleEmitter() override = default;
+    ~CParticleEmitter() = default;
 
     /**
      * @brief Gets the type identifier for this component
      * @return String "CParticleEmitter"
      */
-    std::string getType() const override;
+    std::string getType() const;
 
     /**
      * @brief Serialize component to JSON
      */
-    void serialize(Serialization::JsonBuilder& builder) const override;
+    void serialize(Serialization::JsonBuilder& builder) const;
 
     /**
      * @brief Deserialize component from JSON
      */
-    void deserialize(const Serialization::SSerialization::JsonValue& value) override;
+    void deserialize(const Serialization::SSerialization::JsonValue& value);
 
     /**
      * @brief Get number of alive particles

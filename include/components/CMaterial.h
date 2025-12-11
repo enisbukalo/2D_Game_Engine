@@ -56,17 +56,17 @@ public:
      * @brief Gets the type identifier for this component
      * @return String "Material"
      */
-    std::string getType() const override;
+    std::string getType() const;
 
     /**
      * @brief Serializes the material data
      */
-    void serialize(Serialization::JsonBuilder& builder) const override;
+    void serialize(Serialization::JsonBuilder& builder) const;
 
     /**
      * @brief Deserializes material data from JSON value
      */
-    void deserialize(const Serialization::SSerialization::JsonValue& value) override;
+    void deserialize(const Serialization::SSerialization::JsonValue& value);
 
     /**
      * @brief Gets the texture component GUID

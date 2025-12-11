@@ -9,94 +9,22 @@ namespace Components
 {
 
 /**
- * @brief Base class for all components in the Entity Component System
+ * @brief Lightweight data holder for components
  *
- * @description
- * Component is the base class from which all game components inherit. Components
- * represent individual aspects of game objects (entities) such as physics,
- * rendering, or behavior. The class provides a common interface for initialization,
- * updates, serialization, and type identification. Components can be enabled or
- * disabled at runtime. Each component has a unique GUID for identification.
+ * Components are now plain data; systems own all behavior.
  */
-class Component
+struct Component
 {
-public:
     Component();
+    ~Component() = default;
 
-    /** @brief Virtual destructor for proper cleanup of derived classes */
-    virtual ~Component();
-
-    /**
-     * @brief Initializes the component
-     * Called after the component is added to an entity
-     */
-    virtual void init() {};
-
-    /**
-     * @brief Updates the component's state
-     * @param deltaTime Time elapsed since last update
-     *
-     * This method has an empty default implementation since not all components
-     * need to update their state every frame. Components that do need per-frame
-     * updates (like Transform or Gravity) should override this method.
-     */
-    virtual void update(float deltaTime) {};
-
-    /**
-     * @brief Serializes the component to binary data
-     * @param builder The JSON builder to serialize to
-     */
-    virtual void serialize(Serialization::JsonBuilder& builder) const = 0;
-
-    /**
-     * @brief Deserializes the component from binary data
-     * @param value The JSON value to deserialize
-     */
-    virtual void deserialize(const Serialization::SSerialization::JsonValue& value) = 0;
-
-    /**
-     * @brief Gets the type identifier of the component
-     * @return String identifying the component type
-     */
-    virtual std::string getType() const = 0;
-
-    /**
-     * @brief Checks if the component is active
-     * @return true if the component is active, false otherwise
-     */
-    bool isActive() const;
-
-    /**
-     * @brief Gets the owner entity ID of the component
-     * @return The owner entity ID
-     */
-    Entity getOwner() const;
-
-    /**
-     * @brief Sets the owner entity ID of the component
-     * @param owner The owner entity ID
-     */
-    void setOwner(Entity owner);
-
-    /**
-     * @brief Sets the active state of the component
-     * @param active The new active state
-     */
-    void setActive(bool active);
-
-    /**
-     * @brief Gets the unique GUID of this component
-     * @return The component's GUID string
-     */
+    bool        isActive() const;
+    Entity      getOwner() const;
+    void        setOwner(Entity owner);
+    void        setActive(bool active);
     const std::string& getGuid() const;
+    void              setGuid(const std::string& guid);
 
-    /**
-     * @brief Sets the GUID of this component (used during deserialization)
-     * @param guid The GUID string to set
-     */
-    void setGuid(const std::string& guid);
-
-private:
     Entity      m_owner;          ///< Entity ID that owns this component
     bool        m_active = true;  ///< Flag indicating if the component is active
     std::string m_guid;           ///< Unique identifier for this component

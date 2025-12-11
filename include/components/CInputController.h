@@ -16,17 +16,17 @@ class CInputController : public Component, public IInputListener
 {
 public:
     CInputController();
-    ~CInputController() override;
+    ~CInputController();
 
     // Component lifecycle
-    void init() override;
-    void update(float deltaTime) override {}
+    void init();
+    void update(float deltaTime) {}
 
     // Serialization
-    void serialize(Serialization::JsonBuilder& builder) const override;
-    void deserialize(const Serialization::SSerialization::JsonValue& value) override;
+    void serialize(Serialization::JsonBuilder& builder) const;
+    void deserialize(const Serialization::SSerialization::JsonValue& value);
 
-    std::string getType() const override;
+    std::string getType() const;
 
     // Bindings
     void bindAction(const std::string& actionName, const ActionBinding& binding);

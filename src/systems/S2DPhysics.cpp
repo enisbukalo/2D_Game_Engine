@@ -1,7 +1,6 @@
 #include "S2DPhysics.h"
 #include "CPhysicsBody2D.h"
 #include "CTransform.h"
-#include "SComponentManager.h"
 #include "Vec2.h"
 
 namespace Systems
@@ -50,23 +49,6 @@ void S2DPhysics::update(float deltaTime)
     // Step the Box2D world with fixed timestep
     b2World_Step(m_worldId, m_timeStep, m_subStepCount);
 
-#if 0  // TODO: Update to use Registry and iterate over entities with both CPhysicsBody2D and CTransform
-    // Sync Box2D bodies back to CTransform components using registered physics components
-    const auto& physicsComponents = ::Systems::SComponentManager::instance().getPhysicsComponents();
-    for (auto* physicsBody : physicsComponents)
-    {
-        if (!physicsBody)
-            continue;
-        Entity entity = physicsBody->getOwner();
-        if (!entity.isValid())
-            continue;
-        auto* transform = registry.tryGet<::Components::CTransform>(entity);
-        if (physicsBody && transform && physicsBody->isInitialized())
-        {
-            physicsBody->syncToTransform(transform);
-        }
-    }
-#endif
 }
 
 void S2DPhysics::setGravity(const b2Vec2& gravity)

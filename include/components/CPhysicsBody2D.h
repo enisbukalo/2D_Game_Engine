@@ -57,7 +57,7 @@ private:
 
 public:
     CPhysicsBody2D();
-    ~CPhysicsBody2D() override;
+    ~CPhysicsBody2D();
 
     /**
      * @brief Initialize the physics body
@@ -319,10 +319,10 @@ public:
     }
 
     // Component interface
-    void        init() override;
-    void        serialize(Serialization::JsonBuilder& builder) const override;
-    void        deserialize(const Serialization::SSerialization::JsonValue& value) override;
-    std::string getType() const override;
+    void        init();
+    void        serialize(Serialization::JsonBuilder& builder) const;
+    void        deserialize(const Serialization::SSerialization::JsonValue& value);
+    std::string getType() const;
 };
 
 }  // namespace Components

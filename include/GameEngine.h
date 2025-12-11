@@ -7,7 +7,7 @@
 
 // Include ECS core
 #include <Entity.h>
-#include <Registry.h>
+#include <World.h>
 
 // Include system and manager headers
 #include <ComponentFactory.h>
@@ -147,34 +147,28 @@ public:
     Systems::SParticle& getParticleSystem();
 
     /**
-     * @brief Creates a new entity in the registry
+     * @brief Creates a new entity in the world
      * @return The created entity ID
-     *
-     * Example:
-     *   auto player = engine.createEntity();
-     *   engine.registry().add<CTransform>(player, Vec2{100, 100}, Vec2{1, 1}, 0.0f);
-     *   engine.registry().add<CRenderable>(player);
      */
     Entity createEntity()
     {
-        return m_registry.createEntity();
+        return m_world.createEntity();
     }
 
     /**
-     * @brief Gets the central entity/component registry
-     * @return Reference to the Registry instance
+     * @brief Gets the central world (entity/component orchestration)
      */
-    Registry& registry()
+    World& world()
     {
-        return m_registry;
+        return m_world;
     }
-    const Registry& registry() const
+    const World& world() const
     {
-        return m_registry;
+        return m_world;
     }
 
 private:
-    Registry      m_registry;      ///< Central entity/component registry
+    World         m_world;         ///< Central world (registry + lifecycle)
     const uint8_t m_subStepCount;  ///< Number of physics sub-steps per update
     const float   m_timeStep;      ///< Fixed time step for physics updates
 

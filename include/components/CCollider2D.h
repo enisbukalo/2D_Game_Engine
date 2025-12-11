@@ -90,7 +90,7 @@ private:
 
 public:
     CCollider2D();
-    ~CCollider2D() override;
+    ~CCollider2D();
 
     /**
      * @brief Create a circle collider
@@ -318,10 +318,10 @@ public:
     bool getBounds(float& outWidth, float& outHeight) const;
 
     // Component interface
-    void        init() override;
-    void        serialize(Serialization::JsonBuilder& builder) const override;
-    void        deserialize(const Serialization::SSerialization::JsonValue& value) override;
-    std::string getType() const override;
+    void        init();
+    void        serialize(Serialization::JsonBuilder& builder) const;
+    void        deserialize(const Serialization::SSerialization::JsonValue& value);
+    std::string getType() const;
 
 private:
     /**

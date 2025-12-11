@@ -28,13 +28,13 @@ class CAudioSource : public Component
 {
 public:
     CAudioSource();
-    ~CAudioSource() override = default;
+    ~CAudioSource() = default;
 
-    void        init() override;
-    void        update(float deltaTime) override;
-    void        serialize(Serialization::JsonBuilder& builder) const override;
-    void        deserialize(const Serialization::SSerialization::JsonValue& value) override;
-    std::string getType() const override
+    void        init();
+    void        update(float deltaTime);
+    void        serialize(Serialization::JsonBuilder& builder) const;
+    void        deserialize(const Serialization::SSerialization::JsonValue& value);
+    std::string getType() const
     {
         return "AudioSource";
     }

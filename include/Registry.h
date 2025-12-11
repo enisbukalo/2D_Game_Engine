@@ -5,11 +5,15 @@
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
+#include <limits>
 #include <memory>
 #include <string>
 #include <typeindex>
 #include <unordered_map>
 #include <vector>
+
+#include <EntityManager.h>
+#include <components/Component.h>
 
 /**
  * @brief Type-erased interface for component storage
@@ -44,11 +48,10 @@ public:
 };
 
 /**
- * @brief Dense component storage with sparse entity->index mapping
+ * @brief Dense component storage with sparse entity->index mapping (vector-based)
  *
- * Components are stored in a tightly-packed vector for cache-friendly iteration.
- * A sparse unordered_map translates EntityId to the dense array index.
- * When removing, we use swap-and-pop to keep the dense array compact.
+ * Components are stored densely; a sparse vector maps entity index -> dense index.
+ * Removal uses swap-and-pop while keeping the sparse mapping up to date.
  *
  * @tparam T Component type
  */
@@ -60,59 +63,50 @@ public:
 
     /**
      * @brief Adds or replaces a component for an entity
-     * @param entity Entity to add component to
-     * @param args Arguments forwarded to component constructor
-     * @return Reference to the created/replaced component
      */
     template <typename... Args>
     T& add(Entity entity, Args&&... args)
     {
-        // Check if component already exists
-        auto it = m_sparse.find(entity);
-        if (it != m_sparse.end())
+        ensureSparse(entity.index);
+
+        if (has(entity))
         {
-            // Replace existing component
-            m_dense[it->second] = T(std::forward<Args>(args)...);
-            return m_dense[it->second];
+            auto denseIndex      = m_sparse[entity.index];
+            m_dense[denseIndex]  = T(std::forward<Args>(args)...);
+            m_entities[denseIndex] = entity;
+            return m_dense[denseIndex];
         }
 
-        // Add new component
-        size_t index = m_dense.size();
-        m_dense.emplace_back(std::forward<Args>(args)...);
+        auto denseIndex = static_cast<uint32_t>(m_dense.size());
+        m_sparse[entity.index] = denseIndex;
         m_entities.push_back(entity);
-        m_sparse[entity] = index;
-        return m_dense[index];
+        m_dense.emplace_back(std::forward<Args>(args)...);
+        return m_dense.back();
     }
 
     /**
      * @brief Removes component for an entity using swap-and-pop
-     * @param entity Entity to remove component from
      */
     void remove(Entity entity) override
     {
-        auto it = m_sparse.find(entity);
-        if (it == m_sparse.end())
+        if (!has(entity))
         {
-            return;  // Component doesn't exist
+            return;
         }
 
-        size_t indexToRemove = it->second;
-        size_t lastIndex     = m_dense.size() - 1;
+        auto denseIndex = m_sparse[entity.index];
+        auto lastIndex  = static_cast<uint32_t>(m_dense.size() - 1);
 
-        // Swap with last element if not already last
-        if (indexToRemove != lastIndex)
+        if (denseIndex != lastIndex)
         {
-            m_dense[indexToRemove]    = std::move(m_dense[lastIndex]);
-            m_entities[indexToRemove] = m_entities[lastIndex];
-
-            // Update sparse map for the swapped entity
-            m_sparse[m_entities[indexToRemove]] = indexToRemove;
+            std::swap(m_dense[denseIndex], m_dense[lastIndex]);
+            std::swap(m_entities[denseIndex], m_entities[lastIndex]);
+            m_sparse[m_entities[denseIndex].index] = denseIndex;
         }
 
-        // Remove last element
+        m_sparse[entity.index] = kInvalid;
         m_dense.pop_back();
         m_entities.pop_back();
-        m_sparse.erase(it);
     }
 
     /**
@@ -120,7 +114,8 @@ public:
      */
     bool has(Entity entity) const override
     {
-        return m_sparse.find(entity) != m_sparse.end();
+        return entity.index < m_sparse.size() && m_sparse[entity.index] != kInvalid &&
+               m_entities[m_sparse[entity.index]] == entity;
     }
 
     /**
@@ -128,9 +123,8 @@ public:
      */
     T& get(Entity entity)
     {
-        auto it = m_sparse.find(entity);
-        assert(it != m_sparse.end() && "Entity does not have this component");
-        return m_dense[it->second];
+        assert(has(entity) && "Entity does not have this component");
+        return m_dense[m_sparse[entity.index]];
     }
 
     /**
@@ -138,9 +132,8 @@ public:
      */
     const T& get(Entity entity) const
     {
-        auto it = m_sparse.find(entity);
-        assert(it != m_sparse.end() && "Entity does not have this component");
-        return m_dense[it->second];
+        assert(has(entity) && "Entity does not have this component");
+        return m_dense[m_sparse[entity.index]];
     }
 
     /**
@@ -148,8 +141,7 @@ public:
      */
     T* tryGet(Entity entity)
     {
-        auto it = m_sparse.find(entity);
-        return (it != m_sparse.end()) ? &m_dense[it->second] : nullptr;
+        return has(entity) ? &m_dense[m_sparse[entity.index]] : nullptr;
     }
 
     /**
@@ -157,12 +149,11 @@ public:
      */
     const T* tryGet(Entity entity) const
     {
-        auto it = m_sparse.find(entity);
-        return (it != m_sparse.end()) ? &m_dense[it->second] : nullptr;
+        return has(entity) ? &m_dense[m_sparse[entity.index]] : nullptr;
     }
 
     /**
-     * @brief Iterates over all components, calling fn(EntityId, T&) for each
+     * @brief Iterates over all components, calling fn(Entity, T&) for each
      */
     template <typename Func>
     void each(Func&& fn)
@@ -198,13 +189,9 @@ public:
      */
     std::string getTypeName() const override
     {
-        // Will be set via Registry's type name map
         return typeid(T).name();
     }
 
-    /**
-     * @brief Direct access to dense component array (for efficient iteration)
-     */
     std::vector<T>& components()
     {
         return m_dense;
@@ -214,9 +201,6 @@ public:
         return m_dense;
     }
 
-    /**
-     * @brief Direct access to entity array (parallel to dense components)
-     */
     std::vector<Entity>& entities()
     {
         return m_entities;
@@ -227,9 +211,19 @@ public:
     }
 
 private:
-    std::vector<T>                     m_dense;     ///< Densely-packed component array
-    std::vector<Entity>                m_entities;  ///< Parallel array of entity IDs
-    std::unordered_map<Entity, size_t> m_sparse;    ///< Entity -> dense index mapping
+    void ensureSparse(uint32_t index)
+    {
+        if (index >= m_sparse.size())
+        {
+            m_sparse.resize(index + 1, kInvalid);
+        }
+    }
+
+    static constexpr uint32_t kInvalid = std::numeric_limits<uint32_t>::max();
+
+    std::vector<uint32_t> m_sparse;    ///< Entity index -> dense index mapping
+    std::vector<Entity>   m_entities;  ///< Parallel array of entity handles
+    std::vector<T>        m_dense;     ///< Densely-packed component array
 };
 
 /**
@@ -255,9 +249,11 @@ public:
      */
     Entity createEntity()
     {
-        Entity entity;
-        entity.id = ++m_nextEntityId;
-        m_entities.push_back(entity);
+        Entity entity = m_entityManager.create();
+        if (entity.isValid())
+        {
+            m_entities.push_back(entity);
+        }
         return entity;
     }
 
@@ -267,21 +263,21 @@ public:
      */
     void destroy(Entity entity)
     {
-        if (!entity.isValid())
+        if (!m_entityManager.isAlive(entity))
             return;
 
-        // Remove from all component stores
         for (auto& [typeIndex, store] : m_componentStores)
         {
             store->remove(entity);
         }
 
-        // Remove from entity list
         auto it = std::find(m_entities.begin(), m_entities.end(), entity);
         if (it != m_entities.end())
         {
             m_entities.erase(it);
         }
+
+        m_entityManager.destroy(entity);
     }
 
     /**
@@ -294,9 +290,17 @@ public:
     template <typename T, typename... Args>
     T& add(Entity entity, Args&&... args)
     {
-        assert(entity.isValid() && "Cannot add component to null entity");
+        assert(m_entityManager.isAlive(entity) && "Cannot add component to dead or null entity");
         auto& store = getOrCreateStore<T>();
-        return store.add(entity, std::forward<Args>(args)...);
+        T&    component = store.add(entity, std::forward<Args>(args)...);
+
+        // Automatically wire owner on components that expose setOwner (most current components)
+        if constexpr (std::is_base_of_v<Components::Component, T>)
+        {
+            component.setOwner(entity);
+        }
+
+        return component;
     }
 
     /**
@@ -323,6 +327,9 @@ public:
     template <typename T>
     bool has(Entity entity) const
     {
+        if (!m_entityManager.isAlive(entity))
+            return false;
+
         const auto* store = getStore<T>();
         return store && store->has(entity);
     }
@@ -336,6 +343,7 @@ public:
     template <typename T>
     T& get(Entity entity)
     {
+        assert(m_entityManager.isAlive(entity) && "Cannot get component of dead or null entity");
         auto& store = getOrCreateStore<T>();
         return store.get(entity);
     }
@@ -346,6 +354,7 @@ public:
     template <typename T>
     const T& get(Entity entity) const
     {
+        assert(m_entityManager.isAlive(entity) && "Cannot get component of dead or null entity");
         const auto* store = getStore<T>();
         assert(store && "Component store does not exist");
         return store->get(entity);
@@ -360,6 +369,8 @@ public:
     template <typename T>
     T* tryGet(Entity entity)
     {
+        if (!m_entityManager.isAlive(entity))
+            return nullptr;
         auto* store = getStore<T>();
         return store ? store->tryGet(entity) : nullptr;
     }
@@ -370,6 +381,8 @@ public:
     template <typename T>
     const T* tryGet(Entity entity) const
     {
+        if (!m_entityManager.isAlive(entity))
+            return nullptr;
         const auto* store = getStore<T>();
         return store ? store->tryGet(entity) : nullptr;
     }
@@ -417,7 +430,7 @@ public:
     {
         m_componentStores.clear();
         m_entities.clear();
-        m_nextEntityId = 0;
+        m_entityManager.clear();
     }
 
     /**
@@ -494,9 +507,8 @@ private:
         return (it != m_componentStores.end()) ? static_cast<const ComponentStore<T>*>(it->second.get()) : nullptr;
     }
 
-    uint32_t m_nextEntityId = 0;  ///< Counter for generating unique entity IDs
-
-    std::vector<Entity> m_entities;  ///< All active entities
+    EntityManager      m_entityManager;  ///< Allocates/destroys entities with generations
+    std::vector<Entity> m_entities;      ///< All active entities
 
     /// Per-type component stores, keyed by type_index
     std::unordered_map<std::type_index, std::unique_ptr<IComponentStore>> m_componentStores;

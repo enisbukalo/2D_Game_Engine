@@ -28,17 +28,17 @@ public:
      * @brief Gets the type identifier for this component
      * @return String "Name"
      */
-    std::string getType() const override;
+    std::string getType() const;
 
     /**
      * @brief Serializes the name data to binary data
      */
-    void serialize(Serialization::JsonBuilder& builder) const override;
+    void serialize(Serialization::JsonBuilder& builder) const;
 
     /**
      * @brief Deserializes name data from binary data
      */
-    void deserialize(const Serialization::SSerialization::JsonValue& value) override;
+    void deserialize(const Serialization::SSerialization::JsonValue& value);
 
     /**
      * @brief Gets the name of the entity
