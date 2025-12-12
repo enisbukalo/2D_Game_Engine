@@ -543,7 +543,7 @@ std::string SInput::scopeAction(Entity entity, const std::string& actionName) co
 
 void SInput::registerControllerBindings(World& world)
 {
-    world.each<Components::CInputController>([this](Entity entity, Components::CInputController& controller)
+    world.components().each<Components::CInputController>([this](Entity entity, Components::CInputController& controller)
                                              {
                                                  for (auto& kv : controller.bindings)
                                                  {
@@ -562,7 +562,7 @@ void SInput::registerControllerBindings(World& world)
 
 void SInput::updateControllerStates(World& world)
 {
-    world.each<Components::CInputController>([this](Entity entity, Components::CInputController& controller)
+    world.components().each<Components::CInputController>([this](Entity entity, Components::CInputController& controller)
                                              {
                                                  for (auto& kv : controller.bindings)
                                                  {

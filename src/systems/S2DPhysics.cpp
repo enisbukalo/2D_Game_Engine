@@ -34,7 +34,9 @@ void S2DPhysics::update(float deltaTime, World& world)
 
     pruneDestroyedBodies(world);
 
-    world.view2<::Components::CTransform, ::Components::CPhysicsBody2D>(
+    auto components = world.components();
+
+    components.view2<::Components::CTransform, ::Components::CPhysicsBody2D>(
         [this](Entity entity, ::Components::CTransform& transform, ::Components::CPhysicsBody2D& body)
         {
             ensureBodyForEntity(entity, transform, body);
@@ -43,7 +45,7 @@ void S2DPhysics::update(float deltaTime, World& world)
 
     b2World_Step(m_worldId, m_timeStep, m_subStepCount);
 
-    world.view2<::Components::CTransform, ::Components::CPhysicsBody2D>(
+    components.view2<::Components::CTransform, ::Components::CPhysicsBody2D>(
         [this](Entity entity, ::Components::CTransform& transform, ::Components::CPhysicsBody2D& body)
         {
             syncToTransform(entity, transform, body);
@@ -85,7 +87,7 @@ void S2DPhysics::destroyBody(Entity entity)
         return;
     }
 
-    Components::CPhysicsBody2D* body = (m_world ? m_world->tryGet<Components::CPhysicsBody2D>(entity) : nullptr);
+    Components::CPhysicsBody2D* body = (m_world ? m_world->components().tryGet<Components::CPhysicsBody2D>(entity) : nullptr);
     if (body)
     {
         destroyBody(body->bodyId);
@@ -146,14 +148,16 @@ void S2DPhysics::ensureBodyForEntity(Entity entity, ::Components::CTransform& tr
 
 void S2DPhysics::pruneDestroyedBodies(const World& world)
 {
-    world.each<::Components::CPhysicsBody2D>([this, &world](Entity entity, ::Components::CPhysicsBody2D& body) {
+    auto components = world.components();
+
+    components.each<::Components::CPhysicsBody2D>([this, &world, &components](Entity entity, ::Components::CPhysicsBody2D& body) {
         if (!b2Body_IsValid(body.bodyId))
         {
             return;
         }
 
         const bool deadEntity        = !world.isAlive(entity);
-        const bool missingComponents = deadEntity || !world.has<::Components::CTransform>(entity);
+        const bool missingComponents = deadEntity || !components.has<::Components::CTransform>(entity);
 
         if (deadEntity || missingComponents)
         {
@@ -177,7 +181,7 @@ b2BodyId S2DPhysics::getBody(Entity entity) const
         return b2_nullBodyId;
     }
 
-    const auto* body = world->tryGet<::Components::CPhysicsBody2D>(entity);
+    const auto* body = world->components().tryGet<::Components::CPhysicsBody2D>(entity);
     return body ? body->bodyId : b2_nullBodyId;
 }
 

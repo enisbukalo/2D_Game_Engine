@@ -419,7 +419,7 @@ void SAudio::updateEcs(float deltaTime, World& world)
     }
 
     bool listenerApplied = false;
-    world.each<Components::CAudioListener>([this, &listenerApplied](Entity, Components::CAudioListener& listener) {
+    world.components().each<Components::CAudioListener>([this, &listenerApplied](Entity, Components::CAudioListener& listener) {
         if (listenerApplied)
         {
             return;
@@ -429,7 +429,7 @@ void SAudio::updateEcs(float deltaTime, World& world)
         listenerApplied = true;
     });
 
-    world.each<Components::CAudioSource>([this](Entity entity, Components::CAudioSource& source) {
+    world.components().each<Components::CAudioSource>([this](Entity entity, Components::CAudioSource& source) {
         if (source.stopRequested)
         {
             stopSfx(entity);

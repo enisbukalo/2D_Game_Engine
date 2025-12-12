@@ -14,6 +14,230 @@
 class World
 {
 public:
+    class Components
+    {
+    public:
+        explicit Components(World& world)
+            : m_world(world)
+        {
+        }
+
+        template <typename T, typename... Args>
+        T* add(Entity e, Args&&... args)
+        {
+            m_world.assertAlive(e, "components.add");
+            return m_world.m_registry.add<T>(e, std::forward<Args>(args)...);
+        }
+
+        template <typename T, typename... Args>
+        void queueAdd(Entity e, Args&&... args)
+        {
+            m_world.assertAlive(e, "components.queueAdd");
+            m_world.m_registry.queueAdd<T>(e, std::forward<Args>(args)...);
+        }
+
+        template <typename T>
+        void remove(Entity e)
+        {
+            m_world.assertAlive(e, "components.remove");
+            m_world.m_registry.remove<T>(e);
+        }
+
+        template <typename T>
+        void queueRemove(Entity e)
+        {
+            m_world.assertAlive(e, "components.queueRemove");
+            m_world.m_registry.queueRemove<T>(e);
+        }
+
+        template <typename T>
+        void queueRemoveBatch(const std::vector<Entity>& entities)
+        {
+            for (Entity entity : entities)
+            {
+                m_world.assertAlive(entity, "components.queueRemoveBatch");
+            }
+            m_world.m_registry.queueRemoveBatch<T>(entities);
+        }
+
+        template <typename T>
+        bool has(Entity e) const
+        {
+            return m_world.m_registry.has<T>(e);
+        }
+
+        template <typename T>
+        T* get(Entity e)
+        {
+            m_world.assertAlive(e, "components.get");
+            return m_world.m_registry.get<T>(e);
+        }
+
+        template <typename T>
+        const T* get(Entity e) const
+        {
+            m_world.assertAlive(e, "components.get");
+            return m_world.m_registry.get<T>(e);
+        }
+
+        template <typename T>
+        T* tryGet(Entity e)
+        {
+            m_world.assertAlive(e, "components.tryGet");
+            return m_world.m_registry.tryGet<T>(e);
+        }
+
+        template <typename T>
+        const T* tryGet(Entity e) const
+        {
+            m_world.assertAlive(e, "components.tryGet");
+            return m_world.m_registry.tryGet<T>(e);
+        }
+
+        template <typename T, typename Func>
+        void each(Func&& fn)
+        {
+            m_world.m_registry.each<T>(std::forward<Func>(fn));
+        }
+
+        template <typename T, typename Func>
+        void each(Func&& fn) const
+        {
+            m_world.m_registry.each<T>(std::forward<Func>(fn));
+        }
+
+        template <typename... ComponentTypes, typename Func>
+        void view(Func&& fn)
+        {
+            m_world.m_registry.view<ComponentTypes...>(std::forward<Func>(fn));
+        }
+
+        template <typename... ComponentTypes, typename Func>
+        void view(Func&& fn) const
+        {
+            m_world.m_registry.view<ComponentTypes...>(std::forward<Func>(fn));
+        }
+
+        template <typename... ComponentTypes, typename Func>
+        void viewSorted(Func&& fn)
+        {
+            m_world.m_registry.viewSorted<ComponentTypes...>(std::forward<Func>(fn));
+        }
+
+        template <typename... ComponentTypes, typename Func, typename Compare>
+        void viewSorted(Func&& fn, Compare&& compare)
+        {
+            m_world.m_registry.viewSorted<ComponentTypes...>(std::forward<Func>(fn), std::forward<Compare>(compare));
+        }
+
+        template <typename... ComponentTypes, typename Func>
+        void viewSorted(Func&& fn) const
+        {
+            m_world.m_registry.viewSorted<ComponentTypes...>(std::forward<Func>(fn));
+        }
+
+        template <typename... ComponentTypes, typename Func, typename Compare>
+        void viewSorted(Func&& fn, Compare&& compare) const
+        {
+            m_world.m_registry.viewSorted<ComponentTypes...>(std::forward<Func>(fn), std::forward<Compare>(compare));
+        }
+
+        template <typename A, typename B, typename Func>
+        void view2(Func&& fn)
+        {
+            m_world.m_registry.view2<A, B>(std::forward<Func>(fn));
+        }
+
+        template <typename A, typename B, typename Func>
+        void view2(Func&& fn) const
+        {
+            m_world.m_registry.view2<A, B>(std::forward<Func>(fn));
+        }
+
+        template <typename A, typename B, typename C, typename Func>
+        void view3(Func&& fn)
+        {
+            m_world.m_registry.view3<A, B, C>(std::forward<Func>(fn));
+        }
+
+        template <typename A, typename B, typename C, typename Func>
+        void view3(Func&& fn) const
+        {
+            m_world.m_registry.view3<A, B, C>(std::forward<Func>(fn));
+        }
+
+    private:
+        World& m_world;
+    };
+
+    class ConstComponents
+    {
+    public:
+        explicit ConstComponents(const World& world)
+            : m_world(world)
+        {
+        }
+
+        template <typename T>
+        bool has(Entity e) const
+        {
+            return m_world.m_registry.has<T>(e);
+        }
+
+        template <typename T>
+        const T* get(Entity e) const
+        {
+            m_world.assertAlive(e, "components.get");
+            return m_world.m_registry.get<T>(e);
+        }
+
+        template <typename T>
+        const T* tryGet(Entity e) const
+        {
+            m_world.assertAlive(e, "components.tryGet");
+            return m_world.m_registry.tryGet<T>(e);
+        }
+
+        template <typename T, typename Func>
+        void each(Func&& fn) const
+        {
+            m_world.m_registry.each<T>(std::forward<Func>(fn));
+        }
+
+        template <typename... ComponentTypes, typename Func>
+        void view(Func&& fn) const
+        {
+            m_world.m_registry.view<ComponentTypes...>(std::forward<Func>(fn));
+        }
+
+        template <typename... ComponentTypes, typename Func>
+        void viewSorted(Func&& fn) const
+        {
+            m_world.m_registry.viewSorted<ComponentTypes...>(std::forward<Func>(fn));
+        }
+
+        template <typename... ComponentTypes, typename Func, typename Compare>
+        void viewSorted(Func&& fn, Compare&& compare) const
+        {
+            m_world.m_registry.viewSorted<ComponentTypes...>(std::forward<Func>(fn), std::forward<Compare>(compare));
+        }
+
+        template <typename A, typename B, typename Func>
+        void view2(Func&& fn) const
+        {
+            m_world.m_registry.view2<A, B>(std::forward<Func>(fn));
+        }
+
+        template <typename A, typename B, typename C, typename Func>
+        void view3(Func&& fn) const
+        {
+            m_world.m_registry.view3<A, B, C>(std::forward<Func>(fn));
+        }
+
+    private:
+        const World& m_world;
+    };
+
     World()  = default;
     ~World() = default;
 
@@ -35,6 +259,9 @@ public:
     void   flushCommandBuffer() { m_registry.flushCommandBuffer(); }
     size_t pendingDestroyCount() const { return m_registry.pendingDestroyCount(); }
     bool   isAlive(Entity e) const { return m_registry.isAlive(e); }
+
+    Components components() { return Components(*this); }
+    ConstComponents components() const { return ConstComponents(*this); }
 
     template <typename T, typename... Args>
     T* add(Entity e, Args&&... args)
@@ -213,10 +440,6 @@ public:
     }
 
     std::type_index getTypeFromName(const std::string& name) const { return m_registry.getTypeFromName(name); }
-
-    // Transitional escape hatch while refactoring systems
-    Registry&       registry() { return m_registry; }
-    const Registry& registry() const { return m_registry; }
 
 private:
     Registry m_registry;

@@ -99,7 +99,9 @@ void SRenderer::render(World& world)
 
     std::vector<RenderItem> renderQueue;
 
-    world.view2<::Components::CRenderable, ::Components::CTransform>(
+    auto components = world.components();
+
+    components.view2<::Components::CRenderable, ::Components::CTransform>(
         [&renderQueue](Entity entity, ::Components::CRenderable& renderable, ::Components::CTransform&)
         {
             if (!renderable.isVisible())
@@ -109,7 +111,7 @@ void SRenderer::render(World& world)
             renderQueue.push_back({entity, renderable.getZIndex(), false});
         });
 
-    world.view2<::Components::CParticleEmitter, ::Components::CTransform>(
+    components.view2<::Components::CParticleEmitter, ::Components::CTransform>(
         [&renderQueue](Entity entity, ::Components::CParticleEmitter& emitter, ::Components::CTransform&)
         {
             if (emitter.isActive())
@@ -264,9 +266,11 @@ void SRenderer::renderEntity(Entity entity, World& world)
         return;
     }
 
+    auto components = world.components();
+
     // Check for required components
-    auto* renderable = world.tryGet<::Components::CRenderable>(entity);
-    auto* transform  = world.tryGet<::Components::CTransform>(entity);
+    auto* renderable = components.tryGet<::Components::CRenderable>(entity);
+    auto* transform  = components.tryGet<::Components::CTransform>(entity);
 
     if (!renderable || !renderable->isVisible())
     {
@@ -293,7 +297,7 @@ void SRenderer::renderEntity(Entity entity, World& world)
     screenPos.y = SCREEN_HEIGHT - (pos.y * PIXELS_PER_METER);  // Flip Y axis
 
     // Get material if available
-    auto* material = world.tryGet<::Components::CMaterial>(entity);
+    auto* material = components.tryGet<::Components::CMaterial>(entity);
 
     // Determine final color
     Color finalColor = renderable->getColor();
@@ -311,7 +315,7 @@ void SRenderer::renderEntity(Entity entity, World& world)
     const sf::Texture* texture = nullptr;
     if (material)
     {
-        auto* textureComp = world.tryGet<::Components::CTexture>(entity);
+        auto* textureComp = components.tryGet<::Components::CTexture>(entity);
         if (textureComp)
         {
             texture = loadTexture(textureComp->getTexturePath());
@@ -322,7 +326,7 @@ void SRenderer::renderEntity(Entity entity, World& world)
     const sf::Shader* shader = nullptr;
     if (material)
     {
-        auto* shaderComp = world.tryGet<::Components::CShader>(entity);
+        auto* shaderComp = components.tryGet<::Components::CShader>(entity);
         if (shaderComp)
         {
             shader = loadShader(shaderComp->getVertexShaderPath(), shaderComp->getFragmentShaderPath());
@@ -363,7 +367,7 @@ void SRenderer::renderEntity(Entity entity, World& world)
             sf::RectangleShape rect;
 
             // If we have a collider, use its size
-            auto* collider = world.tryGet<::Components::CCollider2D>(entity);
+            auto* collider = components.tryGet<::Components::CCollider2D>(entity);
             if (collider && collider->getShapeType() == ::Components::ColliderShape::Box)
             {
                 float halfWidth  = collider->getBoxHalfWidth() * PIXELS_PER_METER;
@@ -396,7 +400,7 @@ void SRenderer::renderEntity(Entity entity, World& world)
             sf::CircleShape circle;
 
             // If we have a collider, use its radius
-            auto* collider = registry.tryGet<::Components::CCollider2D>(entity);
+            auto* collider = components.tryGet<::Components::CCollider2D>(entity);
             float radius   = 25.0f;
             if (collider && collider->getShapeType() == ::Components::ColliderShape::Circle)
             {
@@ -427,7 +431,7 @@ void SRenderer::renderEntity(Entity entity, World& world)
                 sf::FloatRect bounds = sprite.getLocalBounds();
 
                 // Scale sprite to match physics collider size
-                auto* collider = registry.tryGet<::Components::CCollider2D>(entity);
+                auto* collider = components.tryGet<::Components::CCollider2D>(entity);
                 if (collider)
                 {
                     float targetSize = 0.0f;

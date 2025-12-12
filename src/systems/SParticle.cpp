@@ -446,7 +446,7 @@ void SParticle::update(float deltaTime, World& world)
         return;
     }
 
-    world.view2<::Components::CParticleEmitter, ::Components::CTransform>(
+    world.components().view2<::Components::CParticleEmitter, ::Components::CTransform>(
         [deltaTime](Entity /*entity*/, ::Components::CParticleEmitter& emitter, ::Components::CTransform& transform)
         {
             if (!emitter.isActive())
@@ -501,7 +501,7 @@ void SParticle::renderEmitter(Entity entity, sf::RenderWindow* window, World& wo
         return;
     }
 
-    auto* emitter = world.tryGet<::Components::CParticleEmitter>(entity);
+    auto* emitter = world.components().tryGet<::Components::CParticleEmitter>(entity);
     if (!emitter)
     {
         return;
