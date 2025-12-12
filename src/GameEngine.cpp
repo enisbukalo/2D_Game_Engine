@@ -171,8 +171,8 @@ void GameEngine::update(float deltaTime)
         system->update(deltaTime, m_world);
     }
 
-    // Apply deferred destroys after systems have finished updating to avoid iterator invalidation
-    m_world.processDestroyQueue();
+    // Apply deferred structural commands after systems have finished updating to avoid iterator invalidation
+    m_world.flushCommandBuffer();
 
     if (m_audio)
     {

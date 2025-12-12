@@ -6,9 +6,11 @@
 #include <array>
 #include <cassert>
 #include <cstddef>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <typeindex>
 #include <unordered_map>
 #include <utility>
@@ -339,6 +341,24 @@ public:
         m_deferredDestroy.clear();
     }
 
+    void flushCommandBuffer()
+    {
+        if (m_commandBuffer.empty() && m_deferredDestroy.empty())
+        {
+            return;
+        }
+
+        auto commands = std::move(m_commandBuffer);
+        m_commandBuffer.clear();
+
+        for (auto& command : commands)
+        {
+            command();
+        }
+
+        processDestroyQueue();
+    }
+
     /**
      * @brief Gets the number of pending destroy requests
      */
@@ -393,6 +413,69 @@ public:
         {
             store->remove(entity);
             trackComponentRemove(entity, std::type_index(typeid(T)));
+        }
+    }
+
+    template <typename T, typename... Args>
+    void queueAdd(Entity entity, Args&&... args)
+    {
+        if (!m_entityManager.isAlive(entity))
+        {
+            return;
+        }
+
+        auto argsTuple = std::make_shared<std::tuple<std::decay_t<Args>...>>(std::forward<Args>(args)...);
+        m_commandBuffer.emplace_back([this, entity, argsTuple]() {
+            if (!m_entityManager.isAlive(entity))
+            {
+                return;
+            }
+
+            std::apply(
+                [&](auto&... unpacked) { this->add<T>(entity, std::move(unpacked)...); },
+                *argsTuple);
+        });
+    }
+
+    template <typename T>
+    void queueRemove(Entity entity)
+    {
+        if (!m_entityManager.isAlive(entity))
+        {
+            return;
+        }
+
+        m_commandBuffer.emplace_back([this, entity]() {
+            if (!m_entityManager.isAlive(entity))
+            {
+                return;
+            }
+            this->remove<T>(entity);
+        });
+    }
+
+    template <typename... Components>
+    Entity queueSpawn(Components&&... components)
+    {
+        Entity entity = createEntity();
+        (queueAdd<std::decay_t<Components>>(entity, std::forward<Components>(components)), ...);
+        return entity;
+    }
+
+    template <typename T>
+    void queueRemoveBatch(const std::vector<Entity>& entities)
+    {
+        for (Entity entity : entities)
+        {
+            queueRemove<T>(entity);
+        }
+    }
+
+    void queueDestroyBatch(const std::vector<Entity>& entities)
+    {
+        for (Entity entity : entities)
+        {
+            queueDestroy(entity);
         }
     }
 
@@ -879,6 +962,9 @@ private:
     /// Stable type name mapping for serialization
     std::unordered_map<std::type_index, std::string> m_typeNames;
     std::unordered_map<std::string, std::type_index> m_nameToType;
+
+    /// Deferred structural changes (add/remove/etc.)
+    std::vector<std::function<void()>> m_commandBuffer;
 
     /// Entities scheduled for deferred destruction
     std::vector<Entity> m_deferredDestroy;

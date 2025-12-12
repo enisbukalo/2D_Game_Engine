@@ -23,6 +23,7 @@ public:
     void   destroyEntity(Entity e) { m_registry.destroy(e); }
     void   queueDestroy(Entity e) { m_registry.queueDestroy(e); }
     void   processDestroyQueue() { m_registry.processDestroyQueue(); }
+    void   flushCommandBuffer() { m_registry.flushCommandBuffer(); }
     size_t pendingDestroyCount() const { return m_registry.pendingDestroyCount(); }
     bool   isAlive(Entity e) const { return m_registry.isAlive(e); }
 
@@ -32,10 +33,39 @@ public:
         return m_registry.add<T>(e, std::forward<Args>(args)...);
     }
 
+    template <typename T, typename... Args>
+    void queueAdd(Entity e, Args&&... args)
+    {
+        m_registry.queueAdd<T>(e, std::forward<Args>(args)...);
+    }
+
     template <typename T>
     void remove(Entity e)
     {
         m_registry.remove<T>(e);
+    }
+
+    template <typename T>
+    void queueRemove(Entity e)
+    {
+        m_registry.queueRemove<T>(e);
+    }
+
+    template <typename... Components>
+    Entity queueSpawn(Components&&... components)
+    {
+        return m_registry.queueSpawn(std::forward<Components>(components)...);
+    }
+
+    template <typename T>
+    void queueRemoveBatch(const std::vector<Entity>& entities)
+    {
+        m_registry.queueRemoveBatch<T>(entities);
+    }
+
+    void queueDestroyBatch(const std::vector<Entity>& entities)
+    {
+        m_registry.queueDestroyBatch(entities);
     }
 
     template <typename T>
