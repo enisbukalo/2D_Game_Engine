@@ -23,6 +23,9 @@ GameEngine::GameEngine(const Systems::WindowConfig& windowConfig, Vec2 gravity, 
     Systems::SystemLocator::provideParticle(m_particle.get());
     Systems::SystemLocator::provideAudio(m_audio.get());
 
+    // Allow physics system to resolve component data without auxiliary maps
+    m_physics->bindWorld(&m_world);
+
     // Register component type names for diagnostics
     registerComponentTypes();
 

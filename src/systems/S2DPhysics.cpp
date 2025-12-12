@@ -1,4 +1,6 @@
 #include "S2DPhysics.h"
+#include <cstdint>
+#include <utility>
 #include "CPhysicsBody2D.h"
 #include "CTransform.h"
 #include "Vec2.h"
@@ -9,27 +11,13 @@ namespace Systems
 
 S2DPhysics::S2DPhysics() : m_timeStep(1.0f / 60.0f), m_subStepCount(6)
 {
-    // Create Box2D world with default gravity (Y-up: negative Y = downward)
     b2WorldDef worldDef = b2DefaultWorldDef();
     worldDef.gravity    = {0.0f, -10.0f};
-
-    // Increase substep count for better stability with many bodies
-    // Box2D v3 uses substeps internally during b2World_Step
-    // Note: we also pass subStepCount to b2World_Step for additional substeps
-
-    m_worldId = b2CreateWorld(&worldDef);
+    m_worldId           = b2CreateWorld(&worldDef);
 }
 
 S2DPhysics::~S2DPhysics()
 {
-    for (auto& pair : m_entityBodyMap)
-    {
-        if (b2Body_IsValid(pair.second))
-        {
-            b2DestroyBody(pair.second);
-        }
-    }
-    m_entityBodyMap.clear();
     m_fixedCallbacks.clear();
 
     if (b2World_IsValid(m_worldId))
@@ -42,23 +30,25 @@ void S2DPhysics::update(float deltaTime, World& world)
 {
     (void)deltaTime;
 
+    m_world = &world;
+
     pruneDestroyedBodies(world);
 
-    world.view2<::Components::CTransform, ::Components::CPhysicsBody2D>([this](Entity entity,
-                                                                                ::Components::CTransform&     transform,
-                                                                                ::Components::CPhysicsBody2D& body)
-                                                                       {
-                                                                           ensureBodyForEntity(entity, transform, body);
-                                                                           syncFromTransform(entity, transform);
-                                                                       });
+    world.view2<::Components::CTransform, ::Components::CPhysicsBody2D>(
+        [this](Entity entity, ::Components::CTransform& transform, ::Components::CPhysicsBody2D& body)
+        {
+            ensureBodyForEntity(entity, transform, body);
+            syncFromTransform(entity, transform, body);
+        });
 
     runFixedUpdates(m_timeStep);
     b2World_Step(m_worldId, m_timeStep, m_subStepCount);
 
-    world.view2<::Components::CTransform, ::Components::CPhysicsBody2D>([this](Entity entity,
-                                                                                ::Components::CTransform&     transform,
-                                                                                ::Components::CPhysicsBody2D& body)
-                                                                       { syncToTransform(entity, transform); });
+    world.view2<::Components::CTransform, ::Components::CPhysicsBody2D>(
+        [this](Entity entity, ::Components::CTransform& transform, ::Components::CPhysicsBody2D& body)
+        {
+            syncToTransform(entity, transform, body);
+        });
 }
 
 void S2DPhysics::setGravity(const b2Vec2& gravity)
@@ -71,31 +61,21 @@ b2Vec2 S2DPhysics::getGravity() const
     return b2World_GetGravity(m_worldId);
 }
 
+void S2DPhysics::destroyBodyInternal(b2BodyId bodyId)
+{
+    if (b2Body_IsValid(bodyId))
+    {
+        b2DestroyBody(bodyId);
+    }
+}
+
 b2BodyId S2DPhysics::createBody(Entity entity, const b2BodyDef& bodyDef)
 {
-    if (entity.isValid())
-    {
-        // Check if entity already has a body
-        auto it = m_entityBodyMap.find(entity);
-        if (it != m_entityBodyMap.end() && b2Body_IsValid(it->second))
-        {
-            b2DestroyBody(it->second);
-        }
-    }
-
     b2BodyId bodyId = b2CreateBody(m_worldId, &bodyDef);
-
-    if (!entity.isValid())
+    if (entity.isValid() && b2Body_IsValid(bodyId))
     {
-        return bodyId;
+        b2Body_SetUserData(bodyId, reinterpret_cast<void*>(static_cast<uintptr_t>(entity.index)));
     }
-
-    // TODO: Store Entity ID in body user data when needed
-    // b2Body_SetUserData(bodyId, &entity);
-
-    // Map entity to body
-    m_entityBodyMap[entity] = bodyId;
-
     return bodyId;
 }
 
@@ -106,16 +86,19 @@ void S2DPhysics::destroyBody(Entity entity)
         return;
     }
 
-    auto it = m_entityBodyMap.find(entity);
-    if (it != m_entityBodyMap.end())
+    Components::CPhysicsBody2D* body = (m_world ? m_world->tryGet<Components::CPhysicsBody2D>(entity) : nullptr);
+    if (body)
     {
-        if (b2Body_IsValid(it->second))
-        {
-            b2DestroyBody(it->second);
-        }
-        m_entityBodyMap.erase(it);
+        destroyBody(body->bodyId);
+        body->bodyId = b2_nullBodyId;
     }
+
     m_fixedCallbacks.erase(entity);
+}
+
+void S2DPhysics::destroyBody(b2BodyId bodyId)
+{
+    destroyBodyInternal(bodyId);
 }
 
 void S2DPhysics::ensureBodyForEntity(Entity entity, ::Components::CTransform& transform, ::Components::CPhysicsBody2D& body)
@@ -127,11 +110,11 @@ void S2DPhysics::ensureBodyForEntity(Entity entity, ::Components::CTransform& tr
 
     body.owner = entity;
 
-    b2BodyId existing = getBody(entity);
+    b2BodyId existing = body.bodyId;
     if (!b2Body_IsValid(existing))
     {
-        b2BodyDef bodyDef   = b2DefaultBodyDef();
-        bodyDef.position    = {transform.position.x, transform.position.y};
+        b2BodyDef bodyDef      = b2DefaultBodyDef();
+        bodyDef.position       = {transform.position.x, transform.position.y};
         bodyDef.linearDamping  = body.linearDamping;
         bodyDef.angularDamping = body.angularDamping;
         bodyDef.gravityScale   = body.gravityScale;
@@ -149,12 +132,12 @@ void S2DPhysics::ensureBodyForEntity(Entity entity, ::Components::CTransform& tr
                 break;
         }
 
-        existing = createBody(entity, bodyDef);
+        existing    = createBody(entity, bodyDef);
+        body.bodyId = existing;
     }
 
     if (b2Body_IsValid(existing))
     {
-        m_entityBodyMap[entity] = existing;
         b2Body_SetFixedRotation(existing, body.fixedRotation);
         b2Body_SetLinearDamping(existing, body.linearDamping);
         b2Body_SetAngularDamping(existing, body.angularDamping);
@@ -164,29 +147,22 @@ void S2DPhysics::ensureBodyForEntity(Entity entity, ::Components::CTransform& tr
 
 void S2DPhysics::pruneDestroyedBodies(const World& world)
 {
-    for (auto it = m_entityBodyMap.begin(); it != m_entityBodyMap.end();)
-    {
-        const Entity  entity = it->first;
-        const b2BodyId body  = it->second;
-
-        const bool deadEntity        = !world.isAlive(entity);
-        const bool missingComponents = deadEntity || !world.has<::Components::CPhysicsBody2D>(entity) ||
-                                       !world.has<::Components::CTransform>(entity);
-        const bool deadBody = !b2Body_IsValid(body);
-
-        if (missingComponents || deadBody)
+    world.each<::Components::CPhysicsBody2D>([this, &world](Entity entity, ::Components::CPhysicsBody2D& body) {
+        if (!b2Body_IsValid(body.bodyId))
         {
-            if (!deadBody)
-            {
-                b2DestroyBody(body);
-            }
-            m_fixedCallbacks.erase(entity);
-            it = m_entityBodyMap.erase(it);
-            continue;
+            return;
         }
 
-        ++it;
-    }
+        const bool deadEntity        = !world.isAlive(entity);
+        const bool missingComponents = deadEntity || !world.has<::Components::CTransform>(entity);
+
+        if (deadEntity || missingComponents)
+        {
+            destroyBody(body.bodyId);
+            body.bodyId = b2_nullBodyId;
+            m_fixedCallbacks.erase(entity);
+        }
+    });
 }
 
 b2BodyId S2DPhysics::getBody(Entity entity) const
@@ -196,13 +172,14 @@ b2BodyId S2DPhysics::getBody(Entity entity) const
         return b2_nullBodyId;
     }
 
-    auto it = m_entityBodyMap.find(entity);
-    if (it != m_entityBodyMap.end())
+    const World* world = m_world;
+    if (!world)
     {
-        return it->second;
+        return b2_nullBodyId;
     }
 
-    return b2_nullBodyId;
+    const auto* body = world->tryGet<::Components::CPhysicsBody2D>(entity);
+    return body ? body->bodyId : b2_nullBodyId;
 }
 
 void S2DPhysics::queryAABB(const b2AABB& aabb, b2OverlapResultFcn* callback, void* context)
@@ -238,9 +215,9 @@ void S2DPhysics::clearFixedUpdateCallback(Entity entity)
     m_fixedCallbacks.erase(entity);
 }
 
-void S2DPhysics::syncFromTransform(Entity entity, const ::Components::CTransform& transform)
+void S2DPhysics::syncFromTransform(Entity entity, const ::Components::CTransform& transform, const ::Components::CPhysicsBody2D& body)
 {
-    const b2BodyId bodyId = getBody(entity);
+    const b2BodyId bodyId = body.bodyId;
     if (!b2Body_IsValid(bodyId))
     {
         return;
@@ -250,9 +227,9 @@ void S2DPhysics::syncFromTransform(Entity entity, const ::Components::CTransform
     b2Body_SetLinearVelocity(bodyId, {transform.velocity.x, transform.velocity.y});
 }
 
-void S2DPhysics::syncToTransform(Entity entity, ::Components::CTransform& transform)
+void S2DPhysics::syncToTransform(Entity entity, ::Components::CTransform& transform, const ::Components::CPhysicsBody2D& body)
 {
-    const b2BodyId bodyId = getBody(entity);
+    const b2BodyId bodyId = body.bodyId;
     if (!b2Body_IsValid(bodyId))
     {
         return;
@@ -407,8 +384,8 @@ void S2DPhysics::runFixedUpdates(float timeStep)
 {
     for (auto it = m_fixedCallbacks.begin(); it != m_fixedCallbacks.end();)
     {
-        const Entity entity = it->first;
-        const b2BodyId body = getBody(entity);
+        const Entity  entity = it->first;
+        const b2BodyId body  = getBody(entity);
         if (!b2Body_IsValid(body))
         {
             it = m_fixedCallbacks.erase(it);

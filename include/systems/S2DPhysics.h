@@ -35,9 +35,7 @@ class S2DPhysics : public System
 {
 private:
     b2WorldId m_worldId;
-
-    // Entity handle to b2BodyId mapping (generation-aware via Entity key)
-    std::unordered_map<Entity, b2BodyId> m_entityBodyMap;
+    World*    m_world{nullptr};
 
     // Per-entity fixed-update callbacks
     std::unordered_map<Entity, std::function<void(float)>> m_fixedCallbacks;
@@ -48,9 +46,10 @@ private:
 
     // Internal helpers
     void ensureBodyForEntity(Entity entity, Components::CTransform& transform, Components::CPhysicsBody2D& body);
-    void syncFromTransform(Entity entity, const Components::CTransform& transform);
-    void syncToTransform(Entity entity, Components::CTransform& transform);
+    void syncFromTransform(Entity entity, const Components::CTransform& transform, const Components::CPhysicsBody2D& body);
+    void syncToTransform(Entity entity, Components::CTransform& transform, const Components::CPhysicsBody2D& body);
     void pruneDestroyedBodies(const World& world);
+    void destroyBodyInternal(b2BodyId bodyId);
 
 public:
     S2DPhysics();
@@ -67,6 +66,11 @@ public:
      * @param deltaTime Time elapsed since last update (not used - fixed timestep)
      */
     void update(float deltaTime, World& world) override;
+
+    /**
+     * @brief Bind the world so physics can resolve components without side maps
+     */
+    void bindWorld(World* world) { m_world = world; }
 
     /**
      * @brief Get the Box2D world ID
@@ -134,6 +138,11 @@ public:
      * @param entity Entity ID whose body should be destroyed
      */
     void destroyBody(Entity entity);
+
+    /**
+     * @brief Destroy a Box2D body by handle (used by component cleanup)
+     */
+    void destroyBody(b2BodyId bodyId);
 
     /**
      * @brief Get the Box2D body associated with an entity
