@@ -8,7 +8,6 @@
 #include "CShader.h"
 #include "CTexture.h"
 #include "CTransform.h"
-#include "Registry.h"
 #include "SParticle.h"
 #include "World.h"
 
@@ -91,8 +90,6 @@ void SRenderer::render(World& world)
         return;
     }
 
-    Registry& registry = world.registry();
-
     struct RenderItem
     {
         Entity entity;
@@ -131,12 +128,12 @@ void SRenderer::render(World& world)
         {
             if (m_particleSystem && m_particleSystem->isInitialized())
             {
-                m_particleSystem->renderEmitter(item.entity, m_window.get(), registry);
+                m_particleSystem->renderEmitter(item.entity, m_window.get(), world);
             }
             continue;
         }
 
-        renderEntity(item.entity, registry);
+        renderEntity(item.entity, world);
     }
 }
 
@@ -260,7 +257,7 @@ void SRenderer::clearShaderCache()
     spdlog::debug("SRenderer: Shader cache cleared");
 }
 
-void SRenderer::renderEntity(Entity entity, Registry& registry)
+void SRenderer::renderEntity(Entity entity, World& world)
 {
     if (!entity.isValid())
     {
@@ -268,8 +265,8 @@ void SRenderer::renderEntity(Entity entity, Registry& registry)
     }
 
     // Check for required components
-    auto* renderable = registry.tryGet<::Components::CRenderable>(entity);
-    auto* transform  = registry.tryGet<::Components::CTransform>(entity);
+    auto* renderable = world.tryGet<::Components::CRenderable>(entity);
+    auto* transform  = world.tryGet<::Components::CTransform>(entity);
 
     if (!renderable || !renderable->isVisible())
     {
@@ -296,7 +293,7 @@ void SRenderer::renderEntity(Entity entity, Registry& registry)
     screenPos.y = SCREEN_HEIGHT - (pos.y * PIXELS_PER_METER);  // Flip Y axis
 
     // Get material if available
-    auto* material = registry.tryGet<::Components::CMaterial>(entity);
+    auto* material = world.tryGet<::Components::CMaterial>(entity);
 
     // Determine final color
     Color finalColor = renderable->getColor();
@@ -314,7 +311,7 @@ void SRenderer::renderEntity(Entity entity, Registry& registry)
     const sf::Texture* texture = nullptr;
     if (material)
     {
-        auto* textureComp = registry.tryGet<::Components::CTexture>(entity);
+        auto* textureComp = world.tryGet<::Components::CTexture>(entity);
         if (textureComp)
         {
             texture = loadTexture(textureComp->getTexturePath());
@@ -325,7 +322,7 @@ void SRenderer::renderEntity(Entity entity, Registry& registry)
     const sf::Shader* shader = nullptr;
     if (material)
     {
-        auto* shaderComp = registry.tryGet<::Components::CShader>(entity);
+        auto* shaderComp = world.tryGet<::Components::CShader>(entity);
         if (shaderComp)
         {
             shader = loadShader(shaderComp->getVertexShaderPath(), shaderComp->getFragmentShaderPath());
@@ -366,7 +363,7 @@ void SRenderer::renderEntity(Entity entity, Registry& registry)
             sf::RectangleShape rect;
 
             // If we have a collider, use its size
-            auto* collider = registry.tryGet<::Components::CCollider2D>(entity);
+            auto* collider = world.tryGet<::Components::CCollider2D>(entity);
             if (collider && collider->getShapeType() == ::Components::ColliderShape::Box)
             {
                 float halfWidth  = collider->getBoxHalfWidth() * PIXELS_PER_METER;

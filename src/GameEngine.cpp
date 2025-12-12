@@ -182,7 +182,7 @@ void GameEngine::update(float deltaTime)
 
     if (m_audio)
     {
-        m_audio->update(deltaTime);
+        m_audio->update(deltaTime, m_world);
     }
 }
 

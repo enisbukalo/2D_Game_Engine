@@ -4,8 +4,21 @@
 #include <string>
 #include "AudioTypes.h"
 
+namespace Systems
+{
+class SAudio;
+}
+
 namespace Components
 {
+
+enum class AudioCommand
+{
+    None,
+    Play,
+    Pause,
+    Stop
+};
 
 /**
  * @brief Component for audio playback on an entity
@@ -27,6 +40,7 @@ struct CAudioSource
 {
 public:
     CAudioSource();
+    friend class ::Systems::SAudio;
     ~CAudioSource() = default;
 
     void init();
@@ -173,6 +187,10 @@ private:
     float       m_minDistance = AudioConstants::DEFAULT_MIN_DISTANCE;
     float       m_attenuation = AudioConstants::DEFAULT_ATTENUATION;
     AudioHandle m_playHandle  = AudioHandle::invalid();  ///< Handle to active sound
+
+    AudioCommand m_pendingCommand = AudioCommand::None;  ///< Queued action for the audio system
+    bool         m_isPlaying      = false;               ///< Cached playing state for ECS queries
+    bool         m_playQueued     = false;               ///< Internal guard for play-on-awake
 };
 
 }  // namespace Components

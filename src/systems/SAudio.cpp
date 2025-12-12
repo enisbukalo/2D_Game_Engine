@@ -3,6 +3,11 @@
 #include <SFML/Audio.hpp>
 #include <algorithm>
 
+#include "CAudioListener.h"
+#include "CAudioSource.h"
+#include "CTransform.h"
+#include "World.h"
+
 #ifndef _WIN32
 #include <fcntl.h>
 #include <unistd.h>
@@ -560,6 +565,223 @@ void SAudio::update(float deltaTime)
     {
         updateMusicFade(deltaTime);
     }
+}
+
+void SAudio::update(float deltaTime, World& world)
+{
+    // First perform regular audio bookkeeping (fade states, freeing slots)
+    update(deltaTime);
+
+    if (!m_initialized)
+    {
+        return;
+    }
+
+    auto handleSourceCommand = [this](Components::CAudioSource& source, const Vec2& position, bool hasPosition) {
+        const Vec2 finalPos = hasPosition ? position : Vec2{0.0f, 0.0f};
+
+        switch (source.m_pendingCommand)
+        {
+            case Components::AudioCommand::Play:
+                if (source.m_clipId.empty())
+                {
+                    spdlog::warn("CAudioSource: Cannot play, no clip ID set");
+                    break;
+                }
+
+                if (source.m_type == AudioType::SFX)
+                {
+                    if (source.m_playHandle.isValid())
+                    {
+                        stopSFX(source.m_playHandle);
+                    }
+
+                    source.m_playHandle = source.m_spatial && hasPosition ? playSpatialSFX(source.m_clipId,
+                                                                                         finalPos,
+                                                                                         source.m_volume,
+                                                                                         source.m_pitch,
+                                                                                         source.m_loop,
+                                                                                         source.m_minDistance,
+                                                                                         source.m_attenuation)
+                                                                              : playSFX(source.m_clipId,
+                                                                                        source.m_volume,
+                                                                                        source.m_pitch,
+                                                                                        source.m_loop);
+                    source.m_isPlaying = source.m_playHandle.isValid();
+                }
+                else
+                {
+                    source.m_isPlaying = playMusic(source.m_clipId, source.m_loop, source.m_volume);
+                    source.m_playHandle = AudioHandle::invalid();
+                }
+                break;
+
+            case Components::AudioCommand::Pause:
+                if (source.m_type == AudioType::SFX && source.m_playHandle.isValid())
+                {
+                    pauseSFX(source.m_playHandle);
+                }
+                else if (source.m_type == AudioType::Music)
+                {
+                    pauseMusic();
+                }
+                break;
+
+            case Components::AudioCommand::Stop:
+                if (source.m_type == AudioType::SFX && source.m_playHandle.isValid())
+                {
+                    stopSFX(source.m_playHandle);
+                }
+                else if (source.m_type == AudioType::Music)
+                {
+                    stopMusic();
+                }
+                source.m_playHandle = AudioHandle::invalid();
+                source.m_isPlaying  = false;
+                break;
+
+            case Components::AudioCommand::None:
+                break;
+        }
+
+        source.m_pendingCommand = Components::AudioCommand::None;
+
+        // Keep spatial sounds attached to the entity
+        if (source.m_type == AudioType::SFX && source.m_spatial && source.m_playHandle.isValid() && hasPosition)
+        {
+            setSFXPosition(source.m_playHandle, finalPos);
+        }
+
+        // Refresh cached playing state
+        if (source.m_type == AudioType::SFX)
+        {
+            source.m_isPlaying = source.m_playHandle.isValid() && isPlayingSFX(source.m_playHandle);
+
+            if (!source.m_isPlaying)
+            {
+                source.m_playHandle = AudioHandle::invalid();
+            }
+        }
+        else
+        {
+            source.m_isPlaying = isMusicPlaying();
+        }
+    };
+
+    auto handleListenerSource = [this](Components::CAudioListener::AudioSourceConfig& config, const Vec2& listenerPos, bool hasPosition) {
+        const Vec2 finalPos = hasPosition ? listenerPos : Vec2{0.0f, 0.0f};
+
+        switch (config.pendingCommand)
+        {
+            case Components::AudioCommand::Play:
+                if (config.clipId.empty())
+                {
+                    spdlog::warn("CAudioListener: Cannot play source with empty clipId");
+                    break;
+                }
+
+                if (config.type == AudioType::SFX)
+                {
+                    if (config.playHandle.isValid())
+                    {
+                        stopSFX(config.playHandle);
+                    }
+
+                    config.playHandle = config.spatial && hasPosition ? playSpatialSFX(config.clipId,
+                                                                                         finalPos,
+                                                                                         config.volume,
+                                                                                         config.pitch,
+                                                                                         config.loop,
+                                                                                         config.minDistance,
+                                                                                         config.attenuation)
+                                                                             : playSFX(config.clipId,
+                                                                                       config.volume,
+                                                                                       config.pitch,
+                                                                                       config.loop);
+                    config.isPlaying = config.playHandle.isValid();
+                }
+                else
+                {
+                    config.isPlaying = playMusic(config.clipId, config.loop, config.volume);
+                }
+                break;
+
+            case Components::AudioCommand::Pause:
+                if (config.type == AudioType::SFX && config.playHandle.isValid())
+                {
+                    pauseSFX(config.playHandle);
+                }
+                else if (config.type == AudioType::Music)
+                {
+                    pauseMusic();
+                }
+                break;
+
+            case Components::AudioCommand::Stop:
+                if (config.type == AudioType::SFX && config.playHandle.isValid())
+                {
+                    stopSFX(config.playHandle);
+                }
+                else if (config.type == AudioType::Music)
+                {
+                    stopMusic();
+                }
+                config.playHandle = AudioHandle::invalid();
+                config.isPlaying  = false;
+                break;
+
+            case Components::AudioCommand::None:
+                break;
+        }
+
+        config.pendingCommand = Components::AudioCommand::None;
+
+        if (config.type == AudioType::SFX)
+        {
+            if (config.spatial && config.playHandle.isValid() && hasPosition)
+            {
+                setSFXPosition(config.playHandle, finalPos);
+            }
+
+            config.isPlaying = config.playHandle.isValid() && isPlayingSFX(config.playHandle);
+
+            if (!config.isPlaying)
+            {
+                config.playHandle = AudioHandle::invalid();
+            }
+        }
+        else
+        {
+            config.isPlaying = isMusicPlaying();
+        }
+    };
+
+    // Synchronize listener position and named sources
+    world.each<Components::CAudioListener>([this, &world, &handleListenerSource](Entity entity, Components::CAudioListener& listener) {
+        const auto* transform   = world.tryGet<Components::CTransform>(entity);
+        const bool  hasPosition = transform != nullptr;
+        Vec2        listenerPos = hasPosition ? transform->getPosition() : Vec2{0.0f, 0.0f};
+
+        if (listener.isDefaultListener() && hasPosition)
+        {
+            setListenerPosition(listenerPos);
+        }
+
+        for (auto& [name, config] : listener.getAudioSources())
+        {
+            (void)name;
+            handleListenerSource(config, listenerPos, hasPosition);
+        }
+    });
+
+    // Synchronize standalone audio sources (optionally spatial)
+    world.each<Components::CAudioSource>([this, &world, &handleSourceCommand](Entity entity, Components::CAudioSource& source) {
+        const auto* transform   = world.tryGet<Components::CTransform>(entity);
+        const bool  hasPosition = transform != nullptr;
+        Vec2        worldPos    = hasPosition ? transform->getPosition() : Vec2{0.0f, 0.0f};
+
+        handleSourceCommand(source, worldPos, hasPosition);
+    });
 }
 
 int SAudio::findAvailableSlot()

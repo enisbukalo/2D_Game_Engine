@@ -4,6 +4,12 @@
 #include <string>
 #include <unordered_map>
 #include "AudioTypes.h"
+#include "CAudioSource.h"
+
+namespace Systems
+{
+class SAudio;
+}
 
 namespace Components
 {
@@ -26,6 +32,8 @@ namespace Components
 struct CAudioListener
 {
 public:
+    friend class ::Systems::SAudio;
+
     /**
      * @brief Configuration for a named audio source
      */
@@ -40,6 +48,8 @@ public:
         float       minDistance = AudioConstants::DEFAULT_MIN_DISTANCE;
         float       attenuation = AudioConstants::DEFAULT_ATTENUATION;
         AudioHandle playHandle  = AudioHandle::invalid();  ///< Active playback handle (SFX only)
+        AudioCommand pendingCommand = AudioCommand::None;  ///< Queued action for the audio system
+        bool         isPlaying      = false;               ///< Cached playing state for ECS queries
     };
 
     CAudioListener();
@@ -110,6 +120,11 @@ public:
      * @return Map of audio source configurations
      */
     const std::unordered_map<std::string, AudioSourceConfig>& getAudioSources() const
+    {
+        return m_audioSources;
+    }
+
+    std::unordered_map<std::string, AudioSourceConfig>& getAudioSources()
     {
         return m_audioSources;
     }

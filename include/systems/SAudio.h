@@ -8,6 +8,8 @@
 #include <vector>
 #include "IAudioSystem.h"
 
+class World;
+
 namespace Systems
 {
 
@@ -169,6 +171,11 @@ public:
 
     void setListenerPosition(const Vec2& position) override;
     void update(float deltaTime) override;
+
+    /**
+     * @brief ECS-driven audio update that consumes component data
+     */
+    void update(float deltaTime, World& world);
 
     // Delete copy and move constructors/assignment operators
     SAudio(const SAudio&)            = delete;

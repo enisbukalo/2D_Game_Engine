@@ -8,7 +8,6 @@
 #include "Color.h"
 #include "System.h"
 
-class Registry;  // Forward declaration
 class World;
 class SParticle;
 
@@ -181,7 +180,7 @@ private:
      * @param entity Entity ID to render
      * @param registry Registry to access components
      */
-    void renderEntity(Entity entity, Registry& registry);
+    void renderEntity(Entity entity, World& world);
 
     /**
      * @brief Converts engine BlendMode to SFML BlendMode

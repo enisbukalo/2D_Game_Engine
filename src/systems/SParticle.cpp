@@ -492,7 +492,7 @@ void SParticle::update(float deltaTime, World& world)
         });
 }
 
-void SParticle::renderEmitter(Entity entity, sf::RenderWindow* window, Registry& registry)
+void SParticle::renderEmitter(Entity entity, sf::RenderWindow* window, World& world)
 {
     sf::RenderWindow* targetWindow = window ? window : m_window;
 
@@ -501,7 +501,7 @@ void SParticle::renderEmitter(Entity entity, sf::RenderWindow* window, Registry&
         return;
     }
 
-    auto* emitter = registry.tryGet<::Components::CParticleEmitter>(entity);
+    auto* emitter = world.tryGet<::Components::CParticleEmitter>(entity);
     if (!emitter)
     {
         return;

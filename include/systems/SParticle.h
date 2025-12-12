@@ -55,7 +55,7 @@ public:
      * @param window SFML render window
      * @param registry Registry to access components
      */
-    void renderEmitter(Entity entity, sf::RenderWindow* window, Registry& registry);
+    void renderEmitter(Entity entity, sf::RenderWindow* window, World& world);
 
     /**
      * @brief Checks if the particle system is initialized
