@@ -38,24 +38,24 @@ struct CRenderable
     {
     }
 
-    VisualType getVisualType() const;
-    void       setVisualType(VisualType visualType);
+    inline VisualType getVisualType() const { return visualType; }
+    inline void setVisualType(VisualType newVisualType) { visualType = newVisualType; }
 
-    Color getColor() const;
-    void  setColor(const Color& color);
+    inline Color getColor() const { return color; }
+    inline void setColor(const Color& newColor) { color = newColor; }
 
-    int  getZIndex() const;
-    void setZIndex(int zIndex);
+    inline int getZIndex() const { return zIndex; }
+    inline void setZIndex(int newZIndex) { zIndex = newZIndex; }
 
-    bool isVisible() const;
-    void setVisible(bool visible);
+    inline bool isVisible() const { return visible; }
+    inline void setVisible(bool isVisible) { visible = isVisible; }
 
-    Vec2  getLineStart() const;
-    void  setLineStart(const Vec2& start);
-    Vec2  getLineEnd() const;
-    void  setLineEnd(const Vec2& end);
-    float getLineThickness() const;
-    void  setLineThickness(float thickness);
+    inline Vec2 getLineStart() const { return lineStart; }
+    inline void setLineStart(const Vec2& start) { lineStart = start; }
+    inline Vec2 getLineEnd() const { return lineEnd; }
+    inline void setLineEnd(const Vec2& end) { lineEnd = end; }
+    inline float getLineThickness() const { return lineThickness; }
+    inline void setLineThickness(float thickness) { lineThickness = thickness; }
 
     VisualType visualType = VisualType::None;
     Color      color      = Color::White;

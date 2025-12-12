@@ -4,7 +4,6 @@
 #include <unordered_map>
 #include <vector>
 #include "Input/ActionBinding.h"
-#include "Input/InputEvents.h"
 
 namespace Components
 {

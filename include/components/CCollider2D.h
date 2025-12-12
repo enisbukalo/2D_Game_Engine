@@ -1,14 +1,20 @@
+// Data-only collider component.
+//
+// Stores authoring/configuration data for collider shapes in engine primitives.
+// Any physics-backend-specific object creation lives in systems (e.g., S2DPhysics).
+
 #pragma once
 
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <limits>
 #include <vector>
-#include "box2d/box2d.h"
+#include "Vec2.h"
 
 namespace Components
 {
 
-/**
- * @brief Collider shape type enumeration
- */
 enum class ColliderShape
 {
     Circle,
@@ -18,300 +24,273 @@ enum class ColliderShape
     ChainSegment
 };
 
-/**
- * @brief Collider Component - Wraps a Box2D fixture (shape)
- *
- * This component creates a collision shape attached to a physics body.
- * It requires a CPhysicsBody2D component to exist on the same entity.
- *
- * The collider can be a sensor (trigger) or a solid collider.
- * Sensors detect collisions but do not generate collision responses.
- */
-/**
- * @brief Structure to hold data for a single shape/fixture
- */
 struct ShapeFixture
 {
-    ColliderShape shapeType;
-
-    // Shape parameters
-    union ShapeData
+    struct Circle
     {
-        struct
-        {
-            b2Vec2 center;
-            float  radius;
-        } circle;
-        struct
-        {
-            float halfWidth;
-            float halfHeight;
-        } box;
-        struct
-        {
-            b2Vec2 vertices[B2_MAX_POLYGON_VERTICES];
-            int    vertexCount;
-            float  radius;
-        } polygon;
-        struct
-        {
-            b2Vec2 point1;
-            b2Vec2 point2;
-        } segment;
-        struct
-        {
-            b2Vec2 ghost1;
-            b2Vec2 point1;
-            b2Vec2 point2;
-            b2Vec2 ghost2;
-        } chainSegment;
-    } shapeData;
+        Vec2  center{0.0f, 0.0f};
+        float radius{0.0f};
+    } circle;
+
+    struct Box
+    {
+        float halfWidth{0.0f};
+        float halfHeight{0.0f};
+    } box;
+
+    struct Polygon
+    {
+        std::vector<Vec2> vertices;
+        float             radius{0.0f};
+    } polygon;
+
+    struct Segment
+    {
+        Vec2 point1{0.0f, 0.0f};
+        Vec2 point2{0.0f, 0.0f};
+    } segment;
+
+    struct ChainSegment
+    {
+        Vec2 ghost1{0.0f, 0.0f};
+        Vec2 point1{0.0f, 0.0f};
+        Vec2 point2{0.0f, 0.0f};
+        Vec2 ghost2{0.0f, 0.0f};
+    } chainSegment;
+
+    ColliderShape shapeType{ColliderShape::Box};
 };
 
 struct CCollider2D
 {
-private:
-    std::vector<ShapeFixture> m_fixtures;
+    // Fixtures (multiple fixtures per entity supported)
+    std::vector<ShapeFixture> fixtures;
 
-    // Fixture properties (default for all fixtures)
-    bool  m_isSensor;
-    float m_density;
-    float m_friction;
-    float m_restitution;
+    // Shared material properties
+    bool  sensor{false};
+    float density{1.0f};
+    float friction{0.3f};
+    float restitution{0.0f};
 
-    bool m_initialized;
+    inline void clear() { fixtures.clear(); }
 
-public:
-    CCollider2D();
-    ~CCollider2D();
-
-    /**
-     * @brief Create a circle collider
-     * @param radius Circle radius in meters
-     * @param center Local center offset (default: origin)
-     */
-    void createCircle(float radius, const b2Vec2& center = {0.0f, 0.0f});
-
-    /**
-     * @brief Create a box collider
-     * @param halfWidth Half-width of the box in meters
-     * @param halfHeight Half-height of the box in meters
-     */
-    void createBox(float halfWidth, float halfHeight);
-
-    /**
-     * @brief Create a polygon collider from arbitrary vertices
-     * @param vertices Array of vertices (will compute convex hull)
-     * @param count Number of vertices
-     * @param radius Skin radius for the polygon (default: 0.0f)
-     * @note Vertices will be automatically sorted to form a convex hull
-     */
-    void createPolygon(const b2Vec2* vertices, int count, float radius = 0.0f);
-
-    /**
-     * @brief Add an additional polygon shape to this collider
-     * @param vertices Array of vertices (will compute convex hull)
-     * @param count Number of vertices
-     * @param radius Skin radius for the polygon (default: 0.0f)
-     * @note This adds another fixture to the same physics body
-     */
-    void addPolygon(const b2Vec2* vertices, int count, float radius = 0.0f);
-
-    /**
-     * @brief Create a segment (line) collider
-     * @param point1 First endpoint
-     * @param point2 Second endpoint
-     */
-    void createSegment(const b2Vec2& point1, const b2Vec2& point2);
-
-    /**
-     * @brief Add an additional segment to this collider
-     * @param point1 First endpoint
-     * @param point2 Second endpoint
-     */
-    void addSegment(const b2Vec2& point1, const b2Vec2& point2);
-
-    /**
-     * @brief Create a chain segment with ghost vertices to prevent ghost collisions
-     * @param ghost1 Ghost vertex before point1
-     * @param point1 First endpoint
-     * @param point2 Second endpoint
-     * @param ghost2 Ghost vertex after point2
-     */
-    void createChainSegment(const b2Vec2& ghost1, const b2Vec2& point1, const b2Vec2& point2, const b2Vec2& ghost2);
-
-    /**
-     * @brief Add an additional chain segment to this collider
-     * @param ghost1 Ghost vertex before point1
-     * @param point1 First endpoint
-     * @param point2 Second endpoint
-     * @param ghost2 Ghost vertex after point2
-     */
-    void addChainSegment(const b2Vec2& ghost1, const b2Vec2& point1, const b2Vec2& point2, const b2Vec2& ghost2);
-
-    /**
-     * @brief Create a polygon collider from a pre-computed hull
-     * @param hull Pre-computed convex hull
-     * @param radius Skin radius for the polygon (default: 0.0f)
-     */
-    void createPolygonFromHull(const b2Hull& hull, float radius = 0.0f);
-
-    /**
-     * @brief Create an offset polygon collider
-     * @param hull Pre-computed convex hull
-     * @param position Local position offset
-     * @param rotation Rotation offset in radians
-     * @param radius Skin radius for the polygon (default: 0.0f)
-     */
-    void createOffsetPolygon(const b2Hull& hull, const b2Vec2& position, float rotation, float radius = 0.0f);
-
-    /**
-     * @brief Check if the collider has been initialized
-     */
-    bool isInitialized() const
+    inline void createCircle(float radius, const Vec2& center = Vec2{0.0f, 0.0f})
     {
-        return m_initialized;
+        fixtures.clear();
+        ShapeFixture f;
+        f.shapeType          = ColliderShape::Circle;
+        f.circle.center      = center;
+        f.circle.radius      = radius;
+        fixtures.push_back(std::move(f));
     }
 
-    /**
-     * @brief Get the Box2D shape ID of the first fixture
-     */
-    b2ShapeId getShapeId() const
+    inline void createBox(float halfWidth, float halfHeight)
     {
-        return b2_nullShapeId;
+        fixtures.clear();
+        ShapeFixture f;
+        f.shapeType       = ColliderShape::Box;
+        f.box.halfWidth   = halfWidth;
+        f.box.halfHeight  = halfHeight;
+        fixtures.push_back(std::move(f));
     }
 
-    /**
-     * @brief Get the shape type of the first fixture
-     */
-    ColliderShape getShapeType() const
+    inline void createPolygon(const std::vector<Vec2>& vertices, float radius = 0.0f)
     {
-        return m_fixtures.empty() ? ColliderShape::Box : m_fixtures[0].shapeType;
+        fixtures.clear();
+        addPolygon(vertices, radius);
     }
 
-    /**
-     * @brief Get all fixtures in this collider
-     */
-    const std::vector<ShapeFixture>& getFixtures() const
+    inline void addPolygon(const std::vector<Vec2>& vertices, float radius = 0.0f)
     {
-        return m_fixtures;
+        ShapeFixture f;
+        f.shapeType           = ColliderShape::Polygon;
+        f.polygon.vertices    = vertices;
+        f.polygon.radius      = radius;
+        fixtures.push_back(std::move(f));
     }
 
-    /**
-     * @brief Get the number of fixtures in this collider
-     */
-    size_t getFixtureCount() const
+    inline void createSegment(const Vec2& point1, const Vec2& point2)
     {
-        return m_fixtures.size();
+        fixtures.clear();
+        addSegment(point1, point2);
     }
 
-    /**
-     * @brief Set whether this is a sensor (trigger)
-     * @param isSensor True for sensor, false for solid collider
-     */
-    void setIsSensor(bool isSensor);
-
-    /**
-     * @brief Check if this is a sensor
-     */
-    bool isSensor() const
+    inline void addSegment(const Vec2& point1, const Vec2& point2)
     {
-        return m_isSensor;
+        ShapeFixture f;
+        f.shapeType         = ColliderShape::Segment;
+        f.segment.point1    = point1;
+        f.segment.point2    = point2;
+        fixtures.push_back(std::move(f));
     }
 
-    /**
-     * @brief Set density (mass per area)
-     * @param density Density in kg/m²
-     */
-    void setDensity(float density);
-
-    /**
-     * @brief Get density
-     */
-    float getDensity() const
+    inline void createChainSegment(const Vec2& ghost1, const Vec2& point1, const Vec2& point2, const Vec2& ghost2)
     {
-        return m_density;
+        fixtures.clear();
+        addChainSegment(ghost1, point1, point2, ghost2);
     }
 
-    /**
-     * @brief Set friction coefficient
-     * @param friction Friction (0 = no friction, 1 = high friction)
-     */
-    void setFriction(float friction);
-
-    /**
-     * @brief Get friction
-     */
-    float getFriction() const
+    inline void addChainSegment(const Vec2& ghost1, const Vec2& point1, const Vec2& point2, const Vec2& ghost2)
     {
-        return m_friction;
+        ShapeFixture f;
+        f.shapeType                 = ColliderShape::ChainSegment;
+        f.chainSegment.ghost1       = ghost1;
+        f.chainSegment.point1       = point1;
+        f.chainSegment.point2       = point2;
+        f.chainSegment.ghost2       = ghost2;
+        fixtures.push_back(std::move(f));
     }
 
-    /**
-     * @brief Set restitution (bounciness)
-     * @param restitution Restitution (0 = no bounce, 1 = perfect bounce)
-     */
-    void setRestitution(float restitution);
-
-    /**
-     * @brief Get restitution
-     */
-    float getRestitution() const
+    inline ColliderShape getShapeType() const
     {
-        return m_restitution;
+        return fixtures.empty() ? ColliderShape::Box : fixtures[0].shapeType;
     }
 
-    /**
-     * @brief Get circle radius (only valid for circle shapes)
-     */
-    float getCircleRadius() const;
+    inline const std::vector<ShapeFixture>& getFixtures() const { return fixtures; }
+    inline size_t getFixtureCount() const { return fixtures.size(); }
 
-    /**
-     * @brief Get circle center (only valid for circle shapes)
-     */
-    b2Vec2 getCircleCenter() const;
+    inline void setIsSensor(bool isSensor) { sensor = isSensor; }
+    inline bool isSensor() const { return sensor; }
 
-    /**
-     * @brief Get box half-width (only valid for box shapes)
-     */
-    float getBoxHalfWidth() const;
+    inline void setDensity(float d) { density = d; }
+    inline float getDensity() const { return density; }
+    inline void setFriction(float f) { friction = f; }
+    inline float getFriction() const { return friction; }
+    inline void setRestitution(float r) { restitution = r; }
+    inline float getRestitution() const { return restitution; }
 
-    /**
-     * @brief Get box half-height (only valid for box shapes)
-     */
-    float getBoxHalfHeight() const;
+    inline float getCircleRadius() const
+    {
+        if (!fixtures.empty() && fixtures[0].shapeType == ColliderShape::Circle)
+        {
+            return fixtures[0].circle.radius;
+        }
+        return 0.0f;
+    }
 
-    /**
-     * @brief Get polygon vertices for a specific fixture (only valid for polygon shapes)
-     * @param fixtureIndex Index of the fixture (default: 0)
-     * @return Pointer to vertex array (nullptr if not a polygon)
-     */
-    const b2Vec2* getPolygonVertices(size_t fixtureIndex = 0) const;
+    inline Vec2 getCircleCenter() const
+    {
+        if (!fixtures.empty() && fixtures[0].shapeType == ColliderShape::Circle)
+        {
+            return fixtures[0].circle.center;
+        }
+        return Vec2{0.0f, 0.0f};
+    }
 
-    /**
-     * @brief Get polygon vertex count for a specific fixture (only valid for polygon shapes)
-     * @param fixtureIndex Index of the fixture (default: 0)
-     * @return Number of vertices (0 if not a polygon)
-     */
-    int getPolygonVertexCount(size_t fixtureIndex = 0) const;
+    inline float getBoxHalfWidth() const
+    {
+        if (!fixtures.empty() && fixtures[0].shapeType == ColliderShape::Box)
+        {
+            return fixtures[0].box.halfWidth;
+        }
+        return 0.0f;
+    }
 
-    /**
-     * @brief Get polygon radius/skin for a specific fixture (only valid for polygon shapes)
-     * @param fixtureIndex Index of the fixture (default: 0)
-     * @return Radius value (0.0f if not a polygon)
-     */
-    float getPolygonRadius(size_t fixtureIndex = 0) const;
+    inline float getBoxHalfHeight() const
+    {
+        if (!fixtures.empty() && fixtures[0].shapeType == ColliderShape::Box)
+        {
+            return fixtures[0].box.halfHeight;
+        }
+        return 0.0f;
+    }
 
-    /**
-     * @brief Calculate the axis-aligned bounding box of all fixtures
-     * @param outWidth Output width of the bounding box in meters
-     * @param outHeight Output height of the bounding box in meters
-     * @return True if bounds were calculated, false if no fixtures exist
-     */
-    bool getBounds(float& outWidth, float& outHeight) const;
+    inline const std::vector<Vec2>& getPolygonVertices(size_t fixtureIndex = 0) const
+    {
+        static const std::vector<Vec2> empty;
+        if (fixtureIndex < fixtures.size() && fixtures[fixtureIndex].shapeType == ColliderShape::Polygon)
+        {
+            return fixtures[fixtureIndex].polygon.vertices;
+        }
+        return empty;
+    }
 
-    // Component interface
-    void init();
+    inline int getPolygonVertexCount(size_t fixtureIndex = 0) const
+    {
+        const auto& verts = getPolygonVertices(fixtureIndex);
+        return static_cast<int>(verts.size());
+    }
+
+    inline float getPolygonRadius(size_t fixtureIndex = 0) const
+    {
+        if (fixtureIndex < fixtures.size() && fixtures[fixtureIndex].shapeType == ColliderShape::Polygon)
+        {
+            return fixtures[fixtureIndex].polygon.radius;
+        }
+        return 0.0f;
+    }
+
+    inline bool getBounds(float& outWidth, float& outHeight) const
+    {
+        if (fixtures.empty())
+        {
+            outWidth = 0.0f;
+            outHeight = 0.0f;
+            return false;
+        }
+
+        float minX = std::numeric_limits<float>::infinity();
+        float minY = std::numeric_limits<float>::infinity();
+        float maxX = -std::numeric_limits<float>::infinity();
+        float maxY = -std::numeric_limits<float>::infinity();
+
+        auto includePoint = [&](const Vec2& p)
+        {
+            minX = std::min(minX, p.x);
+            minY = std::min(minY, p.y);
+            maxX = std::max(maxX, p.x);
+            maxY = std::max(maxY, p.y);
+        };
+
+        for (const auto& f : fixtures)
+        {
+            switch (f.shapeType)
+            {
+                case ColliderShape::Circle:
+                {
+                    const Vec2 c = f.circle.center;
+                    const float r = f.circle.radius;
+                    includePoint(Vec2{c.x - r, c.y - r});
+                    includePoint(Vec2{c.x + r, c.y + r});
+                    break;
+                }
+                case ColliderShape::Box:
+                {
+                    const float hw = f.box.halfWidth;
+                    const float hh = f.box.halfHeight;
+                    includePoint(Vec2{-hw, -hh});
+                    includePoint(Vec2{hw, hh});
+                    break;
+                }
+                case ColliderShape::Polygon:
+                {
+                    for (const auto& v : f.polygon.vertices)
+                    {
+                        includePoint(v);
+                    }
+                    break;
+                }
+                case ColliderShape::Segment:
+                {
+                    includePoint(f.segment.point1);
+                    includePoint(f.segment.point2);
+                    break;
+                }
+                case ColliderShape::ChainSegment:
+                {
+                    includePoint(f.chainSegment.ghost1);
+                    includePoint(f.chainSegment.point1);
+                    includePoint(f.chainSegment.point2);
+                    includePoint(f.chainSegment.ghost2);
+                    break;
+                }
+            }
+        }
+
+        outWidth  = (maxX - minX);
+        outHeight = (maxY - minY);
+        return std::isfinite(outWidth) && std::isfinite(outHeight);
+    }
 };
 
 }  // namespace Components

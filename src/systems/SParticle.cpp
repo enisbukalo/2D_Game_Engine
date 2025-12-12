@@ -11,6 +11,30 @@
 namespace Systems
 {
 
+const sf::Texture* SParticle::loadTexture(const std::string& filepath)
+{
+    if (filepath.empty())
+    {
+        return nullptr;
+    }
+
+    auto it = m_textureCache.find(filepath);
+    if (it != m_textureCache.end())
+    {
+        return &it->second;
+    }
+
+    sf::Texture texture;
+    if (!texture.loadFromFile(filepath))
+    {
+        std::cerr << "SParticle: Failed to load texture from '" << filepath << "'\n";
+        return nullptr;
+    }
+
+    m_textureCache[filepath] = std::move(texture);
+    return &m_textureCache[filepath];
+}
+
 // Static random number generator
 static std::random_device               s_rd;
 static std::mt19937                     s_gen(s_rd());
@@ -507,6 +531,8 @@ void SParticle::renderEmitter(Entity entity, sf::RenderWindow* window, World& wo
         return;
     }
 
+    const sf::Texture* texture = loadTexture(emitter->getTexturePath());
+
     // Clear vertex array for this emitter
     m_vertexArray.clear();
 
@@ -525,7 +551,7 @@ void SParticle::renderEmitter(Entity entity, sf::RenderWindow* window, World& wo
         // Create color with alpha
         sf::Color color(particle.color.r, particle.color.g, particle.color.b, static_cast<sf::Uint8>(particle.alpha * 255.0f));
 
-        if (emitter->getTexture())
+        if (texture)
         {
             // Textured quad
             float cosR = std::cos(particle.rotation);
@@ -550,7 +576,7 @@ void SParticle::renderEmitter(Entity entity, sf::RenderWindow* window, World& wo
             }
 
             // Texture coordinates (in pixels for SFML - confirmed by official docs)
-            sf::Vector2u texSize      = emitter->getTexture()->getSize();
+            sf::Vector2u texSize      = texture->getSize();
             sf::Vector2f texCoords[4] = {
                 sf::Vector2f(0.0f, 0.0f),                                                    // Top-left
                 sf::Vector2f(static_cast<float>(texSize.x), 0.0f),                           // Top-right
@@ -597,9 +623,9 @@ void SParticle::renderEmitter(Entity entity, sf::RenderWindow* window, World& wo
         sf::RenderStates states;
         states.blendMode = sf::BlendAlpha;
 
-        if (emitter->getTexture())
+        if (texture)
         {
-            states.texture = emitter->getTexture();
+            states.texture = texture;
         }
 
         targetWindow->draw(m_vertexArray, states);

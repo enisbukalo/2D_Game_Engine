@@ -14,6 +14,11 @@
 namespace Systems
 {
 
+static sf::Color toSFMLColor(const Color& c)
+{
+    return sf::Color(c.r, c.g, c.b, c.a);
+}
+
 SRenderer::SRenderer() : System() {}
 
 SRenderer::~SRenderer()
@@ -143,7 +148,7 @@ void SRenderer::clear(const Color& color)
 {
     if (m_window && m_window->isOpen())
     {
-        m_window->clear(color.toSFML());
+        m_window->clear(toSFMLColor(color));
     }
 }
 
@@ -384,7 +389,7 @@ void SRenderer::renderEntity(Entity entity, World& world)
 
             rect.setPosition(screenPos);
             rect.setRotation(-rotation * 180.0f / 3.14159265f);  // Negate for Y-axis flip
-            rect.setFillColor(finalColor.toSFML());
+            rect.setFillColor(toSFMLColor(finalColor));
 
             if (texture)
             {
@@ -412,7 +417,7 @@ void SRenderer::renderEntity(Entity entity, World& world)
             circle.setPosition(screenPos);
             circle.setScale(scale.x, scale.y);
             circle.setRotation(-rotation * 180.0f / 3.14159265f);  // Negate for Y-axis flip
-            circle.setFillColor(finalColor.toSFML());
+            circle.setFillColor(toSFMLColor(finalColor));
 
             if (texture)
             {
@@ -477,7 +482,7 @@ void SRenderer::renderEntity(Entity entity, World& world)
                 sprite.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
                 sprite.setPosition(screenPos);
                 sprite.setRotation(-rotation * 180.0f / 3.14159265f);  // Negate for Y-axis flip
-                sprite.setColor(finalColor.toSFML());
+                sprite.setColor(toSFMLColor(finalColor));
 
                 m_window->draw(sprite, states);
             }
@@ -488,7 +493,7 @@ void SRenderer::renderEntity(Entity entity, World& world)
                 rect.setOrigin(25.0f * scale.x, 25.0f * scale.y);
                 rect.setPosition(screenPos);
                 rect.setRotation(-rotation * 180.0f / 3.14159265f);  // Negate for Y-axis flip
-                rect.setFillColor(finalColor.toSFML());
+                rect.setFillColor(toSFMLColor(finalColor));
                 m_window->draw(rect, states);
             }
             break;
@@ -523,7 +528,7 @@ void SRenderer::renderEntity(Entity entity, World& world)
 
             // Create line using VertexArray
             float           thickness = renderable->getLineThickness();
-            sf::Color       lineColor = finalColor.toSFML();
+            sf::Color       lineColor = toSFMLColor(finalColor);
             sf::VertexArray line(sf::Lines, 2);
             line[0].position = screenStart;
             line[0].color    = lineColor;

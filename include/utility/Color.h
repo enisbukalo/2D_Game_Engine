@@ -1,7 +1,6 @@
 #ifndef COLOR_H
 #define COLOR_H
 
-#include <SFML/Graphics/Color.hpp>
 #include <cstdint>
 
 /**
@@ -9,8 +8,7 @@
  *
  * @description
  * Color provides a platform-agnostic color representation using RGBA values.
- * It can be converted to and from SFML's color type for rendering, but provides
- * a clean interface for future portability to other rendering backends.
+ * Renderer backends should perform any API-specific conversion internally.
  */
 struct Color
 {
@@ -32,25 +30,6 @@ struct Color
      * @param alpha Alpha component (0-255), defaults to 255 (opaque)
      */
     Color(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha = 255) : r(red), g(green), b(blue), a(alpha) {}
-
-    /**
-     * @brief Converts from SFML color to engine Color
-     * @param sfColor SFML color object
-     * @return Equivalent engine Color
-     */
-    static Color fromSFML(const sf::Color& sfColor)
-    {
-        return Color(sfColor.r, sfColor.g, sfColor.b, sfColor.a);
-    }
-
-    /**
-     * @brief Converts engine Color to SFML color
-     * @return Equivalent SFML color
-     */
-    sf::Color toSFML() const
-    {
-        return sf::Color(r, g, b, a);
-    }
 
     // Common color constants
     static const Color White;

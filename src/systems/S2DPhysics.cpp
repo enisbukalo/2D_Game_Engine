@@ -1,6 +1,8 @@
 #include "S2DPhysics.h"
 #include <cstdint>
 #include <utility>
+#include <vector>
+#include "CCollider2D.h"
 #include "CPhysicsBody2D.h"
 #include "CTransform.h"
 #include "Vec2.h"
@@ -18,6 +20,9 @@ S2DPhysics::S2DPhysics() : m_timeStep(1.0f / 60.0f), m_subStepCount(6)
 
 S2DPhysics::~S2DPhysics()
 {
+    m_shapes.clear();
+    m_chains.clear();
+    m_bodies.clear();
     m_fixedCallbacks.clear();
 
     if (b2World_IsValid(m_worldId))
@@ -40,7 +45,18 @@ void S2DPhysics::update(float deltaTime, World& world)
         [this](Entity entity, ::Components::CTransform& transform, ::Components::CPhysicsBody2D& body)
         {
             ensureBodyForEntity(entity, transform, body);
-            syncFromTransform(entity, transform, body);
+
+            auto* collider = m_world ? m_world->components().tryGet<::Components::CCollider2D>(entity) : nullptr;
+            if (collider)
+            {
+                ensureShapesForEntity(entity, *collider);
+            }
+            else
+            {
+                destroyShapes(entity);
+            }
+
+            syncFromTransform(entity, transform);
         });
 
     b2World_Step(m_worldId, m_timeStep, m_subStepCount);
@@ -48,7 +64,8 @@ void S2DPhysics::update(float deltaTime, World& world)
     components.view2<::Components::CTransform, ::Components::CPhysicsBody2D>(
         [this](Entity entity, ::Components::CTransform& transform, ::Components::CPhysicsBody2D& body)
         {
-            syncToTransform(entity, transform, body);
+            (void)body;
+            syncToTransform(entity, transform);
         });
 }
 
@@ -87,14 +104,183 @@ void S2DPhysics::destroyBody(Entity entity)
         return;
     }
 
-    Components::CPhysicsBody2D* body = (m_world ? m_world->components().tryGet<Components::CPhysicsBody2D>(entity) : nullptr);
-    if (body)
+    destroyShapes(entity);
+
+    auto it = m_bodies.find(entity);
+    if (it != m_bodies.end())
     {
-        destroyBody(body->bodyId);
-        body->bodyId = b2_nullBodyId;
+        destroyBody(it->second);
+        m_bodies.erase(it);
     }
 
     m_fixedCallbacks.erase(entity);
+}
+
+void S2DPhysics::destroyShapes(Entity entity)
+{
+    auto shapesIt = m_shapes.find(entity);
+    if (shapesIt != m_shapes.end())
+    {
+        for (b2ShapeId shapeId : shapesIt->second)
+        {
+            if (b2Shape_IsValid(shapeId))
+            {
+                b2DestroyShape(shapeId, true);
+            }
+        }
+        m_shapes.erase(shapesIt);
+    }
+
+    auto chainsIt = m_chains.find(entity);
+    if (chainsIt != m_chains.end())
+    {
+        for (b2ChainId chainId : chainsIt->second)
+        {
+            if (b2Chain_IsValid(chainId))
+            {
+                b2DestroyChain(chainId);
+            }
+        }
+        m_chains.erase(chainsIt);
+    }
+}
+
+void S2DPhysics::ensureShapesForEntity(Entity entity, const ::Components::CCollider2D& collider)
+{
+    if (!entity.isValid())
+    {
+        return;
+    }
+
+    b2BodyId bodyId = getBody(entity);
+    if (!b2Body_IsValid(bodyId))
+    {
+        destroyShapes(entity);
+        return;
+    }
+
+    // Simplest sync strategy: rebuild shapes every update.
+    destroyShapes(entity);
+
+    if (collider.fixtures.empty())
+    {
+        return;
+    }
+
+    b2ShapeDef shapeDef           = b2DefaultShapeDef();
+    shapeDef.density              = collider.density;
+    shapeDef.material.friction    = collider.friction;
+    shapeDef.material.restitution = collider.restitution;
+    shapeDef.isSensor             = collider.sensor;
+    shapeDef.enableSensorEvents   = collider.sensor;
+
+    auto& createdShapes = m_shapes[entity];
+
+    for (const auto& fixture : collider.fixtures)
+    {
+        switch (fixture.shapeType)
+        {
+            case ::Components::ColliderShape::Circle:
+            {
+                b2Circle circle;
+                circle.center = {fixture.circle.center.x, fixture.circle.center.y};
+                circle.radius = fixture.circle.radius;
+
+                b2ShapeId shapeId = b2CreateCircleShape(bodyId, &shapeDef, &circle);
+                if (b2Shape_IsValid(shapeId))
+                {
+                    createdShapes.push_back(shapeId);
+                }
+                break;
+            }
+            case ::Components::ColliderShape::Box:
+            {
+                b2Polygon box = b2MakeBox(fixture.box.halfWidth, fixture.box.halfHeight);
+                b2ShapeId shapeId = b2CreatePolygonShape(bodyId, &shapeDef, &box);
+                if (b2Shape_IsValid(shapeId))
+                {
+                    createdShapes.push_back(shapeId);
+                }
+                break;
+            }
+            case ::Components::ColliderShape::Polygon:
+            {
+                if (fixture.polygon.vertices.size() < 3)
+                {
+                    break;
+                }
+
+                std::vector<b2Vec2> points;
+                points.reserve(fixture.polygon.vertices.size());
+                for (const auto& v : fixture.polygon.vertices)
+                {
+                    points.push_back(b2Vec2{v.x, v.y});
+                }
+
+                b2Hull hull = b2ComputeHull(points.data(), static_cast<int>(points.size()));
+                if (hull.count <= 0)
+                {
+                    break;
+                }
+
+                b2Polygon poly = b2MakePolygon(&hull, fixture.polygon.radius);
+                b2ShapeId shapeId = b2CreatePolygonShape(bodyId, &shapeDef, &poly);
+                if (b2Shape_IsValid(shapeId))
+                {
+                    createdShapes.push_back(shapeId);
+                }
+                break;
+            }
+            case ::Components::ColliderShape::Segment:
+            {
+                b2Segment seg;
+                seg.point1 = {fixture.segment.point1.x, fixture.segment.point1.y};
+                seg.point2 = {fixture.segment.point2.x, fixture.segment.point2.y};
+
+                b2ShapeId shapeId = b2CreateSegmentShape(bodyId, &shapeDef, &seg);
+                if (b2Shape_IsValid(shapeId))
+                {
+                    createdShapes.push_back(shapeId);
+                }
+                break;
+            }
+            case ::Components::ColliderShape::ChainSegment:
+            {
+                // Represent a chain segment using a 4-point open chain:
+                // ghost1 -> point1 -> point2 -> ghost2
+                b2Vec2 pts[4] = {
+                    {fixture.chainSegment.ghost1.x, fixture.chainSegment.ghost1.y},
+                    {fixture.chainSegment.point1.x, fixture.chainSegment.point1.y},
+                    {fixture.chainSegment.point2.x, fixture.chainSegment.point2.y},
+                    {fixture.chainSegment.ghost2.x, fixture.chainSegment.ghost2.y},
+                };
+
+                b2SurfaceMaterial mat = b2DefaultSurfaceMaterial();
+                mat.friction          = collider.friction;
+                mat.restitution       = collider.restitution;
+
+                b2ChainDef chainDef       = b2DefaultChainDef();
+                chainDef.points           = pts;
+                chainDef.count            = 4;
+                chainDef.materials        = &mat;
+                chainDef.materialCount    = 1;
+                chainDef.enableSensorEvents = collider.sensor;
+                chainDef.isLoop           = false;
+
+                b2ChainId chainId = b2CreateChain(bodyId, &chainDef);
+                if (b2Chain_IsValid(chainId))
+                {
+                    m_chains[entity].push_back(chainId);
+                }
+                break;
+            }
+        }
+    }
+
+    if (createdShapes.empty())
+    {
+        m_shapes.erase(entity);
+    }
 }
 
 void S2DPhysics::destroyBody(b2BodyId bodyId)
@@ -102,16 +288,20 @@ void S2DPhysics::destroyBody(b2BodyId bodyId)
     destroyBodyInternal(bodyId);
 }
 
-void S2DPhysics::ensureBodyForEntity(Entity entity, ::Components::CTransform& transform, ::Components::CPhysicsBody2D& body)
+void S2DPhysics::ensureBodyForEntity(Entity entity, const ::Components::CTransform& transform, const ::Components::CPhysicsBody2D& body)
 {
     if (!entity.isValid())
     {
         return;
     }
 
-    body.owner = entity;
+    b2BodyId existing = b2_nullBodyId;
+    auto it          = m_bodies.find(entity);
+    if (it != m_bodies.end())
+    {
+        existing = it->second;
+    }
 
-    b2BodyId existing = body.bodyId;
     if (!b2Body_IsValid(existing))
     {
         b2BodyDef bodyDef      = b2DefaultBodyDef();
@@ -134,7 +324,10 @@ void S2DPhysics::ensureBodyForEntity(Entity entity, ::Components::CTransform& tr
         }
 
         existing    = createBody(entity, bodyDef);
-        body.bodyId = existing;
+        if (b2Body_IsValid(existing))
+        {
+            m_bodies[entity] = existing;
+        }
     }
 
     if (b2Body_IsValid(existing))
@@ -150,22 +343,35 @@ void S2DPhysics::pruneDestroyedBodies(const World& world)
 {
     auto components = world.components();
 
-    components.each<::Components::CPhysicsBody2D>([this, &world, &components](Entity entity, ::Components::CPhysicsBody2D& body) {
-        if (!b2Body_IsValid(body.bodyId))
-        {
-            return;
-        }
+    for (auto it = m_bodies.begin(); it != m_bodies.end();)
+    {
+        const Entity  entity = it->first;
+        const b2BodyId bodyId = it->second;
 
-        const bool deadEntity        = !world.isAlive(entity);
-        const bool missingComponents = deadEntity || !components.has<::Components::CTransform>(entity);
+        const bool deadEntity = !world.isAlive(entity);
+        const bool missingComponents = deadEntity || !components.has<::Components::CTransform>(entity) || !components.has<::Components::CPhysicsBody2D>(entity);
+        const bool invalidBody = !b2Body_IsValid(bodyId);
 
-        if (deadEntity || missingComponents)
+        if (deadEntity || missingComponents || invalidBody)
         {
-            destroyBody(body.bodyId);
-            body.bodyId = b2_nullBodyId;
+            destroyShapes(entity);
+            if (b2Body_IsValid(bodyId))
+            {
+                destroyBody(bodyId);
+            }
             m_fixedCallbacks.erase(entity);
+            it = m_bodies.erase(it);
+            continue;
         }
-    });
+
+        // If a collider component was removed, destroy any attached shapes/chains.
+        if (!components.has<::Components::CCollider2D>(entity))
+        {
+            destroyShapes(entity);
+        }
+
+        ++it;
+    }
 }
 
 b2BodyId S2DPhysics::getBody(Entity entity) const
@@ -175,14 +381,8 @@ b2BodyId S2DPhysics::getBody(Entity entity) const
         return b2_nullBodyId;
     }
 
-    const World* world = m_world;
-    if (!world)
-    {
-        return b2_nullBodyId;
-    }
-
-    const auto* body = world->components().tryGet<::Components::CPhysicsBody2D>(entity);
-    return body ? body->bodyId : b2_nullBodyId;
+    auto it = m_bodies.find(entity);
+    return it != m_bodies.end() ? it->second : b2_nullBodyId;
 }
 
 void S2DPhysics::queryAABB(const b2AABB& aabb, b2OverlapResultFcn* callback, void* context)
@@ -218,9 +418,9 @@ void S2DPhysics::clearFixedUpdateCallback(Entity entity)
     m_fixedCallbacks.erase(entity);
 }
 
-void S2DPhysics::syncFromTransform(Entity entity, const ::Components::CTransform& transform, const ::Components::CPhysicsBody2D& body)
+void S2DPhysics::syncFromTransform(Entity entity, const ::Components::CTransform& transform)
 {
-    const b2BodyId bodyId = body.bodyId;
+    const b2BodyId bodyId = getBody(entity);
     if (!b2Body_IsValid(bodyId))
     {
         return;
@@ -230,9 +430,9 @@ void S2DPhysics::syncFromTransform(Entity entity, const ::Components::CTransform
     b2Body_SetLinearVelocity(bodyId, {transform.velocity.x, transform.velocity.y});
 }
 
-void S2DPhysics::syncToTransform(Entity entity, ::Components::CTransform& transform, const ::Components::CPhysicsBody2D& body)
+void S2DPhysics::syncToTransform(Entity entity, ::Components::CTransform& transform)
 {
-    const b2BodyId bodyId = body.bodyId;
+    const b2BodyId bodyId = getBody(entity);
     if (!b2Body_IsValid(bodyId))
     {
         return;

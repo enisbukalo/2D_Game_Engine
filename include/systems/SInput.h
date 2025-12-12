@@ -32,7 +32,7 @@ private:
     std::unordered_map<MouseButton, bool> m_mouseDown;
     std::unordered_map<MouseButton, bool> m_mousePressed;
     std::unordered_map<MouseButton, bool> m_mouseReleased;
-    sf::Vector2i                          m_mousePosition;
+    Vec2i                                 m_mousePosition;
 
     // Action bindings (per-action -> list of pairs(bindingId, binding))
     std::unordered_map<std::string, std::vector<std::pair<BindingId, ActionBinding>>> m_actionBindings;
@@ -77,7 +77,7 @@ public:
     bool         isMouseDown(MouseButton button) const;
     bool         wasMousePressed(MouseButton button) const;
     bool         wasMouseReleased(MouseButton button) const;
-    sf::Vector2i getMousePositionWindow() const;
+    Vec2i getMousePositionWindow() const;
 
     // Action binding
     BindingId   bindAction(const std::string& actionName, const ActionBinding& binding);

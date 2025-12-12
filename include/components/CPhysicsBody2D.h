@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Entity.h"
-#include "box2d/box2d.h"
+namespace Components
+{
 
 /**
  * @brief Body type enumeration for physics bodies
@@ -35,13 +35,15 @@ struct CPhysicsBody2D
     float angularDamping{0.10f};
     float gravityScale{1.0f};
 
-    // Box2D handle managed by the physics system
-    b2BodyId bodyId{b2_nullBodyId};
+    inline BodyType getBodyType() const { return bodyType; }
+    inline void setBodyType(BodyType newType) { bodyType = newType; }
 
-    // Owning entity (set by systems for bookkeeping)
-    Entity owner{Entity::null()};
-
-    ~CPhysicsBody2D();
+    inline float getDensity() const { return density; }
+    inline void setDensity(float d) { density = d; }
+    inline float getFriction() const { return friction; }
+    inline void setFriction(float f) { friction = f; }
+    inline float getRestitution() const { return restitution; }
+    inline void setRestitution(float r) { restitution = r; }
 };
 
 }  // namespace Components

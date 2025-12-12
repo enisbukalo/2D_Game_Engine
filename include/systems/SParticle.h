@@ -1,6 +1,8 @@
 #ifndef SPARTICLE_H
 #define SPARTICLE_H
 
+#include <string>
+#include <unordered_map>
 #include <Entity.h>
 #include <SFML/Graphics.hpp>
 #include "System.h"
@@ -87,10 +89,14 @@ private:
      */
     float metersToPixels(float meters) const;
 
+    const sf::Texture* loadTexture(const std::string& filepath);
+
     sf::VertexArray   m_vertexArray;     ///< Vertex array for rendering
     sf::RenderWindow* m_window;          ///< Render window reference
     float             m_pixelsPerMeter;  ///< Rendering scale
     bool              m_initialized;     ///< Initialization state
+
+    std::unordered_map<std::string, sf::Texture> m_textureCache;
 };
 
 }  // namespace Systems

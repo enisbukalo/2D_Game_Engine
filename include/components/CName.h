@@ -19,8 +19,8 @@ struct CName
 {
     explicit CName(const std::string& n = "") : name(n) {}
 
-    const std::string& getName() const;
-    void               setName(const std::string& n);
+    inline const std::string& getName() const { return name; }
+    inline void setName(const std::string& n) { name = n; }
 
     std::string name;
 };

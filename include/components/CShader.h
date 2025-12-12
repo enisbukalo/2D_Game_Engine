@@ -23,10 +23,10 @@ struct CShader
     {
     }
 
-    std::string getVertexShaderPath() const;
-    void        setVertexShaderPath(const std::string& vertexPath);
-    std::string getFragmentShaderPath() const;
-    void        setFragmentShaderPath(const std::string& fragmentPath);
+    inline std::string getVertexShaderPath() const { return vertexShaderPath; }
+    inline void setVertexShaderPath(const std::string& vertexPath) { vertexShaderPath = vertexPath; }
+    inline std::string getFragmentShaderPath() const { return fragmentShaderPath; }
+    inline void setFragmentShaderPath(const std::string& fragmentPath) { fragmentShaderPath = fragmentPath; }
 
     std::string vertexShaderPath;
     std::string fragmentShaderPath;

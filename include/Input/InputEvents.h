@@ -1,10 +1,9 @@
 #pragma once
 
-#include <SFML/System/Vector2.hpp>
-#include <SFML/Window/Event.hpp>
 #include <string>
 #include "Input/KeyCode.h"
 #include "Input/MouseButton.h"
+#include "utility/Vec2i.h"
 
 enum class InputEventType
 {
@@ -33,19 +32,19 @@ struct KeyEvent
 struct MouseEvent
 {
     MouseButton  button;
-    sf::Vector2i position;
+    Vec2i       position;
     unsigned int clickCount = 1;
 };
 
 struct MouseMoveEvent
 {
-    sf::Vector2i position;
+    Vec2i position;
 };
 
 struct WheelEvent
 {
     float        delta;
-    sf::Vector2i position;
+    Vec2i        position;
 };
 
 struct TextEvent

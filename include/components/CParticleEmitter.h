@@ -1,8 +1,8 @@
 #ifndef CPARTICLEEMITTER_H
 #define CPARTICLEEMITTER_H
 
-#include <SFML/Graphics.hpp>
-#include <memory>
+#include <cstddef>
+#include <string>
 #include <vector>
 #include "Color.h"
 #include "Vec2.h"
@@ -34,20 +34,18 @@ enum class EmissionShape
  */
 struct Particle
 {
-    Vec2  position;       ///< Current position in world space (meters)
-    Vec2  velocity;       ///< Current velocity (meters/second)
-    Vec2  acceleration;   ///< Current acceleration (meters/second²)
-    Color color;          ///< Particle color
-    float alpha;          ///< Alpha transparency (0.0 to 1.0)
-    float lifetime;       ///< Total lifetime in seconds
-    float age;            ///< Current age in seconds
-    float size;           ///< Particle size (radius in meters)
-    float initialSize;    ///< Initial size for shrink effect
-    float rotation;       ///< Current rotation in radians
-    float rotationSpeed;  ///< Rotation speed in radians/second
-    bool  alive;          ///< Is particle still alive?
-
-    Particle();
+    Vec2  position{0.0f, 0.0f};      ///< Current position in world space (meters)
+    Vec2  velocity{0.0f, 0.0f};      ///< Current velocity (meters/second)
+    Vec2  acceleration{0.0f, 0.0f};  ///< Current acceleration (meters/second²)
+    Color color{Color::White};       ///< Particle color
+    float alpha{1.0f};               ///< Alpha transparency (0.0 to 1.0)
+    float lifetime{1.0f};            ///< Total lifetime in seconds
+    float age{0.0f};                 ///< Current age in seconds
+    float size{0.5f};                ///< Particle size (radius in meters)
+    float initialSize{0.5f};         ///< Initial size for shrink effect
+    float rotation{0.0f};            ///< Current rotation in radians
+    float rotationSpeed{0.0f};       ///< Rotation speed in radians/second
+    bool  alive{false};              ///< Is particle still alive?
 };
 
 /**
@@ -59,110 +57,107 @@ struct Particle
 struct CParticleEmitter
 {
 public:
-    CParticleEmitter();
+    CParticleEmitter() = default;
     ~CParticleEmitter() = default;
 
     /**
      * @brief Get number of alive particles
      * @return Count of currently alive particles
      */
-    size_t getAliveCount() const;
+    inline size_t getAliveCount() const
+    {
+        size_t count = 0;
+        for (const auto& p : m_particles)
+        {
+            count += p.alive ? 1u : 0u;
+        }
+        return count;
+    }
 
     bool  isActive() const { return m_enabled; }
     void  setActive(bool active) { m_enabled = active; }
 
     // Configuration getters/setters
-    Vec2  getDirection() const;
-    void  setDirection(const Vec2& dir);
-    float getSpreadAngle() const;
-    void  setSpreadAngle(float angle);
-    float getMinSpeed() const;
-    void  setMinSpeed(float speed);
-    float getMaxSpeed() const;
-    void  setMaxSpeed(float speed);
-    float getMinLifetime() const;
-    void  setMinLifetime(float lifetime);
-    float getMaxLifetime() const;
-    void  setMaxLifetime(float lifetime);
-    float getMinSize() const;
-    void  setMinSize(float size);
-    float getMaxSize() const;
-    void  setMaxSize(float size);
-    float getEmissionRate() const;
-    void  setEmissionRate(float rate);
-    float getBurstCount() const;
-    void  setBurstCount(float count);
-    Color getStartColor() const;
-    void  setStartColor(const Color& color);
-    Color getEndColor() const;
-    void  setEndColor(const Color& color);
-    float getStartAlpha() const;
-    void  setStartAlpha(float alpha);
-    float getEndAlpha() const;
-    void  setEndAlpha(float alpha);
-    Vec2  getGravity() const;
-    void  setGravity(const Vec2& grav);
-    float getMinRotationSpeed() const;
-    void  setMinRotationSpeed(float speed);
-    float getMaxRotationSpeed() const;
-    void  setMaxRotationSpeed(float speed);
-    bool  getFadeOut() const;
-    void  setFadeOut(bool fade);
-    bool  getShrink() const;
-    void  setShrink(bool shrinkEnabled);
-    float getShrinkEndScale() const;
-    void  setShrinkEndScale(float scale);
-    int   getMaxParticles() const;
-    void  setMaxParticles(int max);
-    Vec2  getPositionOffset() const;
-    void  setPositionOffset(const Vec2& offset);
+    inline Vec2  getDirection() const { return m_direction; }
+    inline void  setDirection(const Vec2& dir) { m_direction = dir; }
+    inline float getSpreadAngle() const { return m_spreadAngle; }
+    inline void  setSpreadAngle(float angle) { m_spreadAngle = angle; }
+    inline float getMinSpeed() const { return m_minSpeed; }
+    inline void  setMinSpeed(float speed) { m_minSpeed = speed; }
+    inline float getMaxSpeed() const { return m_maxSpeed; }
+    inline void  setMaxSpeed(float speed) { m_maxSpeed = speed; }
+    inline float getMinLifetime() const { return m_minLifetime; }
+    inline void  setMinLifetime(float lifetime) { m_minLifetime = lifetime; }
+    inline float getMaxLifetime() const { return m_maxLifetime; }
+    inline void  setMaxLifetime(float lifetime) { m_maxLifetime = lifetime; }
+    inline float getMinSize() const { return m_minSize; }
+    inline void  setMinSize(float size) { m_minSize = size; }
+    inline float getMaxSize() const { return m_maxSize; }
+    inline void  setMaxSize(float size) { m_maxSize = size; }
+    inline float getEmissionRate() const { return m_emissionRate; }
+    inline void  setEmissionRate(float rate) { m_emissionRate = rate; }
+    inline float getBurstCount() const { return m_burstCount; }
+    inline void  setBurstCount(float count) { m_burstCount = count; }
+    inline Color getStartColor() const { return m_startColor; }
+    inline void  setStartColor(const Color& color) { m_startColor = color; }
+    inline Color getEndColor() const { return m_endColor; }
+    inline void  setEndColor(const Color& color) { m_endColor = color; }
+    inline float getStartAlpha() const { return m_startAlpha; }
+    inline void  setStartAlpha(float alpha) { m_startAlpha = alpha; }
+    inline float getEndAlpha() const { return m_endAlpha; }
+    inline void  setEndAlpha(float alpha) { m_endAlpha = alpha; }
+    inline Vec2  getGravity() const { return m_gravity; }
+    inline void  setGravity(const Vec2& grav) { m_gravity = grav; }
+    inline float getMinRotationSpeed() const { return m_minRotationSpeed; }
+    inline void  setMinRotationSpeed(float speed) { m_minRotationSpeed = speed; }
+    inline float getMaxRotationSpeed() const { return m_maxRotationSpeed; }
+    inline void  setMaxRotationSpeed(float speed) { m_maxRotationSpeed = speed; }
+    inline bool  getFadeOut() const { return m_fadeOut; }
+    inline void  setFadeOut(bool fade) { m_fadeOut = fade; }
+    inline bool  getShrink() const { return m_shrink; }
+    inline void  setShrink(bool shrinkEnabled) { m_shrink = shrinkEnabled; }
+    inline float getShrinkEndScale() const { return m_shrinkEndScale; }
+    inline void  setShrinkEndScale(float scale) { m_shrinkEndScale = scale; }
+    inline int   getMaxParticles() const { return m_maxParticles; }
+    inline void  setMaxParticles(int max) { m_maxParticles = max; }
+    inline Vec2  getPositionOffset() const { return m_positionOffset; }
+    inline void  setPositionOffset(const Vec2& offset) { m_positionOffset = offset; }
 
     // Emission shape configuration
-    EmissionShape getEmissionShape() const;
-    void          setEmissionShape(EmissionShape shape);
-    float         getShapeRadius() const;
-    void          setShapeRadius(float radius);
-    Vec2          getShapeSize() const;
-    void          setShapeSize(const Vec2& size);
-    Vec2          getLineStart() const;
-    void          setLineStart(const Vec2& start);
-    Vec2          getLineEnd() const;
-    void          setLineEnd(const Vec2& end);
-    bool          getEmitFromEdge() const;
-    void          setEmitFromEdge(bool edge);
-    bool          getEmitOutward() const;
-    void          setEmitOutward(bool outward);
+    inline EmissionShape getEmissionShape() const { return m_emissionShape; }
+    inline void          setEmissionShape(EmissionShape shape) { m_emissionShape = shape; }
+    inline float         getShapeRadius() const { return m_shapeRadius; }
+    inline void          setShapeRadius(float radius) { m_shapeRadius = radius; }
+    inline Vec2          getShapeSize() const { return m_shapeSize; }
+    inline void          setShapeSize(const Vec2& size) { m_shapeSize = size; }
+    inline Vec2          getLineStart() const { return m_lineStart; }
+    inline void          setLineStart(const Vec2& start) { m_lineStart = start; }
+    inline Vec2          getLineEnd() const { return m_lineEnd; }
+    inline void          setLineEnd(const Vec2& end) { m_lineEnd = end; }
+    inline bool          getEmitFromEdge() const { return m_emitFromEdge; }
+    inline void          setEmitFromEdge(bool edge) { m_emitFromEdge = edge; }
+    inline bool          getEmitOutward() const { return m_emitOutward; }
+    inline void          setEmitOutward(bool outward) { m_emitOutward = outward; }
 
     // Polygon shape configuration
-    const std::vector<Vec2>& getPolygonVertices() const;
-    void                     setPolygonVertices(const std::vector<Vec2>& vertices);
-    void                     addPolygonVertex(const Vec2& vertex);
-    void                     clearPolygonVertices();
+    inline const std::vector<Vec2>& getPolygonVertices() const { return m_polygonVertices; }
+    inline void                     setPolygonVertices(const std::vector<Vec2>& vertices) { m_polygonVertices = vertices; }
+    inline void                     addPolygonVertex(const Vec2& vertex) { m_polygonVertices.push_back(vertex); }
+    inline void                     clearPolygonVertices() { m_polygonVertices.clear(); }
 
-    /**
-     * @brief Set polygon vertices from a collection of points, computing convex hull
-     *
-     * Takes a set of vertices (e.g., from multiple collider fixtures) and computes
-     * the convex hull to get the outer boundary. Useful for extracting emission
-     * shape from complex multi-fixture colliders.
-     *
-     * @param vertices All vertices to compute hull from
-     */
-    void setPolygonFromConvexHull(const std::vector<Vec2>& vertices);
-
-    // Texture management
-    sf::Texture* getTexture() const;
-    void         setTexture(sf::Texture* tex);
+    // Texture configuration (resource ownership stays in systems)
+    inline const std::string& getTexturePath() const { return m_texturePath; }
+    inline void               setTexturePath(const std::string& path) { m_texturePath = path; }
 
     // Z-index for render ordering
-    int  getZIndex() const;
-    void setZIndex(int zIndex);
+    inline int  getZIndex() const { return m_zIndex; }
+    inline void setZIndex(int zIndex) { m_zIndex = zIndex; }
 
     // Runtime state access
-    std::vector<Particle>&       getParticles();
-    const std::vector<Particle>& getParticles() const;
-    float                        getEmissionTimer() const;
-    void                         setEmissionTimer(float timer);
+    inline std::vector<Particle>&       getParticles() { return m_particles; }
+    inline const std::vector<Particle>& getParticles() const { return m_particles; }
+    inline float                        getEmissionTimer() const { return m_emissionTimer; }
+    inline void                         setEmissionTimer(float timer) { m_emissionTimer = timer; }
 
 private:
     bool m_enabled = true;  ///< Whether the emitter is active
@@ -202,8 +197,8 @@ private:
     bool              m_emitFromEdge = true;                   ///< Emit from edge (true) or filled area (false)
     bool              m_emitOutward  = false;                  ///< Emit in direction away from shape center
 
-    // Resources
-    sf::Texture* m_texture = nullptr;  ///< Optional texture for particles
+    // Resources (by reference)
+    std::string m_texturePath;  ///< Optional texture path for particles
 
     // Runtime state
     std::vector<Particle> m_particles;             ///< All particles (alive and dead)

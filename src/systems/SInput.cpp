@@ -634,7 +634,7 @@ bool SInput::wasMouseReleased(MouseButton button) const
     return (it != m_mouseReleased.end()) && it->second;
 }
 
-sf::Vector2i SInput::getMousePositionWindow() const
+Vec2i SInput::getMousePositionWindow() const
 {
     return m_mousePosition;
 }

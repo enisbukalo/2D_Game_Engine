@@ -12,6 +12,7 @@ namespace Components
 {
 class CPhysicsBody2D;
 struct CTransform;
+struct CCollider2D;
 }
 
 namespace Systems
@@ -37,6 +38,13 @@ private:
     b2WorldId m_worldId;
     World*    m_world{nullptr};
 
+    // System-owned Box2D bodies (runtime state)
+    std::unordered_map<Entity, b2BodyId> m_bodies;
+
+    // System-owned Box2D shapes/chains (runtime state)
+    std::unordered_map<Entity, std::vector<b2ShapeId>> m_shapes;
+    std::unordered_map<Entity, std::vector<b2ChainId>> m_chains;
+
     // Per-entity fixed-update callbacks
     std::unordered_map<Entity, std::function<void(float)>> m_fixedCallbacks;
 
@@ -45,9 +53,11 @@ private:
     int   m_subStepCount;
 
     // Internal helpers
-    void ensureBodyForEntity(Entity entity, Components::CTransform& transform, Components::CPhysicsBody2D& body);
-    void syncFromTransform(Entity entity, const Components::CTransform& transform, const Components::CPhysicsBody2D& body);
-    void syncToTransform(Entity entity, Components::CTransform& transform, const Components::CPhysicsBody2D& body);
+    void ensureBodyForEntity(Entity entity, const Components::CTransform& transform, const Components::CPhysicsBody2D& body);
+    void ensureShapesForEntity(Entity entity, const Components::CCollider2D& collider);
+    void destroyShapes(Entity entity);
+    void syncFromTransform(Entity entity, const Components::CTransform& transform);
+    void syncToTransform(Entity entity, Components::CTransform& transform);
     void pruneDestroyedBodies(const World& world);
     void destroyBodyInternal(b2BodyId bodyId);
 
