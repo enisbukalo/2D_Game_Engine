@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "Entity.h"
+#include "ISystem.h"
 
 class World;
 
@@ -18,7 +19,7 @@ namespace Systems
  * such as physics, rendering, or AI. Each system type focuses on specific
  * component combinations and provides the behavior for those components.
  */
-class System
+class System : public ISystem
 {
 public:
     /** @brief Default constructor */
@@ -35,7 +36,7 @@ public:
      * process its associated components. Derived classes must implement
      * this method to provide specific system behavior.
      */
-    virtual void update(float deltaTime, World& world) = 0;
+    void update(float deltaTime, World& world) override = 0;
 };
 
 }  // namespace Systems

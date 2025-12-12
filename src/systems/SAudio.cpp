@@ -406,6 +406,11 @@ void SAudio::update(float deltaTime)
 
 void SAudio::update(float deltaTime, World& world)
 {
+    updateEcs(deltaTime, world);
+}
+
+void SAudio::updateEcs(float deltaTime, World& world)
+{
     update(deltaTime);
 
     if (!m_initialized)

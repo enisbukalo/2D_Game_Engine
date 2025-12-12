@@ -67,6 +67,18 @@ public:
      */
     void update(float deltaTime, World& world) override;
 
+    bool usesFixedTimestep() const override
+    {
+        return true;
+    }
+
+    void fixedUpdate(float timeStep, World& world) override
+    {
+        (void)timeStep;
+        runFixedUpdates(m_timeStep);
+        update(m_timeStep, world);
+    }
+
     /**
      * @brief Bind the world so physics can resolve components without side maps
      */

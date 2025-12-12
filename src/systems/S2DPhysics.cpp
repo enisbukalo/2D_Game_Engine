@@ -41,7 +41,6 @@ void S2DPhysics::update(float deltaTime, World& world)
             syncFromTransform(entity, transform, body);
         });
 
-    runFixedUpdates(m_timeStep);
     b2World_Step(m_worldId, m_timeStep, m_subStepCount);
 
     world.view2<::Components::CTransform, ::Components::CPhysicsBody2D>(

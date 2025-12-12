@@ -12,8 +12,9 @@
 #include <SystemLocator.h>
 
 GameEngine::GameEngine(const Systems::WindowConfig& windowConfig, Vec2 gravity, uint8_t subStepCount, float timeStep, float pixelsPerMeter)
-    : m_gravity(gravity), m_subStepCount(subStepCount), m_timeStep(timeStep)
+    : m_gravity(gravity), m_subStepCount(subStepCount), m_timeStep(1.0f / 60.0f)
 {
+    (void)timeStep;
     m_renderer = std::make_unique<Systems::SRenderer>();
     m_input    = std::make_unique<Systems::SInput>();
     m_physics  = std::make_unique<Systems::S2DPhysics>();
@@ -54,7 +55,11 @@ GameEngine::GameEngine(const Systems::WindowConfig& windowConfig, Vec2 gravity, 
     {
         logger->info("GameEngine initialized");
         logger->info("Window size: {}x{}", windowConfig.width, windowConfig.height);
-        logger->info("SubSteps: {}, TimeStep: {}", (int)subStepCount, timeStep);
+        logger->info("SubSteps: {}, TimeStep: {}", (int)subStepCount, m_timeStep);
+        if (timeStep != m_timeStep)
+        {
+            logger->warn("Ignoring requested timeStep {} and enforcing fixed 60Hz ({}).", timeStep, m_timeStep);
+        }
     }
 
     // Initialize renderer
@@ -101,8 +106,9 @@ GameEngine::GameEngine(const Systems::WindowConfig& windowConfig, Vec2 gravity, 
     // Note: Users can re-initialize with different scale if needed
     m_particle->initialize(m_renderer->getWindow(), pixelsPerMeter);
 
-    // Maintain ordered list for per-frame updates (input -> physics -> particle)
-    m_systemOrder = {m_input.get(), m_physics.get(), m_particle.get()};
+    // Maintain ordered list for per-frame updates (input -> physics -> particle -> audio)
+    // Audio is marked as PostFlush via ISystem::stage().
+    m_systemOrder = {m_input.get(), m_physics.get(), m_particle.get(), m_audio.get()};
 
     if (auto logger = spdlog::get("GameEngine"))
     {
@@ -149,41 +155,42 @@ void GameEngine::readInputs()
 
 void GameEngine::update(float deltaTime)
 {
-    for (auto* system : m_systemOrder)
+    auto runStage = [this, deltaTime](Systems::UpdateStage stage)
     {
-        if (!system)
+        for (auto* system : m_systemOrder)
         {
-            continue;
-        }
-
-        if (system == m_physics.get())
-        {
-            m_accumulator += deltaTime;
-            const float maxAccumulator = m_timeStep * 10.0f;  // Cap to prevent spiral of death
-            if (m_accumulator > maxAccumulator)
+            if (!system || system->stage() != stage)
             {
-                m_accumulator = maxAccumulator;
+                continue;
             }
 
-            while (m_accumulator >= m_timeStep)
+            if (system->usesFixedTimestep())
             {
-                m_physics->runFixedUpdates(m_timeStep);
-                m_physics->update(m_timeStep, m_world);
-                m_accumulator -= m_timeStep;
+                m_accumulator += deltaTime;
+                const float maxAccumulator = m_timeStep * 10.0f;  // Cap to prevent spiral of death
+                if (m_accumulator > maxAccumulator)
+                {
+                    m_accumulator = maxAccumulator;
+                }
+
+                while (m_accumulator >= m_timeStep)
+                {
+                    system->fixedUpdate(m_timeStep, m_world);
+                    m_accumulator -= m_timeStep;
+                }
+                continue;
             }
-            continue;
+
+            system->update(deltaTime, m_world);
         }
+    };
 
-        system->update(deltaTime, m_world);
-    }
+    runStage(Systems::UpdateStage::PreFlush);
 
-    // Apply deferred structural commands after systems have finished updating to avoid iterator invalidation
+    // Apply deferred structural commands after pre-flush systems have finished updating to avoid iterator invalidation
     m_world.flushCommandBuffer();
 
-    if (m_audio)
-    {
-        m_audio->update(deltaTime, m_world);
-    }
+    runStage(Systems::UpdateStage::PostFlush);
 }
 
 void GameEngine::render()

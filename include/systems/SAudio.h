@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <vector>
 #include "IAudioSystem.h"
+#include "System.h"
 
 class World;
 
@@ -30,7 +31,7 @@ namespace Systems
  * All methods should be called from the main thread. SFML audio operations
  * are not guaranteed to be thread-safe.
  */
-class SAudio : public IAudioSystem
+class SAudio : public IAudioSystem, public System
 {
 public:
     /**
@@ -69,10 +70,17 @@ public:
 
     void update(float deltaTime) override;
 
+    // ISystem interface implementation
+    void update(float deltaTime, World& world) override;
+    UpdateStage stage() const override
+    {
+        return UpdateStage::PostFlush;
+    }
+
     /**
      * @brief ECS-driven audio update that consumes component data
      */
-    void update(float deltaTime, World& world);
+    void updateEcs(float deltaTime, World& world);
 
     // Delete copy and move constructors/assignment operators
     SAudio(const SAudio&)            = delete;
