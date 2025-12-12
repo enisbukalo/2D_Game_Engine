@@ -1,6 +1,7 @@
 #ifndef WORLD_H
 #define WORLD_H
 
+#include <cassert>
 #include <typeindex>
 
 #include "Registry.h"
@@ -20,34 +21,46 @@ public:
     World& operator=(const World&) = delete;
 
     Entity createEntity() { return m_registry.createEntity(); }
-    void   destroyEntity(Entity e) { m_registry.destroy(e); }
-    void   queueDestroy(Entity e) { m_registry.queueDestroy(e); }
+    void   destroyEntity(Entity e)
+    {
+        assertAlive(e, "destroyEntity");
+        m_registry.destroy(e);
+    }
+    void queueDestroy(Entity e)
+    {
+        assertAlive(e, "queueDestroy");
+        m_registry.queueDestroy(e);
+    }
     void   processDestroyQueue() { m_registry.processDestroyQueue(); }
     void   flushCommandBuffer() { m_registry.flushCommandBuffer(); }
     size_t pendingDestroyCount() const { return m_registry.pendingDestroyCount(); }
     bool   isAlive(Entity e) const { return m_registry.isAlive(e); }
 
     template <typename T, typename... Args>
-    T& add(Entity e, Args&&... args)
+    T* add(Entity e, Args&&... args)
     {
+        assertAlive(e, "add");
         return m_registry.add<T>(e, std::forward<Args>(args)...);
     }
 
     template <typename T, typename... Args>
     void queueAdd(Entity e, Args&&... args)
     {
+        assertAlive(e, "queueAdd");
         m_registry.queueAdd<T>(e, std::forward<Args>(args)...);
     }
 
     template <typename T>
     void remove(Entity e)
     {
+        assertAlive(e, "remove");
         m_registry.remove<T>(e);
     }
 
     template <typename T>
     void queueRemove(Entity e)
     {
+        assertAlive(e, "queueRemove");
         m_registry.queueRemove<T>(e);
     }
 
@@ -60,11 +73,19 @@ public:
     template <typename T>
     void queueRemoveBatch(const std::vector<Entity>& entities)
     {
+        for (Entity entity : entities)
+        {
+            assertAlive(entity, "queueRemoveBatch");
+        }
         m_registry.queueRemoveBatch<T>(entities);
     }
 
     void queueDestroyBatch(const std::vector<Entity>& entities)
     {
+        for (Entity entity : entities)
+        {
+            assertAlive(entity, "queueDestroyBatch");
+        }
         m_registry.queueDestroyBatch(entities);
     }
 
@@ -75,26 +96,30 @@ public:
     }
 
     template <typename T>
-    T& get(Entity e)
+    T* get(Entity e)
     {
+        assertAlive(e, "get");
         return m_registry.get<T>(e);
     }
 
     template <typename T>
-    const T& get(Entity e) const
+    const T* get(Entity e) const
     {
+        assertAlive(e, "get");
         return m_registry.get<T>(e);
     }
 
     template <typename T>
     T* tryGet(Entity e)
     {
+        assertAlive(e, "tryGet");
         return m_registry.tryGet<T>(e);
     }
 
     template <typename T>
     const T* tryGet(Entity e) const
     {
+        assertAlive(e, "tryGet");
         return m_registry.tryGet<T>(e);
     }
 
@@ -195,6 +220,13 @@ public:
 
 private:
     Registry m_registry;
+
+    void assertAlive(Entity e, const char* action) const
+    {
+        (void)action;
+        assert(e.isValid() && "World API received null entity");
+        assert(m_registry.isAlive(e) && "World API received dead entity");
+    }
 };
 
 #endif  // WORLD_H

@@ -175,6 +175,11 @@ private:
      * @brief Registers all component types with stable names for serialization
      */
     void registerComponentTypes();
+
+    /**
+     * @brief Validates that registered component type names round-trip to their type_index
+     */
+    void validateComponentTypeNames();
 };
 
 #endif  // GAMEENGINE_H

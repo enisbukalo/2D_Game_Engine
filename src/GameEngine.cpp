@@ -1,4 +1,7 @@
 #include "GameEngine.h"
+#include <cassert>
+#include <stdexcept>
+#include <typeindex>
 #include <spdlog/async.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -247,4 +250,46 @@ void GameEngine::registerComponentTypes()
     m_world.registerTypeName<CParticleEmitter>("CParticleEmitter");
     m_world.registerTypeName<CAudioSource>("CAudioSource");
     m_world.registerTypeName<CAudioListener>("CAudioListener");
+
+    validateComponentTypeNames();
+}
+
+void GameEngine::validateComponentTypeNames()
+{
+    using namespace Components;
+
+    auto validate = [this](auto typeTag, const char* stableName) {
+        using T = decltype(typeTag);
+        const std::string registered = m_world.getTypeName<T>();
+        if (registered != stableName)
+        {
+            if (auto logger = spdlog::get("GameEngine"))
+            {
+                logger->error("Component type '{}' registered as '{}' but expected '{}'", typeid(T).name(), registered, stableName);
+            }
+            return;
+        }
+
+        const std::type_index fromName = m_world.getTypeFromName(stableName);
+        if (fromName != std::type_index(typeid(T)))
+        {
+            if (auto logger = spdlog::get("GameEngine"))
+            {
+                logger->error("Component lookup for '{}' returned different type index", stableName);
+            }
+        }
+    };
+
+    validate(CTransform{}, "CTransform");
+    validate(CRenderable{}, "CRenderable");
+    validate(CPhysicsBody2D{}, "CPhysicsBody2D");
+    validate(CCollider2D{}, "CCollider2D");
+    validate(CMaterial{}, "CMaterial");
+    validate(CTexture{}, "CTexture");
+    validate(CShader{}, "CShader");
+    validate(CName{}, "CName");
+    validate(CInputController{}, "CInputController");
+    validate(CParticleEmitter{}, "CParticleEmitter");
+    validate(CAudioSource{}, "CAudioSource");
+    validate(CAudioListener{}, "CAudioListener");
 }

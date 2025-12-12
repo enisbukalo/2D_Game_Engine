@@ -9,6 +9,7 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <typeindex>
@@ -16,6 +17,8 @@
 #include <utility>
 #include <tuple>
 #include <vector>
+
+#include <spdlog/spdlog.h>
 
 #include <EntityManager.h>
 
@@ -312,7 +315,7 @@ public:
      */
     void queueDestroy(Entity entity)
     {
-        if (!m_entityManager.isAlive(entity))
+        if (!ensureAlive(entity, "queueDestroy"))
         {
             return;
         }
@@ -383,9 +386,13 @@ public:
      * @return Reference to the created component
      */
     template <typename T, typename... Args>
-    T& add(Entity entity, Args&&... args)
+    T* add(Entity entity, Args&&... args)
     {
         assert(m_entityManager.isAlive(entity) && "Cannot add component to dead or null entity");
+        if (!ensureAlive(entity, "add"))
+        {
+            return nullptr;
+        }
         auto& store = getOrCreateStore<T>();
         T&    component = store.add(entity, std::forward<Args>(args)...);
 
@@ -393,7 +400,7 @@ public:
 
         // Automatically wire owner on components that expose setOwner (most current components)
 
-        return component;
+        return &component;
     }
 
     /**
@@ -404,7 +411,7 @@ public:
     template <typename T>
     void remove(Entity entity)
     {
-        if (!m_entityManager.isAlive(entity))
+        if (!ensureAlive(entity, "remove"))
         {
             return;
         }
@@ -419,7 +426,7 @@ public:
     template <typename T, typename... Args>
     void queueAdd(Entity entity, Args&&... args)
     {
-        if (!m_entityManager.isAlive(entity))
+        if (!ensureAlive(entity, "queueAdd"))
         {
             return;
         }
@@ -428,6 +435,7 @@ public:
         m_commandBuffer.emplace_back([this, entity, argsTuple]() {
             if (!m_entityManager.isAlive(entity))
             {
+                logDead("queueAdd/execute", entity);
                 return;
             }
 
@@ -440,7 +448,7 @@ public:
     template <typename T>
     void queueRemove(Entity entity)
     {
-        if (!m_entityManager.isAlive(entity))
+        if (!ensureAlive(entity, "queueRemove"))
         {
             return;
         }
@@ -448,6 +456,7 @@ public:
         m_commandBuffer.emplace_back([this, entity]() {
             if (!m_entityManager.isAlive(entity))
             {
+                logDead("queueRemove/execute", entity);
                 return;
             }
             this->remove<T>(entity);
@@ -508,23 +517,30 @@ public:
      * @return Reference to component
      */
     template <typename T>
-    T& get(Entity entity)
+    T* get(Entity entity)
     {
         assert(m_entityManager.isAlive(entity) && "Cannot get component of dead or null entity");
-        auto& store = getOrCreateStore<T>();
-        return store.get(entity);
+        if (!ensureAlive(entity, "get"))
+        {
+            return nullptr;
+        }
+        auto* store = getStore<T>();
+        return store ? store->tryGet(entity) : nullptr;
     }
 
     /**
      * @brief Gets a component (const version)
      */
     template <typename T>
-    const T& get(Entity entity) const
+    const T* get(Entity entity) const
     {
         assert(m_entityManager.isAlive(entity) && "Cannot get component of dead or null entity");
+        if (!ensureAlive(entity, "get"))
+        {
+            return nullptr;
+        }
         const auto* store = getStore<T>();
-        assert(store && "Component store does not exist");
-        return store->get(entity);
+        return store ? store->tryGet(entity) : nullptr;
     }
 
     /**
@@ -565,7 +581,13 @@ public:
         auto* store = getStore<T>();
         if (store)
         {
-            store->each(std::forward<Func>(fn));
+            store->each([&](Entity entity, T& component) {
+                if (!ensureAlive(entity, "each"))
+                {
+                    return;
+                }
+                fn(entity, component);
+            });
         }
     }
 
@@ -578,7 +600,13 @@ public:
         const auto* store = getStore<T>();
         if (store)
         {
-            store->each(std::forward<Func>(fn));
+            store->each([&](Entity entity, const T& component) {
+                if (!ensureAlive(entity, "each"))
+                {
+                    return;
+                }
+                fn(entity, component);
+            });
         }
     }
 
@@ -616,6 +644,10 @@ public:
             for (size_t i = 0; i < components.size(); ++i)
             {
                 Entity entity = entities[i];
+                if (!ensureAlive(entity, "view"))
+                {
+                    continue;
+                }
                 if (!hasAll(entity))
                 {
                     continue;
@@ -659,6 +691,10 @@ public:
             for (size_t i = 0; i < components.size(); ++i)
             {
                 Entity entity = entities[i];
+                if (!ensureAlive(entity, "view"))
+                {
+                    continue;
+                }
                 if (!hasAll(entity))
                 {
                     continue;
@@ -799,7 +835,24 @@ public:
     template <typename T>
     void registerTypeName(const std::string& typeName)
     {
+        assert(!typeName.empty() && "Component type name must not be empty");
         std::type_index typeIdx(typeid(T));
+        auto existingByType = m_typeNames.find(typeIdx);
+        if (existingByType != m_typeNames.end())
+        {
+            if (existingByType->second != typeName)
+            {
+                logTypeNameMismatch(existingByType->second, typeName);
+            }
+            return;
+        }
+
+        auto existingByName = m_nameToType.find(typeName);
+        if (existingByName != m_nameToType.end())
+        {
+            logTypeNameCollision(typeName);
+            return;
+        }
         m_typeNames.emplace(typeIdx, typeName);
         m_nameToType.emplace(typeName, typeIdx);
     }
@@ -820,7 +873,11 @@ public:
     std::type_index getTypeFromName(const std::string& typeName) const
     {
         auto it = m_nameToType.find(typeName);
-        assert(it != m_nameToType.end() && "Type name not registered");
+        if (it == m_nameToType.end())
+        {
+            logTypeLookupFailure(typeName);
+            return std::type_index(typeid(void));
+        }
         return it->second;
     }
 
@@ -913,6 +970,49 @@ private:
         if (entity.index >= m_entityComposition.size())
         {
             m_entityComposition.resize(entity.index + 1);
+        }
+    }
+
+    bool ensureAlive(Entity entity, const char* action) const
+    {
+        if (!m_entityManager.isAlive(entity))
+        {
+            logDead(action, entity);
+            return false;
+        }
+        return true;
+    }
+
+
+    void logDead(const char* action, Entity entity) const
+    {
+        if (auto logger = spdlog::get("GameEngine"))
+        {
+            logger->warn("{}: dead entity idx={} gen={} ignored", action, entity.index, entity.generation);
+        }
+    }
+
+    void logTypeNameMismatch(const std::string& existing, const std::string& incoming) const
+    {
+        if (auto logger = spdlog::get("GameEngine"))
+        {
+            logger->error("Component type registered with two names: existing='{}' new='{}'", existing, incoming);
+        }
+    }
+
+    void logTypeNameCollision(const std::string& typeName) const
+    {
+        if (auto logger = spdlog::get("GameEngine"))
+        {
+            logger->error("Component type name '{}' already mapped to a different type", typeName);
+        }
+    }
+
+    void logTypeLookupFailure(const std::string& typeName) const
+    {
+        if (auto logger = spdlog::get("GameEngine"))
+        {
+            logger->error("Component type name '{}' not registered", typeName);
         }
     }
 
