@@ -8,6 +8,8 @@
 #include "Color.h"
 #include "System.h"
 
+class World;
+
 namespace Components
 {
 enum class BlendMode;
@@ -15,6 +17,8 @@ enum class BlendMode;
 
 namespace Systems
 {
+
+class SParticle;
 
 /**
  * @brief Window initialization configuration
@@ -58,7 +62,7 @@ struct WindowConfig
  * @brief Rendering system that manages SFML window and draws entities
  *
  * @description
- * SRenderer is a singleton system that encapsulates SFML rendering functionality.
+ * SRenderer encapsulates SFML rendering functionality.
  * It owns and manages the render window internally, loads and caches textures
  * and shaders, and renders entities based on their components (CRenderable,
  * CMaterial, CTexture, CShader). The system provides an abstraction layer
@@ -74,11 +78,8 @@ struct WindowConfig
 class SRenderer : public System
 {
 public:
-    /**
-     * @brief Gets the singleton instance
-     * @return Reference to the singleton instance
-     */
-    static SRenderer& instance();
+    SRenderer();
+    ~SRenderer() override;
 
     /**
      * @brief Initializes the renderer with window configuration
@@ -99,7 +100,7 @@ public:
      * This method is called each frame but doesn't perform actual rendering.
      * Call render() separately to draw the frame.
      */
-    void update(float deltaTime) override;
+    void update(float deltaTime, World& world) override;
 
     /**
      * @brief Renders all entities to the window
@@ -110,7 +111,7 @@ public:
      * 3. Draws each visible entity using its components
      * 4. Displays the frame
      */
-    void render();
+    void render(World& world);
 
     /**
      * @brief Clears the window with a specified color
@@ -163,13 +164,15 @@ public:
      */
     void clearShaderCache();
 
+    /**
+     * @brief Inject particle system for particle rendering
+     */
+    void setParticleSystem(SParticle* particleSystem)
+    {
+        m_particleSystem = particleSystem;
+    }
+
 private:
-    /** @brief Private constructor for singleton pattern */
-    SRenderer();
-
-    /** @brief Destructor */
-    ~SRenderer() override;
-
     /** @brief Deleted copy constructor */
     SRenderer(const SRenderer&) = delete;
 
@@ -178,9 +181,10 @@ private:
 
     /**
      * @brief Renders a single entity
-     * @param entity Pointer to the entity to render
+     * @param entity Entity ID to render
+     * @param registry Registry to access components
      */
-    void renderEntity(::Entity::Entity* entity);
+    void renderEntity(Entity entity, World& world);
 
     /**
      * @brief Converts engine BlendMode to SFML BlendMode
@@ -192,7 +196,8 @@ private:
     std::unique_ptr<sf::RenderWindow>            m_window;                       ///< The render window
     std::unordered_map<std::string, sf::Texture> m_textureCache;                 ///< Cached textures by filepath
     std::unordered_map<std::string, std::unique_ptr<sf::Shader>> m_shaderCache;  ///< Cached shaders by filepath combination
-    bool m_initialized = false;                                                  ///< Initialization state
+    bool       m_initialized    = false;                                         ///< Initialization state
+    SParticle* m_particleSystem = nullptr;                                       ///< Optional particle system hookup
 };
 
 }  // namespace Systems

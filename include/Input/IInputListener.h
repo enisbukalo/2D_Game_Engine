@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Input/InputEvents.h"
+#include "InputEvents.h"
 
 class IInputListener
 {

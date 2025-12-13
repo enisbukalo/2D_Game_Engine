@@ -19,9 +19,11 @@ set(SYSTEM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../systems")
 set(UTILITY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../utility")
 set(PHYSICS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../physics")
 
-# Copy test data to build directory
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_data DESTINATION ${CMAKE_BINARY_DIR}/bin/Debug)
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_data DESTINATION ${CMAKE_BINARY_DIR}/bin/Release)
+# Copy test data to build directory (optional)
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test_data")
+    file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_data DESTINATION ${CMAKE_BINARY_DIR}/bin/Debug)
+    file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_data DESTINATION ${CMAKE_BINARY_DIR}/bin/Release)
+endif()
 
 # Add test executable
 file(GLOB_RECURSE TEST_FILES "${TEST_SOURCES_DIR}/*.cpp")

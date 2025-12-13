@@ -12,9 +12,17 @@ float Vec2::lengthSquared() const
 
 Vec2& Vec2::normalize()
 {
-    float l = length();
-    x /= l;
-    y /= l;
+    const float l2 = lengthSquared();
+    if (l2 <= 0.0f)
+    {
+        x = 0.0f;
+        y = 0.0f;
+        return *this;
+    }
+
+    const float invL = 1.0f / sqrtf(l2);
+    x *= invL;
+    y *= invL;
     return *this;
 }
 

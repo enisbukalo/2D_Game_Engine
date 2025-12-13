@@ -8,24 +8,22 @@
 #include "CShader.h"
 #include "CTexture.h"
 #include "CTransform.h"
-#include "Entity.h"
-#include "SEntity.h"
 #include "SParticle.h"
+#include "World.h"
 
 namespace Systems
 {
+
+static sf::Color toSFMLColor(const Color& c)
+{
+    return sf::Color(c.r, c.g, c.b, c.a);
+}
 
 SRenderer::SRenderer() : System() {}
 
 SRenderer::~SRenderer()
 {
     shutdown();
-}
-
-SRenderer& SRenderer::instance()
-{
-    static SRenderer instance;
-    return instance;
 }
 
 bool SRenderer::initialize(const WindowConfig& config)
@@ -82,74 +80,67 @@ void SRenderer::shutdown()
     spdlog::info("SRenderer: Shutdown complete");
 }
 
-void SRenderer::update(float deltaTime)
+void SRenderer::update(float deltaTime, World& world)
 {
+    (void)deltaTime;
+    (void)world;
     // Rendering system doesn't need per-frame updates
     // Actual rendering is done in render()
 }
 
-void SRenderer::render()
+void SRenderer::render(World& world)
 {
     if (!m_initialized || !m_window || !m_window->isOpen())
     {
         return;
     }
 
-    // Get all entities with renderable components
-    auto& entityManager      = ::Systems::SEntity::instance();
-    auto  renderableEntities = entityManager.getEntitiesWithComponent<::Components::CRenderable>();
-    auto  emitterEntities    = entityManager.getEntitiesWithComponent<::Components::CParticleEmitter>();
-
-    // Build unified render queue with z-index
     struct RenderItem
     {
-        ::Entity::Entity* entity;
-        int               zIndex;
-        bool              isParticleEmitter;
+        Entity entity;
+        int    zIndex;
+        bool   isParticleEmitter;
     };
+
     std::vector<RenderItem> renderQueue;
-    renderQueue.reserve(renderableEntities.size() + emitterEntities.size());
 
-    // Add renderable entities
-    for (::Entity::Entity* entity : renderableEntities)
-    {
-        auto* renderable = entity->getComponent<::Components::CRenderable>();
-        if (renderable)
+    auto components = world.components();
+
+    components.view2<::Components::CRenderable, ::Components::CTransform>(
+        [&renderQueue](Entity entity, ::Components::CRenderable& renderable, ::Components::CTransform&)
         {
-            renderQueue.push_back({entity, renderable->getZIndex(), false});
-        }
-    }
+            if (!renderable.isVisible())
+            {
+                return;
+            }
+            renderQueue.push_back({entity, renderable.getZIndex(), false});
+        });
 
-    // Add particle emitter entities
-    for (::Entity::Entity* entity : emitterEntities)
-    {
-        auto* emitter = entity->getComponent<::Components::CParticleEmitter>();
-        if (emitter && emitter->isActive())
+    components.view2<::Components::CParticleEmitter, ::Components::CTransform>(
+        [&renderQueue](Entity entity, ::Components::CParticleEmitter& emitter, ::Components::CTransform&)
         {
-            renderQueue.push_back({entity, emitter->getZIndex(), true});
-        }
-    }
+            if (emitter.isActive())
+            {
+                renderQueue.push_back({entity, emitter.getZIndex(), true});
+            }
+        });
 
-    // Sort by z-index (lower values draw first, higher on top)
     std::sort(renderQueue.begin(),
               renderQueue.end(),
               [](const RenderItem& a, const RenderItem& b) { return a.zIndex < b.zIndex; });
 
-    // Render in z-index order
-    auto& particleSystem = ::Systems::SParticle::instance();
     for (const RenderItem& item : renderQueue)
     {
         if (item.isParticleEmitter)
         {
-            if (particleSystem.isInitialized())
+            if (m_particleSystem && m_particleSystem->isInitialized())
             {
-                particleSystem.renderEmitter(item.entity, m_window.get());
+                m_particleSystem->renderEmitter(item.entity, m_window.get(), world);
             }
+            continue;
         }
-        else
-        {
-            renderEntity(item.entity);
-        }
+
+        renderEntity(item.entity, world);
     }
 }
 
@@ -157,7 +148,7 @@ void SRenderer::clear(const Color& color)
 {
     if (m_window && m_window->isOpen())
     {
-        m_window->clear(color.toSFML());
+        m_window->clear(toSFMLColor(color));
     }
 }
 
@@ -273,18 +264,20 @@ void SRenderer::clearShaderCache()
     spdlog::debug("SRenderer: Shader cache cleared");
 }
 
-void SRenderer::renderEntity(::Entity::Entity* entity)
+void SRenderer::renderEntity(Entity entity, World& world)
 {
-    if (!entity)
+    if (!entity.isValid())
     {
         return;
     }
 
-    // Check for required components
-    auto* renderable = entity->getComponent<::Components::CRenderable>();
-    auto* transform  = entity->getComponent<::Components::CTransform>();
+    auto components = world.components();
 
-    if (!renderable || !renderable->isActive() || !renderable->isVisible())
+    // Check for required components
+    auto* renderable = components.tryGet<::Components::CRenderable>(entity);
+    auto* transform  = components.tryGet<::Components::CTransform>(entity);
+
+    if (!renderable || !renderable->isVisible())
     {
         return;
     }
@@ -309,7 +302,7 @@ void SRenderer::renderEntity(::Entity::Entity* entity)
     screenPos.y = SCREEN_HEIGHT - (pos.y * PIXELS_PER_METER);  // Flip Y axis
 
     // Get material if available
-    auto* material = entity->getComponent<::Components::CMaterial>();
+    auto* material = components.tryGet<::Components::CMaterial>(entity);
 
     // Determine final color
     Color finalColor = renderable->getColor();
@@ -323,34 +316,23 @@ void SRenderer::renderEntity(::Entity::Entity* entity)
         finalColor.a = static_cast<uint8_t>((finalColor.a * material->getOpacity()));
     }
 
-    // Get texture if available
+    // Get texture if available (independent of material)
     const sf::Texture* texture = nullptr;
-    if (material)
     {
-        // Try to find texture component by GUID
-        std::string textureGuid = material->getTextureGuid();
-        if (!textureGuid.empty())
+        auto* textureComp = components.tryGet<::Components::CTexture>(entity);
+        if (textureComp)
         {
-            auto* textureComp = entity->getComponent<::Components::CTexture>();
-            if (textureComp && textureComp->getGuid() == textureGuid)
-            {
-                texture = loadTexture(textureComp->getTexturePath());
-            }
+            texture = loadTexture(textureComp->getTexturePath());
         }
     }
 
-    // Get shader if available
+    // Get shader if available (independent of material)
     const sf::Shader* shader = nullptr;
-    if (material)
     {
-        std::string shaderGuid = material->getShaderGuid();
-        if (!shaderGuid.empty())
+        auto* shaderComp = components.tryGet<::Components::CShader>(entity);
+        if (shaderComp)
         {
-            auto* shaderComp = entity->getComponent<::Components::CShader>();
-            if (shaderComp && shaderComp->getGuid() == shaderGuid)
-            {
-                shader = loadShader(shaderComp->getVertexShaderPath(), shaderComp->getFragmentShaderPath());
-            }
+            shader = loadShader(shaderComp->getVertexShaderPath(), shaderComp->getFragmentShaderPath());
         }
     }
 
@@ -388,7 +370,7 @@ void SRenderer::renderEntity(::Entity::Entity* entity)
             sf::RectangleShape rect;
 
             // If we have a collider, use its size
-            auto* collider = entity->getComponent<::Components::CCollider2D>();
+            auto* collider = components.tryGet<::Components::CCollider2D>(entity);
             if (collider && collider->getShapeType() == ::Components::ColliderShape::Box)
             {
                 float halfWidth  = collider->getBoxHalfWidth() * PIXELS_PER_METER;
@@ -405,7 +387,7 @@ void SRenderer::renderEntity(::Entity::Entity* entity)
 
             rect.setPosition(screenPos);
             rect.setRotation(-rotation * 180.0f / 3.14159265f);  // Negate for Y-axis flip
-            rect.setFillColor(finalColor.toSFML());
+            rect.setFillColor(toSFMLColor(finalColor));
 
             if (texture)
             {
@@ -421,7 +403,7 @@ void SRenderer::renderEntity(::Entity::Entity* entity)
             sf::CircleShape circle;
 
             // If we have a collider, use its radius
-            auto* collider = entity->getComponent<::Components::CCollider2D>();
+            auto* collider = components.tryGet<::Components::CCollider2D>(entity);
             float radius   = 25.0f;
             if (collider && collider->getShapeType() == ::Components::ColliderShape::Circle)
             {
@@ -433,7 +415,7 @@ void SRenderer::renderEntity(::Entity::Entity* entity)
             circle.setPosition(screenPos);
             circle.setScale(scale.x, scale.y);
             circle.setRotation(-rotation * 180.0f / 3.14159265f);  // Negate for Y-axis flip
-            circle.setFillColor(finalColor.toSFML());
+            circle.setFillColor(toSFMLColor(finalColor));
 
             if (texture)
             {
@@ -452,7 +434,7 @@ void SRenderer::renderEntity(::Entity::Entity* entity)
                 sf::FloatRect bounds = sprite.getLocalBounds();
 
                 // Scale sprite to match physics collider size
-                auto* collider = entity->getComponent<::Components::CCollider2D>();
+                auto* collider = components.tryGet<::Components::CCollider2D>(entity);
                 if (collider)
                 {
                     float targetSize = 0.0f;
@@ -498,7 +480,7 @@ void SRenderer::renderEntity(::Entity::Entity* entity)
                 sprite.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
                 sprite.setPosition(screenPos);
                 sprite.setRotation(-rotation * 180.0f / 3.14159265f);  // Negate for Y-axis flip
-                sprite.setColor(finalColor.toSFML());
+                sprite.setColor(toSFMLColor(finalColor));
 
                 m_window->draw(sprite, states);
             }
@@ -509,7 +491,7 @@ void SRenderer::renderEntity(::Entity::Entity* entity)
                 rect.setOrigin(25.0f * scale.x, 25.0f * scale.y);
                 rect.setPosition(screenPos);
                 rect.setRotation(-rotation * 180.0f / 3.14159265f);  // Negate for Y-axis flip
-                rect.setFillColor(finalColor.toSFML());
+                rect.setFillColor(toSFMLColor(finalColor));
                 m_window->draw(rect, states);
             }
             break;
@@ -544,7 +526,7 @@ void SRenderer::renderEntity(::Entity::Entity* entity)
 
             // Create line using VertexArray
             float           thickness = renderable->getLineThickness();
-            sf::Color       lineColor = finalColor.toSFML();
+            sf::Color       lineColor = toSFMLColor(finalColor);
             sf::VertexArray line(sf::Lines, 2);
             line[0].position = screenStart;
             line[0].color    = lineColor;

@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     git \
     clang \
     clang-format \
+    lcov \
     ninja-build \
     pkg-config \
     wget \

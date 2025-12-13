@@ -1,13 +1,14 @@
 #ifndef SPARTICLE_H
 #define SPARTICLE_H
 
+#include <Entity.h>
+#include <Vec2.h>
 #include <SFML/Graphics.hpp>
+#include <string>
+#include <unordered_map>
 #include "System.h"
 
-namespace Entity
-{
-class Entity;
-}
+class Registry;  // Forward declaration
 
 namespace Systems
 {
@@ -29,11 +30,8 @@ namespace Systems
 class SParticle : public System
 {
 public:
-    /**
-     * @brief Gets the singleton instance
-     * @return Reference to the singleton instance
-     */
-    static SParticle& instance();
+    SParticle();
+    ~SParticle() override;
 
     /**
      * @brief Initializes the particle system
@@ -52,14 +50,15 @@ public:
      * @brief Updates all particle emitters on entities
      * @param deltaTime Time elapsed since last update
      */
-    void update(float deltaTime) override;
+    void update(float deltaTime, World& world) override;
 
     /**
      * @brief Renders particles for a single emitter entity
-     * @param entity Entity with CParticleEmitter component
+     * @param entity Entity ID with CParticleEmitter component
      * @param window SFML render window
+     * @param registry Registry to access components
      */
-    void renderEmitter(::Entity::Entity* entity, sf::RenderWindow* window);
+    void renderEmitter(Entity entity, sf::RenderWindow* window, World& world);
 
     /**
      * @brief Checks if the particle system is initialized
@@ -71,12 +70,6 @@ public:
     }
 
 private:
-    /** @brief Private constructor for singleton pattern */
-    SParticle();
-
-    /** @brief Destructor */
-    ~SParticle() override;
-
     /** @brief Deleted copy constructor */
     SParticle(const SParticle&) = delete;
 
@@ -97,10 +90,14 @@ private:
      */
     float metersToPixels(float meters) const;
 
+    const sf::Texture* loadTexture(const std::string& filepath);
+
     sf::VertexArray   m_vertexArray;     ///< Vertex array for rendering
     sf::RenderWindow* m_window;          ///< Render window reference
     float             m_pixelsPerMeter;  ///< Rendering scale
     bool              m_initialized;     ///< Initialization state
+
+    std::unordered_map<std::string, sf::Texture> m_textureCache;
 };
 
 }  // namespace Systems

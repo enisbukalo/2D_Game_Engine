@@ -3,63 +3,116 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
+#include <cassert>
+#include <iostream>
+#include <stdexcept>
+#include <typeindex>
+
+// Include all component types for registry registration
+#include <Components.h>
+#include <SystemLocator.h>
 
 GameEngine::GameEngine(const Systems::WindowConfig& windowConfig, Vec2 gravity, uint8_t subStepCount, float timeStep, float pixelsPerMeter)
-    : m_gravity(gravity), m_subStepCount(subStepCount), m_timeStep(timeStep)
+    : m_renderer(std::make_unique<Systems::SRenderer>()),
+      m_input(std::make_unique<Systems::SInput>()),
+      m_script(std::make_unique<Systems::SScript>()),
+      m_physics(std::make_unique<Systems::S2DPhysics>()),
+      m_particle(std::make_unique<Systems::SParticle>()),
+      m_audio(std::make_unique<Systems::SAudio>()),
+      m_subStepCount(subStepCount),
+      m_timeStep(1.0f / 60.0f),
+      m_gravity(gravity)
 {
-    // Initialize spdlog logger (using synchronous logging for now)
+    Systems::SystemLocator::provideRenderer(m_renderer.get());
+    Systems::SystemLocator::provideInput(m_input.get());
+    Systems::SystemLocator::providePhysics(m_physics.get());
+    Systems::SystemLocator::provideParticle(m_particle.get());
+    Systems::SystemLocator::provideAudio(m_audio.get());
+
+    // Allow physics system to resolve component data without auxiliary maps
+    m_physics->bindWorld(&m_world);
+
+    // Register component type names for diagnostics
+    registerComponentTypes();
+
+    // Initialize spdlog logger. This must not be allowed to crash the game
+    // if a log file cannot be created (e.g., read-only working directory).
     if (!spdlog::get("GameEngine"))
     {
-        auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-        auto file_sink    = std::make_shared<spdlog::sinks::basic_file_sink_mt>("game_engine.log", true);
+        try
+        {
+            auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+            console_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] [Thread:%t] %v");
+            console_sink->set_level(spdlog::level::info);
 
-        console_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] [Thread:%t] %v");
-        file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] [Thread:%t] %v");
+            std::vector<spdlog::sink_ptr> sinks;
+            sinks.push_back(console_sink);
 
-        console_sink->set_level(spdlog::level::info);  // Reduce logging level
-        file_sink->set_level(spdlog::level::debug);
+            try
+            {
+                auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("game_engine.log", true);
+                file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] [Thread:%t] %v");
+                file_sink->set_level(spdlog::level::debug);
+                sinks.push_back(file_sink);
+            }
+            catch (const spdlog::spdlog_ex& e)
+            {
+                std::cerr << "GameEngine: failed to create log file (game_engine.log): " << e.what() << "\n";
+            }
 
-        std::vector<spdlog::sink_ptr> sinks{console_sink, file_sink};
-        auto logger = std::make_shared<spdlog::logger>("GameEngine", sinks.begin(), sinks.end());
-        logger->set_level(spdlog::level::info);  // Set to info to reduce spam
-        spdlog::register_logger(logger);
+            auto logger = std::make_shared<spdlog::logger>("GameEngine", sinks.begin(), sinks.end());
+            logger->set_level(spdlog::level::info);
+            spdlog::register_logger(logger);
+        }
+        catch (const std::exception& e)
+        {
+            std::cerr << "GameEngine: logger initialization failed: " << e.what() << "\n";
+        }
     }
 
     if (auto logger = spdlog::get("GameEngine"))
     {
         logger->info("GameEngine initialized");
         logger->info("Window size: {}x{}", windowConfig.width, windowConfig.height);
-        logger->info("SubSteps: {}, TimeStep: {}", (int)subStepCount, timeStep);
+        logger->info("SubSteps: {}, TimeStep: {}", (int)subStepCount, m_timeStep);
+        if (timeStep != m_timeStep)
+        {
+            logger->warn("Ignoring requested timeStep {} and enforcing fixed 60Hz ({}).", timeStep, m_timeStep);
+        }
     }
 
     // Initialize renderer
-    if (!::Systems::SRenderer::instance().initialize(windowConfig))
+    if (!m_renderer->initialize(windowConfig))
     {
         if (auto logger = spdlog::get("GameEngine"))
         {
             logger->error("Failed to initialize SRenderer");
         }
+        std::cerr << "GameEngine: failed to initialize renderer/window.\n";
         return;
     }
+
+    m_renderer->setParticleSystem(m_particle.get());
 
     m_gameRunning = true;
 
     // Configure physics system
-    auto& physics = ::Systems::S2DPhysics::instance();
-    physics.setGravity({gravity.x, gravity.y});  // Box2D uses Y-up convention
+    m_physics->setGravity({gravity.x, gravity.y});  // Box2D uses Y-up convention
     // Use the stored member values so the members are read/used and
     // do not trigger "unused member" style warnings from static analyzers
-    physics.setSubStepCount(m_subStepCount);  // Set substep count for stability
-    physics.setTimeStep(m_timeStep);          // Set fixed timestep
+    m_physics->setSubStepCount(m_subStepCount);  // Set substep count for stability
+    m_physics->setTimeStep(m_timeStep);          // Set fixed timestep
 
-    // Initialize input manager and register window event handling
-    ::Systems::SInput::instance().initialize(::Systems::SRenderer::instance().getWindow(), true);
-    ::Systems::SInput::instance().subscribe(
+    // Initialize input manager and register window event handling.
+    // The engine does not initialize ImGui, so default to not forwarding
+    // events to ImGui to avoid undefined behavior.
+    m_input->initialize(m_renderer->getWindow(), false);
+    m_input->subscribe(
         [this](const InputEvent& ev)
         {
             if (ev.type == InputEventType::WindowClosed)
             {
-                auto* window = ::Systems::SRenderer::instance().getWindow();
+                auto* window = m_renderer->getWindow();
                 if (window)
                 {
                     window->close();
@@ -69,11 +122,15 @@ GameEngine::GameEngine(const Systems::WindowConfig& windowConfig, Vec2 gravity, 
         });
 
     // Initialize audio system
-    ::Systems::SAudio::instance().initialize();
+    m_audio->initialize();
 
     // Initialize particle system with default scale
     // Note: Users can re-initialize with different scale if needed
-    ::Systems::SParticle::instance().initialize(::Systems::SRenderer::instance().getWindow(), pixelsPerMeter);
+    m_particle->initialize(m_renderer->getWindow(), pixelsPerMeter);
+
+    // Maintain ordered list for per-frame updates (input -> scripts -> physics -> particle -> audio)
+    // Audio is marked as PostFlush via ISystem::stage().
+    m_systemOrder = {m_input.get(), m_script.get(), m_physics.get(), m_particle.get(), m_audio.get()};
 
     if (auto logger = spdlog::get("GameEngine"))
     {
@@ -84,10 +141,26 @@ GameEngine::GameEngine(const Systems::WindowConfig& windowConfig, Vec2 gravity, 
 GameEngine::~GameEngine()
 {
     // Shutdown input manager
-    ::Systems::SInput::instance().shutdown();
+    if (m_input)
+    {
+        m_input->shutdown();
+    }
 
     // Shutdown renderer
-    ::Systems::SRenderer::instance().shutdown();
+    if (m_renderer)
+    {
+        m_renderer->shutdown();
+    }
+
+    if (m_particle)
+    {
+        m_particle->shutdown();
+    }
+
+    if (m_audio)
+    {
+        m_audio->shutdown();
+    }
 
     if (auto logger = spdlog::get("GameEngine"))
     {
@@ -104,91 +177,145 @@ void GameEngine::readInputs()
 
 void GameEngine::update(float deltaTime)
 {
-    // Handle input events before any updates
-    ::Systems::SInput::instance().update(deltaTime);
-    // Accumulate time for fixed timestep updates
-    m_accumulator += deltaTime;
-
-    // Run physics updates with fixed timestep (prevents spiral of death)
-    const float maxAccumulator = m_timeStep * 10.0f;  // Cap to prevent spiral of death
-    if (m_accumulator > maxAccumulator)
+    auto runStage = [this, deltaTime](Systems::UpdateStage stage)
     {
-        m_accumulator = maxAccumulator;
-    }
+        for (auto* system : m_systemOrder)
+        {
+            if (!system || system->stage() != stage)
+            {
+                continue;
+            }
 
-    // Process fixed timestep updates
-    while (m_accumulator >= m_timeStep)
-    {
-        // Run fixed-update callbacks for all physics bodies (apply forces, etc.)
-        ::Systems::S2DPhysics::instance().runFixedUpdates(m_timeStep);
+            if (system->usesFixedTimestep())
+            {
+                m_accumulator += deltaTime;
+                const float maxAccumulator = m_timeStep * 10.0f;  // Cap to prevent spiral of death
+                if (m_accumulator > maxAccumulator)
+                {
+                    m_accumulator = maxAccumulator;
+                }
 
-        // Box2D physics update (handles its own sub-stepping)
-        ::Systems::S2DPhysics::instance().update(m_timeStep);
+                while (m_accumulator >= m_timeStep)
+                {
+                    system->fixedUpdate(m_timeStep, m_world);
+                    m_accumulator -= m_timeStep;
+                }
+                continue;
+            }
 
-        m_accumulator -= m_timeStep;
-    }
+            system->update(deltaTime, m_world);
+        }
+    };
 
-    // Update particle system with frame delta time
-    ::Systems::SParticle::instance().update(deltaTime);
+    runStage(Systems::UpdateStage::PreFlush);
 
-    // Update entity manager with the actual frame delta time
-    ::Systems::SEntity::instance().update(deltaTime);
+    // Apply deferred structural commands after pre-flush systems have finished updating to avoid iterator invalidation
+    m_world.flushCommandBuffer();
+
+    runStage(Systems::UpdateStage::PostFlush);
 }
 
 void GameEngine::render()
 {
-    auto& renderer = ::Systems::SRenderer::instance();
-    renderer.clear(Color::Black);
-    renderer.render();
-    renderer.display();
+    if (!m_renderer)
+    {
+        return;
+    }
+
+    m_renderer->clear(Color::Black);
+    m_renderer->render(m_world);
+    m_renderer->display();
 }
 
 bool GameEngine::is_running() const
 {
     return m_gameRunning;
 }
-
-std::shared_ptr<spdlog::logger> GameEngine::getLogger()
-{
-    return spdlog::get("GameEngine");
-}
-
-Systems::SEntity& GameEngine::getEntityManager()
-{
-    return ::Systems::SEntity::instance();
-}
-
-Systems::SScene& GameEngine::getSceneManager()
-{
-    return ::Systems::SScene::instance();
-}
-
-Components::ComponentFactory& GameEngine::getComponentFactory()
-{
-    return ::Components::ComponentFactory::instance();
-}
-
 Systems::S2DPhysics& GameEngine::getPhysics()
 {
-    return ::Systems::S2DPhysics::instance();
+    return *m_physics;
 }
 
 Systems::SInput& GameEngine::getInputManager()
 {
-    return ::Systems::SInput::instance();
+    return *m_input;
 }
 
 Systems::SAudio& GameEngine::getAudioSystem()
 {
-    return ::Systems::SAudio::instance();
+    return *m_audio;
 }
 
 Systems::SRenderer& GameEngine::getRenderer()
 {
-    return ::Systems::SRenderer::instance();
+    return *m_renderer;
 }
 
 Systems::SParticle& GameEngine::getParticleSystem()
 {
-    return ::Systems::SParticle::instance();
+    return *m_particle;
+}
+
+void GameEngine::registerComponentTypes()
+{
+    // Register stable component names for diagnostics and tooling
+    using namespace Components;
+
+    m_world.registerTypeName<CTransform>("CTransform");
+    m_world.registerTypeName<CRenderable>("CRenderable");
+    m_world.registerTypeName<CPhysicsBody2D>("CPhysicsBody2D");
+    m_world.registerTypeName<CCollider2D>("CCollider2D");
+    m_world.registerTypeName<CMaterial>("CMaterial");
+    m_world.registerTypeName<CTexture>("CTexture");
+    m_world.registerTypeName<CShader>("CShader");
+    m_world.registerTypeName<CName>("CName");
+    m_world.registerTypeName<CInputController>("CInputController");
+    m_world.registerTypeName<CParticleEmitter>("CParticleEmitter");
+    m_world.registerTypeName<CNativeScript>("CNativeScript");
+    m_world.registerTypeName<CAudioSource>("CAudioSource");
+    m_world.registerTypeName<CAudioListener>("CAudioListener");
+
+    validateComponentTypeNames();
+}
+
+void GameEngine::validateComponentTypeNames()
+{
+    using namespace Components;
+
+    auto validate = [this](auto typeTag, const char* stableName)
+    {
+        using T                      = decltype(typeTag);
+        const std::string registered = m_world.getTypeName<T>();
+        if (registered != stableName)
+        {
+            if (auto logger = spdlog::get("GameEngine"))
+            {
+                logger->error("Component type '{}' registered as '{}' but expected '{}'", typeid(T).name(), registered, stableName);
+            }
+            return;
+        }
+
+        const std::type_index fromName = m_world.getTypeFromName(stableName);
+        if (fromName != std::type_index(typeid(T)))
+        {
+            if (auto logger = spdlog::get("GameEngine"))
+            {
+                logger->error("Component lookup for '{}' returned different type index", stableName);
+            }
+        }
+    };
+
+    validate(CTransform{}, "CTransform");
+    validate(CRenderable{}, "CRenderable");
+    validate(CPhysicsBody2D{}, "CPhysicsBody2D");
+    validate(CCollider2D{}, "CCollider2D");
+    validate(CMaterial{}, "CMaterial");
+    validate(CTexture{}, "CTexture");
+    validate(CShader{}, "CShader");
+    validate(CName{}, "CName");
+    validate(CInputController{}, "CInputController");
+    validate(CParticleEmitter{}, "CParticleEmitter");
+    validate(CNativeScript{}, "CNativeScript");
+    validate(CAudioSource{}, "CAudioSource");
+    validate(CAudioListener{}, "CAudioListener");
 }

@@ -1,25 +1,25 @@
 #ifndef GAMEENGINE_H
 #define GAMEENGINE_H
 
-#include <spdlog/spdlog.h>
 #include <memory>
 #include <string>
+#include <vector>
+
+// Include ECS core
+#include <Entity.h>
+#include <Vec2.h>
+#include <World.h>
 
 // Include system and manager headers
-#include <ComponentFactory.h>
 #include <S2DPhysics.h>
 #include <SAudio.h>
-#include <SEntity.h>
 #include <SInput.h>
 #include <SParticle.h>
 #include <SRenderer.h>
-#include <SScene.h>
+#include <SScript.h>
 
 // Convenient namespace declarations for documentation
-// Entity namespace - Entity management
-namespace Entity
-{
-}
+// Entity is now a plain struct (just an ID), not in a namespace
 
 // Components namespace - All component types
 namespace Components
@@ -96,32 +96,7 @@ public:
      */
     bool is_running() const;
 
-    /**
-     * @brief Gets the logger instance for external logging
-     * @return Shared pointer to the spdlog logger, or nullptr if not initialized
-     */
-    static std::shared_ptr<spdlog::logger> getLogger();
-
     // System and Manager Accessors
-    // These are the recommended public API for engine users
-
-    /**
-     * @brief Gets the entity manager instance
-     * @return Reference to the SEntity singleton
-     */
-    Systems::SEntity& getEntityManager();
-
-    /**
-     * @brief Gets the scene manager instance
-     * @return Reference to the SScene singleton
-     */
-    Systems::SScene& getSceneManager();
-
-    /**
-     * @brief Gets the component factory instance
-     * @return Reference to the ComponentFactory singleton
-     */
-    Components::ComponentFactory& getComponentFactory();
 
     /**
      * @brief Gets the Box2D physics system instance
@@ -154,34 +129,53 @@ public:
     Systems::SParticle& getParticleSystem();
 
     /**
-     * @brief Spawns and registers a new entity of the specified type
-     * @tparam T Entity type (must inherit from Entity::Entity)
-     * @tparam Args Constructor argument types (excluding tag and id)
-     * @param tag Tag to assign to the entity
-     * @param args Arguments forwarded to the entity constructor
-     * @return Shared pointer to the created and initialized entity
-     *
-     * This is the primary API for creating entities. The entity is constructed,
-     * added to the entity manager, initialized via init(), and returned ready to use.
-     *
-     * Example:
-     *   auto boat = engine.spawn<Boat>("player", &inputMgr, &audioSys);
-     *   auto barrel = engine.spawn<Barrel>("barrel", position);
+     * @brief Creates a new entity in the world
+     * @return The created entity ID
      */
-    template <typename T, typename... Args>
-    std::shared_ptr<T> spawn(const std::string& tag, Args&&... args)
+    Entity createEntity()
     {
-        return ::Systems::SEntity::instance().addEntity<T>(tag, std::forward<Args>(args)...);
+        return m_world.createEntity();
+    }
+
+    /**
+     * @brief Gets the central world (entity/component orchestration)
+     */
+    World& world()
+    {
+        return m_world;
+    }
+    const World& world() const
+    {
+        return m_world;
     }
 
 private:
-    const uint8_t m_subStepCount;  ///< Number of physics sub-steps per update
-    const float   m_timeStep;      ///< Fixed time step for physics updates
+    std::unique_ptr<Systems::SRenderer>  m_renderer;  ///< Renderer owned by engine
+    std::unique_ptr<Systems::SInput>     m_input;     ///< Input system owned by engine
+    std::unique_ptr<Systems::SScript>    m_script;    ///< Script system owned by engine
+    std::unique_ptr<Systems::S2DPhysics> m_physics;   ///< Physics system owned by engine
+    std::unique_ptr<Systems::SParticle>  m_particle;  ///< Particle system owned by engine
+    std::unique_ptr<Systems::SAudio>     m_audio;     ///< Audio system owned by engine
+
+    std::vector<Systems::ISystem*> m_systemOrder;   ///< Ordered system update list
+    World                          m_world;         ///< Central world (registry + lifecycle)
+    const uint8_t                  m_subStepCount;  ///< Number of physics sub-steps per update
+    const float                    m_timeStep;      ///< Fixed time step for physics updates
 
     bool  m_gameRunning = false;  ///< Flag indicating if the game is running
     float m_accumulator = 0.0f;   ///< Accumulator for fixed timestep updates
 
     Vec2 m_gravity;  ///< Global gravity vector
+
+    /**
+     * @brief Registers all component types with stable names for serialization
+     */
+    void registerComponentTypes();
+
+    /**
+     * @brief Validates that registered component type names round-trip to their type_index
+     */
+    void validateComponentTypeNames();
 };
 
 #endif  // GAMEENGINE_H

@@ -45,7 +45,8 @@ jobs:
             libssl-dev \
             dos2unix \
             libsfml-dev \
-            cppcheck
+            cppcheck \
+            lcov
 
       - name: Install CMake 3.28.0
         run: |
@@ -68,6 +69,11 @@ jobs:
         run: |
           chmod +x build_tools/build_linux.sh
           ./build_tools/build_linux.sh -c -t ${{ inputs.build_type }}
+
+      - name: Check Function Coverage (>= 80%)
+        run: |
+          chmod +x build_tools/check_function_coverage.sh
+          MIN_FUNCTION_COVERAGE=80 LCOV_INFO_FILE=coverage_filtered.info ./build_tools/check_function_coverage.sh
 
       - name: Upload Test Results
         if: always()

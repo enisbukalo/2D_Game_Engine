@@ -6,10 +6,10 @@
 #include <memory>
 #include <unordered_map>
 #include <vector>
-#include "Input/ActionBinding.h"
-#include "Input/IInputListener.h"
-#include "Input/InputEvents.h"
-#include "Input/MouseButton.h"
+#include "ActionBinding.h"
+#include "IInputListener.h"
+#include "InputEvents.h"
+#include "MouseButton.h"
 #include "System.h"
 
 using ListenerId = size_t;
@@ -21,8 +21,6 @@ namespace Systems
 class SInput : public System
 {
 private:
-    SInput();
-
     sf::RenderWindow* m_window      = nullptr;
     bool              m_passToImGui = true;
 
@@ -34,7 +32,7 @@ private:
     std::unordered_map<MouseButton, bool> m_mouseDown;
     std::unordered_map<MouseButton, bool> m_mousePressed;
     std::unordered_map<MouseButton, bool> m_mouseReleased;
-    sf::Vector2i                          m_mousePosition;
+    Vec2i                                 m_mousePosition;
 
     // Action bindings (per-action -> list of pairs(bindingId, binding))
     std::unordered_map<std::string, std::vector<std::pair<BindingId, ActionBinding>>> m_actionBindings;
@@ -46,7 +44,13 @@ private:
     std::vector<IInputListener*>                                           m_listenerPointers;
     ListenerId                                                             m_nextListenerId = 1;
 
+    // Helper to namespace actions per-entity so identical action names across entities don't collide
+    std::string scopeAction(Entity entity, const std::string& actionName) const;
+    void        registerControllerBindings(World& world);
+    void        updateControllerStates(World& world);
+
 public:
+    SInput();
     ~SInput();
 
     // Delete copy and move constructors/assignment operators
@@ -55,12 +59,10 @@ public:
     SInput& operator=(const SInput&) = delete;
     SInput& operator=(SInput&&)      = delete;
 
-    static SInput& instance();
-
     void initialize(sf::RenderWindow* window, bool passToImGui = true);
     void shutdown();
 
-    void update(float deltaTime) override;
+    void update(float deltaTime, World& world) override;
 
     ListenerId subscribe(std::function<void(const InputEvent&)> cb);
     void       unsubscribe(ListenerId id);
@@ -69,13 +71,13 @@ public:
     void removeListener(IInputListener* listener);
 
     // Query APIs
-    bool         isKeyDown(KeyCode key) const;
-    bool         wasKeyPressed(KeyCode key) const;
-    bool         wasKeyReleased(KeyCode key) const;
-    bool         isMouseDown(MouseButton button) const;
-    bool         wasMousePressed(MouseButton button) const;
-    bool         wasMouseReleased(MouseButton button) const;
-    sf::Vector2i getMousePositionWindow() const;
+    bool  isKeyDown(KeyCode key) const;
+    bool  wasKeyPressed(KeyCode key) const;
+    bool  wasKeyReleased(KeyCode key) const;
+    bool  isMouseDown(MouseButton button) const;
+    bool  wasMousePressed(MouseButton button) const;
+    bool  wasMouseReleased(MouseButton button) const;
+    Vec2i getMousePositionWindow() const;
 
     // Action binding
     BindingId   bindAction(const std::string& actionName, const ActionBinding& binding);

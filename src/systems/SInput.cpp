@@ -4,6 +4,10 @@
 #include <imgui.h>
 #include <spdlog/spdlog.h>
 #include <algorithm>
+#include <string>
+
+#include "CInputController.h"
+#include "World.h"
 
 namespace Systems
 {
@@ -13,12 +17,6 @@ SInput::SInput() = default;
 SInput::~SInput()
 {
     shutdown();
-}
-
-SInput& SInput::instance()
-{
-    static SInput instance;
-    return instance;
 }
 
 void SInput::initialize(sf::RenderWindow* window, bool passToImGui)
@@ -408,7 +406,7 @@ void SInput::processEvent(const sf::Event& event)
     }
 }
 
-void SInput::update(float /*deltaTime*/)
+void SInput::update(float /*deltaTime*/, World& world)
 {
     // Clear transient states (pressed/released) at start of update
     for (auto& kv : m_actionStates)
@@ -421,9 +419,14 @@ void SInput::update(float /*deltaTime*/)
     m_mouseReleased.clear();
     if (!m_window)
         return;
+
+    // Pump events
     sf::Event event;
     while (m_window->pollEvent(event))
         processEvent(event);
+
+    // Ensure controller bindings are registered before evaluating action states
+    registerControllerBindings(world);
 
     // Evaluate actions centrally
     for (const auto& actionKv : m_actionBindings)
@@ -528,6 +531,48 @@ void SInput::update(float /*deltaTime*/)
                     l->onAction(ie.action);
         }
     }
+
+    // Push updated action states back into input controller components
+    updateControllerStates(world);
+}
+
+std::string SInput::scopeAction(Entity entity, const std::string& actionName) const
+{
+    return actionName + "@E" + std::to_string(entity.index) + "." + std::to_string(entity.generation);
+}
+
+void SInput::registerControllerBindings(World& world)
+{
+    world.components().each<Components::CInputController>(
+        [this](Entity entity, Components::CInputController& controller)
+        {
+            for (auto& kv : controller.bindings)
+            {
+                const std::string& actionName = kv.first;
+                for (auto& binding : kv.second)
+                {
+                    if (binding.bindingId == 0)
+                    {
+                        std::string scoped = scopeAction(entity, actionName);
+                        binding.bindingId  = bindAction(scoped, binding.binding);
+                    }
+                }
+            }
+        });
+}
+
+void SInput::updateControllerStates(World& world)
+{
+    world.components().each<Components::CInputController>(
+        [this](Entity entity, Components::CInputController& controller)
+        {
+            for (const auto& kv : controller.bindings)
+            {
+                const std::string& actionName       = kv.first;
+                std::string        scoped           = scopeAction(entity, actionName);
+                controller.actionStates[actionName] = getActionState(scoped);
+            }
+        });
 }
 
 ListenerId SInput::subscribe(std::function<void(const InputEvent&)> cb)
@@ -591,7 +636,7 @@ bool SInput::wasMouseReleased(MouseButton button) const
     return (it != m_mouseReleased.end()) && it->second;
 }
 
-sf::Vector2i SInput::getMousePositionWindow() const
+Vec2i SInput::getMousePositionWindow() const
 {
     return m_mousePosition;
 }

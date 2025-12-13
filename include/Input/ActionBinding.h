@@ -2,8 +2,8 @@
 
 #include <string>
 #include <vector>
-#include "Input/KeyCode.h"
-#include "Input/MouseButton.h"
+#include "KeyCode.h"
+#include "MouseButton.h"
 
 enum class ActionTrigger
 {

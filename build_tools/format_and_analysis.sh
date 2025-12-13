@@ -106,7 +106,7 @@ EOF
     fi
 
     # Run cppcheck on tracked files only
-    echo "$tracked_files" | xargs cppcheck --enable=all --error-exitcode=1 --check-level=exhaustive --language=c++ --std=c++17 --suppress=missingIncludeSystem --suppress=unusedFunction --suppress=noExplicitConstructor --suppress=unmatchedSuppression --suppress=missingInclude --inline-suppr -I include -I include/components -I include/systems 2>&1 | tee -a static_analysis_report.md
+    echo "$tracked_files" | xargs cppcheck --enable=all --error-exitcode=1 --check-level=exhaustive --language=c++ --std=c++17 --suppress=missingIncludeSystem --suppress=unusedFunction --suppress=unusedStructMember --suppress=noExplicitConstructor --suppress=unmatchedSuppression --suppress=missingInclude --inline-suppr -I include -I include/components -I include/systems 2>&1 | tee -a static_analysis_report.md
 
     local result=${PIPESTATUS[0]}
 

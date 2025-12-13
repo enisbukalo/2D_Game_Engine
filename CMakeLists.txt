@@ -134,6 +134,7 @@ endif()
 # Common Directories
 set(ENGINE_SOURCES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set(ENGINE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include")
+set(ENGINE_INPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/Input")
 set(ENGINE_COMPONENT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/components")
 set(ENGINE_ENTITIES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/entities")
 set(ENGINE_SYSTEM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/systems")
@@ -143,6 +144,9 @@ set(ENGINE_PHYSICS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/physics")
 # Create Game Engine library
 file(GLOB_RECURSE ENGINE_SOURCES "${ENGINE_SOURCES_DIR}/*.cpp")
 file(GLOB_RECURSE ENGINE_HEADERS "${ENGINE_INCLUDE_DIR}/*.h")
+
+# Components are header-only/data-only; avoid compiling any legacy/accidental .cpp files.
+list(FILTER ENGINE_SOURCES EXCLUDE REGEX "src[\\\\/]components[\\\\/].*\\.cpp$")
 
 set(ENGINE_HEADERS ${ENGINE_HEADERS})
 
@@ -178,6 +182,7 @@ set_target_properties(GameEngine PROPERTIES
 target_include_directories(GameEngine
     PUBLIC
     $<BUILD_INTERFACE:${ENGINE_INCLUDE_DIR}>
+    $<BUILD_INTERFACE:${ENGINE_INPUT_DIR}>
     $<BUILD_INTERFACE:${ENGINE_COMPONENT_DIR}>
     $<BUILD_INTERFACE:${ENGINE_ENTITIES_DIR}>
     $<BUILD_INTERFACE:${ENGINE_SYSTEM_DIR}>
@@ -186,6 +191,7 @@ target_include_directories(GameEngine
     $<BUILD_INTERFACE:${ENGINE_PHYSICS_DIR}>
     $<BUILD_INTERFACE:${uuid_v4_SOURCE_DIR}>
     $<INSTALL_INTERFACE:include/GameEngine/include>
+    $<INSTALL_INTERFACE:include/GameEngine/include/Input>
     $<INSTALL_INTERFACE:include/GameEngine/components>
     $<INSTALL_INTERFACE:include/GameEngine/entities>
     $<INSTALL_INTERFACE:include/GameEngine/systems>
@@ -220,6 +226,11 @@ target_link_libraries(GameEngine
     ImGui-SFML
     Threads::Threads
     box2d
+)
+
+# spdlog is used internally by the engine but consumers (e.g., Example) should not be
+# required to resolve a spdlog CMake package.
+target_link_libraries(GameEngine
     PRIVATE
     spdlog::spdlog
 )
@@ -295,7 +306,8 @@ if(GAMEENGINE_INSTALL)
         "find_dependency(Threads)\n"
         "find_dependency(SFML 2.6 COMPONENTS graphics window system)\n"
         "find_dependency(OpenGL)\n"
-        "find_dependency(box2d)\n\n"
+        "find_dependency(box2d)\n"
+        "\n"
         "# Include the targets file\n"
         "include(\"\${CMAKE_CURRENT_LIST_DIR}/GameEngineTargets.cmake\")\n"
     )

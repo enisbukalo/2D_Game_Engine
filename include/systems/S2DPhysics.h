@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -10,7 +11,9 @@
 namespace Components
 {
 class CPhysicsBody2D;
-}
+struct CTransform;
+struct CCollider2D;
+}  // namespace Components
 
 namespace Systems
 {
@@ -33,20 +36,33 @@ class S2DPhysics : public System
 {
 private:
     b2WorldId m_worldId;
+    World*    m_world{nullptr};
 
-    // Entity to b2BodyId mapping
-    std::unordered_map<size_t, b2BodyId> m_entityBodyMap;
+    // System-owned Box2D bodies (runtime state)
+    std::unordered_map<Entity, b2BodyId> m_bodies;
 
-    // Registered physics bodies for fixed-update callbacks
-    std::vector<Components::CPhysicsBody2D*> m_registeredBodies;
+    // System-owned Box2D shapes/chains (runtime state)
+    std::unordered_map<Entity, std::vector<b2ShapeId>> m_shapes;
+    std::unordered_map<Entity, std::vector<b2ChainId>> m_chains;
+
+    // Per-entity fixed-update callbacks
+    std::unordered_map<Entity, std::function<void(float)>> m_fixedCallbacks;
 
     // Timestep settings
     float m_timeStep;
     int   m_subStepCount;
 
-    S2DPhysics();
+    // Internal helpers
+    void ensureBodyForEntity(Entity entity, const Components::CTransform& transform, const Components::CPhysicsBody2D& body);
+    void ensureShapesForEntity(Entity entity, const Components::CCollider2D& collider);
+    void destroyShapes(Entity entity);
+    void syncFromTransform(Entity entity, const Components::CTransform& transform);
+    void syncToTransform(Entity entity, Components::CTransform& transform);
+    void pruneDestroyedBodies(const World& world);
+    void destroyBodyInternal(b2BodyId bodyId);
 
 public:
+    S2DPhysics();
     ~S2DPhysics();
 
     // Delete copy and move constructors/assignment operators
@@ -56,15 +72,30 @@ public:
     S2DPhysics& operator=(S2DPhysics&&)      = delete;
 
     /**
-     * @brief Get the singleton instance of the physics system
-     */
-    static S2DPhysics& instance();
-
-    /**
      * @brief Update the physics simulation
      * @param deltaTime Time elapsed since last update (not used - fixed timestep)
      */
-    void update(float deltaTime) override;
+    void update(float deltaTime, World& world) override;
+
+    bool usesFixedTimestep() const override
+    {
+        return true;
+    }
+
+    void fixedUpdate(float timeStep, World& world) override
+    {
+        (void)timeStep;
+        runFixedUpdates(m_timeStep);
+        update(m_timeStep, world);
+    }
+
+    /**
+     * @brief Bind the world so physics can resolve components without side maps
+     */
+    void bindWorld(World* world)
+    {
+        m_world = world;
+    }
 
     /**
      * @brief Get the Box2D world ID
@@ -121,24 +152,29 @@ public:
 
     /**
      * @brief Create a Box2D body for an entity
-     * @param entity Entity to associate with the body
+     * @param entity Entity ID to associate with the body
      * @param bodyDef Body definition
      * @return Box2D body ID
      */
-    b2BodyId createBody(::Entity::Entity* entity, const b2BodyDef& bodyDef);
+    b2BodyId createBody(Entity entity, const b2BodyDef& bodyDef);
 
     /**
      * @brief Destroy the Box2D body associated with an entity
-     * @param entity Entity whose body should be destroyed
+     * @param entity Entity ID whose body should be destroyed
      */
-    void destroyBody(const ::Entity::Entity* entity);
+    void destroyBody(Entity entity);
+
+    /**
+     * @brief Destroy a Box2D body by handle (used by component cleanup)
+     */
+    void destroyBody(b2BodyId bodyId);
 
     /**
      * @brief Get the Box2D body associated with an entity
-     * @param entity Entity to query
+     * @param entity Entity ID to query
      * @return Body ID (invalid if entity has no body)
      */
-    b2BodyId getBody(const ::Entity::Entity* entity);
+    b2BodyId getBody(Entity entity) const;
 
     /**
      * @brief Query the world for all bodies overlapping an AABB
@@ -162,24 +198,26 @@ public:
      * This is called automatically by CPhysicsBody2D::initialize().
      * Do not call manually unless you know what you're doing.
      */
-    void registerBody(Components::CPhysicsBody2D* body);
+    // Fixed update callbacks are now system-owned
+    void setFixedUpdateCallback(Entity entity, std::function<void(float)> callback);
+    void clearFixedUpdateCallback(Entity entity);
 
-    /**
-     * @brief Unregister a physics body from fixed-update callbacks
-     * @param body Physics body component to unregister
-     *
-     * This is called automatically by CPhysicsBody2D destructor.
-     * Do not call manually unless you know what you're doing.
-     */
-    void unregisterBody(Components::CPhysicsBody2D* body);
+    // Body forces and queries
+    void   applyForce(Entity entity, const b2Vec2& force, const b2Vec2& point);
+    void   applyForceToCenter(Entity entity, const b2Vec2& force);
+    void   applyLinearImpulse(Entity entity, const b2Vec2& impulse, const b2Vec2& point);
+    void   applyLinearImpulseToCenter(Entity entity, const b2Vec2& impulse);
+    void   applyAngularImpulse(Entity entity, float impulse);
+    void   applyTorque(Entity entity, float torque);
+    void   setLinearVelocity(Entity entity, const b2Vec2& velocity);
+    void   setAngularVelocity(Entity entity, float omega);
+    b2Vec2 getLinearVelocity(Entity entity) const;
+    float  getAngularVelocity(Entity entity) const;
+    b2Vec2 getPosition(Entity entity) const;
+    float  getRotation(Entity entity) const;
+    b2Vec2 getForwardVector(Entity entity) const;
+    b2Vec2 getRightVector(Entity entity) const;
 
-    /**
-     * @brief Run fixed-update callbacks for all registered physics bodies
-     * @param timeStep Fixed timestep value to pass to callbacks
-     *
-     * This is called by GameEngine before each physics step.
-     * It iterates all registered bodies and invokes their fixed-update callbacks.
-     */
     void runFixedUpdates(float timeStep);
 };
 

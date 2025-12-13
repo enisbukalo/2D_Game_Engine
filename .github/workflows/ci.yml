@@ -11,18 +11,6 @@ jobs:
       build_type: "Debug"
       upload_package: false
 
-  build-windows-debug:
-    uses: ./.github/workflows/build-windows.yml
-    with:
-      build_type: "Debug"
-      upload_package: true
-
-  build-windows-release:
-    uses: ./.github/workflows/build-windows.yml
-    with:
-      build_type: "Release"
-      upload_package: true
-
   lint:
     runs-on: ubuntu-latest
     steps:

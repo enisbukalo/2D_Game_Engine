@@ -1,7 +1,7 @@
 #ifndef CNAME_H
 #define CNAME_H
 
-#include "Component.h"
+#include <string>
 
 namespace Components
 {
@@ -15,45 +15,20 @@ namespace Components
  * beyond their tags. The name can be any string and defaults to empty if not
  * specified during construction.
  */
-struct CName : public Component
+struct CName
 {
-public:
-    /**
-     * @brief Constructs a name component
-     * @param n The name to assign (defaults to empty string)
-     */
-    explicit CName(const std::string& n = "") : m_name(n) {}
+    explicit CName(const std::string& n = "") : name(n) {}
 
-    /**
-     * @brief Gets the type identifier for this component
-     * @return String "Name"
-     */
-    std::string getType() const override;
+    inline const std::string& getName() const
+    {
+        return name;
+    }
+    inline void setName(const std::string& n)
+    {
+        name = n;
+    }
 
-    /**
-     * @brief Serializes the name data to binary data
-     */
-    void serialize(Serialization::JsonBuilder& builder) const override;
-
-    /**
-     * @brief Deserializes name data from binary data
-     */
-    void deserialize(const Serialization::SSerialization::JsonValue& value) override;
-
-    /**
-     * @brief Gets the name of the entity
-     * @return A const reference to the name string
-     */
-    const std::string& getName() const;
-
-    /**
-     * @brief Sets the name of the entity
-     * @param n The new name string
-     */
-    void setName(const std::string& n);
-
-private:
-    std::string m_name;  ///< The name string for the entity
+    std::string name;
 };
 
 }  // namespace Components
