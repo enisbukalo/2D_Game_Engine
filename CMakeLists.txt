@@ -144,6 +144,9 @@ set(ENGINE_PHYSICS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/physics")
 file(GLOB_RECURSE ENGINE_SOURCES "${ENGINE_SOURCES_DIR}/*.cpp")
 file(GLOB_RECURSE ENGINE_HEADERS "${ENGINE_INCLUDE_DIR}/*.h")
 
+# Components are header-only/data-only; avoid compiling any legacy/accidental .cpp files.
+list(FILTER ENGINE_SOURCES EXCLUDE REGEX "src[\\\\/]components[\\\\/].*\\.cpp$")
+
 set(ENGINE_HEADERS ${ENGINE_HEADERS})
 
 # Create library target
@@ -220,7 +223,6 @@ target_link_libraries(GameEngine
     ImGui-SFML
     Threads::Threads
     box2d
-    PRIVATE
     spdlog::spdlog
 )
 
