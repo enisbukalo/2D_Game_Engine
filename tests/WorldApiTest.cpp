@@ -48,6 +48,16 @@ TEST(WorldApiTest, GenerationBumpsOnReuseThroughWorld)
     EXPECT_TRUE(world.isAlive(e2));
 }
 
+TEST(WorldApiTest, HasIsPermissiveForNullAndDeadEntities)
+{
+    World  world;
+    Entity e = world.createEntity();
+    world.destroyEntity(e);
+
+    EXPECT_FALSE(world.has<TestComponent>(Entity::null()));
+    EXPECT_FALSE(world.has<TestComponent>(e));
+}
+
 #if !defined(NDEBUG)
 TEST(WorldApiDeathTest, NullEntityMutationsAssert)
 {
@@ -62,6 +72,48 @@ TEST(WorldApiDeathTest, NullEntityMutationsAssert)
         {
             World world;
             world.add<TestComponent>(Entity::null(), 123);
+        },
+        "null entity");
+
+    EXPECT_DEATH(
+        {
+            World world;
+            (void)world.get<TestComponent>(Entity::null());
+        },
+        "null entity");
+
+    EXPECT_DEATH(
+        {
+            World world;
+            (void)world.tryGet<TestComponent>(Entity::null());
+        },
+        "null entity");
+
+    EXPECT_DEATH(
+        {
+            World world;
+            world.remove<TestComponent>(Entity::null());
+        },
+        "null entity");
+
+    EXPECT_DEATH(
+        {
+            World world;
+            world.queueAdd<TestComponent>(Entity::null(), 123);
+        },
+        "null entity");
+
+    EXPECT_DEATH(
+        {
+            World world;
+            world.queueRemove<TestComponent>(Entity::null());
+        },
+        "null entity");
+
+    EXPECT_DEATH(
+        {
+            World world;
+            world.queueDestroy(Entity::null());
         },
         "null entity");
 }
@@ -83,6 +135,60 @@ TEST(WorldApiDeathTest, DeadEntityMutationsAssert)
             Entity e = world.createEntity();
             world.destroyEntity(e);
             world.add<TestComponent>(e, 123);
+        },
+        "dead entity");
+
+    EXPECT_DEATH(
+        {
+            World  world;
+            Entity e = world.createEntity();
+            world.destroyEntity(e);
+            (void)world.get<TestComponent>(e);
+        },
+        "dead entity");
+
+    EXPECT_DEATH(
+        {
+            World  world;
+            Entity e = world.createEntity();
+            world.destroyEntity(e);
+            (void)world.tryGet<TestComponent>(e);
+        },
+        "dead entity");
+
+    EXPECT_DEATH(
+        {
+            World  world;
+            Entity e = world.createEntity();
+            world.destroyEntity(e);
+            world.remove<TestComponent>(e);
+        },
+        "dead entity");
+
+    EXPECT_DEATH(
+        {
+            World  world;
+            Entity e = world.createEntity();
+            world.destroyEntity(e);
+            world.queueAdd<TestComponent>(e, 123);
+        },
+        "dead entity");
+
+    EXPECT_DEATH(
+        {
+            World  world;
+            Entity e = world.createEntity();
+            world.destroyEntity(e);
+            world.queueRemove<TestComponent>(e);
+        },
+        "dead entity");
+
+    EXPECT_DEATH(
+        {
+            World  world;
+            Entity e = world.createEntity();
+            world.destroyEntity(e);
+            world.queueDestroy(e);
         },
         "dead entity");
 }

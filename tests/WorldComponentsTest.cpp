@@ -237,3 +237,30 @@ TEST(WorldComponentsTest, ViewSortedOrdersEntitiesByIndexEvenAfterSwapAndPop)
     EXPECT_EQ(indices[1], e2.index);
     EXPECT_EQ(indices[2], e3.index);
 }
+
+TEST(WorldComponentsTest, SwapAndPopRemapsSparseIndexCorrectly)
+{
+    World world;
+
+    Entity a = world.createEntity();
+    Entity b = world.createEntity();
+    Entity c = world.createEntity();
+
+    world.add<Position>(a, 1, 0);
+    world.add<Position>(b, 2, 0);
+    world.add<Position>(c, 3, 0);
+
+    world.remove<Position>(b);
+    EXPECT_FALSE(world.has<Position>(b));
+
+    const Position* pc1 = world.get<Position>(c);
+    ASSERT_NE(pc1, nullptr);
+    EXPECT_EQ(pc1->x, 3);
+
+    world.remove<Position>(a);
+    EXPECT_FALSE(world.has<Position>(a));
+
+    const Position* pc2 = world.get<Position>(c);
+    ASSERT_NE(pc2, nullptr);
+    EXPECT_EQ(pc2->x, 3);
+}
