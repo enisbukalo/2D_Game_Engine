@@ -15,16 +15,19 @@ void Systems::SScript::update(float deltaTime, World& world)
     world.components().view<Components::CNativeScript>([&](Entity entity, Components::CNativeScript& /*script*/)
                                                        { scriptedEntities.push_back(entity); });
 
+    int entityIndex = 0;
     for (Entity entity : scriptedEntities)
     {
         if (!world.isAlive(entity))
         {
+            entityIndex++;
             continue;
         }
 
         auto* script = world.components().tryGet<Components::CNativeScript>(entity);
         if (!script || !script->instance)
         {
+            entityIndex++;
             continue;
         }
 
@@ -32,8 +35,18 @@ void Systems::SScript::update(float deltaTime, World& world)
         {
             script->instance->onCreate(entity, world);
             script->created = true;
+
+            // Re-fetch script pointer after onCreate because the component store may have
+            // reallocated if new scripts were added during onCreate (e.g., spawning entities)
+            script = world.components().tryGet<Components::CNativeScript>(entity);
+            if (!script || !script->instance)
+            {
+                entityIndex++;
+                continue;
+            }
         }
 
         script->instance->onUpdate(deltaTime, entity, world);
+        entityIndex++;
     }
 }
