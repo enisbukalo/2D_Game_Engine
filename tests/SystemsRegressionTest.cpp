@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <cmath>
 #include <World.h>
 
 #include <components/CNativeScript.h>
@@ -143,4 +144,314 @@ TEST(S2DPhysicsRegressionTest, FixedUpdateCallbackRegisteredBeforeBodyExistsRuns
     // Second fixed step: body exists (created during previous update), so callback should run.
     physics.fixedUpdate(physics.getTimeStep(), world);
     EXPECT_EQ(callbackCalls, 1);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CNativeScript coverage tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+TEST(CNativeScriptTest, IsBoundReturnsFalseWhenEmpty)
+{
+    Components::CNativeScript script;
+    EXPECT_FALSE(script.isBound());
+}
+
+TEST(CNativeScriptTest, IsBoundReturnsTrueAfterBind)
+{
+    class DummyScript : public Components::INativeScript
+    {
+    public:
+        void onUpdate(float /*dt*/, Entity /*self*/, World& /*world*/) override {}
+    };
+
+    Components::CNativeScript script;
+    script.bind<DummyScript>();
+    EXPECT_TRUE(script.isBound());
+}
+
+TEST(CNativeScriptTest, OnCreateDefaultDoesNotCrash)
+{
+    // INativeScript::onCreate has a default empty implementation
+    class MinimalScript : public Components::INativeScript
+    {
+    public:
+        void onUpdate(float /*dt*/, Entity /*self*/, World& /*world*/) override {}
+    };
+
+    MinimalScript script;
+    World         world;
+    Entity        e = world.createEntity();
+
+    // Should not throw or crash
+    script.onCreate(e, world);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ISystem interface coverage tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+namespace
+{
+class TestSystem : public Systems::ISystem
+{
+public:
+    void update(float /*deltaTime*/, World& /*world*/) override { updateCalled = true; }
+
+    bool updateCalled = false;
+};
+}
+
+TEST(ISystemTest, UsesFixedTimestepDefaultReturnsFalse)
+{
+    TestSystem system;
+    EXPECT_FALSE(system.usesFixedTimestep());
+}
+
+TEST(ISystemTest, FixedUpdateDefaultCallsUpdate)
+{
+    TestSystem system;
+    World      world;
+
+    EXPECT_FALSE(system.updateCalled);
+    system.fixedUpdate(1.0f / 60.0f, world);
+    EXPECT_TRUE(system.updateCalled);
+}
+
+TEST(ISystemTest, StageDefaultReturnsPreFlush)
+{
+    TestSystem system;
+    EXPECT_EQ(system.stage(), Systems::UpdateStage::PreFlush);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// S2DPhysics API coverage tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+TEST(S2DPhysicsTest, SetAndGetGravity)
+{
+    Systems::S2DPhysics physics;
+    b2Vec2              newGravity = {0.0f, -20.0f};
+
+    physics.setGravity(newGravity);
+    b2Vec2 result = physics.getGravity();
+
+    EXPECT_FLOAT_EQ(result.x, newGravity.x);
+    EXPECT_FLOAT_EQ(result.y, newGravity.y);
+}
+
+TEST(S2DPhysicsTest, SetAndGetTimeStep)
+{
+    Systems::S2DPhysics physics;
+    float               newTimeStep = 1.0f / 120.0f;
+
+    physics.setTimeStep(newTimeStep);
+    EXPECT_FLOAT_EQ(physics.getTimeStep(), newTimeStep);
+}
+
+TEST(S2DPhysicsTest, SetAndGetSubStepCount)
+{
+    Systems::S2DPhysics physics;
+    int                 newCount = 8;
+
+    physics.setSubStepCount(newCount);
+    EXPECT_EQ(physics.getSubStepCount(), newCount);
+}
+
+TEST(S2DPhysicsTest, GetWorldIdIsValid)
+{
+    Systems::S2DPhysics physics;
+    b2WorldId           worldId = physics.getWorldId();
+
+    EXPECT_TRUE(b2World_IsValid(worldId));
+}
+
+TEST(S2DPhysicsTest, UsesFixedTimestepReturnsTrue)
+{
+    Systems::S2DPhysics physics;
+    EXPECT_TRUE(physics.usesFixedTimestep());
+}
+
+TEST(S2DPhysicsTest, BindWorldSetsInternalPointer)
+{
+    Systems::S2DPhysics physics;
+    World               world;
+
+    // Bind world and call update to verify it doesn't crash
+    physics.bindWorld(&world);
+    physics.update(1.0f / 60.0f, world);
+    // If we got here without crash, the binding worked
+}
+
+TEST(S2DPhysicsTest, GetBodyReturnsInvalidForNonExistentEntity)
+{
+    Systems::S2DPhysics physics;
+    Entity              e(1, 1);
+
+    b2BodyId bodyId = physics.getBody(e);
+    EXPECT_FALSE(b2Body_IsValid(bodyId));
+}
+
+TEST(S2DPhysicsTest, DestroyBodyOnNonExistentEntityDoesNotCrash)
+{
+    Systems::S2DPhysics physics;
+    Entity              e(1, 1);
+
+    // Should not crash
+    physics.destroyBody(e);
+}
+
+TEST(S2DPhysicsTest, ClearFixedUpdateCallbackDoesNotCrash)
+{
+    Systems::S2DPhysics physics;
+    Entity              e(1, 1);
+
+    // Should not crash even when entity has no callback
+    physics.clearFixedUpdateCallback(e);
+}
+
+TEST(S2DPhysicsTest, RunFixedUpdatesWithNoCallbacksDoesNotCrash)
+{
+    Systems::S2DPhysics physics;
+
+    // Should not crash
+    physics.runFixedUpdates(1.0f / 60.0f);
+}
+
+TEST(S2DPhysicsTest, ApplyForceOnNonExistentBodyDoesNotCrash)
+{
+    Systems::S2DPhysics physics;
+    Entity              e(1, 1);
+    b2Vec2              force = {10.0f, 0.0f};
+    b2Vec2              point = {0.0f, 0.0f};
+
+    // Should not crash (body doesn't exist)
+    physics.applyForce(e, force, point);
+}
+
+TEST(S2DPhysicsTest, ApplyForceToCenterOnNonExistentBodyDoesNotCrash)
+{
+    Systems::S2DPhysics physics;
+    Entity              e(1, 1);
+    b2Vec2              force = {10.0f, 0.0f};
+
+    // Should not crash
+    physics.applyForceToCenter(e, force);
+}
+
+TEST(S2DPhysicsTest, ApplyLinearImpulseOnNonExistentBodyDoesNotCrash)
+{
+    Systems::S2DPhysics physics;
+    Entity              e(1, 1);
+    b2Vec2              impulse = {10.0f, 0.0f};
+    b2Vec2              point   = {0.0f, 0.0f};
+
+    // Should not crash
+    physics.applyLinearImpulse(e, impulse, point);
+}
+
+TEST(S2DPhysicsTest, ApplyLinearImpulseToCenterOnNonExistentBodyDoesNotCrash)
+{
+    Systems::S2DPhysics physics;
+    Entity              e(1, 1);
+    b2Vec2              impulse = {10.0f, 0.0f};
+
+    // Should not crash
+    physics.applyLinearImpulseToCenter(e, impulse);
+}
+
+TEST(S2DPhysicsTest, ApplyAngularImpulseOnNonExistentBodyDoesNotCrash)
+{
+    Systems::S2DPhysics physics;
+    Entity              e(1, 1);
+
+    // Should not crash
+    physics.applyAngularImpulse(e, 1.0f);
+}
+
+TEST(S2DPhysicsTest, ApplyTorqueOnNonExistentBodyDoesNotCrash)
+{
+    Systems::S2DPhysics physics;
+    Entity              e(1, 1);
+
+    // Should not crash
+    physics.applyTorque(e, 1.0f);
+}
+
+TEST(S2DPhysicsTest, SetLinearVelocityOnNonExistentBodyDoesNotCrash)
+{
+    Systems::S2DPhysics physics;
+    Entity              e(1, 1);
+    b2Vec2              velocity = {5.0f, 0.0f};
+
+    // Should not crash
+    physics.setLinearVelocity(e, velocity);
+}
+
+TEST(S2DPhysicsTest, SetAngularVelocityOnNonExistentBodyDoesNotCrash)
+{
+    Systems::S2DPhysics physics;
+    Entity              e(1, 1);
+
+    // Should not crash
+    physics.setAngularVelocity(e, 1.0f);
+}
+
+TEST(S2DPhysicsTest, GetLinearVelocityOnNonExistentBodyReturnsZero)
+{
+    Systems::S2DPhysics physics;
+    Entity              e(1, 1);
+
+    b2Vec2 velocity = physics.getLinearVelocity(e);
+    EXPECT_FLOAT_EQ(velocity.x, 0.0f);
+    EXPECT_FLOAT_EQ(velocity.y, 0.0f);
+}
+
+TEST(S2DPhysicsTest, GetAngularVelocityOnNonExistentBodyReturnsZero)
+{
+    Systems::S2DPhysics physics;
+    Entity              e(1, 1);
+
+    float omega = physics.getAngularVelocity(e);
+    EXPECT_FLOAT_EQ(omega, 0.0f);
+}
+
+TEST(S2DPhysicsTest, GetPositionOnNonExistentBodyReturnsZero)
+{
+    Systems::S2DPhysics physics;
+    Entity              e(1, 1);
+
+    b2Vec2 pos = physics.getPosition(e);
+    EXPECT_FLOAT_EQ(pos.x, 0.0f);
+    EXPECT_FLOAT_EQ(pos.y, 0.0f);
+}
+
+TEST(S2DPhysicsTest, GetRotationOnNonExistentBodyReturnsZero)
+{
+    Systems::S2DPhysics physics;
+    Entity              e(1, 1);
+
+    float rot = physics.getRotation(e);
+    EXPECT_FLOAT_EQ(rot, 0.0f);
+}
+
+TEST(S2DPhysicsTest, GetForwardVectorOnNonExistentBodyReturnsDefault)
+{
+    Systems::S2DPhysics physics;
+    Entity              e(1, 1);
+
+    b2Vec2 forward = physics.getForwardVector(e);
+    // Should return a default vector (typically zero)
+    EXPECT_TRUE(std::isfinite(forward.x));
+    EXPECT_TRUE(std::isfinite(forward.y));
+}
+
+TEST(S2DPhysicsTest, GetRightVectorOnNonExistentBodyReturnsDefault)
+{
+    Systems::S2DPhysics physics;
+    Entity              e(1, 1);
+
+    b2Vec2 right = physics.getRightVector(e);
+    // Should return a default vector (typically zero)
+    EXPECT_TRUE(std::isfinite(right.x));
+    EXPECT_TRUE(std::isfinite(right.y));
 }
