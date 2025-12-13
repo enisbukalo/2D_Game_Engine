@@ -623,15 +623,19 @@ public:
     {
         static_assert(sizeof...(Components) > 0, "Registry::view requires at least one component");
 
-        auto stores = std::tuple<ComponentStore<Components>*...>{getStore<Components>()...};
-        if (!((std::get<ComponentStore<Components>*>(stores) != nullptr && ...)))
+        auto stores  = std::tuple<ComponentStore<Components>*...>{getStore<Components>()...};
+        bool anyNull = false;
+        std::apply([&](auto*... store) { ((anyNull = anyNull || (store == nullptr)), ...); }, stores);
+        if (anyNull)
         {
             return;
         }
 
-        constexpr size_t           kCount = sizeof...(Components);
-        std::array<size_t, kCount> sizes{std::get<ComponentStore<Components>*>(stores)->size()...};
-        const size_t               primaryIndex = static_cast<size_t>(
+        constexpr size_t kCount       = sizeof...(Components);
+        const auto       sizes        = std::apply([](auto*... store)
+                                      { return std::array<size_t, kCount>{static_cast<size_t>(store->size())...}; },
+                                      stores);
+        const size_t     primaryIndex = static_cast<size_t>(
             std::distance(sizes.begin(), std::min_element(sizes.begin(), sizes.end())));
 
         auto hasAll = [&](Entity entity)
@@ -672,15 +676,19 @@ public:
     {
         static_assert(sizeof...(Components) > 0, "Registry::view requires at least one component");
 
-        auto stores = std::tuple<const ComponentStore<Components>*...>{getStore<Components>()...};
-        if (!((std::get<const ComponentStore<Components>*>(stores) != nullptr && ...)))
+        auto stores  = std::tuple<const ComponentStore<Components>*...>{getStore<Components>()...};
+        bool anyNull = false;
+        std::apply([&](const auto*... store) { ((anyNull = anyNull || (store == nullptr)), ...); }, stores);
+        if (anyNull)
         {
             return;
         }
 
-        constexpr size_t           kCount = sizeof...(Components);
-        std::array<size_t, kCount> sizes{std::get<const ComponentStore<Components>*>(stores)->size()...};
-        const size_t               primaryIndex = static_cast<size_t>(
+        constexpr size_t kCount       = sizeof...(Components);
+        const auto       sizes        = std::apply([](const auto*... store)
+                                      { return std::array<size_t, kCount>{static_cast<size_t>(store->size())...}; },
+                                      stores);
+        const size_t     primaryIndex = static_cast<size_t>(
             std::distance(sizes.begin(), std::min_element(sizes.begin(), sizes.end())));
 
         auto hasAll = [&](Entity entity)

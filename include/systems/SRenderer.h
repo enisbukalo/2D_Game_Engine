@@ -9,7 +9,6 @@
 #include "System.h"
 
 class World;
-class SParticle;
 
 namespace Components
 {
@@ -18,6 +17,8 @@ enum class BlendMode;
 
 namespace Systems
 {
+
+class SParticle;
 
 /**
  * @brief Window initialization configuration

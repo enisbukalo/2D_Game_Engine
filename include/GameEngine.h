@@ -8,6 +8,7 @@
 
 // Include ECS core
 #include <Entity.h>
+#include <Vec2.h>
 #include <World.h>
 
 // Include system and manager headers

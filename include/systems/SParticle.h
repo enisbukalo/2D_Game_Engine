@@ -2,6 +2,7 @@
 #define SPARTICLE_H
 
 #include <Entity.h>
+#include <Vec2.h>
 #include <SFML/Graphics.hpp>
 #include <string>
 #include <unordered_map>
