@@ -28,6 +28,15 @@ cmake-build-*/
 # Static analysis
 static_analysis_report.md
 
+# Coverage
+coverage_report/
+build_linux_coverage/
+coverage.info
+coverage_filtered.info
+*.gcda
+*.gcno
+*.gcov
+
 # Compiled files
 *.o
 *.obj

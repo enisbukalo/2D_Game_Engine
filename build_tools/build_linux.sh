@@ -14,6 +14,91 @@ RUN_TESTS=true
 CLEAN_BUILD=false
 INSTALL_PREFIX="./package_linux"
 
+generate_coverage_report() {
+    # Coverage is best-effort and only runs when tests are enabled.
+    if [ "$RUN_TESTS" != true ]; then
+        return 0
+    fi
+
+    if ! command -v lcov &> /dev/null || ! command -v genhtml &> /dev/null; then
+        echo -e "${YELLOW}Skipping coverage: lcov/genhtml not installed${NC}"
+        return 0
+    fi
+
+    echo -e "${GREEN}Generating coverage report...${NC}"
+
+    local COVERAGE_BUILD_DIR="build_linux_coverage"
+    local COVERAGE_OUTPUT_DIR="coverage_report"
+
+    rm -rf "${COVERAGE_BUILD_DIR}" "${COVERAGE_OUTPUT_DIR}" coverage.info coverage_filtered.info
+    mkdir -p "${COVERAGE_OUTPUT_DIR}"
+
+    echo -e "${GREEN}Configuring coverage build...${NC}"
+    cmake -B "${COVERAGE_BUILD_DIR}" \
+        -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
+        -DGAMEENGINE_BUILD_SHARED=$BUILD_SHARED \
+        -DCMAKE_C_FLAGS="--coverage" \
+        -DCMAKE_CXX_FLAGS="--coverage" \
+        -DCMAKE_EXE_LINKER_FLAGS="--coverage" \
+        -DCMAKE_SHARED_LINKER_FLAGS="--coverage" \
+        || { echo -e "${YELLOW}Coverage configuration failed; skipping coverage.${NC}"; return 0; }
+
+    echo -e "${GREEN}Building coverage targets...${NC}"
+    local NPROC
+    NPROC=$(nproc 2>/dev/null || echo 4)
+    cmake --build "${COVERAGE_BUILD_DIR}" --config $BUILD_TYPE -j"${NPROC}" \
+        || { echo -e "${YELLOW}Coverage build failed; skipping coverage.${NC}"; return 0; }
+
+    # Determine test executable name based on platform/build layout
+    local TEST_EXEC=""
+    if [ -f "./${COVERAGE_BUILD_DIR}/bin/unit_tests.exe" ]; then
+        TEST_EXEC="./${COVERAGE_BUILD_DIR}/bin/unit_tests.exe"
+    elif [ -f "./${COVERAGE_BUILD_DIR}/bin/${BUILD_TYPE}/unit_tests.exe" ]; then
+        TEST_EXEC="./${COVERAGE_BUILD_DIR}/bin/${BUILD_TYPE}/unit_tests.exe"
+    elif [ -f "./${COVERAGE_BUILD_DIR}/bin/unit_tests" ]; then
+        TEST_EXEC="./${COVERAGE_BUILD_DIR}/bin/unit_tests"
+    elif [ -f "./${COVERAGE_BUILD_DIR}/bin/${BUILD_TYPE}/unit_tests" ]; then
+        TEST_EXEC="./${COVERAGE_BUILD_DIR}/bin/${BUILD_TYPE}/unit_tests"
+    else
+        echo -e "${YELLOW}Coverage test executable not found; skipping coverage.${NC}"
+        return 0
+    fi
+
+    echo -e "${GREEN}Running tests (coverage build)...${NC}"
+    "${TEST_EXEC}" --gtest_output="xml:${COVERAGE_BUILD_DIR}/test_results.xml" \
+        || { echo -e "${YELLOW}Coverage test run failed; skipping coverage.${NC}"; return 0; }
+
+    echo -e "${GREEN}Capturing coverage data...${NC}"
+    # Some gtest macro expansions can confuse line-end detection; ignore mismatch errors.
+    lcov --capture \
+        --directory "${COVERAGE_BUILD_DIR}" \
+        --output-file coverage.info \
+        --ignore-errors inconsistent,negative,mismatch \
+        --rc geninfo_unexecuted_blocks=1 \
+        || { echo -e "${YELLOW}Coverage capture failed; skipping coverage.${NC}"; return 0; }
+
+    echo -e "${GREEN}Filtering coverage to engine sources only...${NC}"
+    lcov --remove coverage.info \
+        "/usr/*" \
+        "*/deps_cache_*/*" \
+        "*/_deps/*" \
+        "*/tests/*" \
+        "*/Example/*" \
+        --output-file coverage_filtered.info \
+        --ignore-errors unused \
+        || { echo -e "${YELLOW}Coverage filtering failed; skipping coverage.${NC}"; return 0; }
+
+    echo -e "${GREEN}Generating HTML report...${NC}"
+    genhtml coverage_filtered.info \
+        --output-directory "${COVERAGE_OUTPUT_DIR}" \
+        --legend \
+        --title "GameEngine Coverage" \
+        || { echo -e "${YELLOW}HTML coverage report generation failed; skipping coverage.${NC}"; return 0; }
+
+    echo -e "${GREEN}Coverage report generated at ./${COVERAGE_OUTPUT_DIR}/index.html${NC}"
+    return 0
+}
+
 # Help message
 usage() {
     echo "Usage: $0 [options]"
@@ -109,6 +194,9 @@ if [ "$RUN_TESTS" = true ]; then
     # Run tests and capture output
     "$TEST_EXEC" --gtest_output="xml:${BUILD_DIR}/test_results.xml" 2>&1 | tee ${BUILD_DIR}/Testing/Temporary/LastTest.log || { echo -e "${RED}Tests failed!${NC}"; exit 1; }
 fi
+
+# Generate coverage report (Linux-only, best-effort)
+generate_coverage_report
 
 # Install library using CMake
 echo -e "${GREEN}Installing library to ${INSTALL_PREFIX}...${NC}"
