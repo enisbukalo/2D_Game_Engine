@@ -47,12 +47,12 @@ static Entity createBarrelSpawner(World& world)
 int main()
 {
     std::ofstream logFile("game_log.txt");
-    
+
     try
     {
         logFile << "Starting game initialization...\n";
         logFile.flush();
-        
+
         WindowConfig windowConfig;
         windowConfig.width      = SCREEN_WIDTH;
         windowConfig.height     = SCREEN_HEIGHT;
@@ -62,24 +62,24 @@ int main()
 
         logFile << "Creating GameEngine...\n";
         logFile.flush();
-        
+
         GameEngine engine(windowConfig, GRAVITY);
 
         logFile << "Configuring input manager...\n";
         logFile.flush();
-        
+
         // Input Manager is already initialized by GameEngine - just disable ImGui passthrough
         engine.getInputManager().setPassToImGui(false);
 
         logFile << "Setting up physics...\n";
         logFile.flush();
-        
+
         // Set up Box2D physics world (gravity disabled)
         engine.getPhysics().setGravity({0.0f, 0.0f});
 
         logFile << "Creating entities...\n";
         logFile.flush();
-        
+
         World& world = engine.world();
         (void)createAudioManager(world);
         (void)Example::spawnBoat(world);
@@ -87,7 +87,7 @@ int main()
 
         std::cout << "Game initialized!\n";
         std::cout << "Physics: Box2D v3.1.1 (1 unit = 1 meter, Y-up)\n";
-        
+
         logFile << "Game initialized successfully!\n";
         logFile.flush();
 
@@ -95,53 +95,58 @@ int main()
         clock.restart();
 
         auto* window = engine.getRenderer().getWindow();
-        
+
         logFile << "Entering main loop...\n";
         logFile << "Window pointer: " << (window ? "valid" : "null") << "\n";
-        if (window) {
+        if (window)
+        {
             logFile << "Window is open: " << (window->isOpen() ? "yes" : "no") << "\n";
         }
         logFile << "Engine is running: " << (engine.is_running() ? "yes" : "no") << "\n";
         logFile.flush();
-        
+
         int frameCount = 0;
         while (engine.is_running() && window && window->isOpen())
         {
             frameCount++;
             logFile << "Starting frame " << frameCount << "\n";
             logFile.flush();
-            
-            if (frameCount % 60 == 0) {
+
+            if (frameCount % 60 == 0)
+            {
                 logFile << "Reached frame " << frameCount << "\n";
                 logFile.flush();
             }
-            
+
             logFile << "  Getting delta time...\n";
             logFile.flush();
-            const float dt = clock.restart().asSeconds();
-            const float safeDt = (dt < 0.001f) ? 0.016f : dt; // Use 60 FPS default if dt is too small
-            
+            const float dt     = clock.restart().asSeconds();
+            const float safeDt = (dt < 0.001f) ? 0.016f : dt;  // Use 60 FPS default if dt is too small
+
             logFile << "  Calling engine.update(" << safeDt << ")...\n";
             logFile.flush();
             engine.update(safeDt);
-            
+
             logFile << "  Calling engine.render()...\n";
             logFile.flush();
             engine.render();
-            
+
             logFile << "  Frame " << frameCount << " complete\n";
             logFile.flush();
         }
 
         logFile << "Main loop exited after " << frameCount << " frames\n";
         logFile << "Engine is running: " << (engine.is_running() ? "yes" : "no") << "\n";
-        if (window) {
+        if (window)
+        {
             logFile << "Window is open: " << (window->isOpen() ? "yes" : "no") << "\n";
-        } else {
+        }
+        else
+        {
             logFile << "Window is null\n";
         }
         logFile.flush();
-        
+
         if (window)
         {
             window->close();
@@ -162,7 +167,7 @@ int main()
         logFile << "FATAL std::exception: " << e.what() << "\n";
         logFile.flush();
         logFile.close();
-        
+
         std::cerr << "Press Enter to exit...\n";
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
@@ -175,7 +180,7 @@ int main()
         logFile << "FATAL unknown exception\n";
         logFile.flush();
         logFile.close();
-        
+
         std::cerr << "Press Enter to exit...\n";
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');

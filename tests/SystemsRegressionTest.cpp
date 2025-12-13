@@ -124,6 +124,82 @@ TEST(SScriptRegressionTest, SpawningEntitiesWithScriptsDuringUpdateIsSafeAndDefe
     EXPECT_EQ(updateB, kSpawnCount);
 }
 
+// Regression test: Spawning entities with scripts during onCreate should not cause
+// pointer invalidation crash. This was a real bug where the ComponentStore reallocated
+// during onCreate, leaving a dangling pointer before onUpdate was called.
+namespace
+{
+class SpawnerOnCreate final : public Components::INativeScript
+{
+public:
+    SpawnerOnCreate(int* createCount, int* updateCount, int spawnCount)
+        : m_createCount(createCount), m_updateCount(updateCount), m_spawnCount(spawnCount)
+    {
+    }
+
+    void onCreate(Entity /*self*/, World& world) override
+    {
+        if (m_createCount)
+        {
+            ++(*m_createCount);
+        }
+
+        // Spawn many entities with scripts during onCreate - this can cause reallocation
+        for (int i = 0; i < m_spawnCount; ++i)
+        {
+            Entity e = world.createEntity();
+            auto*  s = world.add<Components::CNativeScript>(e);
+            ASSERT_NE(s, nullptr);
+            s->bind<DummyChildScript>();
+        }
+    }
+
+    void onUpdate(float /*deltaTime*/, Entity /*self*/, World& /*world*/) override
+    {
+        if (m_updateCount)
+        {
+            ++(*m_updateCount);
+        }
+    }
+
+private:
+    class DummyChildScript final : public Components::INativeScript
+    {
+    public:
+        void onUpdate(float /*dt*/, Entity /*self*/, World& /*world*/) override {}
+    };
+
+    int* m_createCount{nullptr};
+    int* m_updateCount{nullptr};
+    int  m_spawnCount{0};
+};
+}  // namespace
+
+TEST(SScriptRegressionTest, SpawningEntitiesWithScriptsDuringOnCreateDoesNotCrash)
+{
+    World world;
+
+    int createCount = 0;
+    int updateCount = 0;
+
+    // Spawn enough entities to trigger reallocation of the component store
+    constexpr int kSpawnCount = 100;
+
+    Entity a = world.createEntity();
+    auto*  s = world.add<Components::CNativeScript>(a);
+    ASSERT_NE(s, nullptr);
+    s->bind<SpawnerOnCreate>(&createCount, &updateCount, kSpawnCount);
+
+    Systems::SScript scripts;
+
+    // This would crash before the fix due to pointer invalidation
+    scripts.update(1.0f / 60.0f, world);
+
+    // Parent script's onCreate and onUpdate should both run
+    EXPECT_EQ(createCount, 1);
+    EXPECT_EQ(updateCount, 1);
+}
+
 TEST(S2DPhysicsRegressionTest, FixedUpdateCallbackRegisteredBeforeBodyExistsRunsOnceBodyIsCreated)
 {
     World world;
