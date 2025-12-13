@@ -591,9 +591,11 @@ void S2DPhysics::runFixedUpdates(float timeStep)
     {
         const Entity   entity = it->first;
         const b2BodyId body   = getBody(entity);
+        // The callback may be registered before the body is created (e.g., immediately after spawning an entity).
+        // Keep the callback and start invoking it once the body exists.
         if (!b2Body_IsValid(body))
         {
-            it = m_fixedCallbacks.erase(it);
+            ++it;
             continue;
         }
 

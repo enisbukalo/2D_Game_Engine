@@ -1,534 +1,330 @@
 #include "BoatEntity.h"
 
-#include <SFML/Graphics.hpp>
-#include <algorithm>
-#include <array>
-#include <cmath>
+#include "InputHelpers.h"
+
 #include <iostream>
+
+#include <algorithm>
+#include <cmath>
+#include <vector>
+
+#include <ActionBinding.h>
+#include <Color.h>
+#include <Components.h>
+#include <S2DPhysics.h>
+#include <SAudio.h>
+#include <SystemLocator.h>
+#include <World.h>
+
+namespace Example
+{
 
 namespace
 {
-constexpr float kBoatPosX = 9.20209f;
-constexpr float kBoatPosY = 7.90827f;
-constexpr float kBoatRot  = 1.73084f;
-
-// Movement and steering constants
-constexpr float kPlayerForce           = 5.0f;   // Force applied for player movement
-constexpr float kPlayerTurningForce    = 0.5f;   // Base torque/force multiplier for player rotation
-constexpr float kRudderOffsetMeters    = 0.35f;  // Distance from center to stern (meters) where rudder force is applied
-constexpr float kRudderForceMultiplier = 1.0f;   // Multiplier for lateral rudder force
-constexpr float kRudderSmoothK       = 0.18f;  // Smooth parameter to scale rudder effectiveness with speed (soft clamp)
-constexpr float kMinSpeedForSteering = 0.15f;  // Minimum speed (m/s) required for steering effectiveness (coasting)
-constexpr float kRudderMinEffectiveScale = 0.025f;  // Minimum rudder effect scale applied at MIN_SPEED_FOR_STEERING
-
-// Motor audio constants
-constexpr float kMotorFadeDuration = 2.0f;   // 2 second fade-in & fade-out
-constexpr float kMotorMaxVolume    = 0.45f;  // 45% max volume
-
-constexpr float kBoatDensity             = 2.0f;
-constexpr float kBoatFriction            = 0.3f;
-constexpr float kBoatRestitution         = 0.15f;
-constexpr float kBoatLinearDamping       = 0.75f;
-constexpr float kBoatAngularDamping      = 0.75f;
-constexpr float kBoatGravityScale        = 1.0f;
-constexpr float kBoatColliderDensity     = 5.0f;
-constexpr float kBoatColliderFriction    = 0.5f;
-constexpr float kBoatColliderRestitution = 0.125f;
-
-// Bubble trail emitter constants
-const Vec2  kBubbleDirection(0.0f, -1.0f);  // Emit backward (stern direction in local space)
-const float kBubbleSpread       = 1.2f;
-const float kBubbleMinSpeed     = 0.05f;
-const float kBubbleMaxSpeed     = 0.2f;
-const float kBubbleMinLifetime  = 3.0f;
-const float kBubbleMaxLifetime  = 3.0f;
-const float kBubbleMinSize      = 0.005f;
-const float kBubbleMaxSize      = 0.025f;
-const float kBubbleEmissionRate = 300.0f;
-const float kBubbleStartAlpha   = 1.0f;
-const float kBubbleEndAlpha     = 0.5f;
-const int   kBubbleMaxParticles = 1000;
-const int   kBubbleZIndex       = 5;
-const Vec2  kBubbleOffset(0.0f, -0.65625f);
-
-// Hull spray emitter constants
-const Vec2      kSprayDirection(0.0f, 1.0f);  // Emit forward (bow direction in local space)
-const float     kSpraySpread           = 0.4f;
-constexpr float kSprayMinSpeed         = 0.122925f;
-constexpr float kSprayMaxSpeed         = 0.4917f;
-constexpr float kSprayMinLifetime      = 0.5f;
-constexpr float kSprayMaxLifetime      = 2.4f;
-constexpr float kSprayMinSize          = 0.006f;
-constexpr float kSprayMaxSize          = 0.02f;
-constexpr float kSprayEmissionRate     = 938.808f;
-constexpr float kSprayStartAlpha       = 0.9f;
-constexpr float kSprayEndAlpha         = 0.0f;
-constexpr float kSprayMinRotationSpeed = -3.0f;
-constexpr float kSprayMaxRotationSpeed = 3.0f;
-constexpr float kSprayShrinkEnd        = 0.1f;
-constexpr int   kSprayMaxParticles     = 7500;
-constexpr int   kSprayZIndex           = 5;
-
-// Boat hull polygon (matches JSON fixtures for collider and spray polygon)
-const std::vector<std::vector<b2Vec2>> kBoatHullFixtures = {
-    {{0.225f, 0.0f}, {-0.225f, 0.0f}, {-0.225f, -0.0875f}, {-0.1575f, -0.39375f}, {0.1575f, -0.39375f}, {0.225f, -0.0875f}},
-    {{-0.225f, 0.0f}, {0.225f, 0.0f}, {0.223438f, 0.0401042f}, {-0.223438f, 0.0401042f}},
-    {{-0.223438f, 0.0401042f}, {0.223438f, 0.0401042f}, {0.21875f, 0.0802083f}, {-0.21875f, 0.0802083f}},
-    {{-0.21875f, 0.0802083f}, {0.21875f, 0.0802083f}, {0.210938f, 0.120313f}, {-0.210938f, 0.120313f}},
-    {{-0.210938f, 0.120313f}, {0.210938f, 0.120313f}, {0.2f, 0.160417f}, {-0.2f, 0.160417f}},
-    {{-0.2f, 0.160417f}, {0.2f, 0.160417f}, {0.185937f, 0.200521f}, {-0.185937f, 0.200521f}},
-    {{-0.185937f, 0.200521f}, {0.185937f, 0.200521f}, {0.16875f, 0.240625f}, {-0.16875f, 0.240625f}},
-    {{-0.16875f, 0.240625f}, {0.16875f, 0.240625f}, {0.148438f, 0.280729f}, {-0.148438f, 0.280729f}},
-    {{-0.148438f, 0.280729f}, {0.148438f, 0.280729f}, {0.125f, 0.320833f}, {-0.125f, 0.320833f}},
-    {{-0.125f, 0.320833f}, {0.125f, 0.320833f}, {0.0984375f, 0.360938f}, {-0.0984375f, 0.360938f}},
-    {{-0.0984375f, 0.360938f}, {0.0984375f, 0.360938f}, {0.06875f, 0.401042f}, {-0.06875f, 0.401042f}},
-    {{-0.06875f, 0.401042f}, {0.06875f, 0.401042f}, {0.0359375f, 0.441146f}, {-0.0359375f, 0.441146f}},
-    {{-0.0359375f, 0.441146f}, {0.0359375f, 0.441146f}, {0.0f, 0.48125f}}};
-
-const std::vector<Vec2> kHullSprayPolygon = {
-    {-0.1575f, -0.39375f},    {0.1575f, -0.39375f},    {0.225f, -0.0875f},       {0.225f, 0.0f},
-    {0.223438f, 0.0401042f},  {0.21875f, 0.0802083f},  {0.210938f, 0.120313f},   {0.2f, 0.160417f},
-    {0.185937f, 0.200521f},   {0.16875f, 0.240625f},   {0.148438f, 0.280729f},   {0.125f, 0.320833f},
-    {0.0984375f, 0.360938f},  {0.06875f, 0.401042f},   {0.0359375f, 0.441146f},  {0.0f, 0.48125f},
-    {-0.0359375f, 0.441146f}, {-0.06875f, 0.401042f},  {-0.0984375f, 0.360938f}, {-0.125f, 0.320833f},
-    {-0.148438f, 0.280729f},  {-0.16875f, 0.240625f},  {-0.185937f, 0.200521f},  {-0.2f, 0.160417f},
-    {-0.210938f, 0.120313f},  {-0.21875f, 0.0802083f}, {-0.223438f, 0.0401042f}, {-0.225f, 0.0f},
-    {-0.225f, -0.0875f}};
-
-void addHullCollider(Components::CCollider2D* collider)
+Components::CParticleEmitter makeBubbleTrailEmitter()
 {
-    if (!collider)
-        return;
-
-    collider->setIsSensor(false);
-    collider->setDensity(kBoatColliderDensity);
-    collider->setFriction(kBoatColliderFriction);
-    collider->setRestitution(kBoatColliderRestitution);
-
-    if (!kBoatHullFixtures.empty())
-    {
-        const auto& first = kBoatHullFixtures.front();
-        collider->createPolygon(first.data(), static_cast<int>(first.size()), 0.02f);
-        for (size_t i = 1; i < kBoatHullFixtures.size(); ++i)
-        {
-            const auto& fixture = kBoatHullFixtures[i];
-            collider->addPolygon(fixture.data(), static_cast<int>(fixture.size()), 0.02f);
-        }
-    }
+    Components::CParticleEmitter e;
+    e.setDirection(Vec2(0.0f, -1.0f));
+    e.setSpreadAngle(1.2f);
+    e.setMinSpeed(0.05f);
+    e.setMaxSpeed(0.2f);
+    e.setMinLifetime(3.0f);
+    e.setMaxLifetime(3.0f);
+    e.setMinSize(0.005f);
+    e.setMaxSize(0.025f);
+    e.setEmissionRate(300.0f);
+    e.setStartColor(Color::White);
+    e.setEndColor(Color::White);
+    e.setStartAlpha(1.0f);
+    e.setEndAlpha(0.5f);
+    e.setGravity(Vec2(0.0f, 0.0f));
+    e.setFadeOut(true);
+    // On `master`, the emitter defaults shrink=true; keep that behavior.
+    e.setShrink(true);
+    e.setShrinkEndScale(0.1f);
+    e.setMaxParticles(1000);
+    e.setZIndex(5);
+    e.setPositionOffset(Vec2(0.0f, -0.65625f));
+    e.setEmissionShape(Components::EmissionShape::Point);
+    e.setLineStart(Vec2(-0.5f, 0.0f));
+    e.setLineEnd(Vec2(0.5f, 0.0f));
+    e.setEmitFromEdge(true);
+    e.setEmitOutward(false);
+    e.setTexturePath("assets/textures/bubble.png");
+    return e;
 }
 
-void configureBoatPhysics(Components::CPhysicsBody2D* body)
+Components::CParticleEmitter makeHullSprayEmitter()
 {
-    if (!body)
-        return;
-    body->setBodyType(Components::BodyType::Dynamic);
-    body->setDensity(kBoatDensity);
-    body->setFriction(kBoatFriction);
-    body->setRestitution(kBoatRestitution);
-    body->setFixedRotation(false);
-    body->setLinearDamping(kBoatLinearDamping);
-    body->setAngularDamping(kBoatAngularDamping);
-    body->setGravityScale(kBoatGravityScale);
-}
+    Components::CParticleEmitter e;
+    e.setDirection(Vec2(0.0f, 1.0f));
+    e.setSpreadAngle(0.4f);
+    e.setMinSpeed(0.122925f);
+    e.setMaxSpeed(0.4917f);
+    e.setMinLifetime(0.5f);
+    e.setMaxLifetime(2.4f);
+    e.setMinSize(0.006f);
+    e.setMaxSize(0.02f);
+    e.setEmissionRate(938.808f);
+    e.setStartColor(Color(220, 240, 255, 255));
+    e.setEndColor(Color(255, 255, 255, 255));
+    e.setStartAlpha(0.9f);
+    e.setEndAlpha(0.0f);
+    e.setGravity(Vec2(0.0f, 0.0f));
+    e.setMinRotationSpeed(-3.0f);
+    e.setMaxRotationSpeed(3.0f);
+    e.setFadeOut(true);
+    e.setShrink(true);
+    e.setShrinkEndScale(0.1f);
+    e.setMaxParticles(7500);
+    e.setZIndex(5);
+    e.setEmissionShape(Components::EmissionShape::Polygon);
+    e.setEmitFromEdge(true);
+    e.setEmitOutward(true);
+    e.setLineStart(Vec2(-0.5f, 0.0f));
+    e.setLineEnd(Vec2(0.5f, 0.0f));
+    e.setTexturePath("assets/textures/bubble.png");
 
-void configureBubbleEmitter(Components::CParticleEmitter* emitter, sf::Texture* texture)
-{
-    if (!emitter)
-        return;
-    emitter->setDirection(kBubbleDirection);
-    emitter->setSpreadAngle(kBubbleSpread);
-    emitter->setMinSpeed(kBubbleMinSpeed);
-    emitter->setMaxSpeed(kBubbleMaxSpeed);
-    emitter->setMinLifetime(kBubbleMinLifetime);
-    emitter->setMaxLifetime(kBubbleMaxLifetime);
-    emitter->setMinSize(kBubbleMinSize);
-    emitter->setMaxSize(kBubbleMaxSize);
-    emitter->setEmissionRate(kBubbleEmissionRate);
-    emitter->setStartAlpha(kBubbleStartAlpha);
-    emitter->setEndAlpha(kBubbleEndAlpha);
-    emitter->setGravity(Vec2(0.0f, 0.0f));
-    emitter->setMaxParticles(kBubbleMaxParticles);
-    emitter->setZIndex(kBubbleZIndex);
-    emitter->setPositionOffset(kBubbleOffset);
-    emitter->setEmissionShape(Components::EmissionShape::Point);
-    emitter->setLineStart(Vec2(-0.5f, 0.0f));
-    emitter->setLineEnd(Vec2(0.5f, 0.0f));
-    emitter->setEmitFromEdge(true);
-    emitter->setEmitOutward(false);
-    if (texture)
-    {
-        texture->setSmooth(true);
-        emitter->setTexture(texture);
-    }
-}
+    // Boat hull spray polygon (ported from the old Example constants).
+    e.setPolygonVertices({
+        {-0.1575f, -0.39375f},    {0.1575f, -0.39375f},    {0.225f, -0.0875f},       {0.225f, 0.0f},
+        {0.223438f, 0.0401042f},  {0.21875f, 0.0802083f},  {0.210938f, 0.120313f},   {0.2f, 0.160417f},
+        {0.185937f, 0.200521f},   {0.16875f, 0.240625f},   {0.148438f, 0.280729f},   {0.125f, 0.320833f},
+        {0.0984375f, 0.360938f},  {0.06875f, 0.401042f},   {0.0359375f, 0.441146f},  {0.0f, 0.48125f},
+        {-0.0359375f, 0.441146f}, {-0.06875f, 0.401042f},  {-0.0984375f, 0.360938f}, {-0.125f, 0.320833f},
+        {-0.148438f, 0.280729f},  {-0.16875f, 0.240625f},  {-0.185937f, 0.200521f},  {-0.2f, 0.160417f},
+        {-0.210938f, 0.120313f},  {-0.21875f, 0.0802083f}, {-0.223438f, 0.0401042f}, {-0.225f, 0.0f},
+        {-0.225f, -0.0875f},
+    });
 
-void configureHullSprayEmitter(Components::CParticleEmitter* emitter, sf::Texture* texture)
-{
-    if (!emitter)
-        return;
-    emitter->setDirection(kSprayDirection);
-    emitter->setSpreadAngle(kSpraySpread);
-    emitter->setMinSpeed(kSprayMinSpeed);
-    emitter->setMaxSpeed(kSprayMaxSpeed);
-    emitter->setMinLifetime(kSprayMinLifetime);
-    emitter->setMaxLifetime(kSprayMaxLifetime);
-    emitter->setMinSize(kSprayMinSize);
-    emitter->setMaxSize(kSprayMaxSize);
-    emitter->setEmissionRate(kSprayEmissionRate);
-    emitter->setStartColor(Color(220, 240, 255, 255));
-    emitter->setEndColor(Color(255, 255, 255, 255));
-    emitter->setGravity(Vec2(0.0f, 0.0f));
-    emitter->setStartAlpha(kSprayStartAlpha);
-    emitter->setEndAlpha(kSprayEndAlpha);
-    emitter->setMinRotationSpeed(kSprayMinRotationSpeed);
-    emitter->setMaxRotationSpeed(kSprayMaxRotationSpeed);
-    emitter->setFadeOut(true);
-    emitter->setShrink(true);
-    emitter->setShrinkEndScale(kSprayShrinkEnd);
-    emitter->setMaxParticles(kSprayMaxParticles);
-    emitter->setZIndex(kSprayZIndex);
-    emitter->setEmissionShape(Components::EmissionShape::Polygon);
-    emitter->setEmitFromEdge(true);
-    emitter->setEmitOutward(true);
-    emitter->setLineStart(Vec2(-0.5f, 0.0f));
-    emitter->setLineEnd(Vec2(0.5f, 0.0f));
-    emitter->setPolygonVertices(kHullSprayPolygon);
-    if (texture)
-    {
-        texture->setSmooth(true);
-        emitter->setTexture(texture);
-    }
+    return e;
 }
 
 }  // namespace
 
-Boat::Boat(const std::string& tag, size_t id, Systems::SInput* inputManager, Systems::SAudio* audioSystem)
-    : Entity(tag, id), m_inputManager(inputManager), m_audioSystem(audioSystem), m_motorBoatHandle(AudioHandle::invalid())
+void BoatScript::onCreate(Entity self, World& world)
 {
-    // Load textures internally
-    if (!m_bubbleTexture.loadFromFile("assets/textures/bubble.png"))
+    auto* input = world.components().tryGet<Components::CInputController>(self);
+    if (!input)
     {
-        std::cout << "Warning: Failed to load bubble texture for Boat" << std::endl;
-    }
-    else
-    {
-        m_bubbleTexture.setSmooth(true);
+        input = world.components().add<Components::CInputController>(self);
     }
 
-    if (!m_sprayTexture.loadFromFile("assets/textures/bubble.png"))
+    bindMovement(*input);
+
+    setupParticles(self, world);
+    setupFixedMovement(self, world);
+
+    std::cout << "Controls:\n"
+              << "  WASD : Move player boat (W/S = forward/back, A/D = rotate)\n";
+}
+
+void BoatScript::onUpdate(float /*deltaTime*/, Entity self, World& world)
+{
+    auto* input = world.components().tryGet<Components::CInputController>(self);
+    if (!input)
     {
-        std::cout << "Warning: Failed to load spray texture for Boat" << std::endl;
-    }
-    else
-    {
-        m_sprayTexture.setSmooth(true);
-    }
-}
-
-void Boat::init()
-{
-    configureBoatBody();
-    configureBubbleTrail();
-    configureHullSpray();
-    bindInputCallbacks();
-    setupFixedUpdate();
-}
-
-void Boat::configureBoatBody()
-{
-    m_transform   = addComponent<Components::CTransform>(Vec2(kBoatPosX, kBoatPosY), Vec2(1.0f, 1.0f), kBoatRot);
-    auto* texture = addComponent<Components::CTexture>("assets/textures/boat.png");
-    texture->setSmooth(true);
-    addComponent<Components::CRenderable>(Components::VisualType::Sprite, Color::White, 10, true);
-    addComponent<Components::CMaterial>(Color::White, Components::BlendMode::Alpha, 1.0f);
-
-    m_physicsBody = addComponent<Components::CPhysicsBody2D>();
-    configureBoatPhysics(m_physicsBody);
-    m_physicsBody->initialize(b2Vec2{kBoatPosX, kBoatPosY}, Components::BodyType::Dynamic);
-
-    auto* collider = addComponent<Components::CCollider2D>();
-    addHullCollider(collider);
-
-    m_input = addComponent<Components::CInputController>();
-}
-
-void Boat::configureBubbleTrail()
-{
-    m_bubbleTrail = Systems::SEntity::instance().addEntity<::Entity::Entity>("bubble_trail");
-    m_bubbleTrail->addComponent<Components::CTransform>(Vec2(kBoatPosX, kBoatPosY), Vec2(1.0f, 1.0f), kBoatRot);
-    m_bubbleEmitter = m_bubbleTrail->addComponent<Components::CParticleEmitter>();
-    configureBubbleEmitter(m_bubbleEmitter, &m_bubbleTexture);
-}
-
-void Boat::configureHullSpray()
-{
-    m_hullSpray = Systems::SEntity::instance().addEntity<::Entity::Entity>("hull_spray");
-    m_hullSpray->addComponent<Components::CTransform>(Vec2(kBoatPosX, kBoatPosY), Vec2(1.0f, 1.0f), kBoatRot);
-    m_hullEmitter = m_hullSpray->addComponent<Components::CParticleEmitter>();
-    configureHullSprayEmitter(m_hullEmitter, &m_sprayTexture);
-}
-
-void Boat::syncEmittersToBoat()
-{
-    if (!m_transform)
         return;
+    }
 
-    Vec2  pos      = m_transform->getPosition();
-    float rotation = m_transform->getRotation();
+    auto& audio = Systems::SystemLocator::audio();
 
-    if (m_bubbleTrail && m_bubbleTrail->isAlive())
+    const bool forward  = isActionActive(*input, "MoveForward");
+    const bool backward = isActionActive(*input, "MoveBackward");
+
+    if (forward || backward)
     {
-        if (auto* t = m_bubbleTrail->getComponent<Components::CTransform>())
+        if (!m_motorPlaying)
         {
-            t->setPosition(pos);
-            t->setRotation(rotation);
+            m_motorPlaying = audio.playSfx(self, "motor_boat", true, kMotorVolume);
+        }
+    }
+    else
+    {
+        if (m_motorPlaying)
+        {
+            audio.stopSfx(self);
+            m_motorPlaying = false;
         }
     }
 
-    if (m_hullSpray && m_hullSpray->isAlive())
+    // Match `master`: hull spray emission rate scales with boat speed.
+    const b2Vec2 vel   = Systems::SystemLocator::physics().getLinearVelocity(self);
+    const float  speed = std::sqrt((vel.x * vel.x) + (vel.y * vel.y));
+
+    if (m_hullSpray.isValid())
     {
-        if (auto* t = m_hullSpray->getComponent<Components::CTransform>())
+        auto* emitter = world.components().tryGet<Components::CParticleEmitter>(m_hullSpray);
+        if (emitter)
         {
-            t->setPosition(pos);
-            t->setRotation(rotation);
+            const float MIN_SPEED_FOR_SPRAY = 0.05f;
+            const float MAX_SPEED_FOR_SPRAY = 2.0f;
+            const float MIN_EMISSION_RATE   = 0.0f;
+            const float MAX_EMISSION_RATE   = 5000.0f;
+
+            float emissionRate = 0.0f;
+            if (speed > MIN_SPEED_FOR_SPRAY)
+            {
+                float normalizedSpeed = (speed - MIN_SPEED_FOR_SPRAY) / (MAX_SPEED_FOR_SPRAY - MIN_SPEED_FOR_SPRAY);
+                normalizedSpeed       = std::min(1.0f, std::max(0.0f, normalizedSpeed));
+                emissionRate = MIN_EMISSION_RATE + (MAX_EMISSION_RATE - MIN_EMISSION_RATE) * (normalizedSpeed * normalizedSpeed);
+
+                float speedMultiplier = 1.0f + (speed / MAX_SPEED_FOR_SPRAY) * 0.5f;
+                emitter->setMinSpeed(0.1f * speedMultiplier);
+                emitter->setMaxSpeed(0.4f * speedMultiplier);
+            }
+
+            emitter->setEmissionRate(emissionRate);
         }
     }
 }
 
-void Boat::updateHullSprayForSpeed(float speed)
+void BoatScript::setupParticles(Entity self, World& world)
 {
-    if (!m_hullEmitter)
-        return;
+    auto*       boatTransform = world.components().tryGet<Components::CTransform>(self);
+    const Vec2  pos           = boatTransform ? boatTransform->getPosition() : Vec2{0.0f, 0.0f};
+    const float rotation      = boatTransform ? boatTransform->getRotation() : 0.0f;
 
-    // Define speed thresholds
-    const float MIN_SPEED_FOR_SPRAY = 0.05f;    // Start spraying at this speed (m/s)
-    const float MAX_SPEED_FOR_SPRAY = 2.0f;     // Maximum spray at this speed (m/s)
-    const float MIN_EMISSION_RATE   = 0.0f;     // Emission rate at minimum speed
-    const float MAX_EMISSION_RATE   = 5000.0f;  // Emission rate at maximum speed
-
-    float emissionRate = 0.0f;
-    if (speed > MIN_SPEED_FOR_SPRAY)
+    // Spawn separate entities for each emitter (only one CParticleEmitter per entity type).
+    if (!m_bubbleTrail.isValid())
     {
-        float normalizedSpeed = (speed - MIN_SPEED_FOR_SPRAY) / (MAX_SPEED_FOR_SPRAY - MIN_SPEED_FOR_SPRAY);
-        normalizedSpeed       = std::min(1.0f, std::max(0.0f, normalizedSpeed));
-        emissionRate = MIN_EMISSION_RATE + (MAX_EMISSION_RATE - MIN_EMISSION_RATE) * (normalizedSpeed * normalizedSpeed);
-
-        float speedMultiplier = 1.0f + (speed / MAX_SPEED_FOR_SPRAY) * 0.5f;
-        m_hullEmitter->setMinSpeed(0.1f * speedMultiplier);
-        m_hullEmitter->setMaxSpeed(0.4f * speedMultiplier);
+        m_bubbleTrail = world.queueSpawn(Components::CTransform(pos, Vec2{1.0f, 1.0f}, rotation), makeBubbleTrailEmitter());
     }
 
-    m_hullEmitter->setEmissionRate(emissionRate);
-}
-
-void Boat::update(float /*deltaTime*/)
-{
-    if (!m_physicsBody || !m_physicsBody->isInitialized())
-        return;
-
-    // Compute boat speed for spray modulation
-    b2Vec2 velocity = m_physicsBody->getLinearVelocity();
-    float  speed    = std::sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
-
-    updateHullSprayForSpeed(speed);
-    syncEmittersToBoat();
-    checkStopMotorBoat();
-}
-
-void Boat::bindInputCallbacks()
-{
-    if (!m_input || !m_physicsBody || !m_inputManager)
-        return;
-
-    // Register boat input actions with the input system
-    ActionBinding moveForward;
-    moveForward.keys.push_back(KeyCode::W);
-    moveForward.trigger = ActionTrigger::Held;
-    m_inputManager->bindAction("MoveForward", moveForward);
-
-    ActionBinding moveBackward;
-    moveBackward.keys.push_back(KeyCode::S);
-    moveBackward.trigger = ActionTrigger::Held;
-    m_inputManager->bindAction("MoveBackward", moveBackward);
-
-    ActionBinding rotateLeft;
-    rotateLeft.keys.push_back(KeyCode::A);
-    rotateLeft.trigger = ActionTrigger::Held;
-    m_inputManager->bindAction("RotateLeft", rotateLeft);
-
-    ActionBinding rotateRight;
-    rotateRight.keys.push_back(KeyCode::D);
-    rotateRight.trigger = ActionTrigger::Held;
-    m_inputManager->bindAction("RotateRight", rotateRight);
-
-    // Set callbacks for movement actions - store input intent instead of applying forces
-    m_input->setActionCallback("MoveForward",
-                               [this](ActionState state)
-                               {
-                                   if (state == ActionState::Held || state == ActionState::Pressed)
-                                   {
-                                       m_wantsForward = true;
-                                       startMotorBoat();
-                                   }
-                                   else if (state == ActionState::Released)
-                                   {
-                                       m_wantsForward = false;
-                                   }
-                               });
-
-    m_input->setActionCallback("MoveBackward",
-                               [this](ActionState state)
-                               {
-                                   if (state == ActionState::Held || state == ActionState::Pressed)
-                                   {
-                                       m_wantsBackward = true;
-                                       startMotorBoat();
-                                   }
-                                   else if (state == ActionState::Released)
-                                   {
-                                       m_wantsBackward = false;
-                                   }
-                               });
-
-    m_input->setActionCallback("RotateLeft",
-                               [this](ActionState state)
-                               {
-                                   if (state == ActionState::Held || state == ActionState::Pressed)
-                                   {
-                                       m_wantsLeft = true;
-                                   }
-                                   else if (state == ActionState::Released)
-                                   {
-                                       m_wantsLeft = false;
-                                   }
-                               });
-
-    m_input->setActionCallback("RotateRight",
-                               [this](ActionState state)
-                               {
-                                   if (state == ActionState::Held || state == ActionState::Pressed)
-                                   {
-                                       m_wantsRight = true;
-                                   }
-                                   else if (state == ActionState::Released)
-                                   {
-                                       m_wantsRight = false;
-                                   }
-                               });
-}
-
-void Boat::startMotorBoat()
-{
-    if (!m_audioSystem)
-        return;
-
-    // Check if motor boat is already playing
-    if (m_audioSystem->isPlayingSFX(m_motorBoatHandle))
+    if (!m_hullSpray.isValid())
     {
-        // If fading out, fade back in to target volume
-        FadeConfig fadeIn = FadeConfig::linear(kMotorFadeDuration, true);
-        m_audioSystem->fadeSFX(m_motorBoatHandle, kMotorMaxVolume, fadeIn);
-        return;
-    }
-
-    // Start motor boat with fade-in
-    FadeConfig fadeIn = FadeConfig::linear(kMotorFadeDuration, true);
-    m_motorBoatHandle = m_audioSystem->playSFXWithFade("motor_boat", kMotorMaxVolume, 1.0f, true, fadeIn);
-}
-
-void Boat::checkStopMotorBoat()
-{
-    if (!m_audioSystem || !m_input)
-        return;
-
-    // Check if any movement action is still active using action states
-    bool anyMovementActive = m_input->isActionDown("MoveForward") || m_input->isActionDown("MoveBackward");
-
-    if (!anyMovementActive && m_audioSystem->isPlayingSFX(m_motorBoatHandle))
-    {
-        // Stop with fade-out
-        FadeConfig fadeOut = FadeConfig::linear(kMotorFadeDuration, true);
-        m_audioSystem->stopSFXWithFade(m_motorBoatHandle, fadeOut);
+        m_hullSpray = world.queueSpawn(Components::CTransform(pos, Vec2{1.0f, 1.0f}, rotation), makeHullSprayEmitter());
     }
 }
 
-void Boat::setupFixedUpdate()
+void BoatScript::setupFixedMovement(Entity self, World& world)
 {
-    if (!m_physicsBody)
-        return;
+    World* worldPtr = &world;
+    auto&  physics  = Systems::SystemLocator::physics();
 
-    // Set the fixed-update callback that runs once per physics step (60Hz)
-    // This ensures frame-rate independent movement
-    m_physicsBody->setFixedUpdateCallback(
-        [this](float /*timeStep*/)
+    physics.setFixedUpdateCallback(
+        self,
+        [this, self, worldPtr](float /*timeStep*/)
         {
-            if (!m_physicsBody || !m_physicsBody->isInitialized())
+            if (!worldPtr)
+            {
                 return;
-
-            // Apply forward/backward thrust
-            if (m_wantsForward)
-            {
-                b2Vec2 forward = m_physicsBody->getForwardVector();
-                b2Vec2 force   = {forward.x * kPlayerForce, forward.y * kPlayerForce};
-                m_physicsBody->applyForceToCenter(force);
-            }
-            else if (m_wantsBackward)
-            {
-                b2Vec2 forward = m_physicsBody->getForwardVector();
-                b2Vec2 force   = {-forward.x * (kPlayerForce / 2), -forward.y * (kPlayerForce / 2)};
-                m_physicsBody->applyForceToCenter(force);
             }
 
-            // Apply rudder steering (left)
-            if (m_wantsLeft)
+            auto  components = worldPtr->components();
+            auto* input      = components.tryGet<Components::CInputController>(self);
+            if (!input)
             {
-                b2Vec2 forward = m_physicsBody->getForwardVector();
-                b2Vec2 right   = m_physicsBody->getRightVector();
-                b2Vec2 vel     = m_physicsBody->getLinearVelocity();
+                return;
+            }
 
-                float forwardVelSigned = forward.x * vel.x + forward.y * vel.y;
-                float absForwardVel    = std::fabs(forwardVelSigned);
+            const bool forward  = isActionActive(*input, "MoveForward");
+            const bool backward = isActionActive(*input, "MoveBackward");
+            const bool left     = isActionActive(*input, "RotateLeft");
+            const bool right    = isActionActive(*input, "RotateRight");
+
+            auto& physics = Systems::SystemLocator::physics();
+
+            // --- Thrust (frame-rate independent; runs at fixed 60Hz) ---
+            if (forward)
+            {
+                const b2Vec2 f = physics.getForwardVector(self);
+                physics.applyForceToCenter(self, b2Vec2{f.x * kPlayerForce, f.y * kPlayerForce});
+            }
+            else if (backward)
+            {
+                const b2Vec2 f = physics.getForwardVector(self);
+                physics.applyForceToCenter(self, b2Vec2{-f.x * (kPlayerForce * 0.5f), -f.y * (kPlayerForce * 0.5f)});
+            }
+
+            // --- Rudder steering (matches old behavior: steer only when moving) ---
+            if (left || right)
+            {
+                const b2Vec2 f   = physics.getForwardVector(self);
+                const b2Vec2 r   = physics.getRightVector(self);
+                const b2Vec2 vel = physics.getLinearVelocity(self);
+
+                const float forwardVelSigned = (f.x * vel.x) + (f.y * vel.y);
+                const float absForwardVel    = std::fabs(forwardVelSigned);
 
                 if (absForwardVel >= kMinSpeedForSteering)
                 {
-                    b2Vec2 stern   = m_physicsBody->getPosition() - forward * kRudderOffsetMeters;
-                    b2Vec2 lateral = (forwardVelSigned >= 0.0f) ? right : b2Vec2{-right.x, -right.y};
+                    const b2Vec2 pos = physics.getPosition(self);
+                    const b2Vec2 stern{pos.x - f.x * kRudderOffsetMeters, pos.y - f.y * kRudderOffsetMeters};
 
-                    float speedEffective = std::max(0.0f, absForwardVel - kMinSpeedForSteering);
-                    float normalized     = speedEffective / (speedEffective + kRudderSmoothK);
-                    float speedFactor    = kRudderMinEffectiveScale + normalized * (1.0f - kRudderMinEffectiveScale);
+                    const float speedEffective = std::max(0.0f, absForwardVel - kMinSpeedForSteering);
+                    const float normalized     = speedEffective / (speedEffective + kRudderSmoothK);
+                    const float speedFactor = kRudderMinEffectiveScale + normalized * (1.0f - kRudderMinEffectiveScale);
 
-                    float  forceMag = kPlayerTurningForce * kRudderForceMultiplier * speedFactor;
-                    b2Vec2 force{lateral.x * forceMag, lateral.y * forceMag};
+                    const float forceMag = kPlayerTurningForce * kRudderForceMultiplier * speedFactor;
 
-                    m_physicsBody->applyForce(force, stern);
+                    // Choose lateral direction based on desired turn AND whether we're moving forward/backward.
+                    b2Vec2 lateral{0.0f, 0.0f};
+                    if (left)
+                    {
+                        lateral = (forwardVelSigned >= 0.0f) ? r : b2Vec2{-r.x, -r.y};
+                    }
+                    else
+                    {
+                        lateral = (forwardVelSigned >= 0.0f) ? b2Vec2{-r.x, -r.y} : r;
+                    }
+
+                    physics.applyForce(self, b2Vec2{lateral.x * forceMag, lateral.y * forceMag}, stern);
                 }
             }
 
-            // Apply rudder steering (right)
-            if (m_wantsRight)
+            // --- Keep particle emitters pinned to the boat transform ---
+            auto* boatT = components.tryGet<Components::CTransform>(self);
+            if (!boatT)
             {
-                b2Vec2 forward = m_physicsBody->getForwardVector();
-                b2Vec2 right   = m_physicsBody->getRightVector();
-                b2Vec2 vel     = m_physicsBody->getLinearVelocity();
+                return;
+            }
 
-                float forwardVelSigned = forward.x * vel.x + forward.y * vel.y;
-                float absForwardVel    = std::fabs(forwardVelSigned);
-
-                if (absForwardVel >= kMinSpeedForSteering)
+            if (m_bubbleTrail.isValid())
+            {
+                if (auto* t = components.tryGet<Components::CTransform>(m_bubbleTrail))
                 {
-                    b2Vec2 stern   = m_physicsBody->getPosition() - forward * kRudderOffsetMeters;
-                    b2Vec2 lateral = (forwardVelSigned >= 0.0f) ? b2Vec2{-right.x, -right.y} : right;
-
-                    float speedEffective = std::max(0.0f, absForwardVel - kMinSpeedForSteering);
-                    float normalized     = speedEffective / (speedEffective + kRudderSmoothK);
-                    float speedFactor    = kRudderMinEffectiveScale + normalized * (1.0f - kRudderMinEffectiveScale);
-
-                    float  forceMag = kPlayerTurningForce * kRudderForceMultiplier * speedFactor;
-                    b2Vec2 force{lateral.x * forceMag, lateral.y * forceMag};
-
-                    m_physicsBody->applyForce(force, stern);
+                    t->setPosition(boatT->getPosition());
+                    t->setRotation(boatT->getRotation());
+                }
+            }
+            if (m_hullSpray.isValid())
+            {
+                if (auto* t = components.tryGet<Components::CTransform>(m_hullSpray))
+                {
+                    t->setPosition(boatT->getPosition());
+                    t->setRotation(boatT->getRotation());
                 }
             }
         });
 }
+
+void BoatScript::bindMovement(Components::CInputController& input)
+{
+    {
+        ActionBinding b;
+        b.keys    = {KeyCode::W};
+        b.trigger = ActionTrigger::Held;
+        input.bindings["MoveForward"].push_back({b, 0});
+    }
+    {
+        ActionBinding b;
+        b.keys    = {KeyCode::S};
+        b.trigger = ActionTrigger::Held;
+        input.bindings["MoveBackward"].push_back({b, 0});
+    }
+    {
+        ActionBinding b;
+        b.keys    = {KeyCode::A};
+        b.trigger = ActionTrigger::Held;
+        input.bindings["RotateLeft"].push_back({b, 0});
+    }
+    {
+        ActionBinding b;
+        b.keys    = {KeyCode::D};
+        b.trigger = ActionTrigger::Held;
+        input.bindings["RotateRight"].push_back({b, 0});
+    }
+}
+
+}  // namespace Example

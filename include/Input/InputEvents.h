@@ -1,9 +1,9 @@
 #pragma once
 
 #include <string>
-#include "Input/KeyCode.h"
-#include "Input/MouseButton.h"
-#include "utility/Vec2i.h"
+#include "KeyCode.h"
+#include "MouseButton.h"
+#include "Vec2i.h"
 
 enum class InputEventType
 {

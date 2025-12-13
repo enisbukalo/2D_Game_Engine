@@ -1,7 +1,6 @@
 #ifndef GAMEENGINE_H
 #define GAMEENGINE_H
 
-#include <spdlog/spdlog.h>
 #include <memory>
 #include <string>
 #include <vector>
@@ -17,6 +16,7 @@
 #include <SInput.h>
 #include <SParticle.h>
 #include <SRenderer.h>
+#include <SScript.h>
 
 // Convenient namespace declarations for documentation
 // Entity is now a plain struct (just an ID), not in a namespace
@@ -96,12 +96,6 @@ public:
      */
     bool is_running() const;
 
-    /**
-     * @brief Gets the logger instance for external logging
-     * @return Shared pointer to the spdlog logger, or nullptr if not initialized
-     */
-    static std::shared_ptr<spdlog::logger> getLogger();
-
     // System and Manager Accessors
 
     /**
@@ -158,6 +152,7 @@ public:
 private:
     std::unique_ptr<Systems::SRenderer>  m_renderer;  ///< Renderer owned by engine
     std::unique_ptr<Systems::SInput>     m_input;     ///< Input system owned by engine
+    std::unique_ptr<Systems::SScript>    m_script;    ///< Script system owned by engine
     std::unique_ptr<Systems::S2DPhysics> m_physics;   ///< Physics system owned by engine
     std::unique_ptr<Systems::SParticle>  m_particle;  ///< Particle system owned by engine
     std::unique_ptr<Systems::SAudio>     m_audio;     ///< Audio system owned by engine

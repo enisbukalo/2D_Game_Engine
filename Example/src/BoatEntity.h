@@ -1,80 +1,42 @@
 #pragma once
 
-#include <GameEngine.h>
-#include <Vec2.h>
-#include <memory>
-#include "AudioTypes.h"
-#include "Components.h"
+#include <Components.h>
 
-namespace Systems
+namespace Components
 {
-class SAudio;
-class SInput;
-}  // namespace Systems
+struct CInputController;
+}
 
-// Boat is a concrete entity that owns the player boat plus its emitters.
-class Boat : public Entity::Entity
+namespace Example
 {
-protected:
-    friend class Systems::SEntity;
 
-    Boat(const std::string& tag, size_t id, Systems::SInput* inputManager, Systems::SAudio* audioSystem);
-
-    void init() override;
-    void update(float deltaTime) override;
-
-    Components::CPhysicsBody2D* getPhysicsBody() const
-    {
-        return m_physicsBody;
-    }
-    Components::CInputController* getInputController() const
-    {
-        return m_input;
-    }
-    std::shared_ptr<::Entity::Entity> getBubbleTrailEntity() const
-    {
-        return m_bubbleTrail;
-    }
-    std::shared_ptr<::Entity::Entity> getHullSprayEntity() const
-    {
-        return m_hullSpray;
-    }
-    Components::CParticleEmitter* getHullEmitter() const
-    {
-        return m_hullEmitter;
-    }
+class BoatScript final : public Components::INativeScript
+{
+public:
+    void onCreate(Entity self, World& world) override;
+    void onUpdate(float deltaTime, Entity self, World& world) override;
 
 private:
-    void configureBoatBody();
-    void configureBubbleTrail();
-    void configureHullSpray();
-    void bindInputCallbacks();
-    void setupFixedUpdate();
-    void syncEmittersToBoat();
-    void updateHullSprayForSpeed(float speed);
-    void startMotorBoat();
-    void checkStopMotorBoat();
+    static void bindMovement(Components::CInputController& input);
 
-    sf::Texture m_bubbleTexture;
-    sf::Texture m_sprayTexture;
+    void setupParticles(Entity self, World& world);
+    void setupFixedMovement(Entity self, World& world);
 
-    Systems::SInput* m_inputManager = nullptr;
-    Systems::SAudio* m_audioSystem  = nullptr;
-    AudioHandle      m_motorBoatHandle;
+    // Tuned to match the old Example feel (pre-refactor).
+    static constexpr float kPlayerForce        = 5.0f;
+    static constexpr float kPlayerTurningForce = 0.5f;
+    static constexpr float kMotorVolume        = 0.45f;
 
-    Components::CTransform*       m_transform   = nullptr;
-    Components::CPhysicsBody2D*   m_physicsBody = nullptr;
-    Components::CInputController* m_input       = nullptr;
+    static constexpr float kRudderOffsetMeters      = 0.35f;
+    static constexpr float kRudderForceMultiplier   = 1.0f;
+    static constexpr float kRudderSmoothK           = 0.18f;
+    static constexpr float kMinSpeedForSteering     = 0.15f;
+    static constexpr float kRudderMinEffectiveScale = 0.025f;
 
-    // Input intent state (set by input callbacks, consumed by fixed update)
-    bool m_wantsForward  = false;
-    bool m_wantsBackward = false;
-    bool m_wantsLeft     = false;
-    bool m_wantsRight    = false;
+    bool m_motorPlaying = false;
 
-    std::shared_ptr<::Entity::Entity> m_bubbleTrail;
-    Components::CParticleEmitter*     m_bubbleEmitter = nullptr;
-
-    std::shared_ptr<::Entity::Entity> m_hullSpray;
-    Components::CParticleEmitter*     m_hullEmitter = nullptr;
+    Entity m_bubbleTrail = Entity::null();
+    Entity m_hullSpray   = Entity::null();
 };
+
+}  // namespace Example

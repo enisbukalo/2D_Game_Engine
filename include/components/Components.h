@@ -18,6 +18,9 @@
 #include "CInputController.h"
 #include "CParticleEmitter.h"
 
+// Scripting / behaviours
+#include "CNativeScript.h"
+
 // Utility / other components
 #include "CMaterial.h"
 #include "CName.h"

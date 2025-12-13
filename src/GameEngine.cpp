@@ -4,6 +4,7 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 #include <cassert>
+#include <iostream>
 #include <stdexcept>
 #include <typeindex>
 
@@ -14,6 +15,7 @@
 GameEngine::GameEngine(const Systems::WindowConfig& windowConfig, Vec2 gravity, uint8_t subStepCount, float timeStep, float pixelsPerMeter)
     : m_renderer(std::make_unique<Systems::SRenderer>()),
       m_input(std::make_unique<Systems::SInput>()),
+      m_script(std::make_unique<Systems::SScript>()),
       m_physics(std::make_unique<Systems::S2DPhysics>()),
       m_particle(std::make_unique<Systems::SParticle>()),
       m_audio(std::make_unique<Systems::SAudio>()),
@@ -33,22 +35,39 @@ GameEngine::GameEngine(const Systems::WindowConfig& windowConfig, Vec2 gravity, 
     // Register component type names for diagnostics
     registerComponentTypes();
 
-    // Initialize spdlog logger (using synchronous logging for now)
+    // Initialize spdlog logger. This must not be allowed to crash the game
+    // if a log file cannot be created (e.g., read-only working directory).
     if (!spdlog::get("GameEngine"))
     {
-        auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-        auto file_sink    = std::make_shared<spdlog::sinks::basic_file_sink_mt>("game_engine.log", true);
+        try
+        {
+            auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+            console_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] [Thread:%t] %v");
+            console_sink->set_level(spdlog::level::info);
 
-        console_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] [Thread:%t] %v");
-        file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] [Thread:%t] %v");
+            std::vector<spdlog::sink_ptr> sinks;
+            sinks.push_back(console_sink);
 
-        console_sink->set_level(spdlog::level::info);  // Reduce logging level
-        file_sink->set_level(spdlog::level::debug);
+            try
+            {
+                auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("game_engine.log", true);
+                file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] [Thread:%t] %v");
+                file_sink->set_level(spdlog::level::debug);
+                sinks.push_back(file_sink);
+            }
+            catch (const spdlog::spdlog_ex& e)
+            {
+                std::cerr << "GameEngine: failed to create log file (game_engine.log): " << e.what() << "\n";
+            }
 
-        std::vector<spdlog::sink_ptr> sinks{console_sink, file_sink};
-        auto logger = std::make_shared<spdlog::logger>("GameEngine", sinks.begin(), sinks.end());
-        logger->set_level(spdlog::level::info);  // Set to info to reduce spam
-        spdlog::register_logger(logger);
+            auto logger = std::make_shared<spdlog::logger>("GameEngine", sinks.begin(), sinks.end());
+            logger->set_level(spdlog::level::info);
+            spdlog::register_logger(logger);
+        }
+        catch (const std::exception& e)
+        {
+            std::cerr << "GameEngine: logger initialization failed: " << e.what() << "\n";
+        }
     }
 
     if (auto logger = spdlog::get("GameEngine"))
@@ -69,6 +88,7 @@ GameEngine::GameEngine(const Systems::WindowConfig& windowConfig, Vec2 gravity, 
         {
             logger->error("Failed to initialize SRenderer");
         }
+        std::cerr << "GameEngine: failed to initialize renderer/window.\n";
         return;
     }
 
@@ -83,8 +103,10 @@ GameEngine::GameEngine(const Systems::WindowConfig& windowConfig, Vec2 gravity, 
     m_physics->setSubStepCount(m_subStepCount);  // Set substep count for stability
     m_physics->setTimeStep(m_timeStep);          // Set fixed timestep
 
-    // Initialize input manager and register window event handling
-    m_input->initialize(m_renderer->getWindow(), true);
+    // Initialize input manager and register window event handling.
+    // The engine does not initialize ImGui, so default to not forwarding
+    // events to ImGui to avoid undefined behavior.
+    m_input->initialize(m_renderer->getWindow(), false);
     m_input->subscribe(
         [this](const InputEvent& ev)
         {
@@ -106,9 +128,9 @@ GameEngine::GameEngine(const Systems::WindowConfig& windowConfig, Vec2 gravity, 
     // Note: Users can re-initialize with different scale if needed
     m_particle->initialize(m_renderer->getWindow(), pixelsPerMeter);
 
-    // Maintain ordered list for per-frame updates (input -> physics -> particle -> audio)
+    // Maintain ordered list for per-frame updates (input -> scripts -> physics -> particle -> audio)
     // Audio is marked as PostFlush via ISystem::stage().
-    m_systemOrder = {m_input.get(), m_physics.get(), m_particle.get(), m_audio.get()};
+    m_systemOrder = {m_input.get(), m_script.get(), m_physics.get(), m_particle.get(), m_audio.get()};
 
     if (auto logger = spdlog::get("GameEngine"))
     {
@@ -209,12 +231,6 @@ bool GameEngine::is_running() const
 {
     return m_gameRunning;
 }
-
-std::shared_ptr<spdlog::logger> GameEngine::getLogger()
-{
-    return spdlog::get("GameEngine");
-}
-
 Systems::S2DPhysics& GameEngine::getPhysics()
 {
     return *m_physics;
@@ -255,6 +271,7 @@ void GameEngine::registerComponentTypes()
     m_world.registerTypeName<CName>("CName");
     m_world.registerTypeName<CInputController>("CInputController");
     m_world.registerTypeName<CParticleEmitter>("CParticleEmitter");
+    m_world.registerTypeName<CNativeScript>("CNativeScript");
     m_world.registerTypeName<CAudioSource>("CAudioSource");
     m_world.registerTypeName<CAudioListener>("CAudioListener");
 
@@ -298,6 +315,7 @@ void GameEngine::validateComponentTypeNames()
     validate(CName{}, "CName");
     validate(CInputController{}, "CInputController");
     validate(CParticleEmitter{}, "CParticleEmitter");
+    validate(CNativeScript{}, "CNativeScript");
     validate(CAudioSource{}, "CAudioSource");
     validate(CAudioListener{}, "CAudioListener");
 }

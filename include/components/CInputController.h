@@ -3,7 +3,8 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "Input/ActionBinding.h"
+#include "ActionBinding.h"
+#include "InputEvents.h"
 
 namespace Components
 {

@@ -18,7 +18,7 @@
 #include <utility>
 #include <vector>
 
-#include <spdlog/spdlog.h>
+#include <cstdio>
 
 #include <EntityManager.h>
 
@@ -998,34 +998,29 @@ private:
 
     void logDead(const char* action, Entity entity) const
     {
-        if (auto logger = spdlog::get("GameEngine"))
-        {
-            logger->warn("{}: dead entity idx={} gen={} ignored", action, entity.index, entity.generation);
-        }
+        std::fprintf(stderr,
+                     "GameEngine: %s: dead entity idx=%u gen=%u ignored\n",
+                     action,
+                     static_cast<unsigned>(entity.index),
+                     static_cast<unsigned>(entity.generation));
     }
 
     void logTypeNameMismatch(const std::string& existing, const std::string& incoming) const
     {
-        if (auto logger = spdlog::get("GameEngine"))
-        {
-            logger->error("Component type registered with two names: existing='{}' new='{}'", existing, incoming);
-        }
+        std::fprintf(stderr,
+                     "GameEngine: Component type registered with two names: existing='%s' new='%s'\n",
+                     existing.c_str(),
+                     incoming.c_str());
     }
 
     void logTypeNameCollision(const std::string& typeName) const
     {
-        if (auto logger = spdlog::get("GameEngine"))
-        {
-            logger->error("Component type name '{}' already mapped to a different type", typeName);
-        }
+        std::fprintf(stderr, "GameEngine: Component type name '%s' already mapped to a different type\n", typeName.c_str());
     }
 
     void logTypeLookupFailure(const std::string& typeName) const
     {
-        if (auto logger = spdlog::get("GameEngine"))
-        {
-            logger->error("Component type name '{}' not registered", typeName);
-        }
+        std::fprintf(stderr, "GameEngine: Component type name '%s' not registered\n", typeName.c_str());
     }
 
     void trackComponentAdd(Entity entity, std::type_index typeIdx)

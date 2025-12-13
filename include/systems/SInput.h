@@ -6,10 +6,10 @@
 #include <memory>
 #include <unordered_map>
 #include <vector>
-#include "Input/ActionBinding.h"
-#include "Input/IInputListener.h"
-#include "Input/InputEvents.h"
-#include "Input/MouseButton.h"
+#include "ActionBinding.h"
+#include "IInputListener.h"
+#include "InputEvents.h"
+#include "MouseButton.h"
 #include "System.h"
 
 using ListenerId = size_t;

@@ -316,9 +316,8 @@ void SRenderer::renderEntity(Entity entity, World& world)
         finalColor.a = static_cast<uint8_t>((finalColor.a * material->getOpacity()));
     }
 
-    // Get texture if available
+    // Get texture if available (independent of material)
     const sf::Texture* texture = nullptr;
-    if (material)
     {
         auto* textureComp = components.tryGet<::Components::CTexture>(entity);
         if (textureComp)
@@ -327,9 +326,8 @@ void SRenderer::renderEntity(Entity entity, World& world)
         }
     }
 
-    // Get shader if available
+    // Get shader if available (independent of material)
     const sf::Shader* shader = nullptr;
-    if (material)
     {
         auto* shaderComp = components.tryGet<::Components::CShader>(entity);
         if (shaderComp)
