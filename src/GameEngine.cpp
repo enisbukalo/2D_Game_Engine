@@ -12,15 +12,15 @@
 #include <SystemLocator.h>
 
 GameEngine::GameEngine(const Systems::WindowConfig& windowConfig, Vec2 gravity, uint8_t subStepCount, float timeStep, float pixelsPerMeter)
-    : m_gravity(gravity), m_subStepCount(subStepCount), m_timeStep(1.0f / 60.0f)
+    : m_renderer(std::make_unique<Systems::SRenderer>()),
+      m_input(std::make_unique<Systems::SInput>()),
+      m_physics(std::make_unique<Systems::S2DPhysics>()),
+      m_particle(std::make_unique<Systems::SParticle>()),
+      m_audio(std::make_unique<Systems::SAudio>()),
+      m_subStepCount(subStepCount),
+      m_timeStep(1.0f / 60.0f),
+      m_gravity(gravity)
 {
-    (void)timeStep;
-    m_renderer = std::make_unique<Systems::SRenderer>();
-    m_input    = std::make_unique<Systems::SInput>();
-    m_physics  = std::make_unique<Systems::S2DPhysics>();
-    m_particle = std::make_unique<Systems::SParticle>();
-    m_audio    = std::make_unique<Systems::SAudio>();
-
     Systems::SystemLocator::provideRenderer(m_renderer.get());
     Systems::SystemLocator::provideInput(m_input.get());
     Systems::SystemLocator::providePhysics(m_physics.get());

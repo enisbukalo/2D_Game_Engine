@@ -1,6 +1,7 @@
 #ifndef CPARTICLEEMITTER_H
 #define CPARTICLEEMITTER_H
 
+#include <algorithm>
 #include <cstddef>
 #include <string>
 #include <vector>
@@ -66,12 +67,8 @@ public:
      */
     inline size_t getAliveCount() const
     {
-        size_t count = 0;
-        for (const auto& p : m_particles)
-        {
-            count += p.alive ? 1u : 0u;
-        }
-        return count;
+        return static_cast<size_t>(
+            std::count_if(m_particles.begin(), m_particles.end(), [](const Particle& p) { return p.alive; }));
     }
 
     bool isActive() const

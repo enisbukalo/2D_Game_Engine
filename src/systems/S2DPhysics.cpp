@@ -1,4 +1,5 @@
 #include "S2DPhysics.h"
+#include <algorithm>
 #include <cstdint>
 #include <utility>
 #include <vector>
@@ -212,10 +213,10 @@ void S2DPhysics::ensureShapesForEntity(Entity entity, const ::Components::CColli
 
                 std::vector<b2Vec2> points;
                 points.reserve(fixture.polygon.vertices.size());
-                for (const auto& v : fixture.polygon.vertices)
-                {
-                    points.push_back(b2Vec2{v.x, v.y});
-                }
+                std::transform(fixture.polygon.vertices.begin(),
+                               fixture.polygon.vertices.end(),
+                               std::back_inserter(points),
+                               [](const Vec2& v) { return b2Vec2{v.x, v.y}; });
 
                 b2Hull hull = b2ComputeHull(points.data(), static_cast<int>(points.size()));
                 if (hull.count <= 0)

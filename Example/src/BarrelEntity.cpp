@@ -126,6 +126,7 @@ void Barrel::configureBarrel()
 {
     m_transform   = addComponent<CTransform>(m_spawnPosition, Vec2(1.0f, 1.0f), 0.0f);
     auto* texture = addComponent<CTexture>("assets/textures/barrel.png");
+    texture->setSmooth(true);
     addComponent<CRenderable>(VisualType::Sprite, Color::White, kBarrelZIndex, true);
     addComponent<CMaterial>(Color::White, BlendMode::Alpha, 1.0f);
 

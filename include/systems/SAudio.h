@@ -106,6 +106,8 @@ private:
     float calculateEffectiveSfxVolume(float baseVolume) const;
     float calculateEffectiveMusicVolume(float baseVolume) const;
 
+    void shutdownInternal();
+
     bool                                             m_initialized = false;
     std::vector<SoundSlot>                           m_soundPool;
     std::unordered_map<std::string, sf::SoundBuffer> m_soundBuffers;

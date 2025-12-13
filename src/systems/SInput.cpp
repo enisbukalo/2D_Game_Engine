@@ -566,7 +566,7 @@ void SInput::updateControllerStates(World& world)
     world.components().each<Components::CInputController>(
         [this](Entity entity, Components::CInputController& controller)
         {
-            for (auto& kv : controller.bindings)
+            for (const auto& kv : controller.bindings)
             {
                 const std::string& actionName       = kv.first;
                 std::string        scoped           = scopeAction(entity, actionName);

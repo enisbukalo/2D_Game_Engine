@@ -19,7 +19,7 @@ SAudio::SAudio(size_t poolSize) : m_soundPool(poolSize) {}
 
 SAudio::~SAudio()
 {
-    shutdown();
+    shutdownInternal();
 }
 
 bool SAudio::initialize()
@@ -60,6 +60,11 @@ bool SAudio::initialize()
 }
 
 void SAudio::shutdown()
+{
+    shutdownInternal();
+}
+
+void SAudio::shutdownInternal()
 {
     if (!m_initialized)
     {
@@ -420,7 +425,7 @@ void SAudio::updateEcs(float deltaTime, World& world)
 
     bool listenerApplied = false;
     world.components().each<Components::CAudioListener>(
-        [this, &listenerApplied](Entity, Components::CAudioListener& listener)
+        [this, &listenerApplied](Entity, const Components::CAudioListener& listener)
         {
             if (listenerApplied)
             {

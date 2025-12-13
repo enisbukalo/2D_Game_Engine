@@ -38,19 +38,23 @@ private:
     std::shared_ptr<AudioManager> m_audioManager;
 
 public:
-    FishingGame() : m_running(true), m_fontLoaded(false), m_oceanBackground(nullptr)
+    FishingGame()
+        : m_gameEngine(std::make_unique<GameEngine>(
+              []
+              {
+                  WindowConfig windowConfig;
+                  windowConfig.width      = SCREEN_WIDTH;
+                  windowConfig.height     = SCREEN_HEIGHT;
+                  windowConfig.title      = "Boat Example - ECS Framework";
+                  windowConfig.vsync      = true;
+                  windowConfig.frameLimit = 144;
+                  return windowConfig;
+              }(),
+              GRAVITY)),
+          m_running(true),
+          m_fontLoaded(false),
+          m_oceanBackground(nullptr)
     {
-        // Create window configuration
-        WindowConfig windowConfig;
-        windowConfig.width      = SCREEN_WIDTH;
-        windowConfig.height     = SCREEN_HEIGHT;
-        windowConfig.title      = "Boat Example - ECS Framework";
-        windowConfig.vsync      = true;
-        windowConfig.frameLimit = 144;
-
-        // Initialize game engine with window config and particle scale
-        m_gameEngine = std::make_unique<GameEngine>(windowConfig, GRAVITY);
-
         // Try to load a system font (optional, will work without it)
         if (!m_font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf"))
         {

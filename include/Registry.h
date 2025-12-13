@@ -353,7 +353,7 @@ public:
         auto commands = std::move(m_commandBuffer);
         m_commandBuffer.clear();
 
-        for (auto& command : commands)
+        for (const auto& command : commands)
         {
             command();
         }

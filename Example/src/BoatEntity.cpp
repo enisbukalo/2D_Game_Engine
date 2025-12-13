@@ -238,6 +238,7 @@ void Boat::configureBoatBody()
 {
     m_transform   = addComponent<Components::CTransform>(Vec2(kBoatPosX, kBoatPosY), Vec2(1.0f, 1.0f), kBoatRot);
     auto* texture = addComponent<Components::CTexture>("assets/textures/boat.png");
+    texture->setSmooth(true);
     addComponent<Components::CRenderable>(Components::VisualType::Sprite, Color::White, 10, true);
     addComponent<Components::CMaterial>(Color::White, Components::BlendMode::Alpha, 1.0f);
 
