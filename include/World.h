@@ -17,10 +17,7 @@ public:
     class Components
     {
     public:
-        explicit Components(World& world)
-            : m_world(world)
-        {
-        }
+        explicit Components(World& world) : m_world(world) {}
 
         template <typename T, typename... Args>
         T* add(Entity e, Args&&... args)
@@ -173,10 +170,7 @@ public:
     class ConstComponents
     {
     public:
-        explicit ConstComponents(const World& world)
-            : m_world(world)
-        {
-        }
+        explicit ConstComponents(const World& world) : m_world(world) {}
 
         template <typename T>
         bool has(Entity e) const
@@ -244,8 +238,11 @@ public:
     World(const World&)            = delete;
     World& operator=(const World&) = delete;
 
-    Entity createEntity() { return m_registry.createEntity(); }
-    void   destroyEntity(Entity e)
+    Entity createEntity()
+    {
+        return m_registry.createEntity();
+    }
+    void destroyEntity(Entity e)
     {
         assertAlive(e, "destroyEntity");
         m_registry.destroy(e);
@@ -255,13 +252,31 @@ public:
         assertAlive(e, "queueDestroy");
         m_registry.queueDestroy(e);
     }
-    void   processDestroyQueue() { m_registry.processDestroyQueue(); }
-    void   flushCommandBuffer() { m_registry.flushCommandBuffer(); }
-    size_t pendingDestroyCount() const { return m_registry.pendingDestroyCount(); }
-    bool   isAlive(Entity e) const { return m_registry.isAlive(e); }
+    void processDestroyQueue()
+    {
+        m_registry.processDestroyQueue();
+    }
+    void flushCommandBuffer()
+    {
+        m_registry.flushCommandBuffer();
+    }
+    size_t pendingDestroyCount() const
+    {
+        return m_registry.pendingDestroyCount();
+    }
+    bool isAlive(Entity e) const
+    {
+        return m_registry.isAlive(e);
+    }
 
-    Components components() { return Components(*this); }
-    ConstComponents components() const { return ConstComponents(*this); }
+    Components components()
+    {
+        return Components(*this);
+    }
+    ConstComponents components() const
+    {
+        return ConstComponents(*this);
+    }
 
     template <typename T, typename... Args>
     T* add(Entity e, Args&&... args)
@@ -422,10 +437,19 @@ public:
         m_registry.view3<A, B, C>(std::forward<Func>(fn));
     }
 
-    const std::vector<Entity>& getEntities() const { return m_registry.getEntities(); }
-    const std::vector<std::type_index>& getComposition(Entity e) const { return m_registry.getComposition(e); }
+    const std::vector<Entity>& getEntities() const
+    {
+        return m_registry.getEntities();
+    }
+    const std::vector<std::type_index>& getComposition(Entity e) const
+    {
+        return m_registry.getComposition(e);
+    }
 
-    void clear() { m_registry.clear(); }
+    void clear()
+    {
+        m_registry.clear();
+    }
 
     template <typename T>
     void registerTypeName(const std::string& typeName)
@@ -439,7 +463,10 @@ public:
         return m_registry.getTypeName<T>();
     }
 
-    std::type_index getTypeFromName(const std::string& name) const { return m_registry.getTypeFromName(name); }
+    std::type_index getTypeFromName(const std::string& name) const
+    {
+        return m_registry.getTypeFromName(name);
+    }
 
 private:
     Registry m_registry;

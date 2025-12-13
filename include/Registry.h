@@ -11,11 +11,11 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <typeindex>
 #include <unordered_map>
 #include <utility>
-#include <tuple>
 #include <vector>
 
 #include <spdlog/spdlog.h>
@@ -78,13 +78,13 @@ public:
 
         if (has(entity))
         {
-            auto denseIndex      = m_sparse[entity.index];
-            m_dense[denseIndex]  = T(std::forward<Args>(args)...);
+            auto denseIndex        = m_sparse[entity.index];
+            m_dense[denseIndex]    = T(std::forward<Args>(args)...);
             m_entities[denseIndex] = entity;
             return m_dense[denseIndex];
         }
 
-        auto denseIndex = static_cast<uint32_t>(m_dense.size());
+        auto denseIndex        = static_cast<uint32_t>(m_dense.size());
         m_sparse[entity.index] = denseIndex;
         m_entities.push_back(entity);
         m_dense.emplace_back(std::forward<Args>(args)...);
@@ -121,8 +121,7 @@ public:
      */
     bool has(Entity entity) const override
     {
-        return entity.index < m_sparse.size() && m_sparse[entity.index] != kInvalid &&
-               m_entities[m_sparse[entity.index]] == entity;
+        return entity.index < m_sparse.size() && m_sparse[entity.index] != kInvalid && m_entities[m_sparse[entity.index]] == entity;
     }
 
     /**
@@ -393,7 +392,7 @@ public:
         {
             return nullptr;
         }
-        auto& store = getOrCreateStore<T>();
+        auto& store     = getOrCreateStore<T>();
         T&    component = store.add(entity, std::forward<Args>(args)...);
 
         trackComponentAdd(entity, std::type_index(typeid(T)));
@@ -432,17 +431,17 @@ public:
         }
 
         auto argsTuple = std::make_shared<std::tuple<std::decay_t<Args>...>>(std::forward<Args>(args)...);
-        m_commandBuffer.emplace_back([this, entity, argsTuple]() {
-            if (!m_entityManager.isAlive(entity))
+        m_commandBuffer.emplace_back(
+            [this, entity, argsTuple]()
             {
-                logDead("queueAdd/execute", entity);
-                return;
-            }
+                if (!m_entityManager.isAlive(entity))
+                {
+                    logDead("queueAdd/execute", entity);
+                    return;
+                }
 
-            std::apply(
-                [&](auto&... unpacked) { this->add<T>(entity, std::move(unpacked)...); },
-                *argsTuple);
-        });
+                std::apply([&](auto&... unpacked) { this->add<T>(entity, std::move(unpacked)...); }, *argsTuple);
+            });
     }
 
     template <typename T>
@@ -453,14 +452,16 @@ public:
             return;
         }
 
-        m_commandBuffer.emplace_back([this, entity]() {
-            if (!m_entityManager.isAlive(entity))
+        m_commandBuffer.emplace_back(
+            [this, entity]()
             {
-                logDead("queueRemove/execute", entity);
-                return;
-            }
-            this->remove<T>(entity);
-        });
+                if (!m_entityManager.isAlive(entity))
+                {
+                    logDead("queueRemove/execute", entity);
+                    return;
+                }
+                this->remove<T>(entity);
+            });
     }
 
     template <typename... Components>
@@ -581,13 +582,15 @@ public:
         auto* store = getStore<T>();
         if (store)
         {
-            store->each([&](Entity entity, T& component) {
-                if (!ensureAlive(entity, "each"))
+            store->each(
+                [&](Entity entity, T& component)
                 {
-                    return;
-                }
-                fn(entity, component);
-            });
+                    if (!ensureAlive(entity, "each"))
+                    {
+                        return;
+                    }
+                    fn(entity, component);
+                });
         }
     }
 
@@ -600,13 +603,15 @@ public:
         const auto* store = getStore<T>();
         if (store)
         {
-            store->each([&](Entity entity, const T& component) {
-                if (!ensureAlive(entity, "each"))
+            store->each(
+                [&](Entity entity, const T& component)
                 {
-                    return;
-                }
-                fn(entity, component);
-            });
+                    if (!ensureAlive(entity, "each"))
+                    {
+                        return;
+                    }
+                    fn(entity, component);
+                });
         }
     }
 
@@ -624,22 +629,24 @@ public:
             return;
         }
 
-        constexpr size_t kCount = sizeof...(Components);
+        constexpr size_t           kCount = sizeof...(Components);
         std::array<size_t, kCount> sizes{std::get<ComponentStore<Components>*>(stores)->size()...};
-        const size_t primaryIndex = static_cast<size_t>(
+        const size_t               primaryIndex = static_cast<size_t>(
             std::distance(sizes.begin(), std::min_element(sizes.begin(), sizes.end())));
 
-        auto hasAll = [&](Entity entity) {
+        auto hasAll = [&](Entity entity)
+        {
             bool allPresent = true;
             std::apply([&](auto*... store) { ((allPresent = allPresent && store->has(entity)), ...); }, stores);
             return allPresent;
         };
 
-        auto dispatch = [&](auto primaryConst) {
-            constexpr size_t P = decltype(primaryConst)::value;
-            auto* primaryStore = std::get<P>(stores);
-            auto& entities     = primaryStore->entities();
-            auto& components   = primaryStore->components();
+        auto dispatch = [&](auto primaryConst)
+        {
+            constexpr size_t P            = decltype(primaryConst)::value;
+            auto*            primaryStore = std::get<P>(stores);
+            auto&            entities     = primaryStore->entities();
+            auto&            components   = primaryStore->components();
 
             for (size_t i = 0; i < components.size(); ++i)
             {
@@ -671,22 +678,24 @@ public:
             return;
         }
 
-        constexpr size_t kCount = sizeof...(Components);
+        constexpr size_t           kCount = sizeof...(Components);
         std::array<size_t, kCount> sizes{std::get<const ComponentStore<Components>*>(stores)->size()...};
-        const size_t primaryIndex = static_cast<size_t>(
+        const size_t               primaryIndex = static_cast<size_t>(
             std::distance(sizes.begin(), std::min_element(sizes.begin(), sizes.end())));
 
-        auto hasAll = [&](Entity entity) {
+        auto hasAll = [&](Entity entity)
+        {
             bool allPresent = true;
             std::apply([&](const auto*... store) { ((allPresent = allPresent && store->has(entity)), ...); }, stores);
             return allPresent;
         };
 
-        auto dispatch = [&](auto primaryConst) {
-            constexpr size_t P = decltype(primaryConst)::value;
-            const auto* primaryStore = std::get<P>(stores);
-            const auto& entities     = primaryStore->entities();
-            const auto& components   = primaryStore->components();
+        auto dispatch = [&](auto primaryConst)
+        {
+            constexpr size_t P            = decltype(primaryConst)::value;
+            const auto*      primaryStore = std::get<P>(stores);
+            const auto&      entities     = primaryStore->entities();
+            const auto&      components   = primaryStore->components();
 
             for (size_t i = 0; i < components.size(); ++i)
             {
@@ -728,9 +737,9 @@ public:
             return;
         }
 
-        std::stable_sort(items.begin(), items.end(), [&](const Item& lhs, const Item& rhs) {
-            return compare(std::get<0>(lhs), std::get<0>(rhs));
-        });
+        std::stable_sort(items.begin(),
+                         items.end(),
+                         [&](const Item& lhs, const Item& rhs) { return compare(std::get<0>(lhs), std::get<0>(rhs)); });
 
         for (const auto& item : items)
         {
@@ -759,9 +768,9 @@ public:
             return;
         }
 
-        std::stable_sort(items.begin(), items.end(), [&](const Item& lhs, const Item& rhs) {
-            return compare(std::get<0>(lhs), std::get<0>(rhs));
-        });
+        std::stable_sort(items.begin(),
+                         items.end(),
+                         [&](const Item& lhs, const Item& rhs) { return compare(std::get<0>(lhs), std::get<0>(rhs)); });
 
         for (const auto& item : items)
         {
@@ -837,7 +846,7 @@ public:
     {
         assert(!typeName.empty() && "Component type name must not be empty");
         std::type_index typeIdx(typeid(T));
-        auto existingByType = m_typeNames.find(typeIdx);
+        auto            existingByType = m_typeNames.find(typeIdx);
         if (existingByType != m_typeNames.end())
         {
             if (existingByType->second != typeName)
@@ -955,12 +964,8 @@ private:
     }
 
     template <size_t PrimaryIndex, typename Func, typename StoresTuple, typename ComponentsVec, size_t... Is>
-    static void callView(Func& fn,
-                         StoresTuple& stores,
-                         ComponentsVec& components,
-                         Entity entity,
-                         size_t denseIndex,
-                         std::index_sequence<Is...>)
+    static void
+    callView(Func& fn, StoresTuple& stores, ComponentsVec& components, Entity entity, size_t denseIndex, std::index_sequence<Is...>)
     {
         fn(entity, viewComponent<PrimaryIndex, Is>(stores, components, entity, denseIndex)...);
     }
@@ -982,7 +987,6 @@ private:
         }
         return true;
     }
-
 
     void logDead(const char* action, Entity entity) const
     {
@@ -1053,8 +1057,8 @@ private:
         return std::find(types.begin(), types.end(), typeIdx) != types.end();
     }
 
-    EntityManager      m_entityManager;  ///< Allocates/destroys entities with generations
-    std::vector<Entity> m_entities;      ///< All active entities
+    EntityManager       m_entityManager;  ///< Allocates/destroys entities with generations
+    std::vector<Entity> m_entities;       ///< All active entities
 
     /// Per-type component stores, keyed by type_index
     std::unordered_map<std::type_index, std::unique_ptr<IComponentStore>> m_componentStores;

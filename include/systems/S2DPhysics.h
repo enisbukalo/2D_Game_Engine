@@ -13,7 +13,7 @@ namespace Components
 class CPhysicsBody2D;
 struct CTransform;
 struct CCollider2D;
-}
+}  // namespace Components
 
 namespace Systems
 {
@@ -92,7 +92,10 @@ public:
     /**
      * @brief Bind the world so physics can resolve components without side maps
      */
-    void bindWorld(World* world) { m_world = world; }
+    void bindWorld(World* world)
+    {
+        m_world = world;
+    }
 
     /**
      * @brief Get the Box2D world ID

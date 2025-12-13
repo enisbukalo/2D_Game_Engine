@@ -1,11 +1,11 @@
 #include "GameEngine.h"
-#include <cassert>
-#include <stdexcept>
-#include <typeindex>
 #include <spdlog/async.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
+#include <cassert>
+#include <stdexcept>
+#include <typeindex>
 
 // Include all component types for registry registration
 #include <Components.h>
@@ -265,8 +265,9 @@ void GameEngine::validateComponentTypeNames()
 {
     using namespace Components;
 
-    auto validate = [this](auto typeTag, const char* stableName) {
-        using T = decltype(typeTag);
+    auto validate = [this](auto typeTag, const char* stableName)
+    {
+        using T                      = decltype(typeTag);
         const std::string registered = m_world.getTypeName<T>();
         if (registered != stableName)
         {

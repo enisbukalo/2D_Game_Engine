@@ -155,16 +155,16 @@ public:
     }
 
 private:
-    std::unique_ptr<Systems::SRenderer> m_renderer;  ///< Renderer owned by engine
-    std::unique_ptr<Systems::SInput>    m_input;     ///< Input system owned by engine
-    std::unique_ptr<Systems::S2DPhysics> m_physics;  ///< Physics system owned by engine
-    std::unique_ptr<Systems::SParticle>  m_particle; ///< Particle system owned by engine
-    std::unique_ptr<Systems::SAudio>     m_audio;    ///< Audio system owned by engine
+    std::unique_ptr<Systems::SRenderer>  m_renderer;  ///< Renderer owned by engine
+    std::unique_ptr<Systems::SInput>     m_input;     ///< Input system owned by engine
+    std::unique_ptr<Systems::S2DPhysics> m_physics;   ///< Physics system owned by engine
+    std::unique_ptr<Systems::SParticle>  m_particle;  ///< Particle system owned by engine
+    std::unique_ptr<Systems::SAudio>     m_audio;     ///< Audio system owned by engine
 
-    std::vector<Systems::ISystem*> m_systemOrder;  ///< Ordered system update list
-    World         m_world;         ///< Central world (registry + lifecycle)
-    const uint8_t m_subStepCount;  ///< Number of physics sub-steps per update
-    const float   m_timeStep;      ///< Fixed time step for physics updates
+    std::vector<Systems::ISystem*> m_systemOrder;   ///< Ordered system update list
+    World                          m_world;         ///< Central world (registry + lifecycle)
+    const uint8_t                  m_subStepCount;  ///< Number of physics sub-steps per update
+    const float                    m_timeStep;      ///< Fixed time step for physics updates
 
     bool  m_gameRunning = false;  ///< Flag indicating if the game is running
     float m_accumulator = 0.0f;   ///< Accumulator for fixed timestep updates

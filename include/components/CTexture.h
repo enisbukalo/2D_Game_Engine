@@ -20,8 +20,14 @@ struct CTexture
     CTexture() = default;
     explicit CTexture(const std::string& texturePath) : texturePath(texturePath) {}
 
-    inline std::string getTexturePath() const { return texturePath; }
-    inline void setTexturePath(const std::string& newTexturePath) { texturePath = newTexturePath; }
+    inline std::string getTexturePath() const
+    {
+        return texturePath;
+    }
+    inline void setTexturePath(const std::string& newTexturePath)
+    {
+        texturePath = newTexturePath;
+    }
 
     std::string texturePath;
 };

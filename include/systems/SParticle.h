@@ -1,10 +1,10 @@
 #ifndef SPARTICLE_H
 #define SPARTICLE_H
 
-#include <string>
-#include <unordered_map>
 #include <Entity.h>
 #include <SFML/Graphics.hpp>
+#include <string>
+#include <unordered_map>
 #include "System.h"
 
 class Registry;  // Forward declaration

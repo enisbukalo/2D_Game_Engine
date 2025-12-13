@@ -21,15 +21,39 @@ struct CTransform
     CTransform() = default;
     CTransform(const Vec2& pos, const Vec2& scl, float rot) : position(pos), scale(scl), rotation(rot) {}
 
-    inline Vec2 getPosition() const { return position; }
-    inline Vec2 getVelocity() const { return velocity; }
-    inline Vec2 getScale() const { return scale; }
-    inline float getRotation() const { return rotation; }
+    inline Vec2 getPosition() const
+    {
+        return position;
+    }
+    inline Vec2 getVelocity() const
+    {
+        return velocity;
+    }
+    inline Vec2 getScale() const
+    {
+        return scale;
+    }
+    inline float getRotation() const
+    {
+        return rotation;
+    }
 
-    inline void setPosition(const Vec2& pos) { position = pos; }
-    inline void setVelocity(const Vec2& vel) { velocity = vel; }
-    inline void setScale(const Vec2& scl) { scale = scl; }
-    inline void setRotation(float rot) { rotation = rot; }
+    inline void setPosition(const Vec2& pos)
+    {
+        position = pos;
+    }
+    inline void setVelocity(const Vec2& vel)
+    {
+        velocity = vel;
+    }
+    inline void setScale(const Vec2& scl)
+    {
+        scale = scl;
+    }
+    inline void setRotation(float rot)
+    {
+        rotation = rot;
+    }
 
     Vec2  position = Vec2(0.0f, 0.0f);
     Vec2  velocity = Vec2(0.0f, 0.0f);

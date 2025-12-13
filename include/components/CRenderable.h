@@ -38,24 +38,66 @@ struct CRenderable
     {
     }
 
-    inline VisualType getVisualType() const { return visualType; }
-    inline void setVisualType(VisualType newVisualType) { visualType = newVisualType; }
+    inline VisualType getVisualType() const
+    {
+        return visualType;
+    }
+    inline void setVisualType(VisualType newVisualType)
+    {
+        visualType = newVisualType;
+    }
 
-    inline Color getColor() const { return color; }
-    inline void setColor(const Color& newColor) { color = newColor; }
+    inline Color getColor() const
+    {
+        return color;
+    }
+    inline void setColor(const Color& newColor)
+    {
+        color = newColor;
+    }
 
-    inline int getZIndex() const { return zIndex; }
-    inline void setZIndex(int newZIndex) { zIndex = newZIndex; }
+    inline int getZIndex() const
+    {
+        return zIndex;
+    }
+    inline void setZIndex(int newZIndex)
+    {
+        zIndex = newZIndex;
+    }
 
-    inline bool isVisible() const { return visible; }
-    inline void setVisible(bool isVisible) { visible = isVisible; }
+    inline bool isVisible() const
+    {
+        return visible;
+    }
+    inline void setVisible(bool isVisible)
+    {
+        visible = isVisible;
+    }
 
-    inline Vec2 getLineStart() const { return lineStart; }
-    inline void setLineStart(const Vec2& start) { lineStart = start; }
-    inline Vec2 getLineEnd() const { return lineEnd; }
-    inline void setLineEnd(const Vec2& end) { lineEnd = end; }
-    inline float getLineThickness() const { return lineThickness; }
-    inline void setLineThickness(float thickness) { lineThickness = thickness; }
+    inline Vec2 getLineStart() const
+    {
+        return lineStart;
+    }
+    inline void setLineStart(const Vec2& start)
+    {
+        lineStart = start;
+    }
+    inline Vec2 getLineEnd() const
+    {
+        return lineEnd;
+    }
+    inline void setLineEnd(const Vec2& end)
+    {
+        lineEnd = end;
+    }
+    inline float getLineThickness() const
+    {
+        return lineThickness;
+    }
+    inline void setLineThickness(float thickness)
+    {
+        lineThickness = thickness;
+    }
 
     VisualType visualType = VisualType::None;
     Color      color      = Color::White;

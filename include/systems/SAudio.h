@@ -71,7 +71,7 @@ public:
     void update(float deltaTime) override;
 
     // ISystem interface implementation
-    void update(float deltaTime, World& world) override;
+    void        update(float deltaTime, World& world) override;
     UpdateStage stage() const override
     {
         return UpdateStage::PostFlush;
@@ -92,8 +92,8 @@ private:
     struct SoundSlot
     {
         sf::Sound sound;
-        Entity    owner = Entity::null();
-        bool      inUse = false;
+        Entity    owner      = Entity::null();
+        bool      inUse      = false;
         float     baseVolume = 1.0f;
     };
 
@@ -114,8 +114,8 @@ private:
     std::string                                      m_currentMusicId;
     float                                            m_currentMusicBaseVolume = 1.0f;
 
-    float m_masterVolume = AudioConstants::DEFAULT_MASTER_VOLUME;
-    float m_musicVolume  = AudioConstants::DEFAULT_MUSIC_VOLUME;
+    float                              m_masterVolume = AudioConstants::DEFAULT_MASTER_VOLUME;
+    float                              m_musicVolume  = AudioConstants::DEFAULT_MUSIC_VOLUME;
     std::unordered_map<Entity, size_t> m_entityToSlot;
 };
 

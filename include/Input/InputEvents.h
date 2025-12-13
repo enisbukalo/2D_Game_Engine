@@ -32,7 +32,7 @@ struct KeyEvent
 struct MouseEvent
 {
     MouseButton  button;
-    Vec2i       position;
+    Vec2i        position;
     unsigned int clickCount = 1;
 };
 
@@ -43,8 +43,8 @@ struct MouseMoveEvent
 
 struct WheelEvent
 {
-    float        delta;
-    Vec2i        position;
+    float delta;
+    Vec2i position;
 };
 
 struct TextEvent

@@ -195,7 +195,7 @@ void S2DPhysics::ensureShapesForEntity(Entity entity, const ::Components::CColli
             }
             case ::Components::ColliderShape::Box:
             {
-                b2Polygon box = b2MakeBox(fixture.box.halfWidth, fixture.box.halfHeight);
+                b2Polygon box     = b2MakeBox(fixture.box.halfWidth, fixture.box.halfHeight);
                 b2ShapeId shapeId = b2CreatePolygonShape(bodyId, &shapeDef, &box);
                 if (b2Shape_IsValid(shapeId))
                 {
@@ -223,7 +223,7 @@ void S2DPhysics::ensureShapesForEntity(Entity entity, const ::Components::CColli
                     break;
                 }
 
-                b2Polygon poly = b2MakePolygon(&hull, fixture.polygon.radius);
+                b2Polygon poly    = b2MakePolygon(&hull, fixture.polygon.radius);
                 b2ShapeId shapeId = b2CreatePolygonShape(bodyId, &shapeDef, &poly);
                 if (b2Shape_IsValid(shapeId))
                 {
@@ -259,13 +259,13 @@ void S2DPhysics::ensureShapesForEntity(Entity entity, const ::Components::CColli
                 mat.friction          = collider.friction;
                 mat.restitution       = collider.restitution;
 
-                b2ChainDef chainDef       = b2DefaultChainDef();
-                chainDef.points           = pts;
-                chainDef.count            = 4;
-                chainDef.materials        = &mat;
-                chainDef.materialCount    = 1;
+                b2ChainDef chainDef         = b2DefaultChainDef();
+                chainDef.points             = pts;
+                chainDef.count              = 4;
+                chainDef.materials          = &mat;
+                chainDef.materialCount      = 1;
                 chainDef.enableSensorEvents = collider.sensor;
-                chainDef.isLoop           = false;
+                chainDef.isLoop             = false;
 
                 b2ChainId chainId = b2CreateChain(bodyId, &chainDef);
                 if (b2Chain_IsValid(chainId))
@@ -296,7 +296,7 @@ void S2DPhysics::ensureBodyForEntity(Entity entity, const ::Components::CTransfo
     }
 
     b2BodyId existing = b2_nullBodyId;
-    auto it          = m_bodies.find(entity);
+    auto     it       = m_bodies.find(entity);
     if (it != m_bodies.end())
     {
         existing = it->second;
@@ -323,7 +323,7 @@ void S2DPhysics::ensureBodyForEntity(Entity entity, const ::Components::CTransfo
                 break;
         }
 
-        existing    = createBody(entity, bodyDef);
+        existing = createBody(entity, bodyDef);
         if (b2Body_IsValid(existing))
         {
             m_bodies[entity] = existing;
@@ -345,11 +345,12 @@ void S2DPhysics::pruneDestroyedBodies(const World& world)
 
     for (auto it = m_bodies.begin(); it != m_bodies.end();)
     {
-        const Entity  entity = it->first;
+        const Entity   entity = it->first;
         const b2BodyId bodyId = it->second;
 
-        const bool deadEntity = !world.isAlive(entity);
-        const bool missingComponents = deadEntity || !components.has<::Components::CTransform>(entity) || !components.has<::Components::CPhysicsBody2D>(entity);
+        const bool deadEntity        = !world.isAlive(entity);
+        const bool missingComponents = deadEntity || !components.has<::Components::CTransform>(entity)
+                                       || !components.has<::Components::CPhysicsBody2D>(entity);
         const bool invalidBody = !b2Body_IsValid(bodyId);
 
         if (deadEntity || missingComponents || invalidBody)
@@ -587,8 +588,8 @@ void S2DPhysics::runFixedUpdates(float timeStep)
 {
     for (auto it = m_fixedCallbacks.begin(); it != m_fixedCallbacks.end();)
     {
-        const Entity  entity = it->first;
-        const b2BodyId body  = getBody(entity);
+        const Entity   entity = it->first;
+        const b2BodyId body   = getBody(entity);
         if (!b2Body_IsValid(body))
         {
             it = m_fixedCallbacks.erase(it);

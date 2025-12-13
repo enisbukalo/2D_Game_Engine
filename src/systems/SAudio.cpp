@@ -1,7 +1,7 @@
 #include "SAudio.h"
 
-#include <algorithm>
 #include <spdlog/spdlog.h>
+#include <algorithm>
 
 #include "CAudioListener.h"
 #include "CAudioSource.h"
@@ -42,8 +42,8 @@ bool SAudio::initialize()
 
     for (auto& slot : m_soundPool)
     {
-        slot.inUse = false;
-        slot.owner = Entity::null();
+        slot.inUse      = false;
+        slot.owner      = Entity::null();
         slot.baseVolume = 1.0f;
     }
 
@@ -116,7 +116,7 @@ bool SAudio::loadSound(const std::string& id, const std::string& filepath, Audio
 #endif
 
         sf::SoundBuffer buffer;
-        bool success = buffer.loadFromFile(filepath);
+        bool            success = buffer.loadFromFile(filepath);
 
 #ifndef _WIN32
         if (oldStderr != -1)
@@ -419,30 +419,34 @@ void SAudio::updateEcs(float deltaTime, World& world)
     }
 
     bool listenerApplied = false;
-    world.components().each<Components::CAudioListener>([this, &listenerApplied](Entity, Components::CAudioListener& listener) {
-        if (listenerApplied)
+    world.components().each<Components::CAudioListener>(
+        [this, &listenerApplied](Entity, Components::CAudioListener& listener)
         {
-            return;
-        }
-        setMasterVolume(listener.masterVolume);
-        setMusicVolume(listener.musicVolume);
-        listenerApplied = true;
-    });
+            if (listenerApplied)
+            {
+                return;
+            }
+            setMasterVolume(listener.masterVolume);
+            setMusicVolume(listener.musicVolume);
+            listenerApplied = true;
+        });
 
-    world.components().each<Components::CAudioSource>([this](Entity entity, Components::CAudioSource& source) {
-        if (source.stopRequested)
+    world.components().each<Components::CAudioSource>(
+        [this](Entity entity, Components::CAudioSource& source)
         {
-            stopSfx(entity);
-        }
+            if (source.stopRequested)
+            {
+                stopSfx(entity);
+            }
 
-        if (source.playRequested)
-        {
-            playSfx(entity, source.clipId, source.loop, source.volume);
-        }
+            if (source.playRequested)
+            {
+                playSfx(entity, source.clipId, source.loop, source.volume);
+            }
 
-        source.playRequested = false;
-        source.stopRequested = false;
-    });
+            source.playRequested = false;
+            source.stopRequested = false;
+        });
 }
 
 int SAudio::findAvailableSlot()

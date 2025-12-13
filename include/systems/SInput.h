@@ -71,12 +71,12 @@ public:
     void removeListener(IInputListener* listener);
 
     // Query APIs
-    bool         isKeyDown(KeyCode key) const;
-    bool         wasKeyPressed(KeyCode key) const;
-    bool         wasKeyReleased(KeyCode key) const;
-    bool         isMouseDown(MouseButton button) const;
-    bool         wasMousePressed(MouseButton button) const;
-    bool         wasMouseReleased(MouseButton button) const;
+    bool  isKeyDown(KeyCode key) const;
+    bool  wasKeyPressed(KeyCode key) const;
+    bool  wasKeyReleased(KeyCode key) const;
+    bool  isMouseDown(MouseButton button) const;
+    bool  wasMousePressed(MouseButton button) const;
+    bool  wasMouseReleased(MouseButton button) const;
     Vec2i getMousePositionWindow() const;
 
     // Action binding

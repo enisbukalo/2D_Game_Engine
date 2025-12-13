@@ -35,15 +35,39 @@ struct CPhysicsBody2D
     float angularDamping{0.10f};
     float gravityScale{1.0f};
 
-    inline BodyType getBodyType() const { return bodyType; }
-    inline void setBodyType(BodyType newType) { bodyType = newType; }
+    inline BodyType getBodyType() const
+    {
+        return bodyType;
+    }
+    inline void setBodyType(BodyType newType)
+    {
+        bodyType = newType;
+    }
 
-    inline float getDensity() const { return density; }
-    inline void setDensity(float d) { density = d; }
-    inline float getFriction() const { return friction; }
-    inline void setFriction(float f) { friction = f; }
-    inline float getRestitution() const { return restitution; }
-    inline void setRestitution(float r) { restitution = r; }
+    inline float getDensity() const
+    {
+        return density;
+    }
+    inline void setDensity(float d)
+    {
+        density = d;
+    }
+    inline float getFriction() const
+    {
+        return friction;
+    }
+    inline void setFriction(float f)
+    {
+        friction = f;
+    }
+    inline float getRestitution() const
+    {
+        return restitution;
+    }
+    inline void setRestitution(float r)
+    {
+        restitution = r;
+    }
 };
 
 }  // namespace Components

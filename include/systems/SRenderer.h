@@ -166,7 +166,10 @@ public:
     /**
      * @brief Inject particle system for particle rendering
      */
-    void setParticleSystem(SParticle* particleSystem) { m_particleSystem = particleSystem; }
+    void setParticleSystem(SParticle* particleSystem)
+    {
+        m_particleSystem = particleSystem;
+    }
 
 private:
     /** @brief Deleted copy constructor */
@@ -192,7 +195,7 @@ private:
     std::unique_ptr<sf::RenderWindow>            m_window;                       ///< The render window
     std::unordered_map<std::string, sf::Texture> m_textureCache;                 ///< Cached textures by filepath
     std::unordered_map<std::string, std::unique_ptr<sf::Shader>> m_shaderCache;  ///< Cached shaders by filepath combination
-    bool m_initialized = false;                                                  ///< Initialization state
+    bool       m_initialized    = false;                                         ///< Initialization state
     SParticle* m_particleSystem = nullptr;                                       ///< Optional particle system hookup
 };
 

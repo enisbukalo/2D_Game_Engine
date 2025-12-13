@@ -543,34 +543,36 @@ std::string SInput::scopeAction(Entity entity, const std::string& actionName) co
 
 void SInput::registerControllerBindings(World& world)
 {
-    world.components().each<Components::CInputController>([this](Entity entity, Components::CInputController& controller)
-                                             {
-                                                 for (auto& kv : controller.bindings)
-                                                 {
-                                                     const std::string& actionName = kv.first;
-                                                     for (auto& binding : kv.second)
-                                                     {
-                                                         if (binding.bindingId == 0)
-                                                         {
-                                                             std::string scoped = scopeAction(entity, actionName);
-                                                             binding.bindingId   = bindAction(scoped, binding.binding);
-                                                         }
-                                                     }
-                                                 }
-                                             });
+    world.components().each<Components::CInputController>(
+        [this](Entity entity, Components::CInputController& controller)
+        {
+            for (auto& kv : controller.bindings)
+            {
+                const std::string& actionName = kv.first;
+                for (auto& binding : kv.second)
+                {
+                    if (binding.bindingId == 0)
+                    {
+                        std::string scoped = scopeAction(entity, actionName);
+                        binding.bindingId  = bindAction(scoped, binding.binding);
+                    }
+                }
+            }
+        });
 }
 
 void SInput::updateControllerStates(World& world)
 {
-    world.components().each<Components::CInputController>([this](Entity entity, Components::CInputController& controller)
-                                             {
-                                                 for (auto& kv : controller.bindings)
-                                                 {
-                                                     const std::string& actionName = kv.first;
-                                                     std::string        scoped     = scopeAction(entity, actionName);
-                                                     controller.actionStates[actionName] = getActionState(scoped);
-                                                 }
-                                             });
+    world.components().each<Components::CInputController>(
+        [this](Entity entity, Components::CInputController& controller)
+        {
+            for (auto& kv : controller.bindings)
+            {
+                const std::string& actionName       = kv.first;
+                std::string        scoped           = scopeAction(entity, actionName);
+                controller.actionStates[actionName] = getActionState(scoped);
+            }
+        });
 }
 
 ListenerId SInput::subscribe(std::function<void(const InputEvent&)> cb)

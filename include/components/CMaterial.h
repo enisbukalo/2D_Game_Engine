@@ -36,12 +36,30 @@ struct CMaterial
     {
     }
 
-    inline Color getTint() const { return tint; }
-    inline void setTint(const Color& newTint) { tint = newTint; }
-    inline BlendMode getBlendMode() const { return blendMode; }
-    inline void setBlendMode(BlendMode newBlendMode) { blendMode = newBlendMode; }
-    inline float getOpacity() const { return opacity; }
-    inline void setOpacity(float newOpacity) { opacity = newOpacity; }
+    inline Color getTint() const
+    {
+        return tint;
+    }
+    inline void setTint(const Color& newTint)
+    {
+        tint = newTint;
+    }
+    inline BlendMode getBlendMode() const
+    {
+        return blendMode;
+    }
+    inline void setBlendMode(BlendMode newBlendMode)
+    {
+        blendMode = newBlendMode;
+    }
+    inline float getOpacity() const
+    {
+        return opacity;
+    }
+    inline void setOpacity(float newOpacity)
+    {
+        opacity = newOpacity;
+    }
 
     Color     tint      = Color::White;
     BlendMode blendMode = BlendMode::Alpha;

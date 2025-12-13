@@ -72,15 +72,18 @@ struct CCollider2D
     float friction{0.3f};
     float restitution{0.0f};
 
-    inline void clear() { fixtures.clear(); }
+    inline void clear()
+    {
+        fixtures.clear();
+    }
 
     inline void createCircle(float radius, const Vec2& center = Vec2{0.0f, 0.0f})
     {
         fixtures.clear();
         ShapeFixture f;
-        f.shapeType          = ColliderShape::Circle;
-        f.circle.center      = center;
-        f.circle.radius      = radius;
+        f.shapeType     = ColliderShape::Circle;
+        f.circle.center = center;
+        f.circle.radius = radius;
         fixtures.push_back(std::move(f));
     }
 
@@ -88,9 +91,9 @@ struct CCollider2D
     {
         fixtures.clear();
         ShapeFixture f;
-        f.shapeType       = ColliderShape::Box;
-        f.box.halfWidth   = halfWidth;
-        f.box.halfHeight  = halfHeight;
+        f.shapeType      = ColliderShape::Box;
+        f.box.halfWidth  = halfWidth;
+        f.box.halfHeight = halfHeight;
         fixtures.push_back(std::move(f));
     }
 
@@ -103,9 +106,9 @@ struct CCollider2D
     inline void addPolygon(const std::vector<Vec2>& vertices, float radius = 0.0f)
     {
         ShapeFixture f;
-        f.shapeType           = ColliderShape::Polygon;
-        f.polygon.vertices    = vertices;
-        f.polygon.radius      = radius;
+        f.shapeType        = ColliderShape::Polygon;
+        f.polygon.vertices = vertices;
+        f.polygon.radius   = radius;
         fixtures.push_back(std::move(f));
     }
 
@@ -118,9 +121,9 @@ struct CCollider2D
     inline void addSegment(const Vec2& point1, const Vec2& point2)
     {
         ShapeFixture f;
-        f.shapeType         = ColliderShape::Segment;
-        f.segment.point1    = point1;
-        f.segment.point2    = point2;
+        f.shapeType      = ColliderShape::Segment;
+        f.segment.point1 = point1;
+        f.segment.point2 = point2;
         fixtures.push_back(std::move(f));
     }
 
@@ -133,11 +136,11 @@ struct CCollider2D
     inline void addChainSegment(const Vec2& ghost1, const Vec2& point1, const Vec2& point2, const Vec2& ghost2)
     {
         ShapeFixture f;
-        f.shapeType                 = ColliderShape::ChainSegment;
-        f.chainSegment.ghost1       = ghost1;
-        f.chainSegment.point1       = point1;
-        f.chainSegment.point2       = point2;
-        f.chainSegment.ghost2       = ghost2;
+        f.shapeType           = ColliderShape::ChainSegment;
+        f.chainSegment.ghost1 = ghost1;
+        f.chainSegment.point1 = point1;
+        f.chainSegment.point2 = point2;
+        f.chainSegment.ghost2 = ghost2;
         fixtures.push_back(std::move(f));
     }
 
@@ -146,18 +149,48 @@ struct CCollider2D
         return fixtures.empty() ? ColliderShape::Box : fixtures[0].shapeType;
     }
 
-    inline const std::vector<ShapeFixture>& getFixtures() const { return fixtures; }
-    inline size_t getFixtureCount() const { return fixtures.size(); }
+    inline const std::vector<ShapeFixture>& getFixtures() const
+    {
+        return fixtures;
+    }
+    inline size_t getFixtureCount() const
+    {
+        return fixtures.size();
+    }
 
-    inline void setIsSensor(bool isSensor) { sensor = isSensor; }
-    inline bool isSensor() const { return sensor; }
+    inline void setIsSensor(bool isSensor)
+    {
+        sensor = isSensor;
+    }
+    inline bool isSensor() const
+    {
+        return sensor;
+    }
 
-    inline void setDensity(float d) { density = d; }
-    inline float getDensity() const { return density; }
-    inline void setFriction(float f) { friction = f; }
-    inline float getFriction() const { return friction; }
-    inline void setRestitution(float r) { restitution = r; }
-    inline float getRestitution() const { return restitution; }
+    inline void setDensity(float d)
+    {
+        density = d;
+    }
+    inline float getDensity() const
+    {
+        return density;
+    }
+    inline void setFriction(float f)
+    {
+        friction = f;
+    }
+    inline float getFriction() const
+    {
+        return friction;
+    }
+    inline void setRestitution(float r)
+    {
+        restitution = r;
+    }
+    inline float getRestitution() const
+    {
+        return restitution;
+    }
 
     inline float getCircleRadius() const
     {
@@ -224,7 +257,7 @@ struct CCollider2D
     {
         if (fixtures.empty())
         {
-            outWidth = 0.0f;
+            outWidth  = 0.0f;
             outHeight = 0.0f;
             return false;
         }
@@ -248,7 +281,7 @@ struct CCollider2D
             {
                 case ColliderShape::Circle:
                 {
-                    const Vec2 c = f.circle.center;
+                    const Vec2  c = f.circle.center;
                     const float r = f.circle.radius;
                     includePoint(Vec2{c.x - r, c.y - r});
                     includePoint(Vec2{c.x + r, c.y + r});
